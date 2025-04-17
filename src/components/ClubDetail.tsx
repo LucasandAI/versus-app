@@ -1,16 +1,33 @@
 
 import React, { useState } from 'react';
-import { ArrowLeft, MessageCircle, Info, User as UserIcon, Calendar, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Info, User as UserIcon, Calendar, TrendingUp, TrendingDown, ArrowRight, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import MatchProgressBar from './shared/MatchProgressBar';
 import UserAvatar from './shared/UserAvatar';
 import { ClubMember } from '@/types';
 import Button from './shared/Button';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose
+} from "@/components/ui/dialog";
 import { toast } from "@/components/ui/use-toast";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const ClubDetail: React.FC = () => {
   const { selectedClub, setCurrentView, currentUser, setSelectedUser } = useApp();
   const [showAllHistory, setShowAllHistory] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState<any>(null);
   
   if (!selectedClub) {
     return (
@@ -33,17 +50,27 @@ const ClubDetail: React.FC = () => {
       homeClub: {
         id: selectedClub?.id,
         name: selectedClub?.name,
-        totalDistance: 98.2
+        totalDistance: 98.2,
+        members: [
+          { id: 'u1', name: 'John Runner', avatar: '/placeholder.svg', distance: 32.5 },
+          { id: 'u2', name: 'Alice Sprint', avatar: '/placeholder.svg', distance: 28.3 },
+          { id: 'u3', name: 'Charlie Run', avatar: '/placeholder.svg', distance: 37.4 }
+        ]
       },
       awayClub: {
         id: 'away1',
         name: 'Morning Runners',
-        totalDistance: 85.7
+        totalDistance: 85.7,
+        members: [
+          { id: 'a1', name: 'Olivia Pace', avatar: '/placeholder.svg', distance: 30.1 },
+          { id: 'a2', name: 'Paul Path', avatar: '/placeholder.svg', distance: 25.8 },
+          { id: 'a3', name: 'Sarah Speed', avatar: '/placeholder.svg', distance: 29.8 }
+        ]
       },
       result: 'win',
       leagueImpact: {
         type: 'promotion',
-        description: 'Promoted to Silver 1'
+        description: 'Promoted to Gold 1'
       }
     },
     {
@@ -52,17 +79,27 @@ const ClubDetail: React.FC = () => {
       homeClub: {
         id: 'away2',
         name: 'Sprint Kings',
-        totalDistance: 112.4
+        totalDistance: 112.4,
+        members: [
+          { id: 'sk1', name: 'Mike Mile', avatar: '/placeholder.svg', distance: 40.2 },
+          { id: 'sk2', name: 'Kate Kilometer', avatar: '/placeholder.svg', distance: 36.1 },
+          { id: 'sk3', name: 'Tom Track', avatar: '/placeholder.svg', distance: 36.1 }
+        ]
       },
       awayClub: {
         id: selectedClub?.id,
         name: selectedClub?.name,
-        totalDistance: 105.8
+        totalDistance: 105.8,
+        members: [
+          { id: 'u1', name: 'John Runner', avatar: '/placeholder.svg', distance: 35.7 },
+          { id: 'u2', name: 'Alice Sprint', avatar: '/placeholder.svg', distance: 32.5 },
+          { id: 'u3', name: 'Charlie Run', avatar: '/placeholder.svg', distance: 37.6 }
+        ]
       },
       result: 'loss',
       leagueImpact: {
-        type: 'none',
-        description: 'Remained in Silver 2'
+        type: 'relegation',
+        description: 'Relegated to Silver 1'
       }
     },
     {
@@ -71,17 +108,27 @@ const ClubDetail: React.FC = () => {
       homeClub: {
         id: selectedClub?.id,
         name: selectedClub?.name,
-        totalDistance: 121.5
+        totalDistance: 121.5,
+        members: [
+          { id: 'u1', name: 'John Runner', avatar: '/placeholder.svg', distance: 41.3 },
+          { id: 'u2', name: 'Alice Sprint', avatar: '/placeholder.svg', distance: 38.7 },
+          { id: 'u3', name: 'Charlie Run', avatar: '/placeholder.svg', distance: 41.5 }
+        ]
       },
       awayClub: {
         id: 'away3',
         name: 'Marathon Masters',
-        totalDistance: 118.6
+        totalDistance: 118.6,
+        members: [
+          { id: 'mm1', name: 'David Distance', avatar: '/placeholder.svg', distance: 40.2 },
+          { id: 'mm2', name: 'Emma Endurance', avatar: '/placeholder.svg', distance: 39.5 },
+          { id: 'mm3', name: 'Frank Fitness', avatar: '/placeholder.svg', distance: 38.9 }
+        ]
       },
       result: 'win',
       leagueImpact: {
-        type: 'points',
-        description: '+1 league point'
+        type: 'promotion',
+        description: 'Promoted to Gold 2'
       }
     },
     {
@@ -90,17 +137,27 @@ const ClubDetail: React.FC = () => {
       homeClub: {
         id: 'away4',
         name: 'Trail Blazers',
-        totalDistance: 89.3
+        totalDistance: 89.3,
+        members: [
+          { id: 'tb1', name: 'Greg Gravel', avatar: '/placeholder.svg', distance: 29.8 },
+          { id: 'tb2', name: 'Holly Hill', avatar: '/placeholder.svg', distance: 30.2 },
+          { id: 'tb3', name: 'Ian Incline', avatar: '/placeholder.svg', distance: 29.3 }
+        ]
       },
       awayClub: {
         id: selectedClub?.id,
         name: selectedClub?.name,
-        totalDistance: 92.7
+        totalDistance: 92.7,
+        members: [
+          { id: 'u1', name: 'John Runner', avatar: '/placeholder.svg', distance: 30.5 },
+          { id: 'u2', name: 'Alice Sprint', avatar: '/placeholder.svg', distance: 31.2 },
+          { id: 'u3', name: 'Charlie Run', avatar: '/placeholder.svg', distance: 31.0 }
+        ]
       },
       result: 'win',
       leagueImpact: {
         type: 'promotion',
-        description: 'Promoted from Bronze 1 to Silver 2'
+        description: 'Promoted from Silver 2 to Silver 1'
       }
     }
   ];
@@ -123,6 +180,10 @@ const ClubDetail: React.FC = () => {
       title: "Request Sent",
       description: `Your request to join ${selectedClub.name} has been sent.`,
     });
+  };
+
+  const handleViewMatchDetails = (match: any) => {
+    setSelectedMatch(match);
   };
 
   const currentMatch = selectedClub?.currentMatch;
@@ -245,6 +306,28 @@ const ClubDetail: React.FC = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+          <h2 className="font-bold mb-2">Club Details</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gray-50 p-3 rounded-md">
+              <p className="text-xs text-gray-500">League</p>
+              <p className="font-medium">Gold 1</p>
+            </div>
+            <div className="bg-gray-50 p-3 rounded-md">
+              <p className="text-xs text-gray-500">Match Record</p>
+              <p className="font-medium">3W - 1L</p>
+            </div>
+            <div className="bg-gray-50 p-3 rounded-md">
+              <p className="text-xs text-gray-500">Total Distance</p>
+              <p className="font-medium">243.7 km</p>
+            </div>
+            <div className="bg-gray-50 p-3 rounded-md">
+              <p className="text-xs text-gray-500">Avg. Per Member</p>
+              <p className="font-medium">81.2 km</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
           <div className="flex items-center mb-4">
             <Calendar className="h-5 w-5 text-primary mr-2" />
             <h2 className="font-bold">Match History</h2>
@@ -307,6 +390,7 @@ const ClubDetail: React.FC = () => {
                   variant="outline" 
                   size="sm" 
                   className="mt-3 w-full text-xs"
+                  onClick={() => handleViewMatchDetails(match)}
                 >
                   View Complete Match Details
                 </Button>
@@ -324,28 +408,6 @@ const ClubDetail: React.FC = () => {
           )}
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-          <h2 className="font-bold mb-2">Club Details</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-50 p-3 rounded-md">
-              <p className="text-xs text-gray-500">Division</p>
-              <p className="font-medium">{selectedClub.division}</p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded-md">
-              <p className="text-xs text-gray-500">Match Record</p>
-              <p className="font-medium">3W - 1L</p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded-md">
-              <p className="text-xs text-gray-500">Total Distance</p>
-              <p className="font-medium">243.7 km</p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded-md">
-              <p className="text-xs text-gray-500">Avg. Per Member</p>
-              <p className="font-medium">81.2 km</p>
-            </div>
-          </div>
-        </div>
-
         <div className="flex justify-between mt-6 mb-8">
           <Button variant="outline" size="sm" className="flex-1 mr-2" icon={<MessageCircle className="h-4 w-4" />}>
             Chat
@@ -355,6 +417,112 @@ const ClubDetail: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      <Dialog open={!!selectedMatch} onOpenChange={(open) => !open && setSelectedMatch(null)}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Match Details</DialogTitle>
+            <DialogDescription>
+              {selectedMatch?.date}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="pb-6">
+            <div className="flex justify-center items-center text-lg font-medium gap-3 mb-4">
+              <span>{selectedMatch?.homeClub.name}</span>
+              <span className="text-sm text-gray-500">vs</span>
+              <span>{selectedMatch?.awayClub.name}</span>
+            </div>
+            
+            <div className="flex justify-center items-center gap-3 mb-4">
+              <span className="text-xl font-bold">{selectedMatch?.homeClub.totalDistance.toFixed(1)}</span>
+              <span className="text-sm text-gray-500">-</span>
+              <span className="text-xl font-bold">{selectedMatch?.awayClub.totalDistance.toFixed(1)}</span>
+            </div>
+            
+            <div className="bg-gray-50 p-3 rounded-md mb-6">
+              <div className="flex items-center justify-center gap-2 text-sm">
+                <span className="font-medium">Result:</span>
+                <span className={`px-2 py-0.5 rounded-full ${
+                  selectedMatch?.result === 'win' 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-red-100 text-red-800'
+                }`}>
+                  {selectedMatch?.result === 'win' ? 'WIN' : 'LOSS'}
+                </span>
+                <span className="mx-2">|</span>
+                <span className="font-medium">League Impact:</span>
+                {selectedMatch?.leagueImpact.type === 'promotion' ? (
+                  <span className="text-green-600 flex items-center">
+                    <TrendingUp className="h-3 w-3 mr-1" />
+                    {selectedMatch?.leagueImpact.description}
+                  </span>
+                ) : (
+                  <span className="text-red-600 flex items-center">
+                    <TrendingDown className="h-3 w-3 mr-1" />
+                    {selectedMatch?.leagueImpact.description}
+                  </span>
+                )}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="font-medium text-center mb-3">{selectedMatch?.homeClub.name} Members</h3>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Runner</TableHead>
+                      <TableHead className="text-right">Distance</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedMatch?.homeClub.members.map((member: any) => (
+                      <TableRow key={member.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <UserAvatar name={member.name} image={member.avatar} size="xs" />
+                            <span>{member.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {member.distance.toFixed(1)} km
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              
+              <div>
+                <h3 className="font-medium text-center mb-3">{selectedMatch?.awayClub.name} Members</h3>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Runner</TableHead>
+                      <TableHead className="text-right">Distance</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedMatch?.awayClub.members.map((member: any) => (
+                      <TableRow key={member.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <UserAvatar name={member.name} image={member.avatar} size="xs" />
+                            <span>{member.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {member.distance.toFixed(1)} km
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
