@@ -1,6 +1,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import UserAvatar from '../shared/UserAvatar';
+import { useApp } from '@/context/AppContext';
 
 interface ChatMessagesProps {
   messages: Array<{
@@ -21,6 +22,7 @@ interface ChatMessagesProps {
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, clubMembers }) => {
+  const { setCurrentView, setSelectedUser } = useApp();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -44,6 +46,22 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, clubMembers }) =>
     return member ? member.name : 'Unknown Member';
   };
 
+  const handleUserClick = (senderId: string) => {
+    if (senderId === 'currentUser') return; // Don't navigate to your own profile
+    
+    const member = clubMembers.find(m => m.id === senderId);
+    if (member) {
+      setSelectedUser({
+        id: member.id,
+        name: member.name,
+        avatar: member.avatar,
+        stravaConnected: true,
+        clubs: []
+      });
+      setCurrentView('profile');
+    }
+  };
+
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
       {messages.length === 0 ? (
@@ -61,13 +79,19 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, clubMembers }) =>
                 name={message.sender.name} 
                 image={message.sender.avatar} 
                 size="sm" 
-                className="mr-2 flex-shrink-0"
+                className="mr-2 flex-shrink-0 cursor-pointer"
+                onClick={() => handleUserClick(message.sender.id)}
               />
             )}
             
             <div className={`max-w-[70%] ${isCurrentUser(message.sender.id) ? 'order-2' : 'order-1'}`}>
               {!isCurrentUser(message.sender.id) && (
-                <p className="text-xs text-gray-500 mb-1">{message.sender.name}</p>
+                <p 
+                  className="text-xs text-gray-500 mb-1 cursor-pointer hover:text-primary"
+                  onClick={() => handleUserClick(message.sender.id)}
+                >
+                  {message.sender.name}
+                </p>
               )}
               
               <div 

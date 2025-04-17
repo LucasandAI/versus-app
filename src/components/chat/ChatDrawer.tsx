@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Send, X } from 'lucide-react';
+import { Send, X, Users, ChevronDown } from 'lucide-react';
 import { 
   Drawer, 
   DrawerContent, 
@@ -8,10 +8,13 @@ import {
   DrawerTitle,
   DrawerClose 
 } from '@/components/ui/drawer';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Club } from '@/types';
 import ChatSidebar from './ChatSidebar';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
+import UserAvatar from '../shared/UserAvatar';
+import { useApp } from '@/context/AppContext';
 
 interface ChatDrawerProps {
   open: boolean;
@@ -20,11 +23,24 @@ interface ChatDrawerProps {
 }
 
 const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) => {
+  const { setCurrentView, setSelectedUser } = useApp();
   const [selectedClub, setSelectedClub] = useState<Club | null>(clubs.length > 0 ? clubs[0] : null);
   const [messages, setMessages] = useState<Record<string, any[]>>({});
 
   const handleSelectClub = (club: Club) => {
     setSelectedClub(club);
+  };
+
+  const handleSelectUser = (userId: string, userName: string) => {
+    setSelectedUser({
+      id: userId,
+      name: userName,
+      avatar: '/placeholder.svg',
+      stravaConnected: true,
+      clubs: []
+    });
+    setCurrentView('profile');
+    onOpenChange(false); // Close the drawer
   };
 
   const handleSendMessage = (message: string) => {
@@ -89,7 +105,30 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) =>
             <div className="flex-1 flex flex-col h-full">
               <div className="border-b p-3">
                 <h3 className="font-medium">{selectedClub.name}</h3>
-                <p className="text-xs text-gray-500">{selectedClub.members.length} members</p>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="text-xs text-gray-500 hover:text-primary flex items-center mt-1">
+                      <Users className="h-3 w-3 mr-1" />
+                      {selectedClub.members.length} members
+                      <ChevronDown className="h-3 w-3 ml-1" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-60 p-2" align="start">
+                    <h4 className="text-sm font-medium mb-2">Club Members</h4>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {selectedClub.members.map(member => (
+                        <button
+                          key={member.id}
+                          className="w-full flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-md text-left"
+                          onClick={() => handleSelectUser(member.id, member.name)}
+                        >
+                          <UserAvatar name={member.name} image={member.avatar} size="sm" />
+                          <span className="text-sm truncate">{member.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
               
               <ChatMessages 

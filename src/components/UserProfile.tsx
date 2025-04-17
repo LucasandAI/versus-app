@@ -21,6 +21,7 @@ const UserProfile: React.FC = () => {
   const { currentUser, connectToStrava, setCurrentView, setSelectedClub, setSelectedUser } = useApp();
   const [showAllAchievements, setShowAllAchievements] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [selectedAchievement, setSelectedAchievement] = useState<any>(null);
   const [userBio, setUserBio] = useState("Strava Athlete");
   const [socialLinks, setSocialLinks] = useState({
     instagram: "",
@@ -43,14 +44,35 @@ const UserProfile: React.FC = () => {
   };
 
   const achievements = [
-    { id: 1, title: 'First Victory', description: 'Win your first match', completed: true },
-    { id: 2, title: 'Team Player', description: 'Contribute 50km in a single match', completed: true },
+    { 
+      id: 1, 
+      title: 'First Victory', 
+      description: 'Win your first match', 
+      completed: true, 
+      completedDate: '2025-03-10', 
+      details: 'You won your first match against Road Runners on March 10, 2025, contributing 15.3km to your team\'s victory.'
+    },
+    { 
+      id: 2, 
+      title: 'Team Player', 
+      description: 'Contribute 50km in a single match', 
+      completed: true, 
+      completedDate: '2025-03-22', 
+      details: 'You contributed 54.7km in a match against Trail Blazers, earning this achievement on March 22, 2025.'
+    },
     { id: 3, title: 'Ironman', description: 'Log activity every day of a match', completed: false },
     { id: 4, title: 'League Climber', description: 'Promote to the next league', completed: false },
     { id: 5, title: 'Century Runner', description: 'Run 100km in a single week', completed: false },
     { id: 6, title: 'Social Butterfly', description: 'Join 3 different clubs', completed: false },
     { id: 7, title: 'Streak Master', description: 'Win 5 matches in a row', completed: false },
-    { id: 8, title: 'Global Explorer', description: 'Log activities in 5 different countries', completed: true },
+    { 
+      id: 8, 
+      title: 'Global Explorer', 
+      description: 'Log activities in 5 different countries', 
+      completed: true, 
+      completedDate: '2025-04-05', 
+      details: 'You logged activities in France, Spain, Italy, Germany, and Portugal, completing this achievement on April 5, 2025.'
+    },
   ];
 
   const completedAchievements = achievements.filter(a => a.completed);
@@ -121,6 +143,12 @@ const UserProfile: React.FC = () => {
 
   const handleBioChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setUserBio(e.target.value);
+  };
+
+  const handleAchievementClick = (achievement: any) => {
+    if (achievement.completed) {
+      setSelectedAchievement(achievement);
+    }
   };
 
   if (!currentUser) {
@@ -367,52 +395,86 @@ const UserProfile: React.FC = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-          <div className="flex items-center mb-4">
-            <Award className="h-5 w-5 text-primary mr-2" />
-            <h2 className="font-bold">Achievements</h2>
-          </div>
-          
-          {completedAchievements.length > 0 && (
-            <div className="bg-primary/10 rounded-lg p-3 mb-4">
-              <div className="flex flex-wrap gap-2">
-                {completedAchievements.map((achievement) => (
-                  <div 
-                    key={achievement.id} 
-                    className="bg-white shadow-sm rounded-full px-3 py-1 text-xs flex items-center"
-                  >
-                    <span className="w-2 h-2 bg-success rounded-full mr-1"></span>
-                    {achievement.title}
-                  </div>
-                ))}
-              </div>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <Award className="h-5 w-5 text-primary mr-2" />
+              <h2 className="font-bold">Achievements</h2>
             </div>
-          )}
-          
-          <div className="space-y-3">
-            {incompleteAchievements
-              .slice(0, showAllAchievements ? incompleteAchievements.length : 4)
-              .map((achievement) => (
-                <div 
-                  key={achievement.id} 
-                  className="p-3 rounded-md bg-gray-50"
-                >
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-medium text-sm">{achievement.title}</h3>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">{achievement.description}</p>
-                </div>
-              ))}
             
-            {incompleteAchievements.length > 4 && (
+            {selectedAchievement && (
               <button 
-                className="w-full py-2 text-sm text-primary flex items-center justify-center"
-                onClick={() => setShowAllAchievements(!showAllAchievements)}
+                className="text-xs text-primary"
+                onClick={() => setSelectedAchievement(null)}
               >
-                {showAllAchievements ? 'Show Less' : 'View More Achievements'} 
-                <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${showAllAchievements ? 'rotate-180' : ''}`} />
+                Back to all
               </button>
             )}
           </div>
+          
+          {selectedAchievement ? (
+            <div className="bg-primary/5 rounded-lg p-4">
+              <div className="flex items-center mb-2">
+                <span className="w-3 h-3 bg-success rounded-full mr-2"></span>
+                <h3 className="font-medium">{selectedAchievement.title}</h3>
+              </div>
+              <p className="text-sm text-gray-500 mb-1">{selectedAchievement.description}</p>
+              <p className="text-xs text-gray-500 mb-3">Completed on {new Date(selectedAchievement.completedDate).toLocaleDateString()}</p>
+              <div className="bg-white p-3 rounded-md text-sm">
+                <p>{selectedAchievement.details}</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {completedAchievements.length > 0 && (
+                <div className="bg-primary/10 rounded-lg p-3 mb-4">
+                  <h3 className="text-sm font-medium mb-2">Completed</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {completedAchievements.map((achievement) => (
+                      <button 
+                        key={achievement.id} 
+                        className="bg-white shadow-sm rounded-full px-3 py-1 text-xs flex items-center hover:bg-gray-50"
+                        onClick={() => handleAchievementClick(achievement)}
+                      >
+                        <span className="w-2 h-2 bg-success rounded-full mr-1"></span>
+                        {achievement.title}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {incompleteAchievements.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium mb-2">In Progress</h3>
+                  <div className="space-y-3">
+                    {incompleteAchievements
+                      .slice(0, showAllAchievements ? incompleteAchievements.length : 2)
+                      .map((achievement) => (
+                        <div 
+                          key={achievement.id} 
+                          className="p-3 rounded-md bg-gray-50"
+                        >
+                          <div className="flex justify-between items-center">
+                            <h3 className="font-medium text-sm">{achievement.title}</h3>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">{achievement.description}</p>
+                        </div>
+                      ))}
+                    
+                    {incompleteAchievements.length > 2 && (
+                      <button 
+                        className="w-full py-2 text-sm text-primary flex items-center justify-center"
+                        onClick={() => setShowAllAchievements(!showAllAchievements)}
+                      >
+                        {showAllAchievements ? 'Show Less' : 'View More Achievements'} 
+                        <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${showAllAchievements ? 'rotate-180' : ''}`} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-4 mb-4">
