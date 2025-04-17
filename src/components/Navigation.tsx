@@ -9,7 +9,7 @@ const Navigation: React.FC = () => {
 
   const navItems = [
     { view: 'home' as const, label: 'Home', icon: Home },
-    { view: 'leaderboard' as const, label: 'Leaderboard', icon: Trophy },
+    { view: 'leaderboard' as const, label: 'Leagues', icon: Trophy },
     { view: 'profile' as const, label: 'Profile', icon: User }
   ];
 

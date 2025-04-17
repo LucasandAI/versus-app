@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, ChevronDown, UserPlus, MessageCircle } from 'lucide-react';
+import { Plus, Search, ChevronDown, UserPlus, MessageCircle, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from './shared/UserAvatar';
 import MatchProgressBar from './shared/MatchProgressBar';
@@ -7,6 +7,14 @@ import Button from './shared/Button';
 import { Club, Match } from '@/types';
 import { toast } from "@/components/ui/use-toast";
 import ChatDrawer from './chat/ChatDrawer';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle,
+  DialogClose 
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 
 const mockClubs: Club[] = [
   {
@@ -134,6 +142,8 @@ const HomeView: React.FC = () => {
   const [clubs] = React.useState<Club[]>(mockClubs);
   const [expandedClubId, setExpandedClubId] = useState<string | null>(null);
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
+  const [searchDialogOpen, setSearchDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleSelectClub = (club: Club) => {
     setSelectedClub(club);
@@ -186,6 +196,14 @@ const HomeView: React.FC = () => {
   const handleOpenChat = () => {
     setChatDrawerOpen(true);
   };
+
+  const handleOpenSearch = () => {
+    setSearchDialogOpen(true);
+  };
+
+  const filteredClubs = availableClubs.filter(club => 
+    club.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="pb-20 pt-6">
@@ -343,7 +361,10 @@ const HomeView: React.FC = () => {
         <div className="mt-10">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold">Find Clubs</h2>
-            <button className="text-primary flex items-center gap-1">
+            <button 
+              className="text-primary flex items-center gap-1"
+              onClick={handleOpenSearch}
+            >
               <Search className="h-4 w-4" />
               <span className="text-sm">Search</span>
             </button>
@@ -399,6 +420,73 @@ const HomeView: React.FC = () => {
         onOpenChange={setChatDrawerOpen} 
         clubs={clubs} 
       />
+
+      <Dialog open={searchDialogOpen} onOpenChange={setSearchDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Search Clubs</DialogTitle>
+          </DialogHeader>
+          <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </DialogClose>
+          
+          <div className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search for clubs..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Results</h3>
+              
+              {filteredClubs.length > 0 ? (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {filteredClubs.map((club) => (
+                    <div 
+                      key={club.id} 
+                      className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="bg-gray-200 h-10 w-10 rounded-full flex items-center justify-center">
+                          <span className="font-bold text-xs text-gray-700">{club.name.substring(0, 2)}</span>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-sm">{club.name}</h4>
+                          <span className="text-xs text-gray-500">
+                            {formatLeagueWithTier(club.division, club.tier)} • {club.members}/5 members
+                          </span>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8"
+                        icon={<UserPlus className="h-4 w-4" />}
+                        onClick={() => {
+                          handleRequestToJoin(club.id, club.name);
+                          setSearchDialogOpen(false);
+                        }}
+                      >
+                        Request
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center p-4 text-gray-500">
+                  No clubs found matching "{searchQuery}"
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
