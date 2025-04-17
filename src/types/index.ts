@@ -12,6 +12,7 @@ export interface Club {
   name: string;
   logo: string;
   division: Division;
+  tier?: number; // Added tier for division rankings (1-5, with 1 being highest)
   members: ClubMember[];
   currentMatch?: Match;
   matchHistory: Match[];

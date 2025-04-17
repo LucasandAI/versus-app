@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Plus, Search, ChevronDown, UserPlus } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -14,6 +15,7 @@ const mockClubs: Club[] = [
     name: 'Weekend Warriors',
     logo: '/placeholder.svg',
     division: 'Silver',
+    tier: 2, // Adding tier 
     members: [
       { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true },
       { id: '2', name: 'Jane Sprinter', avatar: '/placeholder.svg', isAdmin: false },
@@ -54,6 +56,7 @@ const mockClubs: Club[] = [
     name: 'Road Runners',
     logo: '/placeholder.svg',
     division: 'Gold',
+    tier: 1, // Adding tier
     members: [
       { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true },
       { id: '7', name: 'Alice Sprint', avatar: '/placeholder.svg', isAdmin: false },
@@ -96,18 +99,21 @@ const availableClubs = [
     id: 'ac1',
     name: 'Morning Joggers',
     division: 'Silver',
+    tier: 3,
     members: 3
   },
   {
     id: 'ac2',
     name: 'Hill Climbers',
     division: 'Gold',
+    tier: 2,
     members: 4
   },
   {
     id: 'ac3',
     name: 'Urban Pacers',
     division: 'Bronze',
+    tier: 5,
     members: 2
   }
 ];
@@ -160,6 +166,12 @@ const HomeView: React.FC = () => {
     });
   };
 
+  // Helper function to format division with tier or as Elite League
+  const formatLeagueWithTier = (division: string, tier?: number) => {
+    if (division === 'Elite') return 'Elite League';
+    return tier ? `${division} ${tier}` : division;
+  };
+
   return (
     <div className="pb-20 pt-6">
       <div className="container-mobile">
@@ -188,7 +200,7 @@ const HomeView: React.FC = () => {
                   <h3 className="font-medium">{club.name}</h3>
                   <div className="flex items-center gap-1">
                     <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
-                      {club.division} Division
+                      {formatLeagueWithTier(club.division, club.tier)}
                     </span>
                     <span className="text-xs text-gray-500">
                       • {club.members.length} members
@@ -328,7 +340,9 @@ const HomeView: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="font-medium text-sm">{club.name}</h3>
-                      <span className="text-xs text-gray-500">{club.division} Division • {club.members}/5 members</span>
+                      <span className="text-xs text-gray-500">
+                        {formatLeagueWithTier(club.division, club.tier)} • {club.members}/5 members
+                      </span>
                     </div>
                   </div>
                   <Button 

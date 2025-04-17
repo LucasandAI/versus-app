@@ -14,7 +14,7 @@ const ConnectScreen: React.FC = () => {
           <div className="flex justify-center">
             <div className="w-16 h-1 bg-strava rounded-full"></div>
           </div>
-          <h2 className="text-xl font-medium text-gray-700 mx-auto whitespace-normal">
+          <h2 className="text-xl font-medium text-gray-700 mx-auto whitespace-nowrap">
             The Competitive Club League for Strava Athletes
           </h2>
         </div>
@@ -52,7 +52,7 @@ const ConnectScreen: React.FC = () => {
               <div className="ml-4">
                 <h3 className="text-lg font-medium text-gray-900">Climb the Ranks</h3>
                 <p className="mt-1 text-gray-500">
-                  Win matches to ascend through divisions
+                  Win matches to ascend through leagues
                 </p>
               </div>
             </div>
