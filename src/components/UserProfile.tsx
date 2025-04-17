@@ -9,7 +9,7 @@ import ClubInviteDialog from './admin/ClubInviteDialog';
 import { Card } from './ui/card';
 
 const UserProfile: React.FC = () => {
-  const { selectedUser, setCurrentView, currentUser, setSelectedUser } = useApp();
+  const { selectedUser, setCurrentView, currentUser, setSelectedUser, currentView } = useApp();
   const [loading, setLoading] = useState(true);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [showMoreAchievements, setShowMoreAchievements] = useState(false);
