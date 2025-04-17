@@ -1,38 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { Button } from "@/components/ui/button";
-import { UserPlus, Settings, Share2, ArrowRight, Award, LogOut, Facebook, Instagram, Twitter, Globe, Linkedin, Edit } from 'lucide-react';
+import { UserPlus, Settings, Share2, ArrowRight, Award, LogOut, Facebook, Instagram, Twitter, Globe, Linkedin } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import ClubInviteDialog from './admin/ClubInviteDialog';
 import EditProfileDialog from './profile/EditProfileDialog';
 import { Card } from './ui/card';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel
-} from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { toast } from "@/hooks/use-toast";
+import { formatLeagueWithTier } from '@/lib/format';
 
 const UserProfile: React.FC = () => {
   const { selectedUser, setCurrentView, currentUser, setSelectedUser, currentView } = useApp();
@@ -43,13 +18,11 @@ const UserProfile: React.FC = () => {
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   useEffect(() => {
-    // Simulate loading data
     setTimeout(() => {
       setLoading(false);
     }, 500);
   }, [selectedUser]);
 
-  // When profile is accessed via navigation menu, show current user's profile
   useEffect(() => {
     if (currentUser && currentView === 'profile' && !selectedUser) {
       setSelectedUser(currentUser);
@@ -79,7 +52,6 @@ const UserProfile: React.FC = () => {
   const isCurrentUserProfile = currentUser?.id === selectedUser?.id;
   const showInviteButton = !isCurrentUserProfile && adminClubs.length > 0;
 
-  // Mock data for the profile stats
   const profileStats = {
     weeklyDistance: 42.3,
     bestLeague: 'Gold',
@@ -88,7 +60,6 @@ const UserProfile: React.FC = () => {
     matchesLost: 1
   };
 
-  // Mock achievements data
   const completedAchievements = [
     { id: '1', name: 'First Victory', color: 'green' },
     { id: '2', name: 'Team Player', color: 'green' },
@@ -144,14 +115,12 @@ const UserProfile: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-50 pb-20">
-      {/* Header Banner */}
       <div className="w-full bg-green-500 py-4 px-6 text-white flex justify-center items-center">
         <h1 className="text-xl font-semibold flex items-center">
           {isCurrentUserProfile ? 'Profile' : `${selectedUser.name}'s Profile`}
         </h1>
       </div>
 
-      {/* Profile Card */}
       <Card className="w-full max-w-md mx-auto mt-4 p-6 rounded-lg">
         <div className="flex flex-col items-center space-y-4">
           {loading ? (
@@ -170,11 +139,9 @@ const UserProfile: React.FC = () => {
             <p className="text-gray-500">{loading ? <Skeleton className="h-4 w-24 mx-auto" /> : 'Strava Athlete'}</p>
           </div>
 
-          {/* Action buttons */}
           <div className="flex space-x-4">
             {isCurrentUserProfile ? (
               <>
-                {/* Settings button for current user */}
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -193,7 +160,6 @@ const UserProfile: React.FC = () => {
                   </Tooltip>
                 </TooltipProvider>
 
-                {/* Social Links dropdown for current user */}
                 <DropdownMenu>
                   <TooltipProvider>
                     <Tooltip>
@@ -240,7 +206,6 @@ const UserProfile: React.FC = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                {/* Logout button for current user */}
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -260,7 +225,6 @@ const UserProfile: React.FC = () => {
                 </TooltipProvider>
               </>
             ) : (
-              /* Only social links dropdown for other users */
               <DropdownMenu>
                 <TooltipProvider>
                   <Tooltip>
@@ -303,12 +267,10 @@ const UserProfile: React.FC = () => {
             )}
           </div>
 
-          {/* Strava profile button */}
           <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={handleOpenStravaProfile}>
             Strava Profile
           </Button>
 
-          {/* Invite to club button (only if admin) */}
           {showInviteButton && (
             <>
               <Button 
@@ -330,7 +292,6 @@ const UserProfile: React.FC = () => {
             </>
           )}
           
-          {/* Stats grid */}
           <div className="grid grid-cols-2 gap-2 w-full mt-4">
             <div className="bg-gray-50 p-4 text-center rounded-lg">
               <p className="text-xl font-bold">{loading ? <Skeleton className="h-6 w-16 mx-auto" /> : `${profileStats.weeklyDistance} km`}</p>
@@ -352,14 +313,51 @@ const UserProfile: React.FC = () => {
         </div>
       </Card>
 
-      {/* Achievements Card */}
+      <Card className="w-full max-w-md mx-auto mt-4 p-6 rounded-lg">
+        <div className="flex items-center mb-4">
+          <UserPlus className="text-green-500 mr-2 h-5 w-5" />
+          <h3 className="text-lg font-semibold">Clubs</h3>
+        </div>
+
+        {loading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+        ) : selectedUser?.clubs && selectedUser.clubs.length > 0 ? (
+          <div className="space-y-4">
+            {selectedUser.clubs.map((club) => (
+              <div 
+                key={club.id} 
+                className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                onClick={() => {
+                  setSelectedClub(club);
+                  setCurrentView('clubDetail');
+                }}
+              >
+                <img 
+                  src={club.logo} 
+                  alt={club.name} 
+                  className="w-12 h-12 rounded-full object-cover"
+                />
+                <div>
+                  <h4 className="font-medium">{club.name}</h4>
+                  <p className="text-sm text-gray-500">{formatLeagueWithTier(club.division, club.tier)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 text-center py-4">No clubs joined yet</p>
+        )}
+      </Card>
+
       <Card className="w-full max-w-md mx-auto mt-4 p-6 rounded-lg">
         <div className="flex items-center mb-4">
           <Award className="text-green-500 mr-2 h-5 w-5" />
           <h3 className="text-lg font-semibold">Achievements</h3>
         </div>
 
-        {/* Completed achievements */}
         <div className="mb-6">
           <h4 className="text-sm font-medium mb-2">Completed</h4>
           <div className="bg-green-50 p-4 rounded-lg">
@@ -384,7 +382,6 @@ const UserProfile: React.FC = () => {
           </div>
         </div>
 
-        {/* In Progress achievements */}
         <div>
           <h4 className="text-sm font-medium mb-2">In Progress</h4>
           <div className="space-y-3">
@@ -404,7 +401,6 @@ const UserProfile: React.FC = () => {
           </div>
         </div>
         
-        {/* View more button - Only shown on current user's profile */}
         {isCurrentUserProfile && (
           <Button 
             variant="ghost" 
@@ -416,16 +412,12 @@ const UserProfile: React.FC = () => {
         )}
       </Card>
 
-      {/* Edit Profile Dialog */}
-      {isCurrentUserProfile && (
-        <EditProfileDialog
-          open={editProfileOpen}
-          onOpenChange={setEditProfileOpen}
-          user={currentUser}
-        />
-      )}
+      <EditProfileDialog
+        open={editProfileOpen}
+        onOpenChange={setEditProfileOpen}
+        user={currentUser}
+      />
 
-      {/* Logout Confirmation Dialog */}
       <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
