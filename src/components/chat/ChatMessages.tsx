@@ -1,0 +1,102 @@
+
+import React, { useEffect, useRef } from 'react';
+import UserAvatar from '../shared/UserAvatar';
+
+interface ChatMessagesProps {
+  messages: Array<{
+    id: string;
+    text: string;
+    sender: {
+      id: string;
+      name: string;
+      avatar: string;
+    };
+    timestamp: string;
+  }>;
+  clubMembers: Array<{
+    id: string;
+    name: string;
+    avatar: string;
+  }>;
+}
+
+const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, clubMembers }) => {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+  
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+  
+  const formatTime = (isoString: string) => {
+    const date = new Date(isoString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const isCurrentUser = (senderId: string) => senderId === 'currentUser';
+  
+  const getMemberName = (senderId: string) => {
+    if (senderId === 'currentUser') return 'You';
+    const member = clubMembers.find(m => m.id === senderId);
+    return member ? member.name : 'Unknown Member';
+  };
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {messages.length === 0 ? (
+        <div className="h-full flex items-center justify-center text-gray-500 text-sm">
+          No messages yet. Start the conversation!
+        </div>
+      ) : (
+        messages.map((message) => (
+          <div 
+            key={message.id}
+            className={`flex ${isCurrentUser(message.sender.id) ? 'justify-end' : 'justify-start'}`}
+          >
+            {!isCurrentUser(message.sender.id) && (
+              <UserAvatar 
+                name={message.sender.name} 
+                image={message.sender.avatar} 
+                size="sm" 
+                className="mr-2 flex-shrink-0"
+              />
+            )}
+            
+            <div className={`max-w-[70%] ${isCurrentUser(message.sender.id) ? 'order-2' : 'order-1'}`}>
+              {!isCurrentUser(message.sender.id) && (
+                <p className="text-xs text-gray-500 mb-1">{message.sender.name}</p>
+              )}
+              
+              <div 
+                className={`rounded-lg p-3 text-sm break-words ${
+                  isCurrentUser(message.sender.id) 
+                    ? 'bg-primary text-white' 
+                    : 'bg-gray-100 text-gray-800'
+                }`}
+              >
+                {message.text}
+              </div>
+              
+              <p className="text-xs text-gray-500 mt-1">{formatTime(message.timestamp)}</p>
+            </div>
+            
+            {isCurrentUser(message.sender.id) && (
+              <UserAvatar 
+                name={message.sender.name} 
+                image={message.sender.avatar} 
+                size="sm" 
+                className="ml-2 flex-shrink-0"
+              />
+            )}
+          </div>
+        ))
+      )}
+      <div ref={messagesEndRef} />
+    </div>
+  );
+};
+
+export default ChatMessages;

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Plus, Search, ChevronDown, UserPlus, MessageCircle } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -7,6 +6,7 @@ import MatchProgressBar from './shared/MatchProgressBar';
 import Button from './shared/Button';
 import { Club, Match } from '@/types';
 import { toast } from "@/components/ui/use-toast";
+import ChatDrawer from './chat/ChatDrawer';
 
 const mockClubs: Club[] = [
   {
@@ -133,6 +133,7 @@ const HomeView: React.FC = () => {
   const { setCurrentView, setSelectedClub, setSelectedUser, currentUser } = useApp();
   const [clubs] = React.useState<Club[]>(mockClubs);
   const [expandedClubId, setExpandedClubId] = useState<string | null>(null);
+  const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
 
   const handleSelectClub = (club: Club) => {
     setSelectedClub(club);
@@ -183,10 +184,7 @@ const HomeView: React.FC = () => {
   };
 
   const handleOpenChat = () => {
-    toast({
-      title: "Chat",
-      description: "Chat functionality is not implemented yet.",
-    });
+    setChatDrawerOpen(true);
   };
 
   return (
@@ -395,6 +393,12 @@ const HomeView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <ChatDrawer 
+        open={chatDrawerOpen} 
+        onOpenChange={setChatDrawerOpen} 
+        clubs={clubs} 
+      />
     </div>
   );
 };

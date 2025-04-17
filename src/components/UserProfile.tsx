@@ -152,27 +152,6 @@ const UserProfile: React.FC = () => {
       </div>
 
       <div className="container-mobile pt-4">
-        {/* Completed Achievements Banner */}
-        {completedAchievements.length > 0 && (
-          <div className="bg-primary/10 rounded-lg p-4 mb-6">
-            <div className="flex items-center mb-2">
-              <Award className="h-5 w-5 text-primary mr-2" />
-              <h2 className="font-bold">Completed Achievements</h2>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {completedAchievements.map((achievement) => (
-                <div 
-                  key={achievement.id} 
-                  className="bg-white shadow-sm rounded-full px-3 py-1 text-xs flex items-center"
-                >
-                  <span className="w-2 h-2 bg-success rounded-full mr-1"></span>
-                  {achievement.title}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div className="bg-white rounded-lg shadow-md p-6 mb-6 text-center">
           <UserAvatar 
             name={currentUser.name} 
@@ -184,7 +163,6 @@ const UserProfile: React.FC = () => {
           <p className="text-gray-500 mb-4">{userBio}</p>
           
           <div className="flex justify-center space-x-3 mb-4">
-            {/* Settings Dialog */}
             <Dialog>
               <DialogTrigger asChild>
                 <button className="bg-gray-100 p-2 rounded-full">
@@ -271,7 +249,6 @@ const UserProfile: React.FC = () => {
               </DialogContent>
             </Dialog>
             
-            {/* Social Links Popover */}
             <Popover>
               <PopoverTrigger asChild>
                 <button className="bg-gray-100 p-2 rounded-full">
@@ -339,7 +316,6 @@ const UserProfile: React.FC = () => {
               </PopoverContent>
             </Popover>
             
-            {/* Logout Alert Dialog */}
             <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
               <AlertDialogTrigger asChild>
                 <button className="bg-gray-100 p-2 rounded-full">
@@ -395,6 +371,22 @@ const UserProfile: React.FC = () => {
             <Award className="h-5 w-5 text-primary mr-2" />
             <h2 className="font-bold">Achievements</h2>
           </div>
+          
+          {completedAchievements.length > 0 && (
+            <div className="bg-primary/10 rounded-lg p-3 mb-4">
+              <div className="flex flex-wrap gap-2">
+                {completedAchievements.map((achievement) => (
+                  <div 
+                    key={achievement.id} 
+                    className="bg-white shadow-sm rounded-full px-3 py-1 text-xs flex items-center"
+                  >
+                    <span className="w-2 h-2 bg-success rounded-full mr-1"></span>
+                    {achievement.title}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           
           <div className="space-y-3">
             {incompleteAchievements
