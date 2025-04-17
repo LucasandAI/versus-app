@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { User, LogOut, Settings, Award, Share2, ChevronDown } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -24,7 +25,7 @@ const UserProfile: React.FC = () => {
     { id: 1, title: 'First Victory', description: 'Win your first match', completed: true },
     { id: 2, title: 'Team Player', description: 'Contribute 50km in a single match', completed: true },
     { id: 3, title: 'Ironman', description: 'Log activity every day of a match', completed: false },
-    { id: 4, title: 'Division Climber', description: 'Promote to the next division', completed: false },
+    { id: 4, title: 'League Climber', description: 'Promote to the next league', completed: false },
     { id: 5, title: 'Century Runner', description: 'Run 100km in a single week', completed: false },
     { id: 6, title: 'Social Butterfly', description: 'Join 3 different clubs', completed: false },
     { id: 7, title: 'Streak Master', description: 'Win 5 matches in a row', completed: false },
@@ -184,7 +185,7 @@ const UserProfile: React.FC = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-          <h2 className="font-bold mb-3">My Leagues</h2>
+          <h2 className="font-bold mb-3">My Clubs</h2>
           
           {userClubs.length > 0 ? (
             <div className="space-y-3">
@@ -213,8 +214,8 @@ const UserProfile: React.FC = () => {
             </div>
           ) : (
             <div className="text-center py-6">
-              <p className="text-gray-500 mb-4">You haven't joined any leagues yet</p>
-              <Button variant="primary" size="sm">Create a League</Button>
+              <p className="text-gray-500 mb-4">You haven't joined any clubs yet</p>
+              <Button variant="primary" size="sm">Create a Club</Button>
             </div>
           )}
         </div>

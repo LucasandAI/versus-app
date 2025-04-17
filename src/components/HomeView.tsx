@@ -8,18 +8,20 @@ import Button from './shared/Button';
 import { Club, Match } from '@/types';
 import { toast } from "@/components/ui/use-toast";
 
-// Updated mock data for development with corrected dates
+// Updated mock data for development with corrected dates and 5 members per team
 const mockClubs: Club[] = [
   {
     id: '1',
     name: 'Weekend Warriors',
     logo: '/placeholder.svg',
     division: 'Silver',
-    tier: 2, // Adding tier 
+    tier: 2,
     members: [
       { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true },
       { id: '2', name: 'Jane Sprinter', avatar: '/placeholder.svg', isAdmin: false },
       { id: '3', name: 'Bob Marathon', avatar: '/placeholder.svg', isAdmin: false },
+      { id: '4', name: 'Emma Jogger', avatar: '/placeholder.svg', isAdmin: false },
+      { id: '5', name: 'Tom Walker', avatar: '/placeholder.svg', isAdmin: false },
     ],
     currentMatch: {
       id: 'm1',
@@ -29,9 +31,11 @@ const mockClubs: Club[] = [
         logo: '/placeholder.svg',
         totalDistance: 62.5,
         members: [
-          { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true, distanceContribution: 25.3 },
-          { id: '2', name: 'Jane Sprinter', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 18.7 },
-          { id: '3', name: 'Bob Marathon', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 18.5 },
+          { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true, distanceContribution: 15.3 },
+          { id: '2', name: 'Jane Sprinter', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 12.7 },
+          { id: '3', name: 'Bob Marathon', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 12.5 },
+          { id: '4', name: 'Emma Jogger', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 11.2 },
+          { id: '5', name: 'Tom Walker', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 10.8 },
         ]
       },
       awayClub: {
@@ -40,9 +44,11 @@ const mockClubs: Club[] = [
         logo: '/placeholder.svg',
         totalDistance: 57.2,
         members: [
-          { id: '4', name: 'Sarah Swift', avatar: '/placeholder.svg', isAdmin: true, distanceContribution: 21.8 },
-          { id: '5', name: 'Mike Miler', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 19.4 },
-          { id: '6', name: 'Lisa Long', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 16.0 },
+          { id: '6', name: 'Sarah Swift', avatar: '/placeholder.svg', isAdmin: true, distanceContribution: 12.8 },
+          { id: '7', name: 'Mike Miler', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 11.4 },
+          { id: '8', name: 'Lisa Long', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 11.0 },
+          { id: '9', name: 'David Dash', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 10.5 },
+          { id: '10', name: 'Kate Speed', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 11.5 },
         ]
       },
       startDate: new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 days ago
@@ -56,11 +62,13 @@ const mockClubs: Club[] = [
     name: 'Road Runners',
     logo: '/placeholder.svg',
     division: 'Gold',
-    tier: 1, // Adding tier
+    tier: 1,
     members: [
       { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true },
       { id: '7', name: 'Alice Sprint', avatar: '/placeholder.svg', isAdmin: false },
       { id: '8', name: 'Charlie Run', avatar: '/placeholder.svg', isAdmin: false },
+      { id: '11', name: 'Olivia Pace', avatar: '/placeholder.svg', isAdmin: false },
+      { id: '12', name: 'Paul Path', avatar: '/placeholder.svg', isAdmin: false },
     ],
     currentMatch: {
       id: 'm2',
@@ -70,9 +78,11 @@ const mockClubs: Club[] = [
         logo: '/placeholder.svg',
         totalDistance: 78.3,
         members: [
-          { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true, distanceContribution: 30.1 },
-          { id: '7', name: 'Alice Sprint', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 22.4 },
-          { id: '8', name: 'Charlie Run', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 25.8 },
+          { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true, distanceContribution: 18.1 },
+          { id: '7', name: 'Alice Sprint', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 15.4 },
+          { id: '8', name: 'Charlie Run', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 16.8 },
+          { id: '11', name: 'Olivia Pace', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 14.2 },
+          { id: '12', name: 'Paul Path', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 13.8 },
         ]
       },
       awayClub: {
@@ -81,13 +91,15 @@ const mockClubs: Club[] = [
         logo: '/placeholder.svg',
         totalDistance: 85.1,
         members: [
-          { id: '9', name: 'Mark Move', avatar: '/placeholder.svg', isAdmin: true, distanceContribution: 32.3 },
-          { id: '10', name: 'Eva Exercise', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 28.5 },
-          { id: '11', name: 'Tom Track', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 24.3 },
+          { id: '13', name: 'Mark Move', avatar: '/placeholder.svg', isAdmin: true, distanceContribution: 18.3 },
+          { id: '14', name: 'Eva Exercise', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 16.5 },
+          { id: '15', name: 'Tom Track', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 17.3 },
+          { id: '16', name: 'Susan Step', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 16.2 },
+          { id: '17', name: 'Robert Run', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 16.8 },
         ]
       },
-      startDate: new Date(new Date().getTime() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 2 days ago
-      endDate: new Date(new Date().getTime() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 5 days from now
+      startDate: new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Same as the other match
+      endDate: new Date(new Date().getTime() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Same as the other match
       status: 'active'
     },
     matchHistory: []

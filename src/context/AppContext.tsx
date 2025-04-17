@@ -14,10 +14,13 @@ const mockUser: User = {
       name: 'Weekend Warriors',
       logo: '/placeholder.svg',
       division: 'Silver',
+      tier: 2,
       members: [
         { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true },
         { id: '2', name: 'Jane Sprinter', avatar: '/placeholder.svg', isAdmin: false },
         { id: '3', name: 'Bob Marathon', avatar: '/placeholder.svg', isAdmin: false },
+        { id: '4', name: 'Emma Jogger', avatar: '/placeholder.svg', isAdmin: false },
+        { id: '5', name: 'Tom Walker', avatar: '/placeholder.svg', isAdmin: false },
       ],
       matchHistory: []
     },
@@ -26,10 +29,13 @@ const mockUser: User = {
       name: 'Road Runners',
       logo: '/placeholder.svg',
       division: 'Gold',
+      tier: 1,
       members: [
         { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true },
         { id: '7', name: 'Alice Sprint', avatar: '/placeholder.svg', isAdmin: false },
         { id: '8', name: 'Charlie Run', avatar: '/placeholder.svg', isAdmin: false },
+        { id: '11', name: 'Olivia Pace', avatar: '/placeholder.svg', isAdmin: false },
+        { id: '12', name: 'Paul Path', avatar: '/placeholder.svg', isAdmin: false },
       ],
       matchHistory: []
     }

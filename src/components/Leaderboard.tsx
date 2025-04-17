@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ArrowUp, ArrowDown, Trophy, Medal } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -22,22 +23,21 @@ interface LeaderboardClub {
   change: 'up' | 'down' | 'same';
 }
 
-// Updated mock data to include tiers
+// Updated mock data to match the clubs in HomeView
 const mockLeaderboardData: LeaderboardClub[] = [
-  { id: '1', name: 'Weekend Warriors', division: 'Elite', rank: 1, points: 12, change: 'same' },
-  { id: '2', name: 'Road Runners', division: 'Elite', rank: 2, points: 10, change: 'up' },
+  { id: '1', name: 'Weekend Warriors', division: 'Silver', tier: 2, rank: 12, points: 0, change: 'up' },
+  { id: '2', name: 'Road Runners', division: 'Gold', tier: 1, rank: 6, points: 0, change: 'down' },
   { id: '3', name: 'Run For Fun', division: 'Elite', rank: 3, points: 9, change: 'down' },
   { id: '4', name: 'Swift Feet', division: 'Diamond', tier: 1, rank: 4, points: 0, change: 'up' },
-  { id: '5', name: 'Weekend Warriors', division: 'Diamond', tier: 2, rank: 5, points: 0, change: 'same' },
-  { id: '6', name: 'Track Stars', division: 'Diamond', tier: 3, rank: 6, points: 0, change: 'down' },
-  { id: '7', name: 'Finish Line', division: 'Platinum', tier: 1, rank: 7, points: 0, change: 'up' },
-  { id: '8', name: 'Running Rebels', division: 'Platinum', tier: 2, rank: 8, points: 0, change: 'down' },
-  { id: '9', name: 'Road Runners', division: 'Platinum', tier: 3, rank: 9, points: 0, change: 'same' },
-  { id: '10', name: 'Trailblazers', division: 'Gold', tier: 1, rank: 10, points: 0, change: 'up' },
+  { id: '5', name: 'Track Stars', division: 'Diamond', tier: 3, rank: 6, points: 0, change: 'down' },
+  { id: '6', name: 'Finish Line', division: 'Platinum', tier: 1, rank: 7, points: 0, change: 'up' },
+  { id: '7', name: 'Running Rebels', division: 'Platinum', tier: 2, rank: 8, points: 0, change: 'down' },
+  { id: '8', name: 'Road Masters', division: 'Platinum', tier: 3, rank: 9, points: 0, change: 'same' },
+  { id: '9', name: 'Trailblazers', division: 'Gold', tier: 1, rank: 10, points: 0, change: 'up' },
 ];
 
 // Expanded to fill all divisions and tiers
-for (let i = 11; i <= 100; i++) {
+for (let i = 10; i <= 100; i++) {
   let division: Division;
   let tier: number;
   
@@ -52,13 +52,16 @@ for (let i = 11; i <= 100; i++) {
     tier = Math.floor((i - 40) / 12) + 1;
   }
   
+  // Skip IDs 1 and 2 to avoid duplicates with our specific clubs
+  if (i === 1 || i === 2) continue;
+  
   mockLeaderboardData.push({
     id: i.toString(),
     name: `Club ${i}`,
     division,
     tier,
     rank: i,
-    points: 0, // Fix: Only Elite clubs have points
+    points: 0,
     change: ['up', 'down', 'same'][Math.floor(Math.random() * 3)] as 'up' | 'down' | 'same'
   });
 }
@@ -181,7 +184,7 @@ const Leaderboard: React.FC = () => {
                       Club
                     </th>
                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Division
+                      League
                     </th>
                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Points
