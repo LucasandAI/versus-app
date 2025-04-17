@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { UserPlus, Settings, Share2, ArrowRight, Award, LogOut, Facebook, Instagram, Twitter, Globe, Linkedin, Edit } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import ClubInviteDialog from './admin/ClubInviteDialog';
+import EditProfileDialog from './profile/EditProfileDialog';
 import { Card } from './ui/card';
 import { 
   DropdownMenu,
@@ -21,6 +22,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 
 const UserProfile: React.FC = () => {
@@ -28,6 +39,8 @@ const UserProfile: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [showMoreAchievements, setShowMoreAchievements] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   useEffect(() => {
     // Simulate loading data
@@ -110,6 +123,7 @@ const UserProfile: React.FC = () => {
   };
 
   const handleLogout = () => {
+    setLogoutDialogOpen(false);
     toast({
       title: "Logged out",
       description: "You have been logged out successfully",
@@ -118,10 +132,7 @@ const UserProfile: React.FC = () => {
   };
 
   const handleEditProfile = () => {
-    toast({
-      title: "Edit Profile",
-      description: "Edit profile functionality not implemented yet",
-    });
+    setEditProfileOpen(true);
   };
 
   const handleEditSocialLinks = (platform: string) => {
@@ -163,53 +174,24 @@ const UserProfile: React.FC = () => {
           <div className="flex space-x-4">
             {isCurrentUserProfile ? (
               <>
-                {/* Settings dropdown for current user */}
-                <DropdownMenu>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="rounded-full">
-                            <Settings className="h-5 w-5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        Settings
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>Profile Settings</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleEditProfile}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Profile
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel>Social Links</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => handleEditSocialLinks('Instagram')}>
-                      <Instagram className="h-4 w-4 mr-2" />
-                      Edit Instagram
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleEditSocialLinks('Twitter')}>
-                      <Twitter className="h-4 w-4 mr-2" />
-                      Edit Twitter
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleEditSocialLinks('Facebook')}>
-                      <Facebook className="h-4 w-4 mr-2" />
-                      Edit Facebook
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleEditSocialLinks('LinkedIn')}>
-                      <Linkedin className="h-4 w-4 mr-2" />
-                      Edit LinkedIn
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleEditSocialLinks('Website')}>
-                      <Globe className="h-4 w-4 mr-2" />
-                      Edit Website
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                {/* Settings button for current user */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="rounded-full"
+                        onClick={handleEditProfile}
+                      >
+                        <Settings className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Settings
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
 
                 {/* Social Links dropdown for current user */}
                 <DropdownMenu>
@@ -262,7 +244,12 @@ const UserProfile: React.FC = () => {
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="sm" className="rounded-full" onClick={handleLogout}>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="rounded-full" 
+                        onClick={() => setLogoutDialogOpen(true)}
+                      >
                         <LogOut className="h-5 w-5" />
                       </Button>
                     </TooltipTrigger>
@@ -428,6 +415,31 @@ const UserProfile: React.FC = () => {
           </Button>
         )}
       </Card>
+
+      {/* Edit Profile Dialog */}
+      {isCurrentUserProfile && (
+        <EditProfileDialog
+          open={editProfileOpen}
+          onOpenChange={setEditProfileOpen}
+          user={currentUser}
+        />
+      )}
+
+      {/* Logout Confirmation Dialog */}
+      <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You'll need to log in again to access your account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogout}>Log Out</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
