@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ArrowLeft, MessageCircle, Info, User as UserIcon, Calendar, TrendingUp, TrendingDown, ArrowRight, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -480,7 +479,7 @@ const ClubDetail: React.FC = () => {
                       <TableRow key={member.id}>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <UserAvatar name={member.name} image={member.avatar} size="xs" />
+                            <UserAvatar name={member.name} image={member.avatar} size="sm" />
                             <span>{member.name}</span>
                           </div>
                         </TableCell>
@@ -507,7 +506,7 @@ const ClubDetail: React.FC = () => {
                       <TableRow key={member.id}>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <UserAvatar name={member.name} image={member.avatar} size="xs" />
+                            <UserAvatar name={member.name} image={member.avatar} size="sm" />
                             <span>{member.name}</span>
                           </div>
                         </TableCell>
