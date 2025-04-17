@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ArrowUp, ArrowDown, Trophy, Medal } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -135,7 +134,7 @@ const Leaderboard: React.FC = () => {
     }
   };
 
-  const formatDivisionWithTier = (division: Division, tier?: number) => {
+  const formatLeagueWithTier = (division: Division, tier?: number) => {
     if (division === 'Elite') return 'Elite League';
     return tier ? `${division} ${tier}` : division;
   };
@@ -146,7 +145,7 @@ const Leaderboard: React.FC = () => {
         <div className="container-mobile text-center">
           <div className="flex items-center justify-center">
             <Trophy className="h-5 w-5 mr-2" />
-            <h1 className="text-xl font-bold">Leaderboard</h1>
+            <h1 className="text-xl font-bold">Leagues</h1>
           </div>
         </div>
       </div>
@@ -207,7 +206,7 @@ const Leaderboard: React.FC = () => {
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getDivisionColor(club.division)}`}>
-                          {getDivisionIcon(club.division)} {formatDivisionWithTier(club.division, club.tier)}
+                          {getDivisionIcon(club.division)} {formatLeagueWithTier(club.division, club.tier)}
                         </span>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-800">
@@ -236,17 +235,17 @@ const Leaderboard: React.FC = () => {
         {activeTab === 'global' && (
           <>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold">Top Clubs</h2>
+              <h2 className="text-lg font-semibold">Top Leagues</h2>
               <div className="relative">
                 <select
                   value={selectedDivision}
                   onChange={(e) => setSelectedDivision(e.target.value as Division | 'All')}
                   className="appearance-none bg-white border border-gray-300 rounded-md pl-3 pr-8 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="All">All Divisions</option>
-                  {divisions.map((division) => (
-                    <option key={division} value={division}>
-                      {division}
+                  <option value="All">All Leagues</option>
+                  {divisions.map((league) => (
+                    <option key={league} value={league}>
+                      {league}
                     </option>
                   ))}
                 </select>
@@ -269,7 +268,7 @@ const Leaderboard: React.FC = () => {
                       Club
                     </th>
                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Division
+                      League
                     </th>
                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Points
@@ -294,7 +293,7 @@ const Leaderboard: React.FC = () => {
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getDivisionColor(club.division)}`}>
-                          {getDivisionIcon(club.division)} {formatDivisionWithTier(club.division, club.tier)}
+                          {getDivisionIcon(club.division)} {formatLeagueWithTier(club.division, club.tier)}
                         </span>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-800">
@@ -312,7 +311,7 @@ const Leaderboard: React.FC = () => {
         )}
 
         <div className="mt-6 bg-white rounded-lg shadow-md p-4">
-          <h3 className="font-semibold mb-3">Division System</h3>
+          <h3 className="font-semibold mb-3">League System</h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center">

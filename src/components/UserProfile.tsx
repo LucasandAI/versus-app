@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { User, LogOut, Settings, Award, Share2, ChevronDown } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -9,7 +8,11 @@ const UserProfile: React.FC = () => {
   const { currentUser, connectToStrava, setCurrentView, setSelectedClub } = useApp();
   const [showAllAchievements, setShowAllAchievements] = useState(false);
   
-  // Mock user stats
+  const formatLeagueWithTier = (division: string, tier?: number) => {
+    if (division === 'Elite') return 'Elite League';
+    return tier ? `${division} ${tier}` : division;
+  };
+
   const userStats = {
     matchesWon: 3,
     matchesLost: 1,
@@ -28,12 +31,12 @@ const UserProfile: React.FC = () => {
     { id: 8, title: 'Global Explorer', description: 'Log activities in 5 different countries', completed: true },
   ];
 
-  // Mock user clubs - make sure these match the clubs in HomeView
   const userClubs = [
     {
       id: '1',
       name: 'Weekend Warriors',
       division: 'Silver',
+      tier: 2,
       members: [
         { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true },
         { id: '2', name: 'Jane Sprinter', avatar: '/placeholder.svg', isAdmin: false },
@@ -44,6 +47,7 @@ const UserProfile: React.FC = () => {
       id: '2', 
       name: 'Road Runners',
       division: 'Gold',
+      tier: 1,
       members: [
         { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true },
         { id: '7', name: 'Alice Sprint', avatar: '/placeholder.svg', isAdmin: false },
@@ -58,7 +62,6 @@ const UserProfile: React.FC = () => {
   };
   
   const openStravaProfile = () => {
-    // In a real app, this would open the user's Strava profile
     window.open('https://www.strava.com/athletes/example', '_blank');
   };
 
@@ -181,7 +184,7 @@ const UserProfile: React.FC = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-          <h2 className="font-bold mb-3">My Clubs</h2>
+          <h2 className="font-bold mb-3">My Leagues</h2>
           
           {userClubs.length > 0 ? (
             <div className="space-y-3">
@@ -197,7 +200,9 @@ const UserProfile: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="font-medium text-sm hover:text-primary">{club.name}</h3>
-                      <span className="text-xs text-gray-500">{club.division} Division</span>
+                      <span className="text-xs text-gray-500">
+                        {formatLeagueWithTier(club.division, club.tier)}
+                      </span>
                     </div>
                   </div>
                   <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
@@ -208,8 +213,8 @@ const UserProfile: React.FC = () => {
             </div>
           ) : (
             <div className="text-center py-6">
-              <p className="text-gray-500 mb-4">You haven't joined any clubs yet</p>
-              <Button variant="primary" size="sm">Create a Club</Button>
+              <p className="text-gray-500 mb-4">You haven't joined any leagues yet</p>
+              <Button variant="primary" size="sm">Create a League</Button>
             </div>
           )}
         </div>
