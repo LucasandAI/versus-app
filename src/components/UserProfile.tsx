@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -42,6 +41,7 @@ const UserProfile: React.FC = () => {
   const [showMoreAchievements, setShowMoreAchievements] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [selectedClub, setSelectedClub] = useState(null);
 
   useEffect(() => {
     setTimeout(() => {
@@ -358,7 +358,7 @@ const UserProfile: React.FC = () => {
                 className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
                 onClick={() => {
                   setCurrentView('clubDetail');
-                  setSelectedUser(club);
+                  setSelectedClub(club);
                 }}
               >
                 <img 
