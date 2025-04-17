@@ -86,12 +86,12 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, clubMembers }) =>
             
             <div className={`max-w-[70%] ${isCurrentUser(message.sender.id) ? 'order-2' : 'order-1'}`}>
               {!isCurrentUser(message.sender.id) && (
-                <p 
-                  className="text-xs text-gray-500 mb-1 cursor-pointer hover:text-primary"
+                <button 
+                  className="text-xs text-gray-500 mb-1 cursor-pointer hover:text-primary text-left"
                   onClick={() => handleUserClick(message.sender.id)}
                 >
                   {message.sender.name}
-                </p>
+                </button>
               )}
               
               <div 

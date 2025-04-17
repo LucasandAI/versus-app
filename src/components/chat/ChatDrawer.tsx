@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Send, X, Users, ChevronDown } from 'lucide-react';
+import { Send, X, Users, ChevronDown, Trophy } from 'lucide-react';
 import { 
   Drawer, 
   DrawerContent, 
@@ -62,7 +61,6 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) =>
       [selectedClub.id]: [...(prev[selectedClub.id] || []), newMessage]
     }));
     
-    // Simulate response after a short delay
     setTimeout(() => {
       const responseMessage = {
         id: (Date.now() + 1).toString(),
@@ -81,6 +79,13 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) =>
       }));
     }, 1000);
   };
+
+  const getCurrentMatch = () => {
+    if (!selectedClub || !selectedClub.currentMatch) return null;
+    return selectedClub.currentMatch;
+  };
+
+  const currentMatch = getCurrentMatch();
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -105,6 +110,29 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) =>
             <div className="flex-1 flex flex-col h-full">
               <div className="border-b p-3">
                 <h3 className="font-medium">{selectedClub.name}</h3>
+                
+                {currentMatch && (
+                  <div className="mt-1 mb-2 bg-gray-50 rounded-md p-2 text-xs">
+                    <div className="flex items-center gap-1 text-primary font-medium">
+                      <Trophy className="h-3 w-3" />
+                      <span>Current Match</span>
+                    </div>
+                    <div className="flex justify-between items-center mt-1">
+                      <span>{currentMatch.homeClub.name}</span>
+                      <div className="flex gap-1 font-medium">
+                        <span>{currentMatch.homeClub.totalDistance}km</span>
+                        <span>vs</span>
+                        <span>{currentMatch.awayClub.totalDistance}km</span>
+                      </div>
+                      <span>{currentMatch.awayClub.name}</span>
+                    </div>
+                    <div className="text-gray-500 mt-1 text-center">
+                      {currentMatch.status === 'active' ? 'Ends on ' : 'Starting on '}
+                      {new Date(currentMatch.endDate).toLocaleDateString()}
+                    </div>
+                  </div>
+                )}
+                
                 <Popover>
                   <PopoverTrigger asChild>
                     <button className="text-xs text-gray-500 hover:text-primary flex items-center mt-1">
