@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -35,13 +36,12 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const UserProfile: React.FC = () => {
-  const { selectedUser, setCurrentView, currentUser, setSelectedUser, currentView } = useApp();
+  const { selectedUser, setCurrentView, currentUser, setSelectedUser, setSelectedClub, currentView } = useApp();
   const [loading, setLoading] = useState(true);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [showMoreAchievements, setShowMoreAchievements] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
-  const [selectedClub, setSelectedClub] = useState(null);
 
   useEffect(() => {
     setTimeout(() => {
@@ -357,8 +357,8 @@ const UserProfile: React.FC = () => {
                 key={club.id} 
                 className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
                 onClick={() => {
-                  setCurrentView('clubDetail');
                   setSelectedClub(club);
+                  setCurrentView('clubDetail');
                 }}
               >
                 <img 
