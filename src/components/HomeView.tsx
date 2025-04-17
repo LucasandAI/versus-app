@@ -8,7 +8,7 @@ import Button from './shared/Button';
 import { Club, Match } from '@/types';
 import { toast } from "@/components/ui/use-toast";
 
-// Updated mock data for development with corrected dates and 5 members per team
+// Updated mock data for development with 5 members per team and identical match timeframes
 const mockClubs: Club[] = [
   {
     id: '1',
@@ -39,7 +39,7 @@ const mockClubs: Club[] = [
         ]
       },
       awayClub: {
-        id: '2',
+        id: '3',
         name: 'Running Rebels',
         logo: '/placeholder.svg',
         totalDistance: 57.2,
@@ -86,7 +86,7 @@ const mockClubs: Club[] = [
         ]
       },
       awayClub: {
-        id: '3',
+        id: '4',
         name: 'Trail Blazers',
         logo: '/placeholder.svg',
         totalDistance: 85.1,
@@ -98,8 +98,9 @@ const mockClubs: Club[] = [
           { id: '17', name: 'Robert Run', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 16.8 },
         ]
       },
-      startDate: new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Same as the other match
-      endDate: new Date(new Date().getTime() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Same as the other match
+      // Use the exact same timeframe as the other match
+      startDate: new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 days ago
+      endDate: new Date(new Date().getTime() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 4 days from now
       status: 'active'
     },
     matchHistory: []
