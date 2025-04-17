@@ -14,7 +14,7 @@ const ConnectScreen: React.FC = () => {
           <div className="flex justify-center">
             <div className="w-16 h-1 bg-strava rounded-full"></div>
           </div>
-          <h2 className="text-xl font-medium text-gray-700">
+          <h2 className="text-xl font-medium text-gray-700 whitespace-nowrap">
             The Competitive Club League for Strava Athletes
           </h2>
         </div>
