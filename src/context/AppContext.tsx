@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { AppContextType, AppView, Club, User } from '../types';
 
@@ -45,7 +44,7 @@ const mockUser: User = {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null); // Start not logged in
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState<AppView>('connect');
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -60,6 +59,38 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCurrentView('home');
   };
 
+  const createClub = (name: string, logo: string) => {
+    if (currentUser) {
+      const newClub: Club = {
+        id: Math.random().toString(36).substr(2, 9),
+        name,
+        logo,
+        division: 'Bronze',
+        tier: 5,
+        members: [
+          {
+            id: currentUser.id,
+            name: currentUser.name,
+            avatar: currentUser.avatar,
+            isAdmin: true
+          }
+        ],
+        matchHistory: []
+      };
+
+      setCurrentUser(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          clubs: [...prev.clubs, newClub]
+        };
+      });
+
+      setSelectedClub(newClub);
+      setCurrentView('clubDetail');
+    }
+  };
+
   const value = {
     currentUser,
     currentView,
@@ -68,7 +99,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCurrentView,
     setSelectedClub,
     setSelectedUser,
-    connectToStrava
+    connectToStrava,
+    createClub
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

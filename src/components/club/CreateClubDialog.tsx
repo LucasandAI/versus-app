@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Camera } from 'lucide-react';
+import { useApp } from '@/context/AppContext';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,7 @@ interface CreateClubDialogProps {
 }
 
 const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
+  const { createClub } = useApp();
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
   const [image, setImage] = useState<string | null>(null);
@@ -34,11 +36,20 @@ const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
       return;
     }
 
-    // Mock create functionality for now
+    createClub(
+      name.trim(),
+      image || '/placeholder.svg'
+    );
+
     toast({
       title: "Success",
       description: "Your club has been created",
     });
+
+    // Reset form
+    setName("");
+    setBio("");
+    setImage(null);
     onOpenChange(false);
   };
 

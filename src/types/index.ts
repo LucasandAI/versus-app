@@ -60,5 +60,6 @@ export interface AppContextType {
   setCurrentView: (view: AppView) => void;
   setSelectedClub: (club: Club | null) => void;
   setSelectedUser: (user: User | null) => void;
-  connectToStrava: () => void; // Mock function for now
+  connectToStrava: () => void;
+  createClub: (name: string, logo: string) => void;
 }
