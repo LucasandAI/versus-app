@@ -1,11 +1,20 @@
-
 import React, { useState } from 'react';
 import { User, LogOut, Settings, Award, Share2, ChevronDown, Instagram, Linkedin, Globe, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from './shared/UserAvatar';
 import Button from './shared/Button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from '@/components/ui/alert-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 const UserProfile: React.FC = () => {
