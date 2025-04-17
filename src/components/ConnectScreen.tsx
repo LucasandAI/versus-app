@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Button from './shared/Button';
 import { useApp } from '@/context/AppContext';
@@ -9,7 +10,7 @@ const ConnectScreen: React.FC = () => {
     <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gradient-to-b from-white to-gray-100">
       <div className="max-w-md w-full space-y-8 text-center">
         <div className="space-y-4">
-          <h1 className="text-4xl font-bold text-gray-900">ClubMatch</h1>
+          <h1 className="text-4xl font-bold text-gray-900">Versus</h1>
           <div className="flex justify-center">
             <div className="w-16 h-1 bg-strava rounded-full"></div>
           </div>

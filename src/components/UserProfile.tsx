@@ -1,13 +1,25 @@
 
 import React, { useState } from 'react';
-import { User, LogOut, Settings, Award, Share2, ChevronDown } from 'lucide-react';
+import { User, LogOut, Settings, Award, Share2, ChevronDown, Instagram, Linkedin, Globe, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from './shared/UserAvatar';
 import Button from './shared/Button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 const UserProfile: React.FC = () => {
   const { currentUser, connectToStrava, setCurrentView, setSelectedClub, setSelectedUser } = useApp();
   const [showAllAchievements, setShowAllAchievements] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [userBio, setUserBio] = useState("Strava Athlete");
+  const [socialLinks, setSocialLinks] = useState({
+    instagram: "",
+    linkedin: "",
+    tiktok: "",
+    website: ""
+  });
+  const [showSocialPopover, setShowSocialPopover] = useState(false);
   
   const formatLeagueWithTier = (division: string, tier?: number) => {
     if (division === 'Elite') return 'Elite League';
@@ -31,6 +43,9 @@ const UserProfile: React.FC = () => {
     { id: 7, title: 'Streak Master', description: 'Win 5 matches in a row', completed: false },
     { id: 8, title: 'Global Explorer', description: 'Log activities in 5 different countries', completed: true },
   ];
+
+  const completedAchievements = achievements.filter(a => a.completed);
+  const incompleteAchievements = achievements.filter(a => !a.completed);
 
   const userClubs = [
     {
@@ -82,6 +97,23 @@ const UserProfile: React.FC = () => {
     window.open('https://www.strava.com/athletes/example', '_blank');
   };
 
+  const handleLogout = () => {
+    setLogoutDialogOpen(false);
+    // Here would be the actual logout logic
+    setCurrentView('connect');
+  };
+
+  const handleSocialLinkChange = (platform: keyof typeof socialLinks, value: string) => {
+    setSocialLinks(prev => ({
+      ...prev,
+      [platform]: value
+    }));
+  };
+
+  const handleBioChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setUserBio(e.target.value);
+  };
+
   if (!currentUser) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6">
@@ -111,6 +143,27 @@ const UserProfile: React.FC = () => {
       </div>
 
       <div className="container-mobile pt-4">
+        {/* Completed Achievements Banner */}
+        {completedAchievements.length > 0 && (
+          <div className="bg-primary/10 rounded-lg p-4 mb-6">
+            <div className="flex items-center mb-2">
+              <Award className="h-5 w-5 text-primary mr-2" />
+              <h2 className="font-bold">Completed Achievements</h2>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {completedAchievements.map((achievement) => (
+                <div 
+                  key={achievement.id} 
+                  className="bg-white shadow-sm rounded-full px-3 py-1 text-xs flex items-center"
+                >
+                  <span className="w-2 h-2 bg-success rounded-full mr-1"></span>
+                  {achievement.title}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="bg-white rounded-lg shadow-md p-6 mb-6 text-center">
           <UserAvatar 
             name={currentUser.name} 
@@ -119,18 +172,184 @@ const UserProfile: React.FC = () => {
             className="mx-auto mb-3"
           />
           <h2 className="text-xl font-bold">{currentUser.name}</h2>
-          <p className="text-gray-500 mb-4">Strava Athlete</p>
+          <p className="text-gray-500 mb-4">{userBio}</p>
           
           <div className="flex justify-center space-x-3 mb-4">
-            <button className="bg-gray-100 p-2 rounded-full">
-              <Settings className="h-5 w-5 text-gray-600" />
-            </button>
-            <button className="bg-gray-100 p-2 rounded-full">
-              <Share2 className="h-5 w-5 text-gray-600" />
-            </button>
-            <button className="bg-gray-100 p-2 rounded-full">
-              <LogOut className="h-5 w-5 text-gray-600" />
-            </button>
+            {/* Settings Dialog */}
+            <Dialog>
+              <DialogTrigger asChild>
+                <button className="bg-gray-100 p-2 rounded-full">
+                  <Settings className="h-5 w-5 text-gray-600" />
+                </button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Edit Profile</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Profile Picture</label>
+                    <div className="flex items-center space-x-4">
+                      <UserAvatar 
+                        name={currentUser.name} 
+                        image={currentUser.avatar} 
+                        size="md"
+                      />
+                      <Button variant="outline" size="sm">Change</Button>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Bio</label>
+                    <textarea 
+                      className="w-full rounded-md border border-input p-2 text-sm"
+                      rows={3}
+                      value={userBio}
+                      onChange={handleBioChange}
+                      placeholder="Tell us about yourself..."
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Social Links</label>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Instagram className="h-4 w-4 text-gray-500" />
+                        <input 
+                          type="text" 
+                          className="flex-1 rounded-md border border-input p-2 text-sm" 
+                          placeholder="Instagram username"
+                          value={socialLinks.instagram}
+                          onChange={e => handleSocialLinkChange('instagram', e.target.value)}
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Linkedin className="h-4 w-4 text-gray-500" />
+                        <input 
+                          type="text" 
+                          className="flex-1 rounded-md border border-input p-2 text-sm" 
+                          placeholder="LinkedIn username"
+                          value={socialLinks.linkedin}
+                          onChange={e => handleSocialLinkChange('linkedin', e.target.value)}
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center text-gray-500 font-bold text-xs">T</span>
+                        <input 
+                          type="text" 
+                          className="flex-1 rounded-md border border-input p-2 text-sm" 
+                          placeholder="TikTok username"
+                          value={socialLinks.tiktok}
+                          onChange={e => handleSocialLinkChange('tiktok', e.target.value)}
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Globe className="h-4 w-4 text-gray-500" />
+                        <input 
+                          type="url" 
+                          className="flex-1 rounded-md border border-input p-2 text-sm" 
+                          placeholder="Website URL"
+                          value={socialLinks.website}
+                          onChange={e => handleSocialLinkChange('website', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <Button variant="primary">Save Changes</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+            
+            {/* Social Links Popover */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="bg-gray-100 p-2 rounded-full">
+                  <Share2 className="h-5 w-5 text-gray-600" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-60">
+                <div className="space-y-3">
+                  <h3 className="font-medium text-sm">Connect with {currentUser.name}</h3>
+                  
+                  {Object.entries(socialLinks).some(([_, value]) => value) ? (
+                    <div className="space-y-2">
+                      {socialLinks.instagram && (
+                        <a 
+                          href={`https://instagram.com/${socialLinks.instagram}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center p-2 hover:bg-gray-50 rounded-md"
+                        >
+                          <Instagram className="h-4 w-4 mr-2 text-pink-500" />
+                          <span className="text-sm">@{socialLinks.instagram}</span>
+                        </a>
+                      )}
+                      
+                      {socialLinks.linkedin && (
+                        <a 
+                          href={`https://linkedin.com/in/${socialLinks.linkedin}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center p-2 hover:bg-gray-50 rounded-md"
+                        >
+                          <Linkedin className="h-4 w-4 mr-2 text-blue-600" />
+                          <span className="text-sm">{socialLinks.linkedin}</span>
+                        </a>
+                      )}
+                      
+                      {socialLinks.tiktok && (
+                        <a 
+                          href={`https://tiktok.com/@${socialLinks.tiktok}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center p-2 hover:bg-gray-50 rounded-md"
+                        >
+                          <span className="flex-shrink-0 w-4 h-4 mr-2 flex items-center justify-center font-bold text-xs">T</span>
+                          <span className="text-sm">@{socialLinks.tiktok}</span>
+                        </a>
+                      )}
+                      
+                      {socialLinks.website && (
+                        <a 
+                          href={socialLinks.website} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center p-2 hover:bg-gray-50 rounded-md"
+                        >
+                          <Globe className="h-4 w-4 mr-2 text-gray-500" />
+                          <span className="text-sm truncate">{socialLinks.website}</span>
+                        </a>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 py-2">No social links available</p>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+            
+            {/* Logout Alert Dialog */}
+            <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+              <AlertDialogTrigger asChild>
+                <button className="bg-gray-100 p-2 rounded-full">
+                  <LogOut className="h-5 w-5 text-gray-600" />
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Log out</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to log out? You'll need to connect with Strava again to access your account.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleLogout}>Log out</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
           
           <Button
@@ -169,26 +388,21 @@ const UserProfile: React.FC = () => {
           </div>
           
           <div className="space-y-3">
-            {achievements
-              .slice(0, showAllAchievements ? achievements.length : 4)
+            {incompleteAchievements
+              .slice(0, showAllAchievements ? incompleteAchievements.length : 4)
               .map((achievement) => (
                 <div 
                   key={achievement.id} 
-                  className={`p-3 rounded-md ${achievement.completed ? 'bg-primary/10' : 'bg-gray-50'}`}
+                  className="p-3 rounded-md bg-gray-50"
                 >
                   <div className="flex justify-between items-center">
                     <h3 className="font-medium text-sm">{achievement.title}</h3>
-                    {achievement.completed && (
-                      <span className="text-xs bg-success/20 text-success px-2 py-0.5 rounded">
-                        Completed
-                      </span>
-                    )}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">{achievement.description}</p>
                 </div>
               ))}
             
-            {achievements.length > 4 && (
+            {incompleteAchievements.length > 4 && (
               <button 
                 className="w-full py-2 text-sm text-primary flex items-center justify-center"
                 onClick={() => setShowAllAchievements(!showAllAchievements)}
