@@ -1,20 +1,16 @@
 import React, { useState } from 'react';
-import { Plus, Search, ChevronDown, UserPlus, MessageCircle, X } from 'lucide-react';
+import { MessageCircle, Plus, Search } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from './shared/UserAvatar';
-import MatchProgressBar from './shared/MatchProgressBar';
-import Button from './shared/Button';
-import { Club, Match } from '@/types';
+import { Club } from '@/types';
 import { toast } from "@/components/ui/use-toast";
 import ChatDrawer from './chat/ChatDrawer';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle,
-  DialogClose 
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { X } from 'lucide-react';
+import Button from './shared/Button';
+import ClubCard from './club/ClubCard';
+import AvailableClubs from './club/AvailableClubs';
 import CreateClubDialog from './club/CreateClubDialog';
 
 const mockClubs: Club[] = [
@@ -141,7 +137,6 @@ const availableClubs = [
 const HomeView: React.FC = () => {
   const { setCurrentView, setSelectedClub, setSelectedUser, currentUser } = useApp();
   const [clubs] = React.useState<Club[]>(mockClubs);
-  const [expandedClubId, setExpandedClubId] = useState<string | null>(null);
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -170,34 +165,16 @@ const HomeView: React.FC = () => {
     });
   };
 
-  const getDaysRemaining = (endDate: string) => {
-    const end = new Date(endDate);
-    const now = new Date();
-    const diffTime = end.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
-
-  const toggleMembersView = (clubId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setExpandedClubId(expandedClubId === clubId ? null : clubId);
-  };
-
-  const handleCreateClub = () => {
-    setCreateClubDialogOpen(true);
-  };
-
-  const formatLeagueWithTier = (division: string, tier?: number) => {
-    if (division === 'Elite') return 'Elite League';
-    return tier ? `${division} ${tier}` : division;
-  };
-
   const handleOpenChat = () => {
     setChatDrawerOpen(true);
   };
 
   const handleOpenSearch = () => {
     setSearchDialogOpen(true);
+  };
+
+  const handleCreateClub = () => {
+    setCreateClubDialogOpen(true);
   };
 
   const filteredClubs = availableClubs.filter(club => 
@@ -227,117 +204,12 @@ const HomeView: React.FC = () => {
 
         <div className="space-y-6">
           {clubs.map((club) => (
-            <div 
+            <ClubCard
               key={club.id}
-              className="bg-white rounded-lg shadow-md p-4 cursor-pointer"
-              onClick={() => handleSelectClub(club)}
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="bg-gray-200 h-12 w-12 rounded-full flex items-center justify-center">
-                  <span className="font-bold text-gray-700">{club.name.substring(0, 2)}</span>
-                </div>
-                <div>
-                  <h3 className="font-medium">{club.name}</h3>
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
-                      {formatLeagueWithTier(club.division, club.tier)}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      • {club.members.length} members
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {club.currentMatch && (
-                <div className="border-t pt-3">
-                  <div className="flex justify-between items-center mb-2">
-                    <h4 className="text-sm font-medium">Current Match</h4>
-                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">
-                      {getDaysRemaining(club.currentMatch.endDate)} days left
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center mb-3 text-sm">
-                    <span 
-                      className="font-medium cursor-pointer hover:text-primary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const homeClub = clubs.find(c => c.id === club.currentMatch?.homeClub.id);
-                        if (homeClub) handleSelectClub(homeClub);
-                      }}
-                    >{club.currentMatch.homeClub.name}</span>
-                    <span className="text-xs text-gray-500">vs</span>
-                    <span 
-                      className="font-medium cursor-pointer hover:text-primary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const awayClub = clubs.find(c => c.id === club.currentMatch?.awayClub.id);
-                        if (awayClub) handleSelectClub(awayClub);
-                      }}
-                    >{club.currentMatch.awayClub.name}</span>
-                  </div>
-
-                  <MatchProgressBar
-                    homeDistance={club.currentMatch.homeClub.totalDistance}
-                    awayDistance={club.currentMatch.awayClub.totalDistance}
-                  />
-
-                  <div className="mt-4">
-                    <button 
-                      className="w-full py-2 text-sm text-primary flex items-center justify-center"
-                      onClick={(e) => toggleMembersView(club.id, e)}
-                    >
-                      {expandedClubId === club.id ? 'Hide Details' : 'View Details'} 
-                      <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${expandedClubId === club.id ? 'rotate-180' : ''}`} />
-                    </button>
-                    
-                    {expandedClubId === club.id && (
-                      <div className="mt-2 grid grid-cols-2 gap-2">
-                        <div>
-                          <p className="text-xs font-medium mb-2">Home Club Members</p>
-                          {club.currentMatch.homeClub.members.map(member => (
-                            <div 
-                              key={member.id} 
-                              className="flex items-center gap-2 mb-1 cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSelectUser(member.id, member.name);
-                              }}
-                            >
-                              <UserAvatar name={member.name} image={member.avatar} size="sm" />
-                              <div>
-                                <p className="text-xs font-medium hover:text-primary">{member.name}</p>
-                                <p className="text-xs text-gray-500">{member.distanceContribution?.toFixed(1)} km</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium mb-2">Away Club Members</p>
-                          {club.currentMatch.awayClub.members.map(member => (
-                            <div 
-                              key={member.id} 
-                              className="flex items-center gap-2 mb-1 cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSelectUser(member.id, member.name);
-                              }}
-                            >
-                              <UserAvatar name={member.name} image={member.avatar} size="sm" />
-                              <div>
-                                <p className="text-xs font-medium hover:text-primary">{member.name}</p>
-                                <p className="text-xs text-gray-500">{member.distanceContribution?.toFixed(1)} km</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+              club={club}
+              onSelectClub={handleSelectClub}
+              onSelectUser={handleSelectUser}
+            />
           ))}
 
           {clubs.length === 0 && (
@@ -369,38 +241,10 @@ const HomeView: React.FC = () => {
             </button>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-4">
-            <p className="text-gray-500 text-sm mb-4">
-              Clubs looking for members
-            </p>
-
-            <div className="space-y-3">
-              {availableClubs.map((club) => (
-                <div key={club.id} className="flex items-center justify-between border-b last:border-0 pb-3 last:pb-0">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-gray-200 h-10 w-10 rounded-full flex items-center justify-center">
-                      <span className="font-bold text-xs text-gray-700">{club.name.substring(0, 2)}</span>
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-sm">{club.name}</h3>
-                      <span className="text-xs text-gray-500">
-                        {formatLeagueWithTier(club.division, club.tier)} • {club.members}/5 members
-                      </span>
-                    </div>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="h-8"
-                    icon={<UserPlus className="h-4 w-4" />}
-                    onClick={() => handleRequestToJoin(club.id, club.name)}
-                  >
-                    Request
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
+          <AvailableClubs 
+            clubs={availableClubs}
+            onRequestJoin={handleRequestToJoin}
+          />
 
           <div className="mt-6 text-center">
             <Button 
