@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { Button } from "@/components/ui/button";
-import { UserPlus, Settings, Share2, ArrowRight, Award, LogOut, Facebook, Instagram, Twitter } from 'lucide-react';
+import { UserPlus, Settings, Share2, ArrowRight, Award, LogOut, Facebook, Instagram, Twitter, Globe, Linkedin, Edit } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import ClubInviteDialog from './admin/ClubInviteDialog';
 import { Card } from './ui/card';
@@ -11,7 +11,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel
 } from "@/components/ui/dropdown-menu";
 import {
   Tooltip,
@@ -94,7 +96,6 @@ const UserProfile: React.FC = () => {
   ];
 
   const handleShareProfile = () => {
-    // In a real app, implement share functionality
     toast({
       title: "Profile shared",
       description: `${selectedUser.name}'s profile link copied to clipboard`,
@@ -102,7 +103,6 @@ const UserProfile: React.FC = () => {
   };
 
   const handleOpenStravaProfile = () => {
-    // In a real app, open Strava profile
     toast({
       title: "Opening Strava profile",
       description: "Redirecting to Strava...",
@@ -117,10 +117,17 @@ const UserProfile: React.FC = () => {
     setCurrentView('connect');
   };
 
-  const handleSettings = () => {
+  const handleEditProfile = () => {
     toast({
-      title: "Settings",
-      description: "Settings page is not implemented yet",
+      title: "Edit Profile",
+      description: "Edit profile functionality not implemented yet",
+    });
+  };
+
+  const handleEditSocialLinks = (platform: string) => {
+    toast({
+      title: `Edit ${platform}`,
+      description: `${platform} link update functionality not implemented yet`,
     });
   };
 
@@ -155,72 +162,157 @@ const UserProfile: React.FC = () => {
           {/* Action buttons */}
           <div className="flex space-x-4">
             {isCurrentUserProfile ? (
+              <>
+                {/* Settings dropdown for current user */}
+                <DropdownMenu>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="rounded-full">
+                            <Settings className="h-5 w-5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Settings
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Profile Settings</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleEditProfile}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Social Links</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => handleEditSocialLinks('Instagram')}>
+                      <Instagram className="h-4 w-4 mr-2" />
+                      Edit Instagram
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleEditSocialLinks('Twitter')}>
+                      <Twitter className="h-4 w-4 mr-2" />
+                      Edit Twitter
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleEditSocialLinks('Facebook')}>
+                      <Facebook className="h-4 w-4 mr-2" />
+                      Edit Facebook
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleEditSocialLinks('LinkedIn')}>
+                      <Linkedin className="h-4 w-4 mr-2" />
+                      Edit LinkedIn
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleEditSocialLinks('Website')}>
+                      <Globe className="h-4 w-4 mr-2" />
+                      Edit Website
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Social Links dropdown for current user */}
+                <DropdownMenu>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="rounded-full">
+                            <Share2 className="h-5 w-5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Social Links
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Share Profile</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={handleShareProfile}>
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Copy Profile Link
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Social Media</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => toast({ title: "Instagram", description: "Opening Instagram..." })}>
+                      <Instagram className="h-4 w-4 mr-2" />
+                      Instagram
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => toast({ title: "Twitter", description: "Opening Twitter..." })}>
+                      <Twitter className="h-4 w-4 mr-2" />
+                      Twitter
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => toast({ title: "Facebook", description: "Opening Facebook..." })}>
+                      <Facebook className="h-4 w-4 mr-2" />
+                      Facebook
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => toast({ title: "LinkedIn", description: "Opening LinkedIn..." })}>
+                      <Linkedin className="h-4 w-4 mr-2" />
+                      LinkedIn
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => toast({ title: "Website", description: "Opening Website..." })}>
+                      <Globe className="h-4 w-4 mr-2" />
+                      Website
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Logout button for current user */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="sm" className="rounded-full" onClick={handleLogout}>
+                        <LogOut className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Log Out
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </>
+            ) : (
+              /* Only social links dropdown for other users */
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="rounded-full">
-                    <Settings className="h-5 w-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={handleSettings}>
-                    Settings
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="rounded-full">
+                          <Share2 className="h-5 w-5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Social Links
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Connect with {selectedUser.name}</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => toast({ title: "Instagram", description: "Opening Instagram..." })}>
+                    <Instagram className="h-4 w-4 mr-2" />
+                    Instagram
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Log out
+                  <DropdownMenuItem onClick={() => toast({ title: "Twitter", description: "Opening Twitter..." })}>
+                    <Twitter className="h-4 w-4 mr-2" />
+                    Twitter
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast({ title: "Facebook", description: "Opening Facebook..." })}>
+                    <Facebook className="h-4 w-4 mr-2" />
+                    Facebook
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast({ title: "LinkedIn", description: "Opening LinkedIn..." })}>
+                    <Linkedin className="h-4 w-4 mr-2" />
+                    LinkedIn
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast({ title: "Website", description: "Opening Website..." })}>
+                    <Globe className="h-4 w-4 mr-2" />
+                    Website
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : null}
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="rounded-full">
-                        <Share2 className="h-5 w-5" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem onClick={handleShareProfile}>
-                        Share Profile
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => toast({ title: "Facebook", description: "Opening Facebook..." })}>
-                        <Facebook className="h-4 w-4 mr-2" />
-                        Facebook
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => toast({ title: "Instagram", description: "Opening Instagram..." })}>
-                        <Instagram className="h-4 w-4 mr-2" />
-                        Instagram
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => toast({ title: "Twitter", description: "Opening Twitter..." })}>
-                        <Twitter className="h-4 w-4 mr-2" />
-                        Twitter
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Share Profile
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            {/* Only show arrow button on current user's profile */}
-            {isCurrentUserProfile && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm" className="rounded-full" onClick={() => toast({ title: "Navigation", description: "Navigating to achievements..." })}>
-                      <ArrowRight className="h-5 w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    View All Achievements
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
             )}
           </div>
 
@@ -325,14 +417,16 @@ const UserProfile: React.FC = () => {
           </div>
         </div>
         
-        {/* View more button */}
-        <Button 
-          variant="ghost" 
-          className="text-green-600 flex items-center justify-center w-full mt-4"
-          onClick={() => setShowMoreAchievements(!showMoreAchievements)}
-        >
-          View More Achievements <ArrowRight className="h-4 w-4 ml-1" />
-        </Button>
+        {/* View more button - Only shown on current user's profile */}
+        {isCurrentUserProfile && (
+          <Button 
+            variant="ghost" 
+            className="text-green-600 flex items-center justify-center w-full mt-4"
+            onClick={() => setShowMoreAchievements(!showMoreAchievements)}
+          >
+            View More Achievements <ArrowRight className="h-4 w-4 ml-1" />
+          </Button>
+        )}
       </Card>
     </div>
   );
