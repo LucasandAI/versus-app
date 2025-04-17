@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { Plus, Search } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Search, ChevronDown } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from './shared/UserAvatar';
 import MatchProgressBar from './shared/MatchProgressBar';
@@ -94,6 +94,7 @@ const mockClubs: Club[] = [
 const HomeView: React.FC = () => {
   const { setCurrentView, setSelectedClub, setSelectedUser, currentUser } = useApp();
   const [clubs] = React.useState<Club[]>(mockClubs);
+  const [expandedClubId, setExpandedClubId] = useState<string | null>(null);
 
   const handleSelectClub = (club: Club) => {
     setSelectedClub(club);
@@ -119,6 +120,11 @@ const HomeView: React.FC = () => {
     const diffTime = end.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
+  };
+
+  const toggleMembersView = (clubId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedClubId(expandedClubId === clubId ? null : clubId);
   };
 
   return (
@@ -192,45 +198,57 @@ const HomeView: React.FC = () => {
                     awayDistance={club.currentMatch.awayClub.totalDistance}
                   />
 
-                  <div className="mt-4 grid grid-cols-2 gap-2">
-                    <div>
-                      <p className="text-xs font-medium mb-2">Home Club Members</p>
-                      {club.currentMatch.homeClub.members.map(member => (
-                        <div 
-                          key={member.id} 
-                          className="flex items-center gap-2 mb-1"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSelectUser(member.id, member.name);
-                          }}
-                        >
-                          <UserAvatar name={member.name} image={member.avatar} size="sm" />
-                          <div>
-                            <p className="text-xs font-medium hover:text-primary">{member.name}</p>
-                            <p className="text-xs text-gray-500">{member.distanceContribution?.toFixed(1)} km</p>
-                          </div>
+                  <div className="mt-4">
+                    <button 
+                      className="w-full py-2 text-sm text-primary flex items-center justify-center"
+                      onClick={(e) => toggleMembersView(club.id, e)}
+                    >
+                      {expandedClubId === club.id ? 'Hide Details' : 'View Details'} 
+                      <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${expandedClubId === club.id ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {expandedClubId === club.id && (
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <div>
+                          <p className="text-xs font-medium mb-2">Home Club Members</p>
+                          {club.currentMatch.homeClub.members.map(member => (
+                            <div 
+                              key={member.id} 
+                              className="flex items-center gap-2 mb-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelectUser(member.id, member.name);
+                              }}
+                            >
+                              <UserAvatar name={member.name} image={member.avatar} size="sm" />
+                              <div>
+                                <p className="text-xs font-medium hover:text-primary">{member.name}</p>
+                                <p className="text-xs text-gray-500">{member.distanceContribution?.toFixed(1)} km</p>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium mb-2">Away Club Members</p>
-                      {club.currentMatch.awayClub.members.map(member => (
-                        <div 
-                          key={member.id} 
-                          className="flex items-center gap-2 mb-1"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSelectUser(member.id, member.name);
-                          }}
-                        >
-                          <UserAvatar name={member.name} image={member.avatar} size="sm" />
-                          <div>
-                            <p className="text-xs font-medium hover:text-primary">{member.name}</p>
-                            <p className="text-xs text-gray-500">{member.distanceContribution?.toFixed(1)} km</p>
-                          </div>
+                        <div>
+                          <p className="text-xs font-medium mb-2">Away Club Members</p>
+                          {club.currentMatch.awayClub.members.map(member => (
+                            <div 
+                              key={member.id} 
+                              className="flex items-center gap-2 mb-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelectUser(member.id, member.name);
+                              }}
+                            >
+                              <UserAvatar name={member.name} image={member.avatar} size="sm" />
+                              <div>
+                                <p className="text-xs font-medium hover:text-primary">{member.name}</p>
+                                <p className="text-xs text-gray-500">{member.distanceContribution?.toFixed(1)} km</p>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

@@ -11,8 +11,6 @@ const UserProfile: React.FC = () => {
   
   // Mock user stats
   const userStats = {
-    totalDistance: 237.5,
-    activeDays: 18,
     matchesWon: 3,
     matchesLost: 1,
     weeklyContribution: 42.3,
@@ -33,6 +31,11 @@ const UserProfile: React.FC = () => {
   const handleSelectClub = (club: any) => {
     setSelectedClub(club);
     setCurrentView('clubDetail');
+  };
+  
+  const openStravaProfile = () => {
+    // In a real app, this would open the user's Strava profile
+    window.open('https://www.strava.com/athletes/example', '_blank');
   };
 
   if (!currentUser) {
@@ -85,16 +88,17 @@ const UserProfile: React.FC = () => {
               <LogOut className="h-5 w-5 text-gray-600" />
             </button>
           </div>
+          
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={openStravaProfile}
+            className="mt-2"
+          >
+            Strava Profile
+          </Button>
 
           <div className="grid grid-cols-2 gap-3 mt-6">
-            <div className="bg-gray-50 p-3 rounded-md">
-              <p className="text-xl font-bold">{userStats.totalDistance} km</p>
-              <p className="text-xs text-gray-500">Total Distance</p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded-md">
-              <p className="text-xl font-bold">{userStats.activeDays}</p>
-              <p className="text-xs text-gray-500">Active Days</p>
-            </div>
             <div className="bg-gray-50 p-3 rounded-md">
               <p className="text-xl font-bold">{userStats.weeklyContribution} km</p>
               <p className="text-xs text-gray-500">Weekly Contribution</p>
