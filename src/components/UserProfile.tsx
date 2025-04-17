@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -10,6 +11,7 @@ import { Button } from './ui/button';
 const UserProfile: React.FC = () => {
   const { selectedUser, setCurrentView, currentUser } = useApp();
   const [loading, setLoading] = useState(true);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
 
   useEffect(() => {
     // Simulate loading data
@@ -38,7 +40,6 @@ const UserProfile: React.FC = () => {
     )
   ) || [];
   
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const isCurrentUserProfile = currentUser?.id === selectedUser?.id;
   const showInviteButton = !isCurrentUserProfile && adminClubs.length > 0;
 

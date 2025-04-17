@@ -2,6 +2,12 @@
 import React, { useState } from 'react';
 import { Club, User } from '@/types';
 import { Button } from "@/components/ui/button";
+import { 
+  Tooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
 import { toast } from "@/components/ui/use-toast";
 import { Edit, UserMinus, Users, ShieldAlert, UserCog } from 'lucide-react';
 import EditClubDialog from './EditClubDialog';
@@ -24,7 +30,6 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({ club, currentUser }
   if (!isAdmin) return null;
 
   const handleRemoveMember = (memberId: string, memberName: string) => {
-    // In a real app, this would call an API to remove the member
     toast({
       title: "Member Removed",
       description: `${memberName} has been removed from the club.`,
@@ -32,7 +37,6 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({ club, currentUser }
   };
   
   const handleMakeAdmin = (memberId: string, memberName: string) => {
-    // In a real app, this would call an API to make the member an admin
     toast({
       title: "Admin Role Granted",
       description: `${memberName} is now an admin of the club.`,
@@ -73,24 +77,43 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({ club, currentUser }
             <div key={member.id} className="flex items-center justify-between">
               <span className="text-sm">{member.name}</span>
               <div className="flex items-center gap-1">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                  onClick={() => handleMakeAdmin(member.id, member.name)}
-                >
-                  <UserCog className="h-4 w-4" />
-                  <span className="sr-only">Make Admin</span>
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                  onClick={() => handleRemoveMember(member.id, member.name)}
-                >
-                  <UserMinus className="h-4 w-4" />
-                  <span className="sr-only">Remove</span>
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                        onClick={() => handleMakeAdmin(member.id, member.name)}
+                      >
+                        <UserCog className="h-4 w-4" />
+                        <span className="sr-only">Make Admin</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Make Admin</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => handleRemoveMember(member.id, member.name)}
+                      >
+                        <UserMinus className="h-4 w-4" />
+                        <span className="sr-only">Remove</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Remove Member</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
           ))}
