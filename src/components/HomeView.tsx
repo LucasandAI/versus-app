@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Plus, Search, ChevronDown, UserPlus, MessageCircle } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -194,18 +195,18 @@ const HomeView: React.FC = () => {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">My Clubs</h1>
           <div className="flex items-center gap-2">
-            <UserAvatar 
-              name={currentUser?.name || "User"} 
-              image={currentUser?.avatar} 
-              size="sm"
-              onClick={() => setCurrentView('profile')}
-            />
             <button 
               onClick={handleOpenChat}
               className="text-primary hover:bg-gray-100 rounded-full p-2"
             >
               <MessageCircle className="h-5 w-5" />
             </button>
+            <UserAvatar 
+              name={currentUser?.name || "User"} 
+              image={currentUser?.avatar} 
+              size="sm"
+              onClick={() => setCurrentView('profile')}
+            />
           </div>
         </div>
 
