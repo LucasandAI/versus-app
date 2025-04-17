@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, MessageCircle, Info, User as UserIcon, Calendar, TrendingUp, TrendingDown, ArrowRight, X } from 'lucide-react';
+import { ArrowLeft, MessageCircle, User as UserIcon, Calendar, TrendingUp, TrendingDown, ArrowRight, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import MatchProgressBar from './shared/MatchProgressBar';
 import UserAvatar from './shared/UserAvatar';
@@ -428,12 +428,9 @@ const ClubDetail: React.FC = () => {
           )}
         </div>
 
-        <div className="flex justify-between mt-6 mb-8">
-          <Button variant="outline" size="sm" className="flex-1 mr-2" icon={<MessageCircle className="h-4 w-4" />}>
+        <div className="flex justify-center mt-6 mb-8">
+          <Button variant="outline" size="sm" className="flex-1" icon={<MessageCircle className="h-4 w-4" />}>
             Chat
-          </Button>
-          <Button variant="outline" size="sm" className="flex-1" icon={<Info className="h-4 w-4" />}>
-            Club Info
           </Button>
         </div>
       </div>

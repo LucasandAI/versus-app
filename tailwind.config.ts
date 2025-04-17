@@ -54,8 +54,8 @@ export default {
 					foreground: 'hsl(var(--card-foreground))'
 				},
 				strava: {
-					DEFAULT: '#FC5200',
-					dark: '#E34900'
+					DEFAULT: '#4CAF50',
+					dark: '#3E8E41'
 				},
 				navy: {
 					DEFAULT: '#1E2430',
