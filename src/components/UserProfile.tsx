@@ -3,10 +3,23 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { Button } from "@/components/ui/button";
-import { UserPlus, Settings, Share2, ArrowRight, Award } from 'lucide-react';
+import { UserPlus, Settings, Share2, ArrowRight, Award, LogOut, Facebook, Instagram, Twitter } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import ClubInviteDialog from './admin/ClubInviteDialog';
 import { Card } from './ui/card';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { toast } from "@/hooks/use-toast";
 
 const UserProfile: React.FC = () => {
   const { selectedUser, setCurrentView, currentUser, setSelectedUser, currentView } = useApp();
@@ -80,6 +93,37 @@ const UserProfile: React.FC = () => {
     }
   ];
 
+  const handleShareProfile = () => {
+    // In a real app, implement share functionality
+    toast({
+      title: "Profile shared",
+      description: `${selectedUser.name}'s profile link copied to clipboard`,
+    });
+  };
+
+  const handleOpenStravaProfile = () => {
+    // In a real app, open Strava profile
+    toast({
+      title: "Opening Strava profile",
+      description: "Redirecting to Strava...",
+    });
+  };
+
+  const handleLogout = () => {
+    toast({
+      title: "Logged out",
+      description: "You have been logged out successfully",
+    });
+    setCurrentView('connect');
+  };
+
+  const handleSettings = () => {
+    toast({
+      title: "Settings",
+      description: "Settings page is not implemented yet",
+    });
+  };
+
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-50 pb-20">
       {/* Header Banner */}
@@ -110,26 +154,78 @@ const UserProfile: React.FC = () => {
 
           {/* Action buttons */}
           <div className="flex space-x-4">
-            {isCurrentUserProfile && (
-              <Button variant="ghost" size="sm" className="rounded-full">
-                <Settings className="h-5 w-5" />
-              </Button>
-            )}
+            {isCurrentUserProfile ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="rounded-full">
+                    <Settings className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={handleSettings}>
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
             
-            <Button variant="ghost" size="sm" className="rounded-full">
-              <Share2 className="h-5 w-5" />
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="rounded-full">
+                        <Share2 className="h-5 w-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={handleShareProfile}>
+                        Share Profile
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toast({ title: "Facebook", description: "Opening Facebook..." })}>
+                        <Facebook className="h-4 w-4 mr-2" />
+                        Facebook
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toast({ title: "Instagram", description: "Opening Instagram..." })}>
+                        <Instagram className="h-4 w-4 mr-2" />
+                        Instagram
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toast({ title: "Twitter", description: "Opening Twitter..." })}>
+                        <Twitter className="h-4 w-4 mr-2" />
+                        Twitter
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Share Profile
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             
             {/* Only show arrow button on current user's profile */}
             {isCurrentUserProfile && (
-              <Button variant="ghost" size="sm" className="rounded-full">
-                <ArrowRight className="h-5 w-5" />
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" className="rounded-full" onClick={() => toast({ title: "Navigation", description: "Navigating to achievements..." })}>
+                      <ArrowRight className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    View All Achievements
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
           </div>
 
           {/* Strava profile button */}
-          <Button className="bg-green-500 hover:bg-green-600 text-white">
+          <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={handleOpenStravaProfile}>
             Strava Profile
           </Button>
 
