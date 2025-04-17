@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ArrowLeft, MessageCircle, Info, User as UserIcon, Calendar, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -113,6 +114,15 @@ const ClubDetail: React.FC = () => {
       clubs: [] // This would be populated from the backend
     });
     setCurrentView('profile');
+  };
+
+  const handleRequestToJoin = () => {
+    if (!selectedClub) return;
+    
+    toast({
+      title: "Request Sent",
+      description: `Your request to join ${selectedClub.name} has been sent.`,
+    });
   };
 
   const currentMatch = selectedClub?.currentMatch;
