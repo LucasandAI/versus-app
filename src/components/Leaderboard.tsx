@@ -3,6 +3,15 @@ import React from 'react';
 import { ArrowUp, ArrowDown, Trophy, Medal } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { Division } from '@/types';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface LeaderboardClub {
   id: string;
@@ -50,7 +59,7 @@ for (let i = 11; i <= 100; i++) {
     division,
     tier,
     rank: i,
-    points: division === 'Elite' ? Math.max(0, 20 - i) : 0,
+    points: 0, // Fix: Only Elite clubs have points
     change: ['up', 'down', 'same'][Math.floor(Math.random() * 3)] as 'up' | 'down' | 'same'
   });
 }
@@ -68,25 +77,15 @@ const Leaderboard: React.FC = () => {
     : leaderboardData.filter(club => club.division === selectedDivision);
 
   // Find user's clubs - Updated to match the clubs in HomeView
-  const userClubs = [
-    { id: '1', name: 'Weekend Warriors' },
-    { id: '2', name: 'Road Runners' }
-  ];
+  const userClubs = currentUser?.clubs || [];
   const userClubIds = userClubs.map(club => club.id);
   const userClubsInLeaderboard = leaderboardData.filter(club => userClubIds.includes(club.id));
   
   const handleSelectClub = (clubId: string) => {
     // In a real app, we would fetch the club data
-    const club = mockLeaderboardData.find(c => c.id === clubId);
+    const club = currentUser?.clubs.find(c => c.id === clubId);
     if (club) {
-      setSelectedClub({
-        id: club.id,
-        name: club.name,
-        logo: '/placeholder.svg',
-        division: club.division,
-        members: [],
-        matchHistory: []
-      });
+      setSelectedClub(club);
       setCurrentView('clubDetail');
     }
   };
