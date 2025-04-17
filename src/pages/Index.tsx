@@ -1,13 +1,48 @@
-// Update this page (the content is just a fallback if you fail to update the page)
 
-const Index = () => {
+import React from 'react';
+import { AppProvider, useApp } from '@/context/AppContext';
+import ConnectScreen from '@/components/ConnectScreen';
+import HomeView from '@/components/HomeView';
+import ClubDetail from '@/components/ClubDetail';
+import Leaderboard from '@/components/Leaderboard';
+import UserProfile from '@/components/UserProfile';
+import Navigation from '@/components/Navigation';
+
+const AppContent: React.FC = () => {
+  const { currentView, currentUser } = useApp();
+
+  const renderView = () => {
+    switch (currentView) {
+      case 'connect':
+        return <ConnectScreen />;
+      case 'home':
+        return <HomeView />;
+      case 'clubDetail':
+        return <ClubDetail />;
+      case 'leaderboard':
+        return <Leaderboard />;
+      case 'profile':
+        return <UserProfile />;
+      default:
+        return <ConnectScreen />;
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <>
+      {renderView()}
+      {currentUser?.stravaConnected && currentView !== 'connect' && <Navigation />}
+    </>
+  );
+};
+
+const Index: React.FC = () => {
+  return (
+    <AppProvider>
+      <div className="min-h-screen bg-gray-50">
+        <AppContent />
       </div>
-    </div>
+    </AppProvider>
   );
 };
 
