@@ -23,7 +23,7 @@ interface LeaderboardClub {
   change: 'up' | 'down' | 'same';
 }
 
-// Updated mock data to match the clubs in HomeView and fixed Weekend Warriors ranking
+// Updated mock data with fixed Weekend Warriors ranking to 24th
 const mockLeaderboardData: LeaderboardClub[] = [
   { id: '3', name: 'Run For Fun', division: 'Elite', rank: 1, points: 9, change: 'down' },
   { id: '4', name: 'Swift Feet', division: 'Diamond', tier: 1, rank: 2, points: 0, change: 'up' },
@@ -32,31 +32,64 @@ const mockLeaderboardData: LeaderboardClub[] = [
   { id: '7', name: 'Running Rebels', division: 'Platinum', tier: 2, rank: 5, points: 0, change: 'down' },
   { id: '8', name: 'Road Masters', division: 'Platinum', tier: 3, rank: 6, points: 0, change: 'same' },
   { id: '2', name: 'Road Runners', division: 'Gold', tier: 1, rank: 7, points: 0, change: 'down' },
-  { id: '1', name: 'Weekend Warriors', division: 'Silver', tier: 2, rank: 8, points: 0, change: 'up' },
-  { id: '9', name: 'Trailblazers', division: 'Gold', tier: 1, rank: 9, points: 0, change: 'up' },
+  { id: '9', name: 'Trailblazers', division: 'Gold', tier: 1, rank: 8, points: 0, change: 'up' },
 ];
 
-// Expanded to fill all divisions and tiers - updated to start from rank 10
-for (let i = 10; i <= 100; i++) {
+// Adding clubs from ranks 9-23 to ensure proper positioning
+for (let i = 9; i <= 23; i++) {
   let division: Division;
   let tier: number;
   
-  if (i <= 20) {
+  if (i <= 15) {
     division = 'Gold';
-    tier = Math.floor((i - 10) / 2) + 1;
-  } else if (i <= 40) {
-    division = 'Silver';
-    tier = Math.floor((i - 20) / 4) + 1;
+    tier = Math.floor((i - 9) / 2) + 2; // Gold tiers 2-5
   } else {
-    division = 'Bronze';
-    tier = Math.floor((i - 40) / 12) + 1;
+    division = 'Silver';
+    tier = Math.floor((i - 15) / 2) + 1; // Silver tiers 1
   }
   
-  // Skip IDs 1 and 2 to avoid duplicates with our specific clubs
-  if (i === 1 || i === 2) continue;
+  mockLeaderboardData.push({
+    id: (i + 10).toString(), // Using i+10 to avoid conflicts with existing IDs
+    name: `Club ${i}`,
+    division,
+    tier,
+    rank: i,
+    points: 0,
+    change: ['up', 'down', 'same'][Math.floor(Math.random() * 3)] as 'up' | 'down' | 'same'
+  });
+}
+
+// Add Weekend Warriors at rank 24
+mockLeaderboardData.push({
+  id: '1',
+  name: 'Weekend Warriors',
+  division: 'Silver',
+  tier: 2,
+  rank: 24,
+  points: 0,
+  change: 'up'
+});
+
+// Continue with the rest of the clubs from rank 25 to 100
+for (let i = 25; i <= 100; i++) {
+  let division: Division;
+  let tier: number;
+  
+  if (i <= 40) {
+    division = 'Silver';
+    // For Silver tiers 2-5
+    if (i <= 30) {
+      tier = 2; // More Silver tier 2
+    } else {
+      tier = Math.floor((i - 30) / 2) + 3; // Silver tiers 3-5
+    }
+  } else {
+    division = 'Bronze';
+    tier = Math.floor((i - 40) / 12) + 1; // Bronze tiers
+  }
   
   mockLeaderboardData.push({
-    id: i.toString(),
+    id: (i + 100).toString(), // Using i+100 to ensure unique IDs
     name: `Club ${i}`,
     division,
     tier,
