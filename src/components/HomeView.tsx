@@ -15,6 +15,7 @@ import {
   DialogClose 
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import CreateClubDialog from './club/CreateClubDialog';
 
 const mockClubs: Club[] = [
   {
@@ -144,6 +145,7 @@ const HomeView: React.FC = () => {
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [createClubDialogOpen, setCreateClubDialogOpen] = useState(false);
 
   const handleSelectClub = (club: Club) => {
     setSelectedClub(club);
@@ -182,10 +184,7 @@ const HomeView: React.FC = () => {
   };
 
   const handleCreateClub = () => {
-    toast({
-      title: "Create Club",
-      description: "This functionality is not implemented yet.",
-    });
+    setCreateClubDialogOpen(true);
   };
 
   const formatLeagueWithTier = (division: string, tier?: number) => {
@@ -487,6 +486,11 @@ const HomeView: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <CreateClubDialog
+        open={createClubDialogOpen}
+        onOpenChange={setCreateClubDialogOpen}
+      />
     </div>
   );
 };
