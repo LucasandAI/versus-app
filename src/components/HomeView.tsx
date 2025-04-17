@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, ChevronDown, UserPlus } from 'lucide-react';
+import { Plus, Search, ChevronDown, UserPlus, MessageCircle } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from './shared/UserAvatar';
 import MatchProgressBar from './shared/MatchProgressBar';
@@ -181,17 +181,32 @@ const HomeView: React.FC = () => {
     return tier ? `${division} ${tier}` : division;
   };
 
+  const handleOpenChat = () => {
+    toast({
+      title: "Chat",
+      description: "Chat functionality is not implemented yet.",
+    });
+  };
+
   return (
     <div className="pb-20 pt-6">
       <div className="container-mobile">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">My Clubs</h1>
-          <UserAvatar 
-            name={currentUser?.name || "User"} 
-            image={currentUser?.avatar} 
-            size="sm"
-            onClick={() => setCurrentView('profile')}
-          />
+          <div className="flex items-center gap-2">
+            <UserAvatar 
+              name={currentUser?.name || "User"} 
+              image={currentUser?.avatar} 
+              size="sm"
+              onClick={() => setCurrentView('profile')}
+            />
+            <button 
+              onClick={handleOpenChat}
+              className="text-primary hover:bg-gray-100 rounded-full p-2"
+            >
+              <MessageCircle className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         <div className="space-y-6">

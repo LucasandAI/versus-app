@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, MessageCircle, User as UserIcon, Calendar, TrendingUp, TrendingDown, ArrowRight, X } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Calendar, TrendingUp, TrendingDown, ArrowRight, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import MatchProgressBar from './shared/MatchProgressBar';
 import UserAvatar from './shared/UserAvatar';
@@ -426,12 +426,6 @@ const ClubDetail: React.FC = () => {
               {showAllHistory ? 'Show Less' : 'View All Match History'}
             </button>
           )}
-        </div>
-
-        <div className="flex justify-center mt-6 mb-8">
-          <Button variant="outline" size="sm" className="flex-1" icon={<MessageCircle className="h-4 w-4" />}>
-            Chat
-          </Button>
         </div>
       </div>
 
