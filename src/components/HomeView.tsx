@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageCircle, Plus, Search } from 'lucide-react';
+import { MessageCircle, Plus, Search, UserPlus, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from './shared/UserAvatar';
 import { Club } from '@/types';
@@ -7,11 +7,11 @@ import { toast } from "@/components/ui/use-toast";
 import ChatDrawer from './chat/ChatDrawer';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { X } from 'lucide-react';
 import Button from './shared/Button';
 import ClubCard from './club/ClubCard';
 import AvailableClubs from './club/AvailableClubs';
 import CreateClubDialog from './club/CreateClubDialog';
+import { formatLeagueWithTier } from '@/lib/format';
 
 const mockClubs: Club[] = [
   {
