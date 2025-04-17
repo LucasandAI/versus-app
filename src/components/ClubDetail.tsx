@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import ClubAdminActions from './admin/ClubAdminActions';
 
 const ClubDetail: React.FC = () => {
   const { selectedClub, setCurrentView, currentUser, setSelectedUser, setSelectedClub } = useApp();
@@ -226,6 +227,10 @@ const ClubDetail: React.FC = () => {
       </div>
 
       <div className="container-mobile pt-4">
+        {selectedClub && currentUser && (
+          <ClubAdminActions club={selectedClub} currentUser={currentUser} />
+        )}
+        
         {currentMatch && (
           <div className="bg-white rounded-lg shadow-md p-4 mb-6">
             <div className="flex justify-between items-center mb-4">

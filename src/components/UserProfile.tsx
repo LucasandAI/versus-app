@@ -1,516 +1,182 @@
-import React, { useState } from 'react';
-import { User, LogOut, Settings, Award, Share2, ChevronDown, Instagram, Linkedin, Globe, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
-import UserAvatar from './shared/UserAvatar';
-import Button from './shared/Button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
-  AlertDialogTitle,
-  AlertDialogTrigger
-} from '@/components/ui/alert-dialog';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { CalendarDays, MapPin, CheckCircle2, Link2, User, UserPlus } from 'lucide-react';
+import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
+import ClubInviteDialog from './admin/ClubInviteDialog';
+import { Button } from './ui/button';
 
 const UserProfile: React.FC = () => {
-  const { currentUser, connectToStrava, setCurrentView, setSelectedClub, setSelectedUser } = useApp();
-  const [showAllAchievements, setShowAllAchievements] = useState(false);
-  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
-  const [selectedAchievement, setSelectedAchievement] = useState<any>(null);
-  const [userBio, setUserBio] = useState("Strava Athlete");
-  const [socialLinks, setSocialLinks] = useState({
-    instagram: "",
-    linkedin: "",
-    tiktok: "",
-    website: ""
-  });
-  const [showSocialPopover, setShowSocialPopover] = useState(false);
-  
-  const formatLeagueWithTier = (division: string, tier?: number) => {
-    if (division === 'Elite') return 'Elite League';
-    return tier ? `${division} ${tier}` : division;
-  };
+  const { selectedUser, setCurrentView, currentUser } = useApp();
+  const [loading, setLoading] = useState(true);
 
-  const userStats = {
-    matchesWon: 3,
-    matchesLost: 1,
-    weeklyContribution: 42.3,
-    bestLeague: 'Gold'
-  };
+  useEffect(() => {
+    // Simulate loading data
+    setTimeout(() => {
+      setLoading(false);
+    }, 500);
+  }, [selectedUser]);
 
-  const achievements = [
-    { 
-      id: 1, 
-      title: 'First Victory', 
-      description: 'Win your first match', 
-      completed: true, 
-      completedDate: '2025-03-10', 
-      details: 'You won your first match against Road Runners on March 10, 2025, contributing 15.3km to your team\'s victory.'
-    },
-    { 
-      id: 2, 
-      title: 'Team Player', 
-      description: 'Contribute 50km in a single match', 
-      completed: true, 
-      completedDate: '2025-03-22', 
-      details: 'You contributed 54.7km in a match against Trail Blazers, earning this achievement on March 22, 2025.'
-    },
-    { id: 3, title: 'Ironman', description: 'Log activity every day of a match', completed: false },
-    { id: 4, title: 'League Climber', description: 'Promote to the next league', completed: false },
-    { id: 5, title: 'Century Runner', description: 'Run 100km in a single week', completed: false },
-    { id: 6, title: 'Social Butterfly', description: 'Join 3 different clubs', completed: false },
-    { id: 7, title: 'Streak Master', description: 'Win 5 matches in a row', completed: false },
-    { 
-      id: 8, 
-      title: 'Global Explorer', 
-      description: 'Log activities in 5 different countries', 
-      completed: true, 
-      completedDate: '2025-04-05', 
-      details: 'You logged activities in France, Spain, Italy, Germany, and Portugal, completing this achievement on April 5, 2025.'
-    },
-  ];
-
-  const completedAchievements = achievements.filter(a => a.completed);
-  const incompleteAchievements = achievements.filter(a => !a.completed);
-
-  const userClubs = [
-    {
-      id: '1',
-      name: 'Weekend Warriors',
-      division: 'Silver',
-      tier: 2,
-      members: [
-        { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true },
-        { id: '2', name: 'Jane Sprinter', avatar: '/placeholder.svg', isAdmin: false },
-        { id: '3', name: 'Bob Marathon', avatar: '/placeholder.svg', isAdmin: false },
-        { id: '4', name: 'Emma Jogger', avatar: '/placeholder.svg', isAdmin: false },
-        { id: '5', name: 'Tom Walker', avatar: '/placeholder.svg', isAdmin: false },
-      ]
-    },
-    {
-      id: '2', 
-      name: 'Road Runners',
-      division: 'Gold',
-      tier: 1,
-      members: [
-        { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true },
-        { id: '7', name: 'Alice Sprint', avatar: '/placeholder.svg', isAdmin: false },
-        { id: '8', name: 'Charlie Run', avatar: '/placeholder.svg', isAdmin: false },
-        { id: '11', name: 'Olivia Pace', avatar: '/placeholder.svg', isAdmin: false },
-        { id: '12', name: 'Paul Path', avatar: '/placeholder.svg', isAdmin: false },
-      ]
-    }
-  ];
-
-  const handleSelectClub = (club: any) => {
-    setSelectedClub(club);
-    setCurrentView('clubDetail');
-  };
-  
-  const handleSelectUser = (userId: string, name: string) => {
-    setSelectedUser({
-      id: userId,
-      name: name,
-      avatar: '/placeholder.svg',
-      stravaConnected: true,
-      clubs: [] // This would be populated from the backend
-    });
-    // No need to change view since we're already in profile view
-    // Just updating the selected user
-  };
-  
-  const openStravaProfile = () => {
-    window.open('https://www.strava.com/athletes/example', '_blank');
-  };
-
-  const handleLogout = () => {
-    setLogoutDialogOpen(false);
-    // Here would be the actual logout logic
-    setCurrentView('connect');
-  };
-
-  const handleSocialLinkChange = (platform: keyof typeof socialLinks, value: string) => {
-    setSocialLinks(prev => ({
-      ...prev,
-      [platform]: value
-    }));
-  };
-
-  const handleBioChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setUserBio(e.target.value);
-  };
-
-  const handleAchievementClick = (achievement: any) => {
-    if (achievement.completed) {
-      setSelectedAchievement(achievement);
-    }
-  };
-
-  if (!currentUser) {
+  if (!selectedUser) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6">
-        <User className="h-16 w-16 text-gray-400 mb-6" />
-        <h2 className="text-2xl font-bold mb-2">You're not logged in</h2>
-        <p className="text-gray-500 mb-6 text-center">Connect with Strava to access your profile</p>
-        <Button 
-          variant="strava" 
-          size="lg" 
-          onClick={connectToStrava}
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <p>No user selected</p>
+        <button
+          onClick={() => setCurrentView('home')}
+          className="mt-4 text-primary hover:underline"
         >
-          Connect with Strava
-        </Button>
+          Go back home
+        </button>
       </div>
     );
   }
 
+  const adminClubs = currentUser?.clubs.filter(club => 
+    club.members.some(member => 
+      member.id === currentUser.id && member.isAdmin
+    )
+  ) || [];
+  
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const isCurrentUserProfile = currentUser?.id === selectedUser?.id;
+  const showInviteButton = !isCurrentUserProfile && adminClubs.length > 0;
+
   return (
-    <div className="pb-20">
-      <div className="bg-primary/95 text-white p-4 sticky top-0 z-10">
-        <div className="container-mobile text-center">
-          <div className="flex items-center justify-center">
-            <User className="h-5 w-5 mr-2" />
-            <h1 className="text-xl font-bold">Profile</h1>
+    <div className="container-mobile py-10">
+      <div className="md:flex md:items-start md:justify-between md:space-x-4">
+        <div className="md:w-2/3">
+          <div className="space-y-4">
+            <div className="text-center md:text-left">
+              {loading ? (
+                <Skeleton className="mx-auto h-[100px] w-[100px] rounded-full" />
+              ) : (
+                <Avatar className="mx-auto h-[100px] w-[100px] md:mx-0">
+                  <AvatarImage src={selectedUser.avatar} alt={selectedUser.name} />
+                  <AvatarFallback>{selectedUser.name.substring(0, 2)}</AvatarFallback>
+                </Avatar>
+              )}
+              <h1 className="mt-4 text-2xl font-bold">{loading ? <Skeleton className="h-6 w-48" /> : selectedUser.name}</h1>
+              {showInviteButton && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex items-center gap-1 mt-2"
+                    onClick={() => setInviteDialogOpen(true)}
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    Invite to Club
+                  </Button>
+                  
+                  <ClubInviteDialog 
+                    open={inviteDialogOpen}
+                    onOpenChange={setInviteDialogOpen}
+                    user={selectedUser as any}
+                    adminClubs={adminClubs}
+                  />
+                </>
+              )}
+              <p className="text-gray-500">{loading ? <Skeleton className="h-4 w-32" /> : 'Runner'}</p>
+              <div className="mt-2 flex items-center justify-center space-x-2 md:justify-start">
+                {loading ? (
+                  <>
+                    <Skeleton className="h-4 w-8" />
+                    <Skeleton className="h-4 w-12" />
+                  </>
+                ) : (
+                  <>
+                    <Badge variant="secondary">
+                      <CalendarDays className="mr-1.5 h-4 w-4" />
+                      Since 2020
+                    </Badge>
+                    <Badge variant="secondary">
+                      <MapPin className="mr-1.5 h-4 w-4" />
+                      New York
+                    </Badge>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-md border bg-card text-card-foreground shadow-sm">
+                <div className="flex flex-col space-y-1.5 p-4">
+                  <h3 className="text-xl font-semibold">About</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {loading ? <Skeleton className="h-4 w-full" /> : 'Passionate runner with a love for marathons and trail running.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-md border bg-card text-card-foreground shadow-sm">
+                <div className="flex flex-col space-y-1.5 p-4">
+                  <h3 className="text-xl font-semibold">Details</h3>
+                  <div className="grid gap-4">
+                    <div className="grid grid-cols-[100px_1fr] gap-4">
+                      <div className="text-gray-500">User ID</div>
+                      <div>{loading ? <Skeleton className="h-4 w-24" /> : selectedUser.id}</div>
+                    </div>
+                    <div className="grid grid-cols-[100px_1fr] gap-4">
+                      <div className="text-gray-500">Account Status</div>
+                      <div className="flex items-center">
+                        {loading ? <Skeleton className="h-4 w-16" /> : (
+                          <>
+                            <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" />
+                            Verified
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-[100px_1fr] gap-4">
+                      <div className="text-gray-500">Strava</div>
+                      <div>
+                        {loading ? <Skeleton className="h-4 w-20" /> : (
+                          <a href="#" className="flex items-center text-blue-500 hover:underline">
+                            <Link2 className="mr-1 h-4 w-4" />
+                            Connected
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="container-mobile pt-4">
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6 text-center">
-          <UserAvatar 
-            name={currentUser.name} 
-            image={currentUser.avatar} 
-            size="lg"
-            className="mx-auto mb-3"
-          />
-          <h2 className="text-xl font-bold">{currentUser.name}</h2>
-          <p className="text-gray-500 mb-4">{userBio}</p>
-          
-          <div className="flex justify-center space-x-3 mb-4">
-            <Dialog>
-              <DialogTrigger asChild>
-                <button className="bg-gray-100 p-2 rounded-full">
-                  <Settings className="h-5 w-5 text-gray-600" />
-                </button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Edit Profile</DialogTitle>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Profile Picture</label>
+        <div className="mt-6 md:mt-0 md:w-1/3">
+          <div className="rounded-md border bg-card text-card-foreground shadow-sm">
+            <div className="flex flex-col space-y-1.5 p-4">
+              <h3 className="text-xl font-semibold">Activity</h3>
+              <div className="space-y-2">
+                {loading ? (
+                  <>
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                  </>
+                ) : (
+                  <>
                     <div className="flex items-center space-x-4">
-                      <UserAvatar 
-                        name={currentUser.name} 
-                        image={currentUser.avatar} 
-                        size="md"
-                      />
-                      <Button variant="outline" size="sm">Change</Button>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Bio</label>
-                    <textarea 
-                      className="w-full rounded-md border border-input p-2 text-sm"
-                      rows={3}
-                      value={userBio}
-                      onChange={handleBioChange}
-                      placeholder="Tell us about yourself..."
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Social Links</label>
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <Instagram className="h-4 w-4 text-gray-500" />
-                        <input 
-                          type="text" 
-                          className="flex-1 rounded-md border border-input p-2 text-sm" 
-                          placeholder="Instagram username"
-                          value={socialLinks.instagram}
-                          onChange={e => handleSocialLinkChange('instagram', e.target.value)}
-                        />
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Linkedin className="h-4 w-4 text-gray-500" />
-                        <input 
-                          type="text" 
-                          className="flex-1 rounded-md border border-input p-2 text-sm" 
-                          placeholder="LinkedIn username"
-                          value={socialLinks.linkedin}
-                          onChange={e => handleSocialLinkChange('linkedin', e.target.value)}
-                        />
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center text-gray-500 font-bold text-xs">T</span>
-                        <input 
-                          type="text" 
-                          className="flex-1 rounded-md border border-input p-2 text-sm" 
-                          placeholder="TikTok username"
-                          value={socialLinks.tiktok}
-                          onChange={e => handleSocialLinkChange('tiktok', e.target.value)}
-                        />
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Globe className="h-4 w-4 text-gray-500" />
-                        <input 
-                          type="url" 
-                          className="flex-1 rounded-md border border-input p-2 text-sm" 
-                          placeholder="Website URL"
-                          value={socialLinks.website}
-                          onChange={e => handleSocialLinkChange('website', e.target.value)}
-                        />
+                      <User className="h-5 w-5 text-gray-500" />
+                      <div>
+                        <p className="text-sm font-medium">Recent Runs</p>
+                        <p className="text-sm text-gray-500">5 runs this week</p>
                       </div>
                     </div>
-                  </div>
-                </div>
-                <div className="flex justify-end">
-                  <Button variant="primary">Save Changes</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-            
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="bg-gray-100 p-2 rounded-full">
-                  <Share2 className="h-5 w-5 text-gray-600" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-60">
-                <div className="space-y-3">
-                  <h3 className="font-medium text-sm">Connect with {currentUser.name}</h3>
-                  
-                  {Object.entries(socialLinks).some(([_, value]) => value) ? (
-                    <div className="space-y-2">
-                      {socialLinks.instagram && (
-                        <a 
-                          href={`https://instagram.com/${socialLinks.instagram}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="flex items-center p-2 hover:bg-gray-50 rounded-md"
-                        >
-                          <Instagram className="h-4 w-4 mr-2 text-pink-500" />
-                          <span className="text-sm">@{socialLinks.instagram}</span>
-                        </a>
-                      )}
-                      
-                      {socialLinks.linkedin && (
-                        <a 
-                          href={`https://linkedin.com/in/${socialLinks.linkedin}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="flex items-center p-2 hover:bg-gray-50 rounded-md"
-                        >
-                          <Linkedin className="h-4 w-4 mr-2 text-blue-600" />
-                          <span className="text-sm">{socialLinks.linkedin}</span>
-                        </a>
-                      )}
-                      
-                      {socialLinks.tiktok && (
-                        <a 
-                          href={`https://tiktok.com/@${socialLinks.tiktok}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="flex items-center p-2 hover:bg-gray-50 rounded-md"
-                        >
-                          <span className="flex-shrink-0 w-4 h-4 mr-2 flex items-center justify-center font-bold text-xs">T</span>
-                          <span className="text-sm">@{socialLinks.tiktok}</span>
-                        </a>
-                      )}
-                      
-                      {socialLinks.website && (
-                        <a 
-                          href={socialLinks.website} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="flex items-center p-2 hover:bg-gray-50 rounded-md"
-                        >
-                          <Globe className="h-4 w-4 mr-2 text-gray-500" />
-                          <span className="text-sm truncate">{socialLinks.website}</span>
-                        </a>
-                      )}
+                    <div className="flex items-center space-x-4">
+                      <User className="h-5 w-5 text-gray-500" />
+                      <div>
+                        <p className="text-sm font-medium">Achievements</p>
+                        <p className="text-sm text-gray-500">3 new badges</p>
+                      </div>
                     </div>
-                  ) : (
-                    <p className="text-sm text-gray-500 py-2">No social links available</p>
-                  )}
-                </div>
-              </PopoverContent>
-            </Popover>
-            
-            <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-              <AlertDialogTrigger asChild>
-                <button className="bg-gray-100 p-2 rounded-full">
-                  <LogOut className="h-5 w-5 text-gray-600" />
-                </button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Log out</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to log out? You'll need to connect with Strava again to access your account.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleLogout}>Log out</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-          
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={openStravaProfile}
-            className="mt-2"
-          >
-            Strava Profile
-          </Button>
-
-          <div className="grid grid-cols-2 gap-3 mt-6">
-            <div className="bg-gray-50 p-3 rounded-md">
-              <p className="text-xl font-bold">{userStats.weeklyContribution} km</p>
-              <p className="text-xs text-gray-500">Weekly Contribution</p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded-md">
-              <p className="text-xl font-bold">{userStats.bestLeague}</p>
-              <p className="text-xs text-gray-500">Best League</p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded-md">
-              <p className="text-xl font-bold">{userStats.matchesWon}</p>
-              <p className="text-xs text-gray-500">Matches Won</p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded-md">
-              <p className="text-xl font-bold">{userStats.matchesLost}</p>
-              <p className="text-xs text-gray-500">Matches Lost</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center">
-              <Award className="h-5 w-5 text-primary mr-2" />
-              <h2 className="font-bold">Achievements</h2>
-            </div>
-            
-            {selectedAchievement && (
-              <button 
-                className="text-xs text-primary"
-                onClick={() => setSelectedAchievement(null)}
-              >
-                Back to all
-              </button>
-            )}
-          </div>
-          
-          {selectedAchievement ? (
-            <div className="bg-primary/5 rounded-lg p-4">
-              <div className="flex items-center mb-2">
-                <span className="w-3 h-3 bg-success rounded-full mr-2"></span>
-                <h3 className="font-medium">{selectedAchievement.title}</h3>
-              </div>
-              <p className="text-sm text-gray-500 mb-1">{selectedAchievement.description}</p>
-              <p className="text-xs text-gray-500 mb-3">Completed on {new Date(selectedAchievement.completedDate).toLocaleDateString()}</p>
-              <div className="bg-white p-3 rounded-md text-sm">
-                <p>{selectedAchievement.details}</p>
+                  </>
+                )}
               </div>
             </div>
-          ) : (
-            <>
-              {completedAchievements.length > 0 && (
-                <div className="bg-primary/10 rounded-lg p-3 mb-4">
-                  <h3 className="text-sm font-medium mb-2">Completed</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {completedAchievements.map((achievement) => (
-                      <button 
-                        key={achievement.id} 
-                        className="bg-white shadow-sm rounded-full px-3 py-1 text-xs flex items-center hover:bg-gray-50"
-                        onClick={() => handleAchievementClick(achievement)}
-                      >
-                        <span className="w-2 h-2 bg-success rounded-full mr-1"></span>
-                        {achievement.title}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {incompleteAchievements.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium mb-2">In Progress</h3>
-                  <div className="space-y-3">
-                    {incompleteAchievements
-                      .slice(0, showAllAchievements ? incompleteAchievements.length : 2)
-                      .map((achievement) => (
-                        <div 
-                          key={achievement.id} 
-                          className="p-3 rounded-md bg-gray-50"
-                        >
-                          <div className="flex justify-between items-center">
-                            <h3 className="font-medium text-sm">{achievement.title}</h3>
-                          </div>
-                          <p className="text-xs text-gray-500 mt-1">{achievement.description}</p>
-                        </div>
-                      ))}
-                    
-                    {incompleteAchievements.length > 2 && (
-                      <button 
-                        className="w-full py-2 text-sm text-primary flex items-center justify-center"
-                        onClick={() => setShowAllAchievements(!showAllAchievements)}
-                      >
-                        {showAllAchievements ? 'Show Less' : 'View More Achievements'} 
-                        <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${showAllAchievements ? 'rotate-180' : ''}`} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-          <h2 className="font-bold mb-3">My Clubs</h2>
-          
-          {userClubs.length > 0 ? (
-            <div className="space-y-3">
-              {userClubs.map((club) => (
-                <div 
-                  key={club.id} 
-                  className="flex items-center justify-between cursor-pointer"
-                  onClick={() => handleSelectClub(club)}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="bg-gray-200 h-10 w-10 rounded-full flex items-center justify-center">
-                      <span className="font-bold text-xs text-gray-700">{club.name.substring(0, 2)}</span>
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-sm hover:text-primary">{club.name}</h3>
-                      <span className="text-xs text-gray-500">
-                        {formatLeagueWithTier(club.division, club.tier)}
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
-                    {club.members.length}/5
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-6">
-              <p className="text-gray-500 mb-4">You haven't joined any clubs yet</p>
-              <Button variant="primary" size="sm">Create a Club</Button>
-            </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

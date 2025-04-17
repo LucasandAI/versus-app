@@ -70,14 +70,24 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ clubs, selectedClub, onSelect
                         <h4 className="text-sm font-medium mb-2">Club Members</h4>
                         <div className="space-y-2 max-h-60 overflow-y-auto">
                           {club.members.map(member => (
-                            <button
+                            <div
                               key={member.id}
-                              className="w-full flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-md text-left"
-                              onClick={() => handleSelectUser(member.id, member.name, member.avatar)}
+                              className="w-full flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-md"
                             >
-                              <UserAvatar name={member.name} image={member.avatar} size="sm" />
-                              <span className="text-sm truncate">{member.name}</span>
-                            </button>
+                              <UserAvatar 
+                                name={member.name} 
+                                image={member.avatar} 
+                                size="sm" 
+                                className="cursor-pointer"
+                                onClick={() => handleSelectUser(member.id, member.name, member.avatar)}
+                              />
+                              <span 
+                                className="text-sm truncate cursor-pointer hover:text-primary"
+                                onClick={() => handleSelectUser(member.id, member.name, member.avatar)}
+                              >
+                                {member.name}
+                              </span>
+                            </div>
                           ))}
                         </div>
                       </PopoverContent>

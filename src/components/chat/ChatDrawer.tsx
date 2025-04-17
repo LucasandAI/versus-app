@@ -162,14 +162,29 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) =>
                     <h4 className="text-sm font-medium mb-2">Club Members</h4>
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {selectedLocalClub.members.map(member => (
-                        <button
-                          key={member.id}
-                          className="w-full flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-md text-left"
-                          onClick={() => handleSelectUser(member.id, member.name, member.avatar)}
+                        <div 
+                          key={member.id} 
+                          className="w-full flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-md"
                         >
-                          <UserAvatar name={member.name} image={member.avatar} size="sm" />
-                          <span className="text-sm truncate">{member.name}</span>
-                        </button>
+                          <UserAvatar 
+                            name={member.name} 
+                            image={member.avatar} 
+                            size="sm" 
+                            className="cursor-pointer"
+                            onClick={() => handleSelectUser(member.id, member.name, member.avatar)} 
+                          />
+                          <span 
+                            className="text-sm truncate cursor-pointer hover:text-primary"
+                            onClick={() => handleSelectUser(member.id, member.name, member.avatar)}
+                          >
+                            {member.name}
+                          </span>
+                          {member.isAdmin && (
+                            <span className="text-xs bg-primary/10 text-primary px-1 py-0.5 rounded ml-auto">
+                              Admin
+                            </span>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </PopoverContent>
