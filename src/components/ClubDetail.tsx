@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { ArrowLeft, MessageCircle, Info, User as UserIcon, Calendar } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Info, User as UserIcon, Calendar, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import MatchProgressBar from './shared/MatchProgressBar';
 import UserAvatar from './shared/UserAvatar';
@@ -9,7 +8,7 @@ import Button from './shared/Button';
 import { toast } from "@/components/ui/use-toast";
 
 const ClubDetail: React.FC = () => {
-  const { selectedClub, setCurrentView, currentUser } = useApp();
+  const { selectedClub, setCurrentView, currentUser, setSelectedUser } = useApp();
   const [showAllHistory, setShowAllHistory] = useState(false);
   
   if (!selectedClub) {
@@ -26,14 +25,13 @@ const ClubDetail: React.FC = () => {
     );
   }
 
-  // Mock match history data - in a real app, this would come from the API
   const matchHistory = [
     {
       id: 'mh1',
       date: 'April 10-17, 2025',
       homeClub: {
-        id: selectedClub.id,
-        name: selectedClub.name,
+        id: selectedClub?.id,
+        name: selectedClub?.name,
         totalDistance: 98.2
       },
       awayClub: {
@@ -41,7 +39,11 @@ const ClubDetail: React.FC = () => {
         name: 'Morning Runners',
         totalDistance: 85.7
       },
-      result: 'win'
+      result: 'win',
+      leagueImpact: {
+        type: 'promotion',
+        description: 'Promoted to Silver 1'
+      }
     },
     {
       id: 'mh2',
@@ -52,18 +54,22 @@ const ClubDetail: React.FC = () => {
         totalDistance: 112.4
       },
       awayClub: {
-        id: selectedClub.id,
-        name: selectedClub.name,
+        id: selectedClub?.id,
+        name: selectedClub?.name,
         totalDistance: 105.8
       },
-      result: 'loss'
+      result: 'loss',
+      leagueImpact: {
+        type: 'none',
+        description: 'Remained in Silver 2'
+      }
     },
     {
       id: 'mh3',
       date: 'March 27-April 3, 2025',
       homeClub: {
-        id: selectedClub.id,
-        name: selectedClub.name,
+        id: selectedClub?.id,
+        name: selectedClub?.name,
         totalDistance: 121.5
       },
       awayClub: {
@@ -71,7 +77,11 @@ const ClubDetail: React.FC = () => {
         name: 'Marathon Masters',
         totalDistance: 118.6
       },
-      result: 'win'
+      result: 'win',
+      leagueImpact: {
+        type: 'points',
+        description: '+1 league point'
+      }
     },
     {
       id: 'mh4',
@@ -82,24 +92,32 @@ const ClubDetail: React.FC = () => {
         totalDistance: 89.3
       },
       awayClub: {
-        id: selectedClub.id,
-        name: selectedClub.name,
+        id: selectedClub?.id,
+        name: selectedClub?.name,
         totalDistance: 92.7
       },
-      result: 'win'
+      result: 'win',
+      leagueImpact: {
+        type: 'promotion',
+        description: 'Promoted from Bronze 1 to Silver 2'
+      }
     }
   ];
 
-  const handleRequestToJoin = () => {
-    toast({
-      title: "Request Sent",
-      description: `Your request to join ${selectedClub.name} has been sent.`,
+  const handleSelectUser = (userId: string, name: string) => {
+    setSelectedUser({
+      id: userId,
+      name: name,
+      avatar: '/placeholder.svg',
+      stravaConnected: true,
+      clubs: [] // This would be populated from the backend
     });
+    setCurrentView('profile');
   };
 
-  const currentMatch = selectedClub.currentMatch;
+  const currentMatch = selectedClub?.currentMatch;
   const visibleHistory = showAllHistory ? matchHistory : matchHistory.slice(0, 2);
-  const isAlreadyMember = selectedClub.members.some(member => 
+  const isAlreadyMember = selectedClub?.members.some(member => 
     currentUser && member.id === currentUser.id
   );
   
@@ -157,10 +175,14 @@ const ClubDetail: React.FC = () => {
             <div className="space-y-3 mt-6">
               <h3 className="font-medium text-sm border-b pb-2">Your Team's Contributions</h3>
               {currentMatch.homeClub.members.map((member) => (
-                <div key={member.id} className="flex items-center justify-between">
+                <div 
+                  key={member.id} 
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => handleSelectUser(member.id, member.name)}
+                >
                   <div className="flex items-center gap-2">
                     <UserAvatar name={member.name} image={member.avatar} size="sm" />
-                    <span className="text-sm">{member.name}</span>
+                    <span className="text-sm hover:text-primary">{member.name}</span>
                   </div>
                   <span className="font-medium text-sm">
                     {member.distanceContribution?.toFixed(1)} km
@@ -175,16 +197,20 @@ const ClubDetail: React.FC = () => {
           <div className="flex justify-between items-center mb-4">
             <h2 className="font-bold">Members</h2>
             <span className="text-xs text-gray-500">
-              {selectedClub.members.length}/5 members
+              {selectedClub?.members.length}/5 members
             </span>
           </div>
 
           <div className="space-y-3">
-            {selectedClub.members.map((member) => (
-              <div key={member.id} className="flex items-center justify-between">
+            {selectedClub?.members.map((member) => (
+              <div 
+                key={member.id} 
+                className="flex items-center justify-between cursor-pointer"
+                onClick={() => handleSelectUser(member.id, member.name)}
+              >
                 <div className="flex items-center gap-3">
                   <UserAvatar name={member.name} image={member.avatar} size="sm" />
-                  <span>{member.name}</span>
+                  <span className="hover:text-primary">{member.name}</span>
                 </div>
                 {member.isAdmin && (
                   <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
@@ -195,7 +221,7 @@ const ClubDetail: React.FC = () => {
             ))}
           </div>
 
-          {selectedClub.members.length < 5 && !isAlreadyMember && (
+          {selectedClub?.members.length < 5 && !isAlreadyMember && (
             <Button 
               variant="primary" 
               size="sm" 
@@ -244,6 +270,36 @@ const ClubDetail: React.FC = () => {
                   awayDistance={match.awayClub.totalDistance}
                   className="h-1.5"
                 />
+                
+                <div className="mt-3 p-2 bg-gray-50 rounded-md">
+                  <div className="flex items-center text-xs">
+                    <span className="font-medium mr-2">League Impact:</span>
+                    {match.leagueImpact.type === 'promotion' ? (
+                      <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
+                    ) : match.leagueImpact.type === 'relegation' ? (
+                      <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
+                    ) : (
+                      <ArrowRight className="h-3 w-3 text-gray-500 mr-1" />
+                    )}
+                    <span className={`${
+                      match.leagueImpact.type === 'promotion' 
+                        ? 'text-green-600' 
+                        : match.leagueImpact.type === 'relegation'
+                          ? 'text-red-600'
+                          : 'text-gray-600'
+                    }`}>
+                      {match.leagueImpact.description}
+                    </span>
+                  </div>
+                </div>
+
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-3 w-full text-xs"
+                >
+                  View Complete Match Details
+                </Button>
               </div>
             ))}
           </div>

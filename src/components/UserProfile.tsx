@@ -6,7 +6,7 @@ import UserAvatar from './shared/UserAvatar';
 import Button from './shared/Button';
 
 const UserProfile: React.FC = () => {
-  const { currentUser, connectToStrava, setCurrentView, setSelectedClub } = useApp();
+  const { currentUser, connectToStrava, setCurrentView, setSelectedClub, setSelectedUser } = useApp();
   const [showAllAchievements, setShowAllAchievements] = useState(false);
   
   const formatLeagueWithTier = (division: string, tier?: number) => {
@@ -64,6 +64,18 @@ const UserProfile: React.FC = () => {
   const handleSelectClub = (club: any) => {
     setSelectedClub(club);
     setCurrentView('clubDetail');
+  };
+  
+  const handleSelectUser = (userId: string, name: string) => {
+    setSelectedUser({
+      id: userId,
+      name: name,
+      avatar: '/placeholder.svg',
+      stravaConnected: true,
+      clubs: [] // This would be populated from the backend
+    });
+    // No need to change view since we're already in profile view
+    // Just updating the selected user
   };
   
   const openStravaProfile = () => {

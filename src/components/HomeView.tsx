@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Plus, Search, ChevronDown, UserPlus } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -8,7 +7,6 @@ import Button from './shared/Button';
 import { Club, Match } from '@/types';
 import { toast } from "@/components/ui/use-toast";
 
-// Updated mock data for development with 5 members per team and identical match timeframes
 const mockClubs: Club[] = [
   {
     id: '1',
@@ -51,8 +49,8 @@ const mockClubs: Club[] = [
           { id: '10', name: 'Kate Speed', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 11.5 },
         ]
       },
-      startDate: new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 days ago
-      endDate: new Date(new Date().getTime() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 4 days from now
+      startDate: new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      endDate: new Date(new Date().getTime() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       status: 'active'
     },
     matchHistory: []
@@ -98,9 +96,8 @@ const mockClubs: Club[] = [
           { id: '17', name: 'Robert Run', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 16.8 },
         ]
       },
-      // Use the exact same timeframe as the other match
-      startDate: new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 days ago
-      endDate: new Date(new Date().getTime() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 4 days from now
+      startDate: new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      endDate: new Date(new Date().getTime() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       status: 'active'
     },
     matchHistory: []
@@ -147,7 +144,7 @@ const HomeView: React.FC = () => {
       name: name,
       avatar: '/placeholder.svg',
       stravaConnected: true,
-      clubs: [] // This would be populated from the backend
+      clubs: []
     });
     setCurrentView('profile');
   };
@@ -179,7 +176,6 @@ const HomeView: React.FC = () => {
     });
   };
 
-  // Helper function to format division with tier or as Elite League
   const formatLeagueWithTier = (division: string, tier?: number) => {
     if (division === 'Elite') return 'Elite League';
     return tier ? `${division} ${tier}` : division;
@@ -272,7 +268,7 @@ const HomeView: React.FC = () => {
                           {club.currentMatch.homeClub.members.map(member => (
                             <div 
                               key={member.id} 
-                              className="flex items-center gap-2 mb-1"
+                              className="flex items-center gap-2 mb-1 cursor-pointer"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleSelectUser(member.id, member.name);
@@ -291,7 +287,7 @@ const HomeView: React.FC = () => {
                           {club.currentMatch.awayClub.members.map(member => (
                             <div 
                               key={member.id} 
-                              className="flex items-center gap-2 mb-1"
+                              className="flex items-center gap-2 mb-1 cursor-pointer"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleSelectUser(member.id, member.name);

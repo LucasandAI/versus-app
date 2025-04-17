@@ -23,7 +23,7 @@ interface LeaderboardClub {
   change: 'up' | 'down' | 'same';
 }
 
-// Updated mock data to match the clubs in HomeView
+// Updated mock data to match the clubs in HomeView and fixed Weekend Warriors ranking
 const mockLeaderboardData: LeaderboardClub[] = [
   { id: '3', name: 'Run For Fun', division: 'Elite', rank: 1, points: 9, change: 'down' },
   { id: '4', name: 'Swift Feet', division: 'Diamond', tier: 1, rank: 2, points: 0, change: 'up' },
@@ -32,8 +32,8 @@ const mockLeaderboardData: LeaderboardClub[] = [
   { id: '7', name: 'Running Rebels', division: 'Platinum', tier: 2, rank: 5, points: 0, change: 'down' },
   { id: '8', name: 'Road Masters', division: 'Platinum', tier: 3, rank: 6, points: 0, change: 'same' },
   { id: '2', name: 'Road Runners', division: 'Gold', tier: 1, rank: 7, points: 0, change: 'down' },
-  { id: '9', name: 'Trailblazers', division: 'Gold', tier: 1, rank: 8, points: 0, change: 'up' },
-  { id: '1', name: 'Weekend Warriors', division: 'Silver', tier: 2, rank: 9, points: 0, change: 'up' },
+  { id: '1', name: 'Weekend Warriors', division: 'Silver', tier: 2, rank: 8, points: 0, change: 'up' },
+  { id: '9', name: 'Trailblazers', division: 'Gold', tier: 1, rank: 9, points: 0, change: 'up' },
 ];
 
 // Expanded to fill all divisions and tiers - updated to start from rank 10
