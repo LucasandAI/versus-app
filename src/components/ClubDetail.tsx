@@ -1,14 +1,16 @@
 
-import React from 'react';
-import { ArrowLeft, MessageCircle, Info, User as UserIcon } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowLeft, MessageCircle, Info, User as UserIcon, Calendar } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import MatchProgressBar from './shared/MatchProgressBar';
 import UserAvatar from './shared/UserAvatar';
 import { ClubMember } from '@/types';
 import Button from './shared/Button';
+import { toast } from "@/components/ui/use-toast";
 
 const ClubDetail: React.FC = () => {
-  const { selectedClub, setCurrentView } = useApp();
+  const { selectedClub, setCurrentView, currentUser } = useApp();
+  const [showAllHistory, setShowAllHistory] = useState(false);
   
   if (!selectedClub) {
     return (
@@ -24,7 +26,82 @@ const ClubDetail: React.FC = () => {
     );
   }
 
+  // Mock match history data - in a real app, this would come from the API
+  const matchHistory = [
+    {
+      id: 'mh1',
+      date: 'April 10-17, 2025',
+      homeClub: {
+        id: selectedClub.id,
+        name: selectedClub.name,
+        totalDistance: 98.2
+      },
+      awayClub: {
+        id: 'away1',
+        name: 'Morning Runners',
+        totalDistance: 85.7
+      },
+      result: 'win'
+    },
+    {
+      id: 'mh2',
+      date: 'April 3-10, 2025',
+      homeClub: {
+        id: 'away2',
+        name: 'Sprint Kings',
+        totalDistance: 112.4
+      },
+      awayClub: {
+        id: selectedClub.id,
+        name: selectedClub.name,
+        totalDistance: 105.8
+      },
+      result: 'loss'
+    },
+    {
+      id: 'mh3',
+      date: 'March 27-April 3, 2025',
+      homeClub: {
+        id: selectedClub.id,
+        name: selectedClub.name,
+        totalDistance: 121.5
+      },
+      awayClub: {
+        id: 'away3',
+        name: 'Marathon Masters',
+        totalDistance: 118.6
+      },
+      result: 'win'
+    },
+    {
+      id: 'mh4',
+      date: 'March 20-27, 2025',
+      homeClub: {
+        id: 'away4',
+        name: 'Trail Blazers',
+        totalDistance: 89.3
+      },
+      awayClub: {
+        id: selectedClub.id,
+        name: selectedClub.name,
+        totalDistance: 92.7
+      },
+      result: 'win'
+    }
+  ];
+
+  const handleRequestToJoin = () => {
+    toast({
+      title: "Request Sent",
+      description: `Your request to join ${selectedClub.name} has been sent.`,
+    });
+  };
+
   const currentMatch = selectedClub.currentMatch;
+  const visibleHistory = showAllHistory ? matchHistory : matchHistory.slice(0, 2);
+  const isAlreadyMember = selectedClub.members.some(member => 
+    currentUser && member.id === currentUser.id
+  );
   
   return (
     <div className="pb-20 relative">
@@ -118,10 +195,66 @@ const ClubDetail: React.FC = () => {
             ))}
           </div>
 
-          {selectedClub.members.length < 5 && (
-            <Button variant="outline" size="sm" fullWidth className="mt-4">
-              Invite Friend
+          {selectedClub.members.length < 5 && !isAlreadyMember && (
+            <Button 
+              variant="primary" 
+              size="sm" 
+              fullWidth 
+              className="mt-4"
+              onClick={handleRequestToJoin}
+            >
+              Request to Join
             </Button>
+          )}
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+          <div className="flex items-center mb-4">
+            <Calendar className="h-5 w-5 text-primary mr-2" />
+            <h2 className="font-bold">Match History</h2>
+          </div>
+          
+          <div className="space-y-4">
+            {visibleHistory.map((match) => (
+              <div key={match.id} className="border-b pb-4 last:border-0 last:pb-0">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-600">{match.date}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    match.result === 'win' 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {match.result === 'win' ? 'WIN' : 'LOSS'}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center mb-3 text-sm">
+                  <span className="font-medium">{match.homeClub.name}</span>
+                  <span className="text-xs text-gray-500">vs</span>
+                  <span className="font-medium">{match.awayClub.name}</span>
+                </div>
+                
+                <div className="flex justify-between items-center text-xs mb-2">
+                  <span>{match.homeClub.totalDistance.toFixed(1)} km</span>
+                  <span>{match.awayClub.totalDistance.toFixed(1)} km</span>
+                </div>
+                
+                <MatchProgressBar
+                  homeDistance={match.homeClub.totalDistance}
+                  awayDistance={match.awayClub.totalDistance}
+                  className="h-1.5"
+                />
+              </div>
+            ))}
+          </div>
+          
+          {matchHistory.length > 2 && (
+            <button 
+              className="w-full py-2 mt-3 text-sm text-primary flex items-center justify-center"
+              onClick={() => setShowAllHistory(!showAllHistory)}
+            >
+              {showAllHistory ? 'Show Less' : 'View All Match History'}
+            </button>
           )}
         </div>
 

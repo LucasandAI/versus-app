@@ -1,11 +1,12 @@
 
 import React, { useState } from 'react';
-import { Plus, Search, ChevronDown } from 'lucide-react';
+import { Plus, Search, ChevronDown, UserPlus } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from './shared/UserAvatar';
 import MatchProgressBar from './shared/MatchProgressBar';
 import Button from './shared/Button';
 import { Club, Match } from '@/types';
+import { toast } from "@/components/ui/use-toast";
 
 // Mock data for development
 const mockClubs: Club[] = [
@@ -91,6 +92,28 @@ const mockClubs: Club[] = [
   }
 ];
 
+// New mock data for available clubs (with less than 5 members)
+const availableClubs = [
+  {
+    id: 'ac1',
+    name: 'Morning Joggers',
+    division: 'Silver',
+    members: 3
+  },
+  {
+    id: 'ac2',
+    name: 'Hill Climbers',
+    division: 'Gold',
+    members: 4
+  },
+  {
+    id: 'ac3',
+    name: 'Urban Pacers',
+    division: 'Bronze',
+    members: 2
+  }
+];
+
 const HomeView: React.FC = () => {
   const { setCurrentView, setSelectedClub, setSelectedUser, currentUser } = useApp();
   const [clubs] = React.useState<Club[]>(mockClubs);
@@ -113,6 +136,14 @@ const HomeView: React.FC = () => {
     setCurrentView('profile');
   };
 
+  const handleRequestToJoin = (clubId: string, clubName: string) => {
+    // In a real app, this would send a request to the backend
+    toast({
+      title: "Request Sent",
+      description: `Your request to join ${clubName} has been sent.`,
+    });
+  };
+
   // Calculate days remaining for the match
   const getDaysRemaining = (endDate: string) => {
     const end = new Date(endDate);
@@ -125,6 +156,14 @@ const HomeView: React.FC = () => {
   const toggleMembersView = (clubId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setExpandedClubId(expandedClubId === clubId ? null : clubId);
+  };
+
+  const handleCreateClub = () => {
+    // In a real app, this would navigate to a create club form
+    toast({
+      title: "Create Club",
+      description: "This functionality is not implemented yet.",
+    });
   };
 
   return (
@@ -261,7 +300,11 @@ const HomeView: React.FC = () => {
               <p className="text-gray-500 text-sm mb-4">
                 Create or join a club to start competing
               </p>
-              <Button variant="primary" size="sm">
+              <Button 
+                variant="primary" 
+                size="sm"
+                onClick={handleCreateClub}
+              >
                 Create Club
               </Button>
             </div>
@@ -279,29 +322,41 @@ const HomeView: React.FC = () => {
 
           <div className="bg-white rounded-lg shadow-md p-4">
             <p className="text-gray-500 text-sm mb-4">
-              Popular clubs in your area
+              Clubs looking for members
             </p>
 
             <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center justify-between border-b last:border-0 pb-3 last:pb-0">
+              {availableClubs.map((club) => (
+                <div key={club.id} className="flex items-center justify-between border-b last:border-0 pb-3 last:pb-0">
                   <div className="flex items-center gap-3">
                     <div className="bg-gray-200 h-10 w-10 rounded-full flex items-center justify-center">
-                      <span className="font-bold text-xs text-gray-700">RC{i}</span>
+                      <span className="font-bold text-xs text-gray-700">{club.name.substring(0, 2)}</span>
                     </div>
                     <div>
-                      <h3 className="font-medium text-sm">Running Club {i}</h3>
-                      <span className="text-xs text-gray-500">Gold Division • 5 members</span>
+                      <h3 className="font-medium text-sm">{club.name}</h3>
+                      <span className="text-xs text-gray-500">{club.division} Division • {club.members}/5 members</span>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" className="h-8">Join</Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8"
+                    icon={<UserPlus className="h-4 w-4" />}
+                    onClick={() => handleRequestToJoin(club.id, club.name)}
+                  >
+                    Request
+                  </Button>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="mt-6 text-center">
-            <Button variant="primary" size="md">
+            <Button 
+              variant="primary" 
+              size="md"
+              onClick={handleCreateClub}
+            >
               Create Club
             </Button>
           </div>
