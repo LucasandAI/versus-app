@@ -5,12 +5,35 @@ import { useApp } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
 
 const Navigation: React.FC = () => {
-  const { currentView, setCurrentView } = useApp();
+  const { currentView, setCurrentView, setSelectedUser, currentUser } = useApp();
+
+  const handleProfileClick = () => {
+    // Set selectedUser to currentUser when clicking profile in nav
+    if (currentUser) {
+      setSelectedUser(currentUser);
+    }
+    setCurrentView('profile');
+  };
 
   const navItems = [
-    { view: 'home' as const, label: 'Home', icon: Home },
-    { view: 'leaderboard' as const, label: 'Leagues', icon: Trophy },
-    { view: 'profile' as const, label: 'Profile', icon: User }
+    { 
+      view: 'home' as const, 
+      label: 'Home', 
+      icon: Home,
+      onClick: () => setCurrentView('home')
+    },
+    { 
+      view: 'leaderboard' as const, 
+      label: 'Leagues', 
+      icon: Trophy,
+      onClick: () => setCurrentView('leaderboard')
+    },
+    { 
+      view: 'profile' as const, 
+      label: 'Profile', 
+      icon: User,
+      onClick: handleProfileClick
+    }
   ];
 
   return (
@@ -19,7 +42,7 @@ const Navigation: React.FC = () => {
         {navItems.map((item) => (
           <button
             key={item.view}
-            onClick={() => setCurrentView(item.view)}
+            onClick={item.onClick}
             className={cn(
               'flex flex-col items-center justify-center h-full w-full text-xs font-medium transition-colors',
               currentView === item.view

@@ -9,7 +9,7 @@ import ClubInviteDialog from './admin/ClubInviteDialog';
 import { Card } from './ui/card';
 
 const UserProfile: React.FC = () => {
-  const { selectedUser, setCurrentView, currentUser } = useApp();
+  const { selectedUser, setCurrentView, currentUser, setSelectedUser } = useApp();
   const [loading, setLoading] = useState(true);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [showMoreAchievements, setShowMoreAchievements] = useState(false);
@@ -20,6 +20,13 @@ const UserProfile: React.FC = () => {
       setLoading(false);
     }, 500);
   }, [selectedUser]);
+
+  // When profile is accessed via navigation menu, show current user's profile
+  useEffect(() => {
+    if (currentUser && currentView === 'profile' && !selectedUser) {
+      setSelectedUser(currentUser);
+    }
+  }, [currentView, currentUser, selectedUser, setSelectedUser]);
 
   if (!selectedUser) {
     return (
@@ -48,6 +55,7 @@ const UserProfile: React.FC = () => {
   const profileStats = {
     weeklyDistance: 42.3,
     bestLeague: 'Gold',
+    bestLeagueTier: 3,
     matchesWon: 3,
     matchesLost: 1
   };
@@ -76,7 +84,9 @@ const UserProfile: React.FC = () => {
     <div className="flex flex-col items-center min-h-screen bg-gray-50 pb-20">
       {/* Header Banner */}
       <div className="w-full bg-green-500 py-4 px-6 text-white flex justify-center items-center">
-        <h1 className="text-xl font-semibold flex items-center">Profile</h1>
+        <h1 className="text-xl font-semibold flex items-center">
+          {isCurrentUserProfile ? 'Profile' : `${selectedUser.name}'s Profile`}
+        </h1>
       </div>
 
       {/* Profile Card */}
@@ -110,9 +120,12 @@ const UserProfile: React.FC = () => {
               <Share2 className="h-5 w-5" />
             </Button>
             
-            <Button variant="ghost" size="sm" className="rounded-full">
-              <ArrowRight className="h-5 w-5" />
-            </Button>
+            {/* Only show arrow button on current user's profile */}
+            {isCurrentUserProfile && (
+              <Button variant="ghost" size="sm" className="rounded-full">
+                <ArrowRight className="h-5 w-5" />
+              </Button>
+            )}
           </div>
 
           {/* Strava profile button */}
@@ -149,7 +162,7 @@ const UserProfile: React.FC = () => {
               <p className="text-gray-500 text-sm">Weekly Contribution</p>
             </div>
             <div className="bg-gray-50 p-4 text-center rounded-lg">
-              <p className="text-xl font-bold">{loading ? <Skeleton className="h-6 w-16 mx-auto" /> : profileStats.bestLeague}</p>
+              <p className="text-xl font-bold">{loading ? <Skeleton className="h-6 w-16 mx-auto" /> : `${profileStats.bestLeague} ${profileStats.bestLeagueTier}`}</p>
               <p className="text-gray-500 text-sm">Best League</p>
             </div>
             <div className="bg-gray-50 p-4 text-center rounded-lg">
