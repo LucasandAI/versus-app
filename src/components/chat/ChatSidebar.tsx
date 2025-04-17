@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Club } from '@/types';
 import UserAvatar from '../shared/UserAvatar';
 import { ChevronDown, Users } from 'lucide-react';
@@ -19,11 +19,11 @@ interface ChatSidebarProps {
 const ChatSidebar: React.FC<ChatSidebarProps> = ({ clubs, selectedClub, onSelectClub }) => {
   const { setCurrentView, setSelectedUser } = useApp();
 
-  const handleSelectUser = (userId: string, userName: string) => {
+  const handleSelectUser = (userId: string, userName: string, userAvatar: string = '/placeholder.svg') => {
     setSelectedUser({
       id: userId,
       name: userName,
-      avatar: '/placeholder.svg',
+      avatar: userAvatar,
       stravaConnected: true,
       clubs: []
     });
@@ -73,7 +73,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ clubs, selectedClub, onSelect
                             <button
                               key={member.id}
                               className="w-full flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-md text-left"
-                              onClick={() => handleSelectUser(member.id, member.name)}
+                              onClick={() => handleSelectUser(member.id, member.name, member.avatar)}
                             >
                               <UserAvatar name={member.name} image={member.avatar} size="sm" />
                               <span className="text-sm truncate">{member.name}</span>

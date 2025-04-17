@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Send, X, Users, ChevronDown, Trophy } from 'lucide-react';
 import { 
@@ -22,19 +23,19 @@ interface ChatDrawerProps {
 }
 
 const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) => {
-  const { setCurrentView, setSelectedUser } = useApp();
-  const [selectedClub, setSelectedClub] = useState<Club | null>(clubs.length > 0 ? clubs[0] : null);
+  const { setCurrentView, setSelectedUser, setSelectedClub } = useApp();
+  const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(clubs.length > 0 ? clubs[0] : null);
   const [messages, setMessages] = useState<Record<string, any[]>>({});
 
   const handleSelectClub = (club: Club) => {
-    setSelectedClub(club);
+    setSelectedLocalClub(club);
   };
 
-  const handleSelectUser = (userId: string, userName: string) => {
+  const handleSelectUser = (userId: string, userName: string, userAvatar: string = '/placeholder.svg') => {
     setSelectedUser({
       id: userId,
       name: userName,
-      avatar: '/placeholder.svg',
+      avatar: userAvatar,
       stravaConnected: true,
       clubs: []
     });
@@ -42,8 +43,21 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) =>
     onOpenChange(false); // Close the drawer
   };
 
+  const handleMatchClick = () => {
+    if (!selectedLocalClub || !selectedLocalClub.currentMatch) return;
+    
+    // Set the selected club in the global context
+    setSelectedClub(selectedLocalClub);
+    
+    // Navigate to club detail view
+    setCurrentView('clubDetail');
+    
+    // Close the drawer
+    onOpenChange(false);
+  };
+
   const handleSendMessage = (message: string) => {
-    if (!selectedClub || !message.trim()) return;
+    if (!selectedLocalClub || !message.trim()) return;
     
     const newMessage = {
       id: Date.now().toString(),
@@ -58,31 +72,31 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) =>
     
     setMessages(prev => ({
       ...prev,
-      [selectedClub.id]: [...(prev[selectedClub.id] || []), newMessage]
+      [selectedLocalClub.id]: [...(prev[selectedLocalClub.id] || []), newMessage]
     }));
     
     setTimeout(() => {
       const responseMessage = {
         id: (Date.now() + 1).toString(),
-        text: `This is a simulated response from ${selectedClub.name}`,
+        text: `This is a simulated response from ${selectedLocalClub.name}`,
         sender: {
-          id: selectedClub.members[0].id,
-          name: selectedClub.members[0].name,
-          avatar: selectedClub.members[0].avatar,
+          id: selectedLocalClub.members[0].id,
+          name: selectedLocalClub.members[0].name,
+          avatar: selectedLocalClub.members[0].avatar,
         },
         timestamp: new Date().toISOString(),
       };
       
       setMessages(prev => ({
         ...prev,
-        [selectedClub.id]: [...(prev[selectedClub.id] || []), responseMessage]
+        [selectedLocalClub.id]: [...(prev[selectedLocalClub.id] || []), responseMessage]
       }));
     }, 1000);
   };
 
   const getCurrentMatch = () => {
-    if (!selectedClub || !selectedClub.currentMatch) return null;
-    return selectedClub.currentMatch;
+    if (!selectedLocalClub || !selectedLocalClub.currentMatch) return null;
+    return selectedLocalClub.currentMatch;
   };
 
   const currentMatch = getCurrentMatch();
@@ -102,17 +116,20 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) =>
         <div className="flex h-full">
           <ChatSidebar 
             clubs={clubs} 
-            selectedClub={selectedClub} 
+            selectedClub={selectedLocalClub} 
             onSelectClub={handleSelectClub} 
           />
           
-          {selectedClub ? (
+          {selectedLocalClub ? (
             <div className="flex-1 flex flex-col h-full">
               <div className="border-b p-3">
-                <h3 className="font-medium">{selectedClub.name}</h3>
+                <h3 className="font-medium">{selectedLocalClub.name}</h3>
                 
                 {currentMatch && (
-                  <div className="mt-1 mb-2 bg-gray-50 rounded-md p-2 text-xs">
+                  <div 
+                    className="mt-1 mb-2 bg-gray-50 rounded-md p-2 text-xs cursor-pointer hover:bg-gray-100"
+                    onClick={handleMatchClick}
+                  >
                     <div className="flex items-center gap-1 text-primary font-medium">
                       <Trophy className="h-3 w-3" />
                       <span>Current Match</span>
@@ -137,18 +154,18 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) =>
                   <PopoverTrigger asChild>
                     <button className="text-xs text-gray-500 hover:text-primary flex items-center mt-1">
                       <Users className="h-3 w-3 mr-1" />
-                      {selectedClub.members.length} members
+                      {selectedLocalClub.members.length} members
                       <ChevronDown className="h-3 w-3 ml-1" />
                     </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-60 p-2" align="start">
                     <h4 className="text-sm font-medium mb-2">Club Members</h4>
                     <div className="space-y-2 max-h-60 overflow-y-auto">
-                      {selectedClub.members.map(member => (
+                      {selectedLocalClub.members.map(member => (
                         <button
                           key={member.id}
                           className="w-full flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-md text-left"
-                          onClick={() => handleSelectUser(member.id, member.name)}
+                          onClick={() => handleSelectUser(member.id, member.name, member.avatar)}
                         >
                           <UserAvatar name={member.name} image={member.avatar} size="sm" />
                           <span className="text-sm truncate">{member.name}</span>
@@ -160,8 +177,8 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) =>
               </div>
               
               <ChatMessages 
-                messages={messages[selectedClub.id] || []} 
-                clubMembers={selectedClub.members}
+                messages={messages[selectedLocalClub.id] || []} 
+                clubMembers={selectedLocalClub.members}
               />
               
               <ChatInput onSendMessage={handleSendMessage} />
