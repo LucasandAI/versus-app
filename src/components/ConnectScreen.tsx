@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Button from './shared/Button';
 import { useApp } from '@/context/AppContext';
@@ -28,7 +27,7 @@ const ConnectScreen: React.FC = () => {
               <div className="ml-4">
                 <h3 className="text-lg font-medium text-gray-900">Create Your Club</h3>
                 <p className="mt-1 text-gray-500">
-                  Form a team with up to 4 friends
+                  Build a team of runners or cyclists who share your competitive spirit
                 </p>
               </div>
             </div>
@@ -66,7 +65,7 @@ const ConnectScreen: React.FC = () => {
             fullWidth 
             onClick={connectToStrava}
           >
-            Connect with Strava
+            Login with Strava
           </Button>
           <p className="text-xs text-gray-500">
             We'll sync your running and cycling activities automatically
