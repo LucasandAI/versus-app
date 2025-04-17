@@ -28,6 +28,30 @@ const UserProfile: React.FC = () => {
     { id: 8, title: 'Global Explorer', description: 'Log activities in 5 different countries', completed: true },
   ];
 
+  // Mock user clubs - make sure these match the clubs in HomeView
+  const userClubs = [
+    {
+      id: '1',
+      name: 'Weekend Warriors',
+      division: 'Silver',
+      members: [
+        { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true },
+        { id: '2', name: 'Jane Sprinter', avatar: '/placeholder.svg', isAdmin: false },
+        { id: '3', name: 'Bob Marathon', avatar: '/placeholder.svg', isAdmin: false },
+      ]
+    },
+    {
+      id: '2', 
+      name: 'Road Runners',
+      division: 'Gold',
+      members: [
+        { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true },
+        { id: '7', name: 'Alice Sprint', avatar: '/placeholder.svg', isAdmin: false },
+        { id: '8', name: 'Charlie Run', avatar: '/placeholder.svg', isAdmin: false },
+      ]
+    }
+  ];
+
   const handleSelectClub = (club: any) => {
     setSelectedClub(club);
     setCurrentView('clubDetail');
@@ -58,8 +82,8 @@ const UserProfile: React.FC = () => {
   return (
     <div className="pb-20">
       <div className="bg-primary/95 text-white p-4 sticky top-0 z-10">
-        <div className="container-mobile">
-          <div className="flex items-center">
+        <div className="container-mobile text-center">
+          <div className="flex items-center justify-center">
             <User className="h-5 w-5 mr-2" />
             <h1 className="text-xl font-bold">Profile</h1>
           </div>
@@ -159,9 +183,9 @@ const UserProfile: React.FC = () => {
         <div className="bg-white rounded-lg shadow-md p-4 mb-4">
           <h2 className="font-bold mb-3">My Clubs</h2>
           
-          {currentUser.clubs.length > 0 ? (
+          {userClubs.length > 0 ? (
             <div className="space-y-3">
-              {currentUser.clubs.map((club) => (
+              {userClubs.map((club) => (
                 <div 
                   key={club.id} 
                   className="flex items-center justify-between cursor-pointer"

@@ -8,7 +8,32 @@ const mockUser: User = {
   name: 'John Runner',
   avatar: '/placeholder.svg',
   stravaConnected: false,
-  clubs: []
+  clubs: [
+    {
+      id: '1',
+      name: 'Weekend Warriors',
+      logo: '/placeholder.svg',
+      division: 'Silver',
+      members: [
+        { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true },
+        { id: '2', name: 'Jane Sprinter', avatar: '/placeholder.svg', isAdmin: false },
+        { id: '3', name: 'Bob Marathon', avatar: '/placeholder.svg', isAdmin: false },
+      ],
+      matchHistory: []
+    },
+    {
+      id: '2',
+      name: 'Road Runners',
+      logo: '/placeholder.svg',
+      division: 'Gold',
+      members: [
+        { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true },
+        { id: '7', name: 'Alice Sprint', avatar: '/placeholder.svg', isAdmin: false },
+        { id: '8', name: 'Charlie Run', avatar: '/placeholder.svg', isAdmin: false },
+      ],
+      matchHistory: []
+    }
+  ]
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);

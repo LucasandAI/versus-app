@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Plus, Search, ChevronDown, UserPlus } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -8,7 +7,7 @@ import Button from './shared/Button';
 import { Club, Match } from '@/types';
 import { toast } from "@/components/ui/use-toast";
 
-// Mock data for development
+// Updated mock data for development with corrected dates
 const mockClubs: Club[] = [
   {
     id: '1',
@@ -44,8 +43,8 @@ const mockClubs: Club[] = [
           { id: '6', name: 'Lisa Long', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 16.0 },
         ]
       },
-      startDate: '2023-04-10',
-      endDate: '2023-04-17',
+      startDate: new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 days ago
+      endDate: new Date(new Date().getTime() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 4 days from now
       status: 'active'
     },
     matchHistory: []
@@ -84,15 +83,14 @@ const mockClubs: Club[] = [
           { id: '11', name: 'Tom Track', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 24.3 },
         ]
       },
-      startDate: '2023-04-10',
-      endDate: '2023-04-17',
+      startDate: new Date(new Date().getTime() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 2 days ago
+      endDate: new Date(new Date().getTime() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 5 days from now
       status: 'active'
     },
     matchHistory: []
   }
 ];
 
-// New mock data for available clubs (with less than 5 members)
 const availableClubs = [
   {
     id: 'ac1',
@@ -125,7 +123,6 @@ const HomeView: React.FC = () => {
   };
 
   const handleSelectUser = (userId: string, name: string) => {
-    // In a real app, we would fetch the user data
     setSelectedUser({
       id: userId,
       name: name,
@@ -137,14 +134,12 @@ const HomeView: React.FC = () => {
   };
 
   const handleRequestToJoin = (clubId: string, clubName: string) => {
-    // In a real app, this would send a request to the backend
     toast({
       title: "Request Sent",
       description: `Your request to join ${clubName} has been sent.`,
     });
   };
 
-  // Calculate days remaining for the match
   const getDaysRemaining = (endDate: string) => {
     const end = new Date(endDate);
     const now = new Date();
@@ -159,7 +154,6 @@ const HomeView: React.FC = () => {
   };
 
   const handleCreateClub = () => {
-    // In a real app, this would navigate to a create club form
     toast({
       title: "Create Club",
       description: "This functionality is not implemented yet.",

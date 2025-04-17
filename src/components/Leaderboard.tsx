@@ -16,8 +16,8 @@ interface LeaderboardClub {
 
 // Updated mock data to include tiers
 const mockLeaderboardData: LeaderboardClub[] = [
-  { id: '1', name: 'Speed Demons', division: 'Elite', rank: 1, points: 12, change: 'same' },
-  { id: '2', name: 'Mountain Goats', division: 'Elite', rank: 2, points: 10, change: 'up' },
+  { id: '1', name: 'Weekend Warriors', division: 'Elite', rank: 1, points: 12, change: 'same' },
+  { id: '2', name: 'Road Runners', division: 'Elite', rank: 2, points: 10, change: 'up' },
   { id: '3', name: 'Run For Fun', division: 'Elite', rank: 3, points: 9, change: 'down' },
   { id: '4', name: 'Swift Feet', division: 'Diamond', tier: 1, rank: 4, points: 0, change: 'up' },
   { id: '5', name: 'Weekend Warriors', division: 'Diamond', tier: 2, rank: 5, points: 0, change: 'same' },
@@ -67,8 +67,11 @@ const Leaderboard: React.FC = () => {
     ? leaderboardData
     : leaderboardData.filter(club => club.division === selectedDivision);
 
-  // Find user's clubs
-  const userClubs = currentUser?.clubs || [];
+  // Find user's clubs - Updated to match the clubs in HomeView
+  const userClubs = [
+    { id: '1', name: 'Weekend Warriors' },
+    { id: '2', name: 'Road Runners' }
+  ];
   const userClubIds = userClubs.map(club => club.id);
   const userClubsInLeaderboard = leaderboardData.filter(club => userClubIds.includes(club.id));
   
@@ -141,8 +144,8 @@ const Leaderboard: React.FC = () => {
   return (
     <div className="pb-20">
       <div className="bg-primary/95 text-white p-4 sticky top-0 z-10">
-        <div className="container-mobile">
-          <div className="flex items-center">
+        <div className="container-mobile text-center">
+          <div className="flex items-center justify-center">
             <Trophy className="h-5 w-5 mr-2" />
             <h1 className="text-xl font-bold">Leaderboard</h1>
           </div>
