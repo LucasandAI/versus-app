@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ArrowLeft, User as UserIcon, Calendar, TrendingUp, TrendingDown, ArrowRight, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -227,10 +228,6 @@ const ClubDetail: React.FC = () => {
       </div>
 
       <div className="container-mobile pt-4">
-        {selectedClub && currentUser && (
-          <ClubAdminActions club={selectedClub} currentUser={currentUser} />
-        )}
-        
         {currentMatch && (
           <div className="bg-white rounded-lg shadow-md p-4 mb-6">
             <div className="flex justify-between items-center mb-4">
@@ -432,6 +429,11 @@ const ClubDetail: React.FC = () => {
             </button>
           )}
         </div>
+
+        {/* Admin actions section moved to the bottom */}
+        {selectedClub && currentUser && (
+          <ClubAdminActions club={selectedClub} currentUser={currentUser} />
+        )}
       </div>
 
       <Dialog open={!!selectedMatch} onOpenChange={(open) => !open && setSelectedMatch(null)}>
