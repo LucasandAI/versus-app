@@ -8,13 +8,15 @@ interface UserAvatarProps {
   image?: string;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  onClick?: () => void;
 }
 
 const UserAvatar: React.FC<UserAvatarProps> = ({
   name,
   image,
   size = 'md',
-  className
+  className,
+  onClick
 }) => {
   const getInitials = (name: string) => {
     return name
@@ -32,7 +34,10 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   };
 
   return (
-    <Avatar className={cn(sizeClasses[size], className)}>
+    <Avatar 
+      className={cn(sizeClasses[size], className, onClick ? 'cursor-pointer' : '')}
+      onClick={onClick}
+    >
       <AvatarImage src={image} alt={name} />
       <AvatarFallback className="bg-secondary text-secondary-foreground">
         {getInitials(name)}

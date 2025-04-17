@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { ArrowUp, ArrowDown, Trophy } from 'lucide-react';
+import { useApp } from '@/context/AppContext';
 import { Division } from '@/types';
 
 interface LeaderboardClub {
@@ -26,15 +27,51 @@ const mockLeaderboardData: LeaderboardClub[] = [
   { id: '10', name: 'Trailblazers', division: 'Gold', rank: 10, points: 720, change: 'up' },
 ];
 
+// Expanded to top 100
+for (let i = 11; i <= 100; i++) {
+  const division = i <= 20 ? 'Gold' : 
+                  i <= 40 ? 'Silver' : 
+                  i <= 70 ? 'Bronze' : 'Bronze';
+  
+  mockLeaderboardData.push({
+    id: i.toString(),
+    name: `Club ${i}`,
+    division,
+    rank: i,
+    points: Math.max(100, 1250 - i * 12),
+    change: ['up', 'down', 'same'][Math.floor(Math.random() * 3)] as 'up' | 'down' | 'same'
+  });
+}
+
 const divisions: Division[] = ['Elite', 'Diamond', 'Platinum', 'Gold', 'Silver', 'Bronze'];
 
 const Leaderboard: React.FC = () => {
+  const { setCurrentView, setSelectedClub, currentUser } = useApp();
   const [selectedDivision, setSelectedDivision] = React.useState<Division | 'All'>('All');
   const [leaderboardData] = React.useState<LeaderboardClub[]>(mockLeaderboardData);
 
   const filteredClubs = selectedDivision === 'All' 
     ? leaderboardData
     : leaderboardData.filter(club => club.division === selectedDivision);
+
+  // Find user's clubs
+  const userClubs = currentUser?.clubs || [];
+  
+  const handleSelectClub = (clubId: string) => {
+    // In a real app, we would fetch the club data
+    const club = mockLeaderboardData.find(c => c.id === clubId);
+    if (club) {
+      setSelectedClub({
+        id: club.id,
+        name: club.name,
+        logo: '/placeholder.svg',
+        division: club.division,
+        members: [],
+        matchHistory: []
+      });
+      setCurrentView('clubDetail');
+    }
+  };
 
   const getChangeIcon = (change: 'up' | 'down' | 'same') => {
     switch (change) {
@@ -76,6 +113,39 @@ const Leaderboard: React.FC = () => {
       </div>
 
       <div className="container-mobile pt-4">
+        {userClubs.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3">My Clubs</h2>
+            <div className="bg-white rounded-lg shadow-md p-4">
+              {userClubs.map(club => {
+                const leaderboardPosition = leaderboardData.findIndex(c => c.id === club.id) + 1;
+                return (
+                  <div 
+                    key={club.id} 
+                    className="flex items-center justify-between py-2 border-b last:border-0 cursor-pointer"
+                    onClick={() => handleSelectClub(club.id)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="bg-gray-200 h-10 w-10 rounded-full flex items-center justify-center">
+                        <span className="font-bold text-xs text-gray-700">{club.name.substring(0, 2)}</span>
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-sm">{club.name}</h3>
+                        <div className="flex items-center gap-1">
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${getDivisionColor(club.division)}`}>
+                            {club.division}
+                          </span>
+                          <span className="text-xs text-gray-500">• Rank #{leaderboardPosition || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold">Top Clubs</h2>
           <div className="relative">
@@ -121,12 +191,16 @@ const Leaderboard: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredClubs.map((club) => (
-                <tr key={club.id} className="hover:bg-gray-50">
+              {filteredClubs.slice(0, 100).map((club) => (
+                <tr 
+                  key={club.id} 
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() => handleSelectClub(club.id)}
+                >
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {club.rank}
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-800">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-800 hover:text-primary">
                     {club.name}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap">

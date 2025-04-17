@@ -1,19 +1,22 @@
 
-import React from 'react';
-import { User, LogOut, Settings, Award, Share2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { User, LogOut, Settings, Award, Share2, ChevronDown } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from './shared/UserAvatar';
 import Button from './shared/Button';
 
 const UserProfile: React.FC = () => {
-  const { currentUser, connectToStrava } = useApp();
+  const { currentUser, connectToStrava, setCurrentView, setSelectedClub } = useApp();
+  const [showAllAchievements, setShowAllAchievements] = useState(false);
   
   // Mock user stats
   const userStats = {
     totalDistance: 237.5,
     activeDays: 18,
     matchesWon: 3,
-    matchesLost: 1
+    matchesLost: 1,
+    weeklyContribution: 42.3,
+    bestLeague: 'Gold'
   };
 
   const achievements = [
@@ -21,7 +24,16 @@ const UserProfile: React.FC = () => {
     { id: 2, title: 'Team Player', description: 'Contribute 50km in a single match', completed: true },
     { id: 3, title: 'Ironman', description: 'Log activity every day of a match', completed: false },
     { id: 4, title: 'Division Climber', description: 'Promote to the next division', completed: false },
+    { id: 5, title: 'Century Runner', description: 'Run 100km in a single week', completed: false },
+    { id: 6, title: 'Social Butterfly', description: 'Join 3 different clubs', completed: false },
+    { id: 7, title: 'Streak Master', description: 'Win 5 matches in a row', completed: false },
+    { id: 8, title: 'Global Explorer', description: 'Log activities in 5 different countries', completed: true },
   ];
+
+  const handleSelectClub = (club: any) => {
+    setSelectedClub(club);
+    setCurrentView('clubDetail');
+  };
 
   if (!currentUser) {
     return (
@@ -84,6 +96,14 @@ const UserProfile: React.FC = () => {
               <p className="text-xs text-gray-500">Active Days</p>
             </div>
             <div className="bg-gray-50 p-3 rounded-md">
+              <p className="text-xl font-bold">{userStats.weeklyContribution} km</p>
+              <p className="text-xs text-gray-500">Weekly Contribution</p>
+            </div>
+            <div className="bg-gray-50 p-3 rounded-md">
+              <p className="text-xl font-bold">{userStats.bestLeague}</p>
+              <p className="text-xs text-gray-500">Best League</p>
+            </div>
+            <div className="bg-gray-50 p-3 rounded-md">
               <p className="text-xl font-bold">{userStats.matchesWon}</p>
               <p className="text-xs text-gray-500">Matches Won</p>
             </div>
@@ -101,22 +121,34 @@ const UserProfile: React.FC = () => {
           </div>
           
           <div className="space-y-3">
-            {achievements.map((achievement) => (
-              <div 
-                key={achievement.id} 
-                className={`p-3 rounded-md ${achievement.completed ? 'bg-primary/10' : 'bg-gray-50'}`}
-              >
-                <div className="flex justify-between items-center">
-                  <h3 className="font-medium text-sm">{achievement.title}</h3>
-                  {achievement.completed && (
-                    <span className="text-xs bg-success/20 text-success px-2 py-0.5 rounded">
-                      Completed
-                    </span>
-                  )}
+            {achievements
+              .slice(0, showAllAchievements ? achievements.length : 4)
+              .map((achievement) => (
+                <div 
+                  key={achievement.id} 
+                  className={`p-3 rounded-md ${achievement.completed ? 'bg-primary/10' : 'bg-gray-50'}`}
+                >
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-medium text-sm">{achievement.title}</h3>
+                    {achievement.completed && (
+                      <span className="text-xs bg-success/20 text-success px-2 py-0.5 rounded">
+                        Completed
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">{achievement.description}</p>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">{achievement.description}</p>
-              </div>
-            ))}
+              ))}
+            
+            {achievements.length > 4 && (
+              <button 
+                className="w-full py-2 text-sm text-primary flex items-center justify-center"
+                onClick={() => setShowAllAchievements(!showAllAchievements)}
+              >
+                {showAllAchievements ? 'Show Less' : 'View More Achievements'} 
+                <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${showAllAchievements ? 'rotate-180' : ''}`} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -126,13 +158,17 @@ const UserProfile: React.FC = () => {
           {currentUser.clubs.length > 0 ? (
             <div className="space-y-3">
               {currentUser.clubs.map((club) => (
-                <div key={club.id} className="flex items-center justify-between">
+                <div 
+                  key={club.id} 
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => handleSelectClub(club)}
+                >
                   <div className="flex items-center gap-3">
                     <div className="bg-gray-200 h-10 w-10 rounded-full flex items-center justify-center">
                       <span className="font-bold text-xs text-gray-700">{club.name.substring(0, 2)}</span>
                     </div>
                     <div>
-                      <h3 className="font-medium text-sm">{club.name}</h3>
+                      <h3 className="font-medium text-sm hover:text-primary">{club.name}</h3>
                       <span className="text-xs text-gray-500">{club.division} Division</span>
                     </div>
                   </div>

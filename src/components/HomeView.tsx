@@ -48,16 +48,68 @@ const mockClubs: Club[] = [
       status: 'active'
     },
     matchHistory: []
+  },
+  {
+    id: '2',
+    name: 'Road Runners',
+    logo: '/placeholder.svg',
+    division: 'Gold',
+    members: [
+      { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true },
+      { id: '7', name: 'Alice Sprint', avatar: '/placeholder.svg', isAdmin: false },
+      { id: '8', name: 'Charlie Run', avatar: '/placeholder.svg', isAdmin: false },
+    ],
+    currentMatch: {
+      id: 'm2',
+      homeClub: {
+        id: '2',
+        name: 'Road Runners',
+        logo: '/placeholder.svg',
+        totalDistance: 78.3,
+        members: [
+          { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true, distanceContribution: 30.1 },
+          { id: '7', name: 'Alice Sprint', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 22.4 },
+          { id: '8', name: 'Charlie Run', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 25.8 },
+        ]
+      },
+      awayClub: {
+        id: '3',
+        name: 'Trail Blazers',
+        logo: '/placeholder.svg',
+        totalDistance: 85.1,
+        members: [
+          { id: '9', name: 'Mark Move', avatar: '/placeholder.svg', isAdmin: true, distanceContribution: 32.3 },
+          { id: '10', name: 'Eva Exercise', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 28.5 },
+          { id: '11', name: 'Tom Track', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 24.3 },
+        ]
+      },
+      startDate: '2023-04-10',
+      endDate: '2023-04-17',
+      status: 'active'
+    },
+    matchHistory: []
   }
 ];
 
 const HomeView: React.FC = () => {
-  const { setCurrentView, setSelectedClub } = useApp();
+  const { setCurrentView, setSelectedClub, setSelectedUser, currentUser } = useApp();
   const [clubs] = React.useState<Club[]>(mockClubs);
 
   const handleSelectClub = (club: Club) => {
     setSelectedClub(club);
     setCurrentView('clubDetail');
+  };
+
+  const handleSelectUser = (userId: string, name: string) => {
+    // In a real app, we would fetch the user data
+    setSelectedUser({
+      id: userId,
+      name: name,
+      avatar: '/placeholder.svg',
+      stravaConnected: true,
+      clubs: [] // This would be populated from the backend
+    });
+    setCurrentView('profile');
   };
 
   // Calculate days remaining for the match
@@ -74,9 +126,12 @@ const HomeView: React.FC = () => {
       <div className="container-mobile">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">My Clubs</h1>
-          <button className="bg-primary rounded-full p-2 text-white">
-            <Plus className="h-5 w-5" />
-          </button>
+          <UserAvatar 
+            name={currentUser?.name || "User"} 
+            image={currentUser?.avatar} 
+            size="sm"
+            onClick={() => setCurrentView('profile')}
+          />
         </div>
 
         <div className="space-y-6">
@@ -113,15 +168,70 @@ const HomeView: React.FC = () => {
                   </div>
                   
                   <div className="flex justify-between items-center mb-3 text-sm">
-                    <span className="font-medium">{club.currentMatch.homeClub.name}</span>
+                    <span 
+                      className="font-medium cursor-pointer hover:text-primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const homeClub = clubs.find(c => c.id === club.currentMatch?.homeClub.id);
+                        if (homeClub) handleSelectClub(homeClub);
+                      }}
+                    >{club.currentMatch.homeClub.name}</span>
                     <span className="text-xs text-gray-500">vs</span>
-                    <span className="font-medium">{club.currentMatch.awayClub.name}</span>
+                    <span 
+                      className="font-medium cursor-pointer hover:text-primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const awayClub = clubs.find(c => c.id === club.currentMatch?.awayClub.id);
+                        if (awayClub) handleSelectClub(awayClub);
+                      }}
+                    >{club.currentMatch.awayClub.name}</span>
                   </div>
 
                   <MatchProgressBar
                     homeDistance={club.currentMatch.homeClub.totalDistance}
                     awayDistance={club.currentMatch.awayClub.totalDistance}
                   />
+
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <div>
+                      <p className="text-xs font-medium mb-2">Home Club Members</p>
+                      {club.currentMatch.homeClub.members.map(member => (
+                        <div 
+                          key={member.id} 
+                          className="flex items-center gap-2 mb-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectUser(member.id, member.name);
+                          }}
+                        >
+                          <UserAvatar name={member.name} image={member.avatar} size="sm" />
+                          <div>
+                            <p className="text-xs font-medium hover:text-primary">{member.name}</p>
+                            <p className="text-xs text-gray-500">{member.distanceContribution?.toFixed(1)} km</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium mb-2">Away Club Members</p>
+                      {club.currentMatch.awayClub.members.map(member => (
+                        <div 
+                          key={member.id} 
+                          className="flex items-center gap-2 mb-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectUser(member.id, member.name);
+                          }}
+                        >
+                          <UserAvatar name={member.name} image={member.avatar} size="sm" />
+                          <div>
+                            <p className="text-xs font-medium hover:text-primary">{member.name}</p>
+                            <p className="text-xs text-gray-500">{member.distanceContribution?.toFixed(1)} km</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -170,6 +280,12 @@ const HomeView: React.FC = () => {
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="mt-6 text-center">
+            <Button variant="primary" size="md">
+              Create Club
+            </Button>
           </div>
         </div>
       </div>
