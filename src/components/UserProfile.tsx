@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -8,6 +9,31 @@ import ClubInviteDialog from './admin/ClubInviteDialog';
 import EditProfileDialog from './profile/EditProfileDialog';
 import { Card } from './ui/card';
 import { formatLeagueWithTier } from '@/lib/format';
+import { toast } from "@/hooks/use-toast";
+import { 
+  TooltipProvider, 
+  Tooltip, 
+  TooltipTrigger, 
+  TooltipContent 
+} from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuItem,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
 
 const UserProfile: React.FC = () => {
   const { selectedUser, setCurrentView, currentUser, setSelectedUser, currentView } = useApp();
@@ -331,8 +357,8 @@ const UserProfile: React.FC = () => {
                 key={club.id} 
                 className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
                 onClick={() => {
-                  setSelectedClub(club);
                   setCurrentView('clubDetail');
+                  setSelectedUser(club);
                 }}
               >
                 <img 
