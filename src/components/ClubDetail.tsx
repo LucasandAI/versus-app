@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table";
 
 const ClubDetail: React.FC = () => {
-  const { selectedClub, setCurrentView, currentUser, setSelectedUser } = useApp();
+  const { selectedClub, setCurrentView, currentUser, setSelectedUser, setSelectedClub } = useApp();
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
   
@@ -183,6 +183,27 @@ const ClubDetail: React.FC = () => {
 
   const handleViewMatchDetails = (match: any) => {
     setSelectedMatch(match);
+  };
+
+  const handleViewClub = (club: any) => {
+    setSelectedClub({
+      id: club.id,
+      name: club.name,
+      logo: club.logo || '/placeholder.svg',
+      division: 'Gold', // Default division
+      members: club.members.map((member: any) => ({
+        id: member.id,
+        name: member.name,
+        avatar: member.avatar,
+        isAdmin: false,
+        distanceContribution: member.distance
+      })),
+      matchHistory: []
+    });
+    
+    setSelectedMatch(null);
+    
+    setCurrentView('clubDetail');
   };
 
   const currentMatch = selectedClub?.currentMatch;
@@ -427,9 +448,19 @@ const ClubDetail: React.FC = () => {
           </DialogHeader>
           <div className="pb-6">
             <div className="flex justify-center items-center text-lg font-medium gap-3 mb-4">
-              <span>{selectedMatch?.homeClub.name}</span>
+              <span 
+                className="cursor-pointer hover:text-primary transition-colors"
+                onClick={() => handleViewClub(selectedMatch?.homeClub)}
+              >
+                {selectedMatch?.homeClub.name}
+              </span>
               <span className="text-sm text-gray-500">vs</span>
-              <span>{selectedMatch?.awayClub.name}</span>
+              <span 
+                className="cursor-pointer hover:text-primary transition-colors"
+                onClick={() => handleViewClub(selectedMatch?.awayClub)}
+              >
+                {selectedMatch?.awayClub.name}
+              </span>
             </div>
             
             <div className="flex justify-center items-center gap-3 mb-4">
@@ -466,7 +497,14 @@ const ClubDetail: React.FC = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h3 className="font-medium text-center mb-3">{selectedMatch?.homeClub.name} Members</h3>
+                <h3 className="font-medium text-center mb-3">
+                  <span 
+                    className="cursor-pointer hover:text-primary transition-colors"
+                    onClick={() => handleViewClub(selectedMatch?.homeClub)}
+                  >
+                    {selectedMatch?.homeClub.name}
+                  </span> Members
+                </h3>
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -493,7 +531,14 @@ const ClubDetail: React.FC = () => {
               </div>
               
               <div>
-                <h3 className="font-medium text-center mb-3">{selectedMatch?.awayClub.name} Members</h3>
+                <h3 className="font-medium text-center mb-3">
+                  <span 
+                    className="cursor-pointer hover:text-primary transition-colors"
+                    onClick={() => handleViewClub(selectedMatch?.awayClub)}
+                  >
+                    {selectedMatch?.awayClub.name}
+                  </span> Members
+                </h3>
                 <Table>
                   <TableHeader>
                     <TableRow>
