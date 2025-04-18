@@ -4,6 +4,7 @@ import { toast } from '@/hooks/use-toast';
 import Button from '@/components/shared/Button';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { Notification } from '@/types';
+import { useApp } from '@/context/AppContext';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -20,6 +21,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   onDeclineInvite,
   formatTime,
 }) => {
+  const { setCurrentView, setSelectedClub } = useApp();
+
   const handleJoinClub = () => {
     if (onJoinClub) {
       onJoinClub(notification.clubId, notification.clubName);
@@ -29,6 +32,67 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   const handleDeclineInvite = () => {
     if (onDeclineInvite) {
       onDeclineInvite(notification.id);
+    }
+  };
+
+  const handleClubClick = () => {
+    // Get all clubs from localStorage
+    try {
+      const allClubs = JSON.parse(localStorage.getItem('clubs') || '[]');
+      // Try to find the club
+      const club = allClubs.find((c: any) => c.id === notification.clubId);
+      
+      if (club) {
+        // Set the selected club and navigate to club detail view
+        setSelectedClub(club);
+        setCurrentView('clubDetail');
+      } else {
+        // If club not in localStorage yet, use available clubs data
+        const mockClubs = [
+          {
+            id: 'ac1',
+            name: 'Morning Joggers',
+            division: 'Silver',
+            tier: 3,
+            logo: '/placeholder.svg',
+            members: []
+          },
+          {
+            id: 'ac2',
+            name: 'Hill Climbers',
+            division: 'Gold',
+            tier: 2,
+            logo: '/placeholder.svg',
+            members: []
+          },
+          {
+            id: 'ac3',
+            name: 'Urban Pacers',
+            division: 'Bronze',
+            tier: 5,
+            logo: '/placeholder.svg',
+            members: []
+          }
+        ];
+        
+        const mockClub = mockClubs.find(c => c.id === notification.clubId);
+        if (mockClub) {
+          setSelectedClub(mockClub);
+          setCurrentView('clubDetail');
+        } else {
+          toast({
+            title: "Club Not Found",
+            description: `Details for ${notification.clubName} are not available yet.`
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error accessing club data:', error);
+      toast({
+        title: "Error",
+        description: "Could not load club details",
+        variant: "destructive"
+      });
     }
   };
 
@@ -59,12 +123,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
                 {notification.message || 'invited you to join'}{' '}
                 <span 
                   className="font-medium cursor-pointer hover:underline text-primary"
-                  onClick={() => {
-                    toast({
-                      title: "Club Details",
-                      description: `Viewing ${notification.clubName} details`
-                    });
-                  }}
+                  onClick={handleClubClick}
                 >
                   {notification.clubName}
                 </span>
@@ -74,7 +133,12 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
                 added{' '}
                 <span className="font-medium">{notification.distance.toFixed(1)}km</span>
                 {' '}to{' '}
-                <span className="font-medium">{notification.clubName}</span>
+                <span 
+                  className="font-medium cursor-pointer hover:underline text-primary"
+                  onClick={handleClubClick}
+                >
+                  {notification.clubName}
+                </span>
               </span>
             )}
           </p>

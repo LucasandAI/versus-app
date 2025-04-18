@@ -60,8 +60,16 @@ export const useClubActions = () => {
     }
     
     // Get clubs from localStorage or initialize empty array
-    const allClubs = localStorage.getItem('clubs') || '[]';
-    const clubs = JSON.parse(allClubs);
+    let allClubs = [];
+    try {
+      const storedClubs = localStorage.getItem('clubs');
+      if (storedClubs) {
+        allClubs = JSON.parse(storedClubs);
+      }
+    } catch (error) {
+      console.error('Error parsing clubs from localStorage:', error);
+      allClubs = [];
+    }
     
     // Try to find the club in our available clubs list first
     const mockClub = availableClubs.find(club => club.id === clubId);
@@ -69,7 +77,7 @@ export const useClubActions = () => {
     
     if (mockClub) {
       // Check if this club already exists in the stored clubs
-      clubToJoin = clubs.find((club: any) => club.id === clubId);
+      clubToJoin = allClubs.find((club: any) => club.id === clubId);
       
       if (!clubToJoin) {
         // Create a new club based on the mock club
@@ -84,11 +92,11 @@ export const useClubActions = () => {
           matchHistory: []
         };
         
-        clubs.push(clubToJoin);
+        allClubs.push(clubToJoin);
       }
     } else {
       // If not found in available clubs, use the provided name
-      clubToJoin = clubs.find((club: any) => club.id === clubId);
+      clubToJoin = allClubs.find((club: any) => club.id === clubId);
       
       if (!clubToJoin) {
         // Create a completely new club
@@ -103,12 +111,18 @@ export const useClubActions = () => {
           matchHistory: []
         };
         
-        clubs.push(clubToJoin);
+        allClubs.push(clubToJoin);
       }
     }
     
-    // Check if user is already a member of this specific club
-    if (clubToJoin.members && clubToJoin.members.some((member: any) => member.id === currentUser.id)) {
+    // Add user to club members if not already a member
+    if (!clubToJoin.members) {
+      clubToJoin.members = [];
+    }
+    
+    // Check if user is already in this specific club's members array
+    const isInClubMembers = clubToJoin.members.some((member: any) => member.id === currentUser.id);
+    if (isInClubMembers) {
       toast({
         title: "Already a Member",
         description: `You are already a member of ${clubToJoin.name}.`,
@@ -118,10 +132,6 @@ export const useClubActions = () => {
     }
     
     // Add user to club members
-    if (!clubToJoin.members) {
-      clubToJoin.members = [];
-    }
-    
     clubToJoin.members.push({
       id: currentUser.id,
       name: currentUser.name,
@@ -130,7 +140,7 @@ export const useClubActions = () => {
     });
     
     // Save updated clubs to localStorage
-    localStorage.setItem('clubs', JSON.stringify(clubs));
+    localStorage.setItem('clubs', JSON.stringify(allClubs));
     
     // Update user's club membership
     const updatedUser = {
