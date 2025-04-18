@@ -7,6 +7,7 @@ import ClubDetail from '@/components/ClubDetail';
 import Leaderboard from '@/components/Leaderboard';
 import UserProfile from '@/components/UserProfile';
 import Navigation from '@/components/Navigation';
+import SupportPopover from '@/components/shared/SupportPopover';
 
 const AppContent: React.FC = () => {
   const { currentView, currentUser } = useApp();
@@ -32,6 +33,7 @@ const AppContent: React.FC = () => {
     <>
       {renderView()}
       {currentUser?.stravaConnected && currentView !== 'connect' && <Navigation />}
+      {currentUser?.stravaConnected && <SupportPopover />}
     </>
   );
 };

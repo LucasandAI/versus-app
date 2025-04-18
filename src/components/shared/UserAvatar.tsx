@@ -20,10 +20,14 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
 }) => {
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [imageError, setImageError] = useState(false);
+  const [showFallback, setShowFallback] = useState(!image);
   
   useEffect(() => {
     // Reset error state when image changes
     setImageError(false);
+    
+    // Set fallback visibility based on image prop
+    setShowFallback(!image || image.trim() === '');
     
     // Only process valid images
     if (image && image.trim() !== '') {
@@ -56,6 +60,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
 
   const handleImageError = () => {
     setImageError(true);
+    setShowFallback(true);
   };
 
   const initials = getInitials(name);
@@ -65,7 +70,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
       className={cn(sizeClasses[size], className, onClick ? 'cursor-pointer' : '')}
       onClick={onClick}
     >
-      {!imageError && imageUrl ? (
+      {!showFallback && !imageError && imageUrl ? (
         <AvatarImage 
           src={imageUrl} 
           alt={name} 
@@ -74,7 +79,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
         />
       ) : (
         <AvatarFallback 
-          className="bg-gray-200 text-gray-700 font-semibold"
+          className="bg-slate-300 text-slate-700 font-bold"
           delayMs={0}
         >
           {initials}
