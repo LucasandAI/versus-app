@@ -32,7 +32,7 @@ export const getClubToJoin = (clubId: string, clubName: string, allClubs: Club[]
 
   if (!clubToJoin) {
     clubToJoin = mockClub ? 
-      { ...createNewClub(mockClub.id, mockClub.name), division: mockClub.division, tier: mockClub.tier } :
+      { ...createNewClub(mockClub.id, mockClub.name), division: mockClub.division as Division, tier: mockClub.tier } :
       createNewClub(clubId, clubName);
   }
 
