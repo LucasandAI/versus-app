@@ -14,17 +14,8 @@ const AppContent: React.FC = () => {
   const { currentView, currentUser } = useApp();
   const [chatNotifications, setChatNotifications] = useState(0);
 
-  // Listen for support ticket created events and load existing unread counts
+  // Load unread counts from localStorage on mount and when updated
   useEffect(() => {
-    const handleSupportTicketCreated = (event: CustomEvent) => {
-      if (event.detail && event.detail.count) {
-        setChatNotifications(prev => prev + event.detail.count);
-      }
-    };
-
-    window.addEventListener('supportTicketCreated', handleSupportTicketCreated as EventListener);
-    
-    // Load initial unread counts from localStorage
     const loadUnreadCounts = () => {
       const unreadMessages = localStorage.getItem('unreadMessages');
       if (unreadMessages) {
@@ -35,32 +26,40 @@ const AppContent: React.FC = () => {
             (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 
             0
           );
-          // Explicitly set as a number
           setChatNotifications(Number(totalUnread));
         } catch (error) {
           console.error("Error parsing unread messages:", error);
-          setChatNotifications(0); // Reset to 0 on error
+          setChatNotifications(0);
         }
       } else {
-        setChatNotifications(0); // Reset to 0 if no unread messages
+        setChatNotifications(0);
       }
     };
     
-    // Load unread counts immediately and on window focus
+    // Load unread counts initially and on relevant events
     loadUnreadCounts();
-    window.addEventListener('focus', loadUnreadCounts);
     
-    // Also listen for chat drawer closed event to refresh the count
     const handleChatClosed = () => {
-      loadUnreadCounts();
+      // Wait for a short timeout to ensure localStorage is updated
+      setTimeout(loadUnreadCounts, 100);
+    };
+    
+    const handleSupportTicketCreated = (event: CustomEvent) => {
+      if (event.detail && event.detail.count) {
+        setChatNotifications(prev => prev + event.detail.count);
+      }
     };
     
     window.addEventListener('chatDrawerClosed', handleChatClosed);
+    window.addEventListener('unreadMessagesUpdated', loadUnreadCounts);
+    window.addEventListener('supportTicketCreated', handleSupportTicketCreated as EventListener);
+    window.addEventListener('focus', loadUnreadCounts);
     
     return () => {
+      window.removeEventListener('chatDrawerClosed', handleChatClosed);
+      window.removeEventListener('unreadMessagesUpdated', loadUnreadCounts);
       window.removeEventListener('supportTicketCreated', handleSupportTicketCreated as EventListener);
       window.removeEventListener('focus', loadUnreadCounts);
-      window.removeEventListener('chatDrawerClosed', handleChatClosed);
     };
   }, []);
 
@@ -69,7 +68,7 @@ const AppContent: React.FC = () => {
       case 'connect':
         return <ConnectScreen />;
       case 'home':
-        return <HomeView />;
+        return <HomeView chatNotifications={chatNotifications} />;
       case 'clubDetail':
         return <ClubDetail />;
       case 'leaderboard':

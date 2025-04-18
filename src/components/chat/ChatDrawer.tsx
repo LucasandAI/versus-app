@@ -64,23 +64,19 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
       if (selectedTicket) {
         markTicketAsRead(selectedTicket.id);
       }
-      
-      // Save current unread state to localStorage
-      localStorage.setItem('unreadMessages', JSON.stringify(unreadMessages));
     }
-  }, [open, selectedTicket, markTicketAsRead, unreadMessages]);
+  }, [open, selectedTicket, markTicketAsRead]);
 
   const handleSelectClub = (club: Club) => {
     setSelectedLocalClub(club);
     setSelectedTicket(null);
-    setUnreadMessages(prev => ({
-      ...prev,
-      [club.id]: 0
-    }));
     
-    // Save the updated unread state to localStorage
-    const currentUnread = { ...unreadMessages, [club.id]: 0 };
-    localStorage.setItem('unreadMessages', JSON.stringify(currentUnread));
+    // Mark the club messages as read
+    setUnreadMessages(prev => {
+      const updated = { ...prev, [club.id]: 0 };
+      localStorage.setItem('unreadMessages', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const handleSelectTicket = (ticket: SupportTicket) => {
@@ -90,6 +86,13 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
     // Mark the ticket as read and persist to localStorage
     markTicketAsRead(ticket.id);
   };
+
+  // Mark the selected ticket as read whenever it changes
+  useEffect(() => {
+    if (selectedTicket && open) {
+      markTicketAsRead(selectedTicket.id);
+    }
+  }, [selectedTicket, markTicketAsRead, open]);
 
   const handleSelectUser = (userId: string, userName: string, userAvatar: string = '/placeholder.svg') => {
     setSelectedUser({
@@ -195,13 +198,6 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
       }, 1000);
     }
   };
-
-  // Mark the selected ticket as read whenever the drawer closes
-  useEffect(() => {
-    if (!open && selectedTicket) {
-      markTicketAsRead(selectedTicket.id);
-    }
-  }, [open, selectedTicket]);
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>

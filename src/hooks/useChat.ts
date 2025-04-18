@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { ChatMessage, ChatState, SupportTicket } from '@/types/chat';
 import { Club } from '@/types';
@@ -40,33 +41,30 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     localStorage.setItem('chatMessages', JSON.stringify(messages));
   }, [messages]);
   
+  // Update localStorage and dispatch event when unread messages change
   useEffect(() => {
     localStorage.setItem('unreadMessages', JSON.stringify(unreadMessages));
-  }, [unreadMessages]);
+    
+    // Dispatch custom event so other components can listen for changes
+    const event = new CustomEvent('unreadMessagesUpdated');
+    window.dispatchEvent(event);
+    
+    // Also update the notification count using callback if provided
+    if (onNewMessage) {
+      const totalUnread = Object.values(unreadMessages).reduce(
+        (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 
+        0
+      );
+      onNewMessage(Number(totalUnread));
+    }
+  }, [unreadMessages, onNewMessage]);
 
   // Reset notification count when the drawer is open
   useEffect(() => {
     if (open) {
       setRefreshKey(Date.now());
-      
-      // Only reset notification count when the drawer is actually open
-      if (onNewMessage) {
-        onNewMessage(0);
-      }
     }
-  }, [open, onNewMessage]);
-
-  // Update notification count whenever unreadMessages changes
-  useEffect(() => {
-    if (onNewMessage) {
-      // Always update the notification count based on the current state of unreadMessages
-      const totalUnread = Object.values(unreadMessages).reduce((sum: number, count: unknown) => 
-        sum + (typeof count === 'number' ? count : 0), 0);
-      
-      // Ensure we're passing a number to onNewMessage
-      onNewMessage(Number(totalUnread));
-    }
-  }, [unreadMessages, onNewMessage]);
+  }, [open]);
 
   // Check for new support tickets on component mount and when they change
   useEffect(() => {
@@ -118,6 +116,10 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
       [clubId]: isOpen ? 0 : (unreadMessages[clubId] || 0) + 1
     };
     localStorage.setItem('unreadMessages', JSON.stringify(updatedUnread));
+    
+    // Dispatch event to notify about changes
+    const event = new CustomEvent('unreadMessagesUpdated');
+    window.dispatchEvent(event);
   };
 
   // Make markTicketAsRead a memoized callback
@@ -126,6 +128,11 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
       const updated = { ...prev, [ticketId]: 0 };
       // Save to localStorage immediately
       localStorage.setItem('unreadMessages', JSON.stringify(updated));
+      
+      // Dispatch event to notify about changes
+      const event = new CustomEvent('unreadMessagesUpdated');
+      window.dispatchEvent(event);
+      
       return updated;
     });
   }, []);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, Plus, Search, UserPlus, X, Bell } from 'lucide-react';
+import { MessageCircle, Plus, Search, UserPlus, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from './shared/UserAvatar';
 import { Club } from '@/types';
@@ -139,13 +139,17 @@ const availableClubs = [
 
 const MAX_CLUBS_PER_USER = 3;
 
-const HomeView: React.FC = () => {
+interface HomeViewProps {
+  chatNotifications?: number;
+}
+
+const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   const { setCurrentView, setSelectedClub, setSelectedUser, currentUser, setCurrentUser } = useApp();
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [createClubDialogOpen, setCreateClubDialogOpen] = useState(false);
-  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(chatNotifications);
   const [notifications, setNotifications] = useState([
     {
       id: '1',
@@ -185,27 +189,14 @@ const HomeView: React.FC = () => {
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
   
   useEffect(() => {
+    setUnreadMessages(chatNotifications);
+    
     const savedTickets = localStorage.getItem('supportTickets');
     if (savedTickets) {
       setSupportTickets(JSON.parse(savedTickets));
     }
     
-    const savedUnread = localStorage.getItem('unreadMessages');
-    if (savedUnread) {
-      try {
-        const unreadMap = JSON.parse(savedUnread);
-        const totalUnread = Object.values(unreadMap).reduce(
-          (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 
-          0
-        );
-        setUnreadMessages(Number(totalUnread));
-      } catch (error) {
-        console.error("Error parsing unread messages:", error);
-        setUnreadMessages(0);
-      }
-    }
-    
-    const handleChatClosed = () => {
+    const handleUnreadMessagesUpdated = () => {
       const savedUnread = localStorage.getItem('unreadMessages');
       if (savedUnread) {
         try {
@@ -216,19 +207,19 @@ const HomeView: React.FC = () => {
           );
           setUnreadMessages(Number(totalUnread));
         } catch (error) {
-          console.error("Error parsing unread messages after chat closed:", error);
+          console.error("Error parsing unread messages:", error);
         }
       } else {
         setUnreadMessages(0);
       }
     };
     
-    window.addEventListener('chatDrawerClosed', handleChatClosed);
+    window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
     
     return () => {
-      window.removeEventListener('chatDrawerClosed', handleChatClosed);
+      window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
     };
-  }, []);
+  }, [chatNotifications]);
   
   useEffect(() => {
     localStorage.setItem('supportTickets', JSON.stringify(supportTickets));
@@ -464,6 +455,8 @@ const HomeView: React.FC = () => {
               onMarkAsRead={handleMarkNotificationAsRead}
               onClearAll={handleClearAllNotifications}
               onUserClick={handleSelectUser}
+              onJoinClub={handleJoinClub}
+              onDeclineInvite={handleDeclineInvite}
             />
             <Button 
               variant="link"
