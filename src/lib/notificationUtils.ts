@@ -27,6 +27,33 @@ export const simulateUnreadNotifications = () => {
       read: false,
       type: 'invitation',
       message: 'invited you to join'
+    },
+    // New notification 1: Another activity notification
+    {
+      id: 'team-activity-2',
+      userId: '3',
+      userName: 'Mike Runner',
+      userAvatar: '/placeholder.svg', 
+      clubId: '2', 
+      clubName: 'City Striders',
+      distance: 7.5,
+      timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+      read: false,
+      type: 'activity'
+    },
+    // New notification 2: Another invitation notification
+    {
+      id: 'club-invite-2',
+      userId: '5',
+      userName: 'Sarah Pacer',
+      userAvatar: '/placeholder.svg',
+      clubId: 'ac3',
+      clubName: 'Urban Runners',
+      distance: 0,
+      timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+      read: false,
+      type: 'invitation',
+      message: 'invited you to join'
     }
   ];
 
