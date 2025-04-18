@@ -1,9 +1,8 @@
-
 import { useApp } from '@/context/AppContext';
 import { getClubToJoin } from '@/utils/clubUtils';
 import { useClubValidation } from './useClubValidation';
 import { toast } from "@/hooks/use-toast";
-import { handleNotification } from '@/lib/notificationUtils';
+import { handleNotification } from '@/utils/notificationUtils';
 
 export const useClubJoin = () => {
   const { currentUser, setCurrentUser } = useApp();

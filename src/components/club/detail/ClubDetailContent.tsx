@@ -8,7 +8,8 @@ import ClubDetailTabs from './ClubDetailTabs';
 import ClubLeaveDialog from './dialogs/ClubLeaveDialog';
 import InviteUserDialog from '../InviteUserDialog';
 import { toast } from "@/hooks/use-toast";
-import { handleNotification, hasPendingInvite } from '@/utils/notificationUtils';
+import { handleNotification } from '@/utils/notificationUtils';
+import { hasPendingInvite } from '@/utils/notification-queries';
 
 interface ClubDetailContentProps {
   club: Club;
@@ -19,7 +20,9 @@ const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const { handleRequestToJoin, handleJoinClub } = useClubJoin();
-  const [hasPending, setHasPending] = useState(false);
+  const [hasPending, setHasPending] = useState<boolean>(() => {
+    return hasPendingInvite(club.id);
+  });
 
   const isActuallyMember = currentUser?.clubs.some(c => c.id === club.id) || false;
   const isAdmin = isActuallyMember && currentUser && club.members.some(member => 
@@ -29,16 +32,18 @@ const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
   // Effect to check for pending invites when the component mounts or when club changes
   useEffect(() => {
     console.log('Club ID in DetailContent effect:', club.id);
-    // Force new evaluation of hasPendingInvite on each render
-    const pending = hasPendingInvite(club.id);
-    console.log('Has pending invite (DetailContent effect):', pending);
-    setHasPending(pending);
+    const checkPendingInvite = () => {
+      const pending = hasPendingInvite(club.id);
+      console.log('Has pending invite (DetailContent effect):', pending);
+      setHasPending(pending);
+    };
+    
+    // Check immediately
+    checkPendingInvite();
     
     // Listen for notification updates
     const handleNotificationUpdate = () => {
-      const newPending = hasPendingInvite(club.id);
-      console.log('Notification update - new pending state:', newPending);
-      setHasPending(newPending);
+      checkPendingInvite();
     };
     
     window.addEventListener('notificationsUpdated', handleNotificationUpdate);
@@ -121,6 +126,7 @@ const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
         onLeaveClub={() => setShowLeaveDialog(true)}
         onJoinClub={handleJoinFromInvite}
         onDeclineInvite={handleDeclineInvite}
+        hasPendingInvite={hasPending}
       />
 
       <div className="container-mobile pt-4">

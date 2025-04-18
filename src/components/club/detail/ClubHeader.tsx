@@ -5,7 +5,6 @@ import { Club } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
 import Button from '@/components/shared/Button';
 import { formatLeagueWithTier } from '@/lib/format';
-import { hasPendingInvite } from '@/utils/notificationUtils';
 import {
   Tooltip,
   TooltipContent,
@@ -23,6 +22,7 @@ interface ClubHeaderProps {
   onLeaveClub: () => void;
   onJoinClub: () => void;
   onDeclineInvite: () => void;
+  hasPendingInvite: boolean;
 }
 
 const ClubHeader: React.FC<ClubHeaderProps> = ({
@@ -35,11 +35,9 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
   onLeaveClub,
   onJoinClub,
   onDeclineInvite,
+  hasPendingInvite,
 }) => {
-  console.log('Checking pending invite for club:', club.id);
-  // Critical fix: Store the result of hasPendingInvite in a variable to ensure consistent value
-  const hasPending = hasPendingInvite(club.id);
-  console.log('Has pending invite in ClubHeader:', hasPending);
+  console.log('Club Header rendering with hasPendingInvite:', hasPendingInvite);
   const isClubFull = club.members.length >= 5;
 
   return (
@@ -90,10 +88,9 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
                   </Button>
                 )}
                 
-                {/* Key Fix: Improved logic for checking pending invites */}
                 {!isActuallyMember && (
                   <>
-                    {hasPending ? (
+                    {hasPendingInvite ? (
                       <div className="flex space-x-2">
                         <TooltipProvider>
                           <Tooltip>
