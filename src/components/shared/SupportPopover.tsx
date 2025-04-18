@@ -37,7 +37,7 @@ const supportOptions: SupportOption[] = [
     id: 'bug',
     label: 'Report a Bug',
     icon: <AlertCircle className="h-4 w-4" />,
-    description: 'Tell us if something isn't working correctly'
+    description: "Tell us if something isn't working correctly"
   },
   {
     id: 'report',
