@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { Club } from '@/types';
@@ -35,13 +34,12 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser })
     >
       <div className="flex items-center gap-3 mb-4">
         <div className="flex-shrink-0">
-          {club.logo ? (
-            <img src={club.logo} alt={club.name} className="h-12 w-12 rounded-full object-cover" />
-          ) : (
-            <div className="bg-gray-200 h-12 w-12 rounded-full flex items-center justify-center">
-              <span className="font-bold text-gray-700">{club.name.substring(0, 2)}</span>
-            </div>
-          )}
+          <UserAvatar 
+            name={club.name} 
+            image={club.logo} 
+            size="md"
+            className="h-12 w-12"
+          />
         </div>
         <div>
           <h3 className="font-medium">{club.name}</h3>
