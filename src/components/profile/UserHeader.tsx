@@ -7,6 +7,7 @@ import { Settings, LogOut } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import SocialLinksDropdown from './social/SocialLinksDropdown';
+import { toast } from "@/hooks/use-toast"; // Added import for toast
 
 interface UserHeaderProps {
   user: User;
