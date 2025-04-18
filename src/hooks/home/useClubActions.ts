@@ -33,8 +33,15 @@ export const useClubActions = () => {
   const handleJoinClub = (clubId: string, clubName: string) => {
     if (!currentUser) return;
     
-    // Fixed check for existing membership - exact string comparison for clubId
-    const isAlreadyMember = currentUser.clubs.some(club => club.id === clubId);
+    // Fix club ID comparison - ensure it's a strict comparison
+    const isAlreadyMember = currentUser.clubs.some(club => 
+      club.id === clubId
+    );
+    
+    // Debug the membership check
+    console.log('Joining club:', clubId, clubName);
+    console.log('Current user clubs:', currentUser.clubs);
+    console.log('Is already member:', isAlreadyMember);
     
     if (isAlreadyMember) {
       toast({
@@ -175,7 +182,7 @@ const availableClubs = [
   },
   {
     id: 'ac3',
-    name: 'Urban Pacers', // This is different from 'Urban Runners' in the notification
+    name: 'Urban Pacers', 
     division: 'Bronze',
     tier: 5,
     members: 2

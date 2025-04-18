@@ -48,7 +48,7 @@ export const simulateUnreadNotifications = () => {
       userName: 'Sarah Pacer',
       userAvatar: '/placeholder.svg',
       clubId: 'ac3',
-      clubName: 'Urban Pacers', // Fixed to match available club
+      clubName: 'Urban Pacers', // Ensure this matches availableClubs exactly
       distance: 0,
       timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
       read: false,
