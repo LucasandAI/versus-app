@@ -25,7 +25,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
 }) => {
   const { setCurrentView, setSelectedUser, setSelectedClub, currentUser } = useApp();
   const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(null);
-  const { messages, unreadMessages, refreshKey, handleNewMessage } = useChat(open, onNewMessage);
+  const { messages, unreadMessages, refreshKey, handleNewMessage, setUnreadMessages } = useChat(open, onNewMessage);
 
   const handleSelectClub = (club: Club) => {
     setSelectedLocalClub(club);

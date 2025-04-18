@@ -2,22 +2,14 @@
 import React, { useEffect, useRef } from 'react';
 import UserAvatar from '../shared/UserAvatar';
 import { useApp } from '@/context/AppContext';
+import { ChatMessage } from '@/types/chat';
 
 interface ChatMessagesProps {
-  messages: Array<{
-    id: string;
-    text: string;
-    sender: {
-      id: string;
-      name: string;
-      avatar: string;
-    };
-    timestamp: string;
-  }>;
+  messages: ChatMessage[];
   clubMembers: Array<{
     id: string;
     name: string;
-    avatar: string;
+    avatar?: string;
   }>;
 }
 
@@ -38,16 +30,18 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, clubMembers }) =>
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const isCurrentUser = (senderId: string) => senderId === 'currentUser';
+  const isCurrentUser = (senderId: string) => {
+    return senderId === currentUser?.id || senderId === 'currentUser';
+  };
   
   const getMemberName = (senderId: string) => {
-    if (senderId === 'currentUser') return 'You';
+    if (isCurrentUser(senderId)) return 'You';
     const member = clubMembers.find(m => m.id === senderId);
     return member ? member.name : 'Unknown Member';
   };
 
   const handleUserClick = (senderId: string) => {
-    if (senderId === 'currentUser') return; // Don't navigate to your own profile
+    if (isCurrentUser(senderId)) return; // Don't navigate to your own profile
     
     const member = clubMembers.find(m => m.id === senderId);
     if (member) {
