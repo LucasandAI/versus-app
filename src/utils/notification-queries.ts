@@ -38,13 +38,13 @@ export const hasPendingInvite = (clubId: string): boolean => {
     const pendingInvites = notifications.filter(notification => {
       const isInvitation = notification.type === 'invitation';
       const isForThisClub = notification.clubId === clubId;
-      const isUnread = !notification.read;
       
       if (isInvitation && isForThisClub) {
-        console.log(`Found invitation for club ${clubId}, read status: ${notification.read}`);
+        console.log(`Found invitation for club ${clubId}, read status: ${notification.read ? 'read' : 'unread'}`);
+        return true; // Include all invitations for this club, regardless of read status
       }
       
-      return isInvitation && isForThisClub && isUnread;
+      return false;
     });
     
     console.log('Pending invites for club:', pendingInvites.length);

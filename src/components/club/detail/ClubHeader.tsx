@@ -40,6 +40,92 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
   console.log('Club Header rendering with hasPendingInvite:', hasPendingInvite);
   const isClubFull = club.members.length >= 5;
 
+  // Cleaned up button rendering logic according to priority
+  const renderActionButtons = () => {
+    // If user is a member, show appropriate member actions
+    if (isActuallyMember) {
+      // If admin and club has room, show invite button
+      if (isAdmin && club.members.length < 5) {
+        return (
+          <Button 
+            variant="primary" 
+            size="sm"
+            onClick={onInvite}
+          >
+            Invite Runner
+          </Button>
+        );
+      }
+      
+      // If not admin, show leave button
+      if (!isAdmin) {
+        return (
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={onLeaveClub}
+          >
+            Leave Club
+          </Button>
+        );
+      }
+      
+      return null; // Admin with full club
+    }
+    
+    // User is not a member - check for pending invite first
+    if (hasPendingInvite) {
+      return (
+        <div className="flex space-x-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button 
+                    variant="primary" 
+                    size="sm"
+                    onClick={onJoinClub}
+                    disabled={isClubFull}
+                  >
+                    Join Club
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {isClubFull && (
+                <TooltipContent>
+                  <p>This club is currently full</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+          
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={onDeclineInvite}
+          >
+            Decline Invite
+          </Button>
+        </div>
+      );
+    }
+    
+    // No invite, show request to join if club has room
+    if (!isClubFull) {
+      return (
+        <Button 
+          variant="primary" 
+          size="sm"
+          onClick={onRequestJoin}
+        >
+          Request to Join
+        </Button>
+      );
+    }
+    
+    return null; // Club is full, no invite
+  };
+
   return (
     <>
       <div className="bg-primary/95 text-white p-4 sticky top-0 z-10">
@@ -78,73 +164,7 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
             
             <div className="flex flex-col items-center md:items-end">
               <div className="flex space-x-2">
-                {club.members.length < 5 && isActuallyMember && isAdmin && (
-                  <Button 
-                    variant="primary" 
-                    size="sm"
-                    onClick={onInvite}
-                  >
-                    Invite Runner
-                  </Button>
-                )}
-                
-                {!isActuallyMember && (
-                  <>
-                    {hasPendingInvite ? (
-                      <div className="flex space-x-2">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span>
-                                <Button 
-                                  variant="primary" 
-                                  size="sm"
-                                  onClick={onJoinClub}
-                                  disabled={isClubFull}
-                                >
-                                  Join Club
-                                </Button>
-                              </span>
-                            </TooltipTrigger>
-                            {isClubFull && (
-                              <TooltipContent>
-                                <p>This club is currently full</p>
-                              </TooltipContent>
-                            )}
-                          </Tooltip>
-                        </TooltipProvider>
-                        
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={onDeclineInvite}
-                        >
-                          Decline Invite
-                        </Button>
-                      </div>
-                    ) : (
-                      !isClubFull && (
-                        <Button 
-                          variant="primary" 
-                          size="sm"
-                          onClick={onRequestJoin}
-                        >
-                          Request to Join
-                        </Button>
-                      )
-                    )}
-                  </>
-                )}
-                
-                {isActuallyMember && !isAdmin && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={onLeaveClub}
-                  >
-                    Leave Club
-                  </Button>
-                )}
+                {renderActionButtons()}
               </div>
             </div>
           </div>
