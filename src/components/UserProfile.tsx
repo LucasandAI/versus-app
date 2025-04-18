@@ -1,28 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
-import UserAvatar from '@/components/shared/UserAvatar';
 import { Button } from "@/components/ui/button";
-import { UserPlus, Settings, Share2, Award, LogOut, Facebook, Instagram, Twitter, Globe, Linkedin, ChevronDown, ChevronUp } from 'lucide-react';
-import { Skeleton } from "@/components/ui/skeleton";
+import { UserPlus } from 'lucide-react';
+import { Card } from './ui/card';
 import ClubInviteDialog from './admin/ClubInviteDialog';
 import EditProfileDialog from './profile/EditProfileDialog';
-import { Card } from './ui/card';
-import { formatLeagueWithTier } from '@/lib/format';
-import { toast } from "@/hooks/use-toast";
-import { 
-  TooltipProvider, 
-  Tooltip, 
-  TooltipTrigger, 
-  TooltipContent 
-} from "@/components/ui/tooltip";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuItem,
-  DropdownMenuSeparator
-} from "@/components/ui/dropdown-menu";
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,12 +17,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from "@/components/ui/alert-dialog";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger
-} from "@/components/ui/hover-card";
-import { useIsMobile } from '@/hooks/use-mobile';
+
+// Import new components
+import UserHeader from './profile/UserHeader';
+import UserClubs from './profile/UserClubs';
+import UserStats from './profile/UserStats';
+import UserAchievements from './profile/UserAchievements';
 
 const UserProfile: React.FC = () => {
   const { selectedUser, setCurrentView, currentUser, setSelectedUser, setSelectedClub, currentView, setCurrentUser } = useApp();
@@ -115,12 +99,6 @@ const UserProfile: React.FC = () => {
 
   const bestLeague = getBestLeague();
 
-  const profileStats = {
-    weeklyDistance: 42.3,
-    bestLeague: bestLeague.league,
-    bestLeagueTier: bestLeague.tier,
-  };
-
   const completedAchievements = [
     { 
       id: '1', 
@@ -173,58 +151,6 @@ const UserProfile: React.FC = () => {
     }
   ];
 
-  const handleOpenStravaProfile = () => {
-    window.open('https://www.strava.com/athletes/' + selectedUser?.id, '_blank', 'noopener,noreferrer');
-  };
-
-  const handleShareProfile = () => {
-    toast({
-      title: "Profile shared",
-      description: `${selectedUser.name}'s profile link copied to clipboard`,
-    });
-  };
-
-  const handleSocialLink = (platform: string, username: string) => {
-    if (!username) {
-      toast({
-        title: "No Profile Link",
-        description: `No ${platform} profile has been added yet.`,
-      });
-      return;
-    }
-
-    let url = '';
-    
-    switch(platform) {
-      case 'instagram':
-        url = `https://instagram.com/${username}`;
-        break;
-      case 'twitter':
-        url = `https://twitter.com/${username}`;
-        break;
-      case 'facebook': 
-        url = username.startsWith('http') ? username : `https://${username}`;
-        break;
-      case 'linkedin':
-        url = username.startsWith('http') ? username : `https://${username}`;
-        break;
-      case 'website':
-        url = username.startsWith('http') ? username : `https://${username}`;
-        break;
-      case 'tiktok':
-        url = `https://tiktok.com/@${username}`;
-        break;
-      default:
-        url = username;
-    }
-
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
-
-  const handleEditProfile = () => {
-    setEditProfileOpen(true);
-  };
-
   const handleLogout = () => {
     setCurrentUser(null);
     setCurrentView('connect');
@@ -240,365 +166,61 @@ const UserProfile: React.FC = () => {
       </div>
 
       <Card className={`w-full ${isMobile ? 'mx-4' : 'max-w-md mx-auto'} mt-4 p-6 rounded-lg`}>
-        <div className="flex flex-col space-y-4 w-full">
-          <div className="flex items-center gap-6">
-            {loading ? (
-              <div className="h-24 w-24 rounded-full flex-shrink-0">
-                <Skeleton className="h-full w-full rounded-full" />
-              </div>
-            ) : (
-              <UserAvatar 
-                name={selectedUser.name} 
-                image={selectedUser.avatar} 
-                size="lg" 
-                className="h-24 w-24 flex-shrink-0"
-              />
-            )}
+        <UserHeader
+          user={selectedUser}
+          loading={loading}
+          isCurrentUserProfile={isCurrentUserProfile}
+          onEditProfile={() => setEditProfileOpen(true)}
+          onLogoutClick={() => setLogoutDialogOpen(true)}
+        />
+
+        <UserStats
+          loading={loading}
+          weeklyDistance={42.3}
+          bestLeague={bestLeague.league}
+          bestLeagueTier={bestLeague.tier}
+        />
+
+        {showInviteButton && (
+          <>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-1 mt-2"
+              onClick={() => setInviteDialogOpen(true)}
+            >
+              <UserPlus className="h-4 w-4" />
+              Invite to Club
+            </Button>
             
-            <div className="flex-1">
-              <h2 className="text-xl font-bold">
-                {loading ? <Skeleton className="h-6 w-32" /> : selectedUser.name}
-              </h2>
-              <p className="text-gray-500">
-                {loading ? <Skeleton className="h-4 w-24" /> : selectedUser.bio || 'Strava Athlete'}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex justify-center space-x-4">
-            {isCurrentUserProfile ? (
-              <>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="rounded-full"
-                        onClick={handleEditProfile}
-                      >
-                        <Settings className="h-5 w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Settings
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-
-                <DropdownMenu>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <DropdownMenuTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="rounded-full"
-                          >
-                            <Share2 className="h-5 w-5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        Social Links
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <DropdownMenuContent align="end" className="w-[200px]">
-                    <DropdownMenuLabel>Share Profile</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={handleShareProfile}>
-                      <Share2 className="h-4 w-4 mr-2" />
-                      Copy Profile Link
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel>Social Media</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => handleSocialLink('instagram', selectedUser?.instagram || '')}>
-                      <Instagram className="h-4 w-4 mr-2" />
-                      Instagram
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleSocialLink('twitter', selectedUser?.twitter || '')}>
-                      <Twitter className="h-4 w-4 mr-2" />
-                      Twitter
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleSocialLink('facebook', selectedUser?.facebook || '')}>
-                      <Facebook className="h-4 w-4 mr-2" />
-                      Facebook
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleSocialLink('linkedin', selectedUser?.linkedin || '')}>
-                      <Linkedin className="h-4 w-4 mr-2" />
-                      LinkedIn
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleSocialLink('tiktok', selectedUser?.tiktok || '')}>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4 mr-2"
-                      >
-                        <path d="M9 12A3 3 0 1 0 9 6a3 3 0 0 0 0 6Z" />
-                        <path d="M9 6v12m6-6v6m0-9v3" />
-                      </svg>
-                      TikTok
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleSocialLink('website', selectedUser?.website || '')}>
-                      <Globe className="h-4 w-4 mr-2" />
-                      Website
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="rounded-full" 
-                        onClick={() => setLogoutDialogOpen(true)}
-                      >
-                        <LogOut className="h-5 w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Log Out
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </>
-            ) : (
-              <DropdownMenu>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="rounded-full">
-                          <Share2 className="h-5 w-5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Social Links
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Connect with {selectedUser.name}</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={() => handleSocialLink('instagram', selectedUser?.instagram || '')}>
-                    <Instagram className="h-4 w-4 mr-2" />
-                    Instagram
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSocialLink('twitter', selectedUser?.twitter || '')}>
-                    <Twitter className="h-4 w-4 mr-2" />
-                    Twitter
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSocialLink('facebook', selectedUser?.facebook || '')}>
-                    <Facebook className="h-4 w-4 mr-2" />
-                    Facebook
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSocialLink('linkedin', selectedUser?.linkedin || '')}>
-                    <Linkedin className="h-4 w-4 mr-2" />
-                    LinkedIn
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSocialLink('tiktok', selectedUser?.tiktok || '')}>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-4 w-4 mr-2"
-                    >
-                      <path d="M9 12A3 3 0 1 0 9 6a3 3 0 0 0 0 6Z" />
-                      <path d="M9 6v12m6-6v6m0-9v3" />
-                    </svg>
-                    TikTok
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSocialLink('website', selectedUser?.website || '')}>
-                    <Globe className="h-4 w-4 mr-2" />
-                    Website
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
-
-          <Button 
-            className="bg-green-500 hover:bg-green-600 text-white w-full"
-            onClick={handleOpenStravaProfile}
-          >
-            Strava Profile
-          </Button>
-
-          {showInviteButton && (
-            <>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex items-center gap-1 mt-2"
-                onClick={() => setInviteDialogOpen(true)}
-              >
-                <UserPlus className="h-4 w-4" />
-                Invite to Club
-              </Button>
-              
-              <ClubInviteDialog 
-                open={inviteDialogOpen}
-                onOpenChange={setInviteDialogOpen}
-                user={selectedUser}
-                adminClubs={adminClubs}
-              />
-            </>
-          )}
-          
-          <div className="grid grid-cols-2 gap-2 w-full mt-4">
-            <div className="bg-gray-50 p-4 text-center rounded-lg">
-              <p className="text-xl font-bold">{loading ? <Skeleton className="h-6 w-16 mx-auto" /> : `${profileStats.weeklyDistance} km`}</p>
-              <p className="text-gray-500 text-sm">Weekly Contribution</p>
-            </div>
-            <div className="bg-gray-50 p-4 text-center rounded-lg">
-              <p className="text-xl font-bold">{loading ? <Skeleton className="h-6 w-16 mx-auto" /> : `${profileStats.bestLeague} ${profileStats.bestLeagueTier}`}</p>
-              <p className="text-gray-500 text-sm">Best League</p>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      <Card className="w-full max-w-md mx-auto mt-4 p-6 rounded-lg">
-        <div className="flex items-center mb-4">
-          <UserPlus className="text-green-500 mr-2 h-5 w-5" />
-          <h3 className="text-lg font-semibold">Clubs</h3>
-        </div>
-
-        {loading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-          </div>
-        ) : selectedUser?.clubs && selectedUser.clubs.length > 0 ? (
-          <div className="space-y-4">
-            {selectedUser.clubs.map((club) => (
-              <div 
-                key={club.id} 
-                className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                onClick={() => {
-                  setSelectedClub(club);
-                  setCurrentView('clubDetail');
-                }}
-              >
-                <UserAvatar 
-                  name={club.name} 
-                  image={club.logo} 
-                  size="sm"
-                  className="w-12 h-12"
-                />
-                <div>
-                  <h4 className="font-medium">{club.name}</h4>
-                  <p className="text-sm text-gray-500">{formatLeagueWithTier(club.division, club.tier)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-500 text-center py-4">No clubs joined yet</p>
+            <ClubInviteDialog 
+              open={inviteDialogOpen}
+              onOpenChange={setInviteDialogOpen}
+              user={selectedUser}
+              adminClubs={adminClubs}
+            />
+          </>
         )}
       </Card>
 
-      <Card className="w-full max-w-md mx-auto mt-4 p-6 rounded-lg">
-        <div className="flex items-center mb-4">
-          <Award className="text-green-500 mr-2 h-5 w-5" />
-          <h3 className="text-lg font-semibold">Achievements</h3>
-        </div>
+      <UserClubs
+        user={selectedUser}
+        loading={loading}
+        onClubClick={(club) => {
+          setSelectedClub(club);
+          setCurrentView('clubDetail');
+        }}
+      />
 
-        <div className="mb-6">
-          <h4 className="text-sm font-medium mb-2">Completed</h4>
-          <div className="bg-green-50 p-4 rounded-lg">
-            <div className="flex flex-wrap gap-2">
-              {loading ? (
-                <>
-                  <Skeleton className="h-8 w-24" />
-                  <Skeleton className="h-8 w-24" />
-                </>
-              ) : (
-                completedAchievements.map(achievement => (
-                  <HoverCard key={achievement.id}>
-                    <HoverCardTrigger asChild>
-                      <div 
-                        className="px-3 py-1 rounded-full bg-white text-green-600 text-xs flex items-center cursor-help"
-                      >
-                        <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                        {achievement.name}
-                      </div>
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-64 p-3">
-                      <h4 className="font-medium mb-1">{achievement.name}</h4>
-                      <p className="text-sm text-gray-600">{achievement.description}</p>
-                    </HoverCardContent>
-                  </HoverCard>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h4 className="text-sm font-medium mb-2">In Progress</h4>
-          <div className="space-y-3">
-            {loading ? (
-              <>
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
-              </>
-            ) : (
-              <>
-                {inProgressAchievements.map(achievement => (
-                  <div key={achievement.id} className="mb-3">
-                    <p className="font-medium">{achievement.name}</p>
-                    <p className="text-gray-500 text-sm">{achievement.description}</p>
-                  </div>
-                ))}
-                
-                {showMoreAchievements && (
-                  moreInProgressAchievements.map(achievement => (
-                    <div key={achievement.id} className="mb-3">
-                      <p className="font-medium">{achievement.name}</p>
-                      <p className="text-gray-500 text-sm">{achievement.description}</p>
-                    </div>
-                  ))
-                )}
-              </>
-            )}
-          </div>
-        </div>
-        
-        {isCurrentUserProfile && (
-          <Button 
-            variant="ghost" 
-            className="text-green-600 flex items-center justify-center w-full mt-4"
-            onClick={() => setShowMoreAchievements(!showMoreAchievements)}
-          >
-            {showMoreAchievements ? (
-              <>
-                Show Less <ChevronUp className="h-4 w-4 ml-1" />
-              </>
-            ) : (
-              <>
-                Show More Achievements <ChevronDown className="h-4 w-4 ml-1" />
-              </>
-            )}
-          </Button>
-        )}
-      </Card>
+      <UserAchievements
+        loading={loading}
+        isCurrentUserProfile={isCurrentUserProfile}
+        completedAchievements={completedAchievements}
+        inProgressAchievements={inProgressAchievements}
+        moreInProgressAchievements={moreInProgressAchievements}
+        showMoreAchievements={showMoreAchievements}
+        onToggleMoreAchievements={() => setShowMoreAchievements(!showMoreAchievements)}
+      />
 
       <EditProfileDialog
         open={editProfileOpen}
