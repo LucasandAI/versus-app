@@ -1,8 +1,6 @@
-
 import React from 'react';
 import Button from './shared/Button';
 import { useApp } from '@/context/AppContext';
-import StravaConnectLogo from '@/assets/strava-logo-connect.png';
 import StravaPoweredByLogo from '@/assets/strava-powered-by-logo.png';
 
 const ConnectScreen: React.FC = () => {
@@ -70,7 +68,7 @@ const ConnectScreen: React.FC = () => {
             className="p-0 bg-transparent hover:bg-transparent flex justify-center"
           >
             <img 
-              src="/lovable-uploads/3a4510f7-9a3b-4980-8479-b78f493f9c52.png" 
+              src="/lovable-uploads/f8b9b002-af8f-4f3f-b2b3-0a95d21fe7d4.png" 
               alt="Connect with Strava" 
               className="h-auto w-auto max-w-full object-contain" 
               onError={(e) => {
@@ -84,16 +82,9 @@ const ConnectScreen: React.FC = () => {
           </p>
         </div>
 
-        <div className="mt-8 flex justify-center">
-          <img 
-            src={StravaPoweredByLogo} 
-            alt="Powered by Strava" 
-            className="h-8 w-auto object-contain" 
-            onError={(e) => {
-              console.error('Powered by Strava Logo failed to load', e);
-              e.currentTarget.style.display = 'none';
-            }}
-          />
+        <div className="mt-8 flex justify-center items-center space-x-2">
+          <span className="text-sm text-gray-500">POWERED BY</span>
+          <span className="text-xl font-bold text-[#FC5200]">STRAVA</span>
         </div>
       </div>
     </div>
