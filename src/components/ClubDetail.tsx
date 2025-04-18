@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { ArrowLeft, User as UserIcon, Calendar, TrendingUp, TrendingDown, ArrowRight, LogOut } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Calendar, TrendingUp, TrendingDown, ArrowRight, LogOut, Info } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import MatchProgressBar from './shared/MatchProgressBar';
 import UserAvatar from './shared/UserAvatar';
@@ -58,6 +59,7 @@ const ClubDetail: React.FC = () => {
   }
 
   const isNewlyCreatedClub = selectedClub.id !== '1' && selectedClub.id !== '2';
+  const hasEnoughMembers = selectedClub.members.length >= 5;
   
   const matchHistory = isNewlyCreatedClub ? [] : [
     {
@@ -178,11 +180,11 @@ const ClubDetail: React.FC = () => {
     }
   ];
 
-  const handleSelectUser = (userId: string, name: string) => {
+  const handleSelectUser = (userId: string, name: string, avatar?: string) => {
     setSelectedUser({
       id: userId,
       name: name,
-      avatar: '/placeholder.svg',
+      avatar: avatar || '/placeholder.svg',
       stravaConnected: true,
       clubs: [] // This would be populated from the backend
     });
@@ -231,7 +233,10 @@ const ClubDetail: React.FC = () => {
     setCurrentView('home');
   };
 
-  const currentMatch = selectedClub?.currentMatch;
+  const currentMatch = !isNewlyCreatedClub || (isNewlyCreatedClub && hasEnoughMembers) 
+    ? selectedClub?.currentMatch 
+    : null;
+  
   const visibleHistory = showAllHistory ? matchHistory : matchHistory.slice(0, 2);
   const isAlreadyMember = selectedClub?.members.some(member => 
     currentUser && member.id === currentUser.id
@@ -249,6 +254,90 @@ const ClubDetail: React.FC = () => {
               <ArrowLeft className="h-5 w-5" />
             </button>
             <h1 className="text-xl font-bold">{selectedClub.name}</h1>
+          </div>
+        </div>
+      </div>
+
+      {/* New Club Header Section */}
+      <div className="bg-white shadow-md">
+        <div className="container-mobile py-6">
+          <div className="flex flex-col md:flex-row items-center justify-between">
+            <div className="flex flex-col items-center md:items-start mb-4 md:mb-0">
+              <div className="mb-4">
+                {selectedClub.logo ? (
+                  <img 
+                    src={selectedClub.logo} 
+                    alt={selectedClub.name} 
+                    className="h-24 w-24 rounded-full object-cover border-4 border-white shadow-md"
+                  />
+                ) : (
+                  <div className="bg-gray-200 h-24 w-24 rounded-full flex items-center justify-center border-4 border-white shadow-md">
+                    <span className="font-bold text-xl text-gray-700">{selectedClub.name.substring(0, 2)}</span>
+                  </div>
+                )}
+              </div>
+              <h2 className="text-2xl font-bold text-center md:text-left">{selectedClub.name}</h2>
+              <div className="flex items-center mt-2 space-x-2">
+                <span className="text-sm bg-gray-100 px-2 py-1 rounded-full text-gray-700 font-medium">
+                  {formatLeagueWithTier(selectedClub.division, selectedClub.tier)}
+                </span>
+                <span className="text-sm bg-gray-100 px-2 py-1 rounded-full text-gray-700">
+                  {selectedClub.members.length}/5 members
+                </span>
+              </div>
+            </div>
+            
+            <div className="flex flex-col items-center md:items-end">
+              {!isNewlyCreatedClub && (
+                <div className="flex items-center space-x-2 mb-2">
+                  <span className="text-sm font-medium">Match Record:</span>
+                  <span className="text-sm bg-green-100 text-green-800 px-2 py-0.5 rounded">
+                    {matchHistory.filter(m => m.result === 'win').length}W
+                  </span>
+                  <span className="text-sm bg-red-100 text-red-800 px-2 py-0.5 rounded">
+                    {matchHistory.filter(m => m.result === 'loss').length}L
+                  </span>
+                </div>
+              )}
+              <div className="flex space-x-2">
+                {selectedClub?.members.length < 5 && currentUser && selectedClub.members.some(m => m.id === currentUser.id && m.isAdmin) && (
+                  <Button 
+                    variant="primary" 
+                    size="sm"
+                    onClick={() => setShowInviteDialog(true)}
+                  >
+                    Invite Runner
+                  </Button>
+                )}
+                
+                {selectedClub?.members.length < 5 && !isAlreadyMember && (
+                  <Button 
+                    variant="primary" 
+                    size="sm"
+                    onClick={handleRequestToJoin}
+                  >
+                    Request to Join
+                  </Button>
+                )}
+                
+                {isAlreadyMember && !isAdmin && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowLeaveDialog(true)}
+                  >
+                    <LogOut className="w-4 h-4 mr-1" /> Leave Club
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Club Bio Section */}
+          <div className="mt-4 border-t pt-4 text-center md:text-left">
+            <p className="text-gray-600 text-sm">
+              {selectedClub.bio || `Welcome to ${selectedClub.name}! We're a group of passionate runners looking to challenge ourselves and improve together.`}
+            </p>
           </div>
         </div>
       </div>
@@ -313,7 +402,7 @@ const ClubDetail: React.FC = () => {
                 <div 
                   key={member.id} 
                   className="flex items-center justify-between cursor-pointer"
-                  onClick={() => handleSelectUser(member.id, member.name)}
+                  onClick={() => handleSelectUser(member.id, member.name, member.avatar)}
                 >
                   <div className="flex items-center gap-2">
                     <UserAvatar name={member.name} image={member.avatar} size="sm" />
@@ -324,6 +413,26 @@ const ClubDetail: React.FC = () => {
                   </span>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+        
+        {isNewlyCreatedClub && !hasEnoughMembers && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 flex items-start">
+            <Info className="text-yellow-500 h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-medium text-yellow-800">Club needs more members</h3>
+              <p className="text-sm text-yellow-700">Your club needs at least 5 members to be eligible for matches. Invite more runners to join!</p>
+              {isAdmin && (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  className="mt-2"
+                  onClick={() => setShowInviteDialog(true)}
+                >
+                  Invite Runners
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -341,7 +450,7 @@ const ClubDetail: React.FC = () => {
               <div 
                 key={member.id} 
                 className="flex items-center justify-between cursor-pointer"
-                onClick={() => handleSelectUser(member.id, member.name)}
+                onClick={() => handleSelectUser(member.id, member.name, member.avatar)}
               >
                 <div className="flex items-center gap-3">
                   <UserAvatar name={member.name} image={member.avatar} size="sm" />
@@ -355,30 +464,6 @@ const ClubDetail: React.FC = () => {
               </div>
             ))}
           </div>
-
-          {selectedClub?.members.length < 5 && currentUser && selectedClub.members.some(m => m.id === currentUser.id && m.isAdmin) && (
-            <Button 
-              variant="primary" 
-              size="sm" 
-              fullWidth 
-              className="mt-4"
-              onClick={() => setShowInviteDialog(true)}
-            >
-              Invite Runner
-            </Button>
-          )}
-
-          {selectedClub?.members.length < 5 && !isAlreadyMember && (
-            <Button 
-              variant="primary" 
-              size="sm" 
-              fullWidth 
-              className="mt-4"
-              onClick={handleRequestToJoin}
-            >
-              Request to Join
-            </Button>
-          )}
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-4 mb-6">

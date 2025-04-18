@@ -54,7 +54,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, clubMembers }) =>
       setSelectedUser({
         id: member.id,
         name: member.name,
-        avatar: member.avatar,
+        avatar: member.avatar || '/placeholder.svg',
         stravaConnected: true,
         clubs: []
       });

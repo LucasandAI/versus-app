@@ -33,12 +33,15 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
     lg: 'h-16 w-16 text-xl'
   };
 
+  // Use default placeholder if image is empty string or undefined
+  const imageSrc = image && image.trim() !== '' ? image : undefined;
+
   return (
     <Avatar 
       className={cn(sizeClasses[size], className, onClick ? 'cursor-pointer' : '')}
       onClick={onClick}
     >
-      <AvatarImage src={image} alt={name} className="object-cover" />
+      <AvatarImage src={imageSrc} alt={name} className="object-cover" />
       <AvatarFallback className="bg-secondary text-secondary-foreground">
         {getInitials(name)}
       </AvatarFallback>

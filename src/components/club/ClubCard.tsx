@@ -9,7 +9,7 @@ import { formatLeagueWithTier } from '@/lib/format';
 interface ClubCardProps {
   club: Club;
   onSelectClub: (club: Club) => void;
-  onSelectUser: (userId: string, name: string) => void;
+  onSelectUser: (userId: string, name: string, avatar?: string) => void;
 }
 
 const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser }) => {
@@ -99,7 +99,7 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser })
                       className="flex items-center gap-2 mb-1 cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onSelectUser(member.id, member.name);
+                        onSelectUser(member.id, member.name, member.avatar);
                       }}
                     >
                       <UserAvatar name={member.name} image={member.avatar} size="sm" />
@@ -118,7 +118,7 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser })
                       className="flex items-center gap-2 mb-1 cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onSelectUser(member.id, member.name);
+                        onSelectUser(member.id, member.name, member.avatar);
                       }}
                     >
                       <UserAvatar name={member.name} image={member.avatar} size="sm" />
