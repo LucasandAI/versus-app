@@ -1,7 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
-import { SupportTicket } from '@/types/chat';
 import ChatDrawer from '@/components/chat/ChatDrawer';
 import SupportPopover from '@/components/shared/SupportPopover';
 import CreateClubDialog from '@/components/club/CreateClubDialog';
@@ -142,6 +142,7 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   };
 
   useEffect(() => {
+    // Force refresh notifications on initial load to ensure we have our test invites
     refreshNotifications();
     
     const handleNotificationsUpdated = () => {
@@ -156,6 +157,9 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
     };
     
     window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
+    
+    // Initial load of notifications
+    handleNotificationsUpdated();
     
     return () => {
       window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);

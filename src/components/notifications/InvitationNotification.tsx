@@ -1,12 +1,11 @@
 
 import React from 'react';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 interface InvitationNotificationProps {
   userName: string;
-  onUserClick: (userId: string, userName: string) => void;
   userId: string;
+  onUserClick: (userId: string, userName: string) => void;
   clubName: string;
   onClubClick: () => void;
   message: string;
@@ -19,8 +18,8 @@ interface InvitationNotificationProps {
 
 export const InvitationNotification: React.FC<InvitationNotificationProps> = ({
   userName,
-  onUserClick,
   userId,
+  onUserClick,
   clubName,
   onClubClick,
   message,
@@ -28,36 +27,53 @@ export const InvitationNotification: React.FC<InvitationNotificationProps> = ({
   formatTime,
   isUnread,
   onJoinClub,
-  onDeclineInvite,
+  onDeclineInvite
 }) => {
+  const handleUserClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onUserClick(userId, userName);
+  };
+
+  const handleClubClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClubClick();
+  };
+
+  const handleJoin = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onJoinClub();
+  };
+
+  const handleDecline = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDeclineInvite();
+  };
+
   return (
     <div>
-      <p className={cn("text-sm break-words", isUnread && "font-medium")}>
+      <p className="text-sm">
         <span 
-          className="cursor-pointer hover:text-primary"
-          onClick={() => onUserClick(userId, userName)}
+          className="font-medium cursor-pointer hover:underline"
+          onClick={handleUserClick}
         >
           {userName}
         </span>
         {' '}
-        <span>
-          {message || 'invited you to join'}{' '}
-          <span 
-            className="font-medium cursor-pointer hover:underline text-primary"
-            onClick={onClubClick}
-          >
-            {clubName}
-          </span>
+        {message}
+        {' '}
+        <span 
+          className="font-medium cursor-pointer hover:underline"
+          onClick={handleClubClick}
+        >
+          {clubName}
         </span>
-        <br />
-        <span className="text-xs text-gray-500">{formatTime(timestamp)}</span>
       </p>
       <div className="flex mt-2 gap-2 flex-wrap">
         <Button
           variant="default"
           size="sm"
           className="h-8 bg-green-500 hover:bg-green-600"
-          onClick={onJoinClub}
+          onClick={handleJoin}
         >
           Join
         </Button>
@@ -65,11 +81,12 @@ export const InvitationNotification: React.FC<InvitationNotificationProps> = ({
           variant="outline"
           size="sm"
           className="h-8"
-          onClick={onDeclineInvite}
+          onClick={handleDecline}
         >
           Decline
         </Button>
       </div>
+      <p className="text-xs text-gray-500 mt-1">{formatTime(timestamp)}</p>
     </div>
   );
 };
