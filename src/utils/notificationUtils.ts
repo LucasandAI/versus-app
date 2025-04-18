@@ -1,5 +1,47 @@
-import { Notification } from '@/types';
+
+import { Notification, Club } from '@/types';
 import { toast } from '@/hooks/use-toast';
+
+// Function to find a club from localStorage by ID
+export const findClubFromStorage = (clubId: string): Club | null => {
+  try {
+    const userDataStr = localStorage.getItem('userData');
+    if (!userDataStr) return null;
+    
+    const userData = JSON.parse(userDataStr);
+    if (!userData.clubs || !Array.isArray(userData.clubs)) return null;
+    
+    const club = userData.clubs.find((c: Club) => c.id === clubId);
+    return club || null;
+  } catch (error) {
+    console.error('Error finding club from storage:', error);
+    return null;
+  }
+};
+
+// Function to create a mock club when real data is not available
+export const getMockClub = (clubId: string, clubName: string): Club | null => {
+  if (!clubId || !clubName) return null;
+  
+  return {
+    id: clubId,
+    name: clubName,
+    logo: '/placeholder.svg',
+    division: 'Bronze',
+    members: [],
+    matchHistory: []
+  };
+};
+
+// Function to handle errors when a club cannot be found
+export const handleClubError = (): void => {
+  toast({
+    title: "Club not found",
+    description: "We couldn't find details for this club.",
+    variant: "destructive",
+  });
+  console.error('Club not found or could not be loaded');
+};
 
 // Function to handle individual notification actions (read, delete)
 export const handleNotification = (id: string, action: 'read' | 'delete') => {
