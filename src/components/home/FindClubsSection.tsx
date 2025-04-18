@@ -31,7 +31,7 @@ const FindClubsSection: React.FC<FindClubsSectionProps> = ({
       </div>
 
       <AvailableClubs 
-        clubs={availableClubs}
+        clubs={clubs}
         onRequestJoin={onRequestJoin}
       />
 
