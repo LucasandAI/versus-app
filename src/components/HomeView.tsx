@@ -146,7 +146,7 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
         open={searchDialogOpen}
         onOpenChange={setSearchDialogOpen}
         clubs={availableClubs}
-        onRequestJoin={handleRequestJoin}
+        onRequestJoin={handleRequestToJoin}
       />
 
       <CreateClubDialog
