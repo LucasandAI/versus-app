@@ -101,15 +101,7 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
       timestamp: new Date().toISOString()
     });
     
-    // If the callback exists, use it to create a support chat
-    if (onCreateSupportChat) {
-      onCreateSupportChat(ticketId, subject, messageContent);
-    }
-    
-    // Also store the ticket in localStorage to ensure it's available
-    const existingTickets = localStorage.getItem('supportTickets');
-    const tickets = existingTickets ? JSON.parse(existingTickets) : [];
-    
+    // Prepare ticket for storage
     const newTicket = {
       id: ticketId,
       subject: subject,
@@ -140,8 +132,16 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
       ]
     };
     
+    // Store the ticket in localStorage whether or not the callback exists
+    const existingTickets = localStorage.getItem('supportTickets');
+    const tickets = existingTickets ? JSON.parse(existingTickets) : [];
     tickets.push(newTicket);
     localStorage.setItem('supportTickets', JSON.stringify(tickets));
+    
+    // If the callback exists, use it to create a support chat
+    if (onCreateSupportChat) {
+      onCreateSupportChat(ticketId, subject, messageContent);
+    }
   };
 
   return (

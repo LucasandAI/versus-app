@@ -31,13 +31,14 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
     // Handle empty or null names
     if (!name || name.trim() === '') return 'NA';
     
-    // For club names, use first letters of each word (up to 2)
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
+    // For names with multiple words, take first letter of each word (up to 2)
+    const words = name.split(' ');
+    if (words.length > 1) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    
+    // For single word names, take first two letters
+    return name.substring(0, 2).toUpperCase();
   };
 
   const sizeClasses = {

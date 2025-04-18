@@ -47,6 +47,13 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
       notifications.forEach(n => {
         if (!n.read) onMarkAsRead(n.id);
       });
+      
+      // Also ensure the notifications are saved to localStorage right away
+      const updatedNotifications = notifications.map(n => ({
+        ...n,
+        read: true
+      }));
+      localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
     }
   };
 

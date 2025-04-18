@@ -30,7 +30,7 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     if (savedUnread) {
       setUnreadMessages(JSON.parse(savedUnread));
     }
-  }, []);
+  }, [refreshKey]); // Added refreshKey as a dependency to reload when it changes
 
   // Save to localStorage whenever data changes
   useEffect(() => {
@@ -135,6 +135,9 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     // Save as array for external components
     const ticketsArray = Object.values(updatedTickets);
     localStorage.setItem('supportTickets', JSON.stringify(ticketsArray));
+    
+    // Force a refresh to ensure the new ticket appears in the list
+    setRefreshKey(Date.now());
   };
 
   return {

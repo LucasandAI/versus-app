@@ -3,6 +3,7 @@ import React from 'react';
 import { UserPlus } from 'lucide-react';
 import Button from '../shared/Button';
 import { formatLeagueWithTier } from '@/lib/format';
+import UserAvatar from '../shared/UserAvatar';
 
 interface AvailableClub {
   id: string;
@@ -28,9 +29,11 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
         {clubs.map((club) => (
           <div key={club.id} className="flex items-center justify-between border-b last:border-0 pb-3 last:pb-0">
             <div className="flex items-center gap-3">
-              <div className="bg-gray-200 h-10 w-10 rounded-full flex items-center justify-center">
-                <span className="font-bold text-xs text-gray-700">{club.name.substring(0, 2)}</span>
-              </div>
+              <UserAvatar
+                name={club.name}
+                size="sm"
+                className="h-10 w-10"
+              />
               <div>
                 <h3 className="font-medium text-sm">{club.name}</h3>
                 <span className="text-xs text-gray-500">

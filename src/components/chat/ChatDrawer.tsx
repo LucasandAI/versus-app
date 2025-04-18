@@ -31,13 +31,6 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>(externalSupportTickets);
   
-  // Update local tickets when external tickets change
-  useEffect(() => {
-    if (externalSupportTickets.length > 0) {
-      setLocalSupportTickets(externalSupportTickets);
-    }
-  }, [externalSupportTickets]);
-  
   const { 
     messages, 
     supportTickets, 
@@ -46,6 +39,18 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
     handleNewMessage,
     setUnreadMessages
   } = useChat(open, onNewMessage);
+
+  // Update local tickets when external tickets change or when the drawer opens
+  useEffect(() => {
+    if (open) {
+      // Load the latest tickets from localStorage
+      const storedTickets = localStorage.getItem('supportTickets');
+      if (storedTickets) {
+        const parsedTickets = JSON.parse(storedTickets);
+        setLocalSupportTickets(parsedTickets);
+      }
+    }
+  }, [open, externalSupportTickets, refreshKey]);
 
   const handleSelectClub = (club: Club) => {
     setSelectedLocalClub(club);
@@ -126,6 +131,9 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
         )
       );
       
+      // Update selected ticket
+      setSelectedTicket(updatedTicket);
+      
       // Add auto-response from support after a small delay
       setTimeout(() => {
         const supportResponse = {
@@ -140,26 +148,30 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
           isSupport: true
         };
         
+        const ticketWithResponse = {
+          ...updatedTicket,
+          messages: [...updatedTicket.messages, supportResponse]
+        };
+        
         setLocalSupportTickets(prev => 
           prev.map(ticket => 
-            ticket.id === selectedTicket.id 
-              ? { ...ticket, messages: [...ticket.messages, supportResponse] }
-              : ticket
+            ticket.id === selectedTicket.id ? ticketWithResponse : ticket
           )
         );
         
-        // Update the selected ticket to show the new response
-        setSelectedTicket(prev => 
-          prev ? { ...prev, messages: [...prev.messages, supportResponse] } : null
-        );
+        // Update selected ticket with response
+        setSelectedTicket(ticketWithResponse);
+        
+        // Update in localStorage
+        const storedTickets = localStorage.getItem('supportTickets');
+        if (storedTickets) {
+          const parsedTickets = JSON.parse(storedTickets);
+          const updatedTickets = parsedTickets.map((ticket: SupportTicket) => 
+            ticket.id === selectedTicket.id ? ticketWithResponse : ticket
+          );
+          localStorage.setItem('supportTickets', JSON.stringify(updatedTickets));
+        }
       }, 1000);
-      
-      // Persist to localStorage
-      localStorage.setItem('supportTickets', JSON.stringify(
-        localSupportTickets.map(ticket => 
-          ticket.id === selectedTicket.id ? updatedTicket : ticket
-        )
-      ));
     }
   };
 
