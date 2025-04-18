@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { ChatMessage, ChatState, SupportTicket } from '@/types/chat';
 import { Club } from '@/types';
@@ -196,6 +197,50 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     setRefreshKey(Date.now());
   };
 
+  // Add the ability to delete a chat or support ticket
+  const deleteChat = (chatId: string, isTicket: boolean = false) => {
+    if (isTicket) {
+      // Delete a support ticket
+      setSupportTickets(prev => {
+        const updated = { ...prev };
+        delete updated[chatId];
+        
+        // Update the localStorage
+        const ticketsArray = Object.values(updated);
+        localStorage.setItem('supportTickets', JSON.stringify(ticketsArray));
+        localStorage.setItem('supportTicketsRecord', JSON.stringify(updated));
+        
+        return updated;
+      });
+    } else {
+      // Delete club messages
+      setMessages(prev => {
+        const updated = { ...prev };
+        delete updated[chatId];
+        
+        // Save to localStorage
+        localStorage.setItem('chatMessages', JSON.stringify(updated));
+        
+        return updated;
+      });
+    }
+    
+    // Also clear any unread counts for this chat
+    setUnreadMessages(prev => {
+      const updated = { ...prev };
+      delete updated[chatId];
+      localStorage.setItem('unreadMessages', JSON.stringify(updated));
+      return updated;
+    });
+    
+    // Trigger UI refresh
+    setRefreshKey(Date.now());
+    
+    // Dispatch event to notify about changes
+    const event = new CustomEvent('unreadMessagesUpdated');
+    window.dispatchEvent(event);
+  };
+
   return {
     messages,
     supportTickets,
@@ -204,7 +249,8 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     handleNewMessage,
     createSupportTicket,
     setUnreadMessages,
-    markTicketAsRead
+    markTicketAsRead,
+    deleteChat
   };
 };
 

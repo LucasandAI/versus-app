@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
@@ -9,6 +10,7 @@ import ChatInput from './ChatInput';
 import ChatHeader from './ChatHeader';
 import { useChat } from '@/hooks/useChat';
 import { useApp } from '@/context/AppContext';
+import { toast } from '@/hooks/use-toast';
 
 interface ChatDrawerProps {
   open: boolean;
@@ -37,7 +39,8 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
     refreshKey, 
     handleNewMessage,
     setUnreadMessages,
-    markTicketAsRead
+    markTicketAsRead,
+    deleteChat
   } = useChat(open, onNewMessage);
 
   // Update local tickets when external tickets change or when the drawer opens
@@ -209,6 +212,28 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
     }
   };
 
+  const handleDeleteChat = (chatId: string, isTicket: boolean) => {
+    // Clear selection if the deleted chat was selected
+    if ((isTicket && selectedTicket?.id === chatId) || 
+        (!isTicket && selectedLocalClub?.id === chatId)) {
+      setSelectedTicket(null);
+      setSelectedLocalClub(null);
+    }
+    
+    // Delete the chat
+    deleteChat(chatId, isTicket);
+    
+    // Update local state if it's a ticket
+    if (isTicket) {
+      setLocalSupportTickets(prev => prev.filter(ticket => ticket.id !== chatId));
+    }
+    
+    toast({
+      title: "Chat Deleted",
+      description: "The conversation has been removed."
+    });
+  };
+
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="h-[80vh] rounded-t-xl p-0">
@@ -229,6 +254,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
             supportTickets={localSupportTickets}
             onSelectClub={handleSelectClub}
             onSelectTicket={handleSelectTicket}
+            onDeleteChat={handleDeleteChat}
             unreadCounts={unreadMessages}
           />
           

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { HelpCircle, MessageSquare, AlertCircle, Flag } from 'lucide-react';
 import { 
@@ -153,8 +154,8 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
     }));
     
     // Ensure immediate UI update for chat notifications
-    const notificationsEvent = new CustomEvent('notificationsUpdated');
-    window.dispatchEvent(notificationsEvent);
+    const event = new CustomEvent('notificationsUpdated');
+    window.dispatchEvent(event);
     
     // If the callback exists, use it to create a support chat
     if (onCreateSupportChat) {

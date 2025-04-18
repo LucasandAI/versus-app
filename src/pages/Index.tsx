@@ -47,6 +47,9 @@ const AppContent: React.FC = () => {
     const handleSupportTicketCreated = (event: CustomEvent) => {
       if (event.detail && event.detail.count) {
         setChatNotifications(prev => prev + event.detail.count);
+      } else {
+        // If no count is provided, reload from localStorage
+        loadUnreadCounts();
       }
     };
     
