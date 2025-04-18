@@ -13,10 +13,13 @@ const NotificationHandler: React.FC<NotificationHandlerProps> = ({
   setChatNotifications,
   setNotifications,
 }) => {
-  // Initialize notifications on mount
+  // Initialize notifications on mount only if they don't exist
   useEffect(() => {
-    // Simulate unread notifications on component mount
-    simulateUnreadNotifications();
+    const existingNotifications = localStorage.getItem('notifications');
+    if (!existingNotifications) {
+      // Only simulate if no notifications exist
+      simulateUnreadNotifications();
+    }
   }, []);
 
   useNotifications({ setNotifications });

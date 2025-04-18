@@ -64,10 +64,9 @@ export const simulateUnreadNotifications = () => {
   const event = new CustomEvent('notificationsUpdated');
   window.dispatchEvent(event);
 
-  // Also update unread messages to show chat notification count
-  const unreadMessagesMap = {
-    'club-chat-1': 2
-  };
+  // We're not setting unread messages by default anymore
+  // Just make sure unreadMessages exists in localStorage but with no unread messages
+  const unreadMessagesMap = {};
   localStorage.setItem('unreadMessages', JSON.stringify(unreadMessagesMap));
 
   // Dispatch event to update unread messages

@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { toast } from '@/hooks/use-toast';
-import { Badge } from '@/components/ui/badge';
 import Button from '@/components/shared/Button';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { Notification } from '@/types';
@@ -34,7 +33,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   };
 
   return (
-    <div className={`p-3 border-b hover:bg-gray-50 transition-colors ${!notification.read ? 'bg-green-50' : ''}`}>
+    <div className={`p-3 border-b hover:bg-gray-50 transition-colors ${!notification.read ? 'bg-blue-50' : ''}`}>
       <div className="flex items-start gap-3">
         <UserAvatar 
           name={notification.userName} 
@@ -98,10 +97,6 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
                 Decline
               </Button>
             </div>
-          )}
-
-          {!notification.read && (
-            <Badge variant="default" className="mt-1 bg-primary text-white text-[10px] h-5">New</Badge>
           )}
         </div>
       </div>
