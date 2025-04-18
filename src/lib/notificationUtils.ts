@@ -31,6 +31,8 @@ export const simulateUnreadNotifications = () => {
     }
   ];
 
+  console.log("Simulating notifications:", unreadNotifications);
+  
   // Save to localStorage
   localStorage.setItem('notifications', JSON.stringify(unreadNotifications));
 
@@ -48,6 +50,7 @@ export const simulateUnreadNotifications = () => {
 
 // Force refresh notifications by removing existing ones first
 export const refreshNotifications = () => {
+  console.log("Refreshing notifications");
   localStorage.removeItem('notifications');
   simulateUnreadNotifications();
 };

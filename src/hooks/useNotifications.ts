@@ -10,10 +10,12 @@ interface UseNotificationsProps {
 export const useNotifications = ({ setNotifications }: UseNotificationsProps) => {
   useEffect(() => {
     const loadNotificationsFromStorage = () => {
+      console.log("Loading notifications from storage");
       const storedNotifications = localStorage.getItem('notifications');
       if (storedNotifications) {
         try {
           const parsedNotifications = JSON.parse(storedNotifications);
+          console.log("Loaded notifications:", parsedNotifications);
           setNotifications(parsedNotifications);
         } catch (error) {
           console.error("Error parsing notifications:", error);
@@ -22,6 +24,7 @@ export const useNotifications = ({ setNotifications }: UseNotificationsProps) =>
         }
       } else {
         // If no notifications in storage, simulate them
+        console.log("No notifications in storage, simulating");
         simulateUnreadNotifications();
       }
     };
@@ -31,6 +34,7 @@ export const useNotifications = ({ setNotifications }: UseNotificationsProps) =>
 
     // Listen for notification updates
     const handleNotificationsUpdated = () => {
+      console.log("Notification update event received");
       loadNotificationsFromStorage();
     };
     

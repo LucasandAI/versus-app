@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useChatNotifications } from '@/hooks/useChatNotifications';
-import { simulateUnreadNotifications } from '@/lib/notificationUtils';
+import { simulateUnreadNotifications, refreshNotifications } from '@/lib/notificationUtils';
 
 interface NotificationHandlerProps {
   setChatNotifications: (count: number) => void;
@@ -13,14 +13,24 @@ const NotificationHandler: React.FC<NotificationHandlerProps> = ({
   setChatNotifications,
   setNotifications,
 }) => {
-  // Initialize notifications on mount only if they don't exist
+  // Initialize notifications on mount
   useEffect(() => {
-    const existingNotifications = localStorage.getItem('notifications');
-    if (!existingNotifications) {
-      // Only simulate if no notifications exist
-      simulateUnreadNotifications();
+    console.log("NotificationHandler: Initializing notifications");
+    // Force refresh notifications on component mount to ensure we have the latest
+    refreshNotifications();
+    
+    // Get updated notifications from localStorage after refresh
+    const storedNotifications = localStorage.getItem('notifications');
+    if (storedNotifications) {
+      try {
+        const parsedNotifications = JSON.parse(storedNotifications);
+        console.log("Loaded notifications:", parsedNotifications);
+        setNotifications(parsedNotifications);
+      } catch (error) {
+        console.error("Error parsing notifications:", error);
+      }
     }
-  }, []);
+  }, [setNotifications]);
 
   useNotifications({ setNotifications });
   useChatNotifications({ setChatNotifications });
