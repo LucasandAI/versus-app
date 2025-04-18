@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useChatNotifications } from '@/hooks/useChatNotifications';
-import { simulateUnreadNotifications, refreshNotifications } from '@/lib/notificationUtils';
+import { refreshNotifications } from '@/lib/notificationUtils';
 
 interface NotificationHandlerProps {
   setChatNotifications: (count: number) => void;

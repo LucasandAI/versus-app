@@ -21,6 +21,19 @@ export const useClubJoin = () => {
     console.log('Joining club:', clubId, clubName);
     console.log('Current user clubs:', currentUser.clubs);
     
+    // Check if user is already a member of this club by ID
+    const isAlreadyMember = currentUser.clubs.some(club => club.id === clubId);
+    console.log('Is already member:', isAlreadyMember);
+    
+    if (isAlreadyMember) {
+      toast({
+        title: "Already a Member",
+        description: `You are already a member of ${clubName}.`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
     // Get clubs from localStorage or initialize empty array
     let allClubs = [];
     try {
@@ -37,11 +50,6 @@ export const useClubJoin = () => {
       clubToJoin.members = [];
     }
     
-    const isAlreadyMember = isUserClubMember(clubToJoin, currentUser.id);
-    console.log('Is already member:', isAlreadyMember);
-    
-    if (!validateExistingMembership(isAlreadyMember, clubToJoin.name)) return;
-    
     // Add user to club members
     clubToJoin.members.push({
       id: currentUser.id,
@@ -53,6 +61,12 @@ export const useClubJoin = () => {
     // Update localStorage
     if (!allClubs.find((club: any) => club.id === clubId)) {
       allClubs.push(clubToJoin);
+    } else {
+      // Update existing club in the array
+      const index = allClubs.findIndex((club: any) => club.id === clubId);
+      if (index !== -1) {
+        allClubs[index] = clubToJoin;
+      }
     }
     localStorage.setItem('clubs', JSON.stringify(allClubs));
     
@@ -69,7 +83,7 @@ export const useClubJoin = () => {
       description: `You have successfully joined ${clubToJoin.name}!`
     });
     
-    // Update notifications
+    // Update notifications - remove the invitation
     const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
     const updatedNotifications = notifications.filter(
       (n: any) => !(n.type === 'invitation' && n.clubId === clubId)
