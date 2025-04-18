@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { AppProvider, useApp } from '@/context/AppContext';
 import ConnectScreen from '@/components/ConnectScreen';
@@ -68,6 +67,38 @@ const AppContent: React.FC = () => {
       window.removeEventListener('notificationsUpdated', handleUnreadMessagesUpdated);
       clearInterval(checkInterval);
     };
+  }, []);
+
+  useEffect(() => {
+    // Add test notifications
+    const testNotifications = [
+      {
+        id: 'test-notification-1',
+        userId: 'user123',
+        userName: 'John Runner',
+        userAvatar: '/placeholder.svg',
+        clubId: 'club123',
+        clubName: 'Morning Runners',
+        distance: 5.2,
+        timestamp: new Date().toISOString(),
+        read: false,
+        type: 'activity'
+      },
+      {
+        id: 'test-notification-2',
+        userId: 'user456',
+        userName: 'Sarah Coach',
+        userAvatar: '/placeholder.svg',
+        clubId: 'club456',
+        clubName: 'Elite Runners Club',
+        timestamp: new Date().toISOString(),
+        read: false,
+        type: 'invitation',
+        message: 'invited you to join'
+      }
+    ];
+
+    localStorage.setItem('notifications', JSON.stringify(testNotifications));
   }, []);
 
   const renderView = () => {
