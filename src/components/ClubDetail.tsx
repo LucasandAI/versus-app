@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club, Division, Match } from '@/types';
@@ -20,11 +21,13 @@ import {
 import InviteUserDialog from './club/InviteUserDialog';
 import ClubAdminActions from './admin/ClubAdminActions';
 import { handleNotification } from '@/lib/notificationUtils';
+import { useClubJoin } from '@/hooks/home/useClubJoin';
 
 const ClubDetail: React.FC = () => {
   const { selectedClub, setCurrentView, currentUser, setSelectedUser, setSelectedClub } = useApp();
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+  const { handleJoinClub } = useClubJoin();
   
   if (!selectedClub) {
     return (
