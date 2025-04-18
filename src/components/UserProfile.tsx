@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { Button } from "@/components/ui/button";
-import { UserPlus, Settings, Share2, ArrowRight, Award, LogOut, Facebook, Instagram, Twitter, Globe, Linkedin, ChevronDown, ChevronUp } from 'lucide-react';
+import { UserPlus, Settings, Share2, Award, LogOut, Facebook, Instagram, Twitter, Globe, Linkedin, ChevronDown, ChevronUp } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import ClubInviteDialog from './admin/ClubInviteDialog';
 import EditProfileDialog from './profile/EditProfileDialog';
@@ -119,8 +119,6 @@ const UserProfile: React.FC = () => {
     weeklyDistance: 42.3,
     bestLeague: bestLeague.league,
     bestLeagueTier: bestLeague.tier,
-    matchesWon: 3,
-    matchesLost: 1
   };
 
   const completedAchievements = [
@@ -471,14 +469,6 @@ const UserProfile: React.FC = () => {
             <div className="bg-gray-50 p-4 text-center rounded-lg">
               <p className="text-xl font-bold">{loading ? <Skeleton className="h-6 w-16 mx-auto" /> : `${profileStats.bestLeague} ${profileStats.bestLeagueTier}`}</p>
               <p className="text-gray-500 text-sm">Best League</p>
-            </div>
-            <div className="bg-gray-50 p-4 text-center rounded-lg">
-              <p className="text-xl font-bold">{loading ? <Skeleton className="h-6 w-8 mx-auto" /> : profileStats.matchesWon}</p>
-              <p className="text-gray-500 text-sm">Matches Won</p>
-            </div>
-            <div className="bg-gray-50 p-4 text-center rounded-lg">
-              <p className="text-xl font-bold">{loading ? <Skeleton className="h-6 w-8 mx-auto" /> : profileStats.matchesLost}</p>
-              <p className="text-gray-500 text-sm">Matches Lost</p>
             </div>
           </div>
         </div>
