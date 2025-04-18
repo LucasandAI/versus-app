@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Club } from '@/types';
 import UserAvatar from '../shared/UserAvatar';
 import { ChevronDown, Users } from 'lucide-react';
@@ -18,6 +18,7 @@ interface ChatSidebarProps {
 
 const ChatSidebar: React.FC<ChatSidebarProps> = ({ clubs, selectedClub, onSelectClub }) => {
   const { setCurrentView, setSelectedUser } = useApp();
+  const [refreshKey] = useState(Date.now()); // Force component refresh
 
   const handleSelectUser = (userId: string, userName: string, userAvatar: string = '/placeholder.svg') => {
     setSelectedUser({
@@ -37,7 +38,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ clubs, selectedClub, onSelect
         
         <div className="space-y-1">
           {clubs.map((club) => (
-            <div key={club.id} className="flex flex-col">
+            <div key={`${club.id}-${refreshKey}`} className="flex flex-col">
               <button
                 className={`w-full flex items-center p-2 rounded-md text-left transition-colors ${
                   selectedClub?.id === club.id 
@@ -49,8 +50,9 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ clubs, selectedClub, onSelect
                 <div className="flex-shrink-0 mr-2">
                   <UserAvatar 
                     name={club.name} 
-                    image={club.logo} 
-                    size="sm" 
+                    image={club.logo || ''} 
+                    size="sm"
+                    key={`club-avatar-${club.id}-${refreshKey}`}
                   />
                 </div>
                 <div className="flex-1 overflow-hidden">
@@ -69,7 +71,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ clubs, selectedClub, onSelect
                         <div className="space-y-2 max-h-60 overflow-y-auto">
                           {club.members.map(member => (
                             <div
-                              key={member.id}
+                              key={`${member.id}-${refreshKey}`}
                               className="w-full flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-md"
                             >
                               <UserAvatar 
@@ -78,6 +80,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ clubs, selectedClub, onSelect
                                 size="sm" 
                                 className="cursor-pointer"
                                 onClick={() => handleSelectUser(member.id, member.name, member.avatar)}
+                                key={`member-avatar-${member.id}-${refreshKey}`}
                               />
                               <span 
                                 className="text-sm truncate cursor-pointer hover:text-primary"

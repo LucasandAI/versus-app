@@ -35,6 +35,7 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
   const [website, setWebsite] = useState(user?.website || "");
   const [tiktok, setTiktok] = useState(user?.tiktok || "");
   const [avatar, setAvatar] = useState(user?.avatar || "");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewKey, setPreviewKey] = useState(Date.now());
   const isMobile = useIsMobile();
 
@@ -50,6 +51,7 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
       setWebsite(user.website || "");
       setTiktok(user.tiktok || "");
       setAvatar(user.avatar || "");
+      setAvatarFile(null);
       setPreviewKey(Date.now()); // Force avatar preview to refresh
     }
   }, [user, open]);
@@ -57,10 +59,10 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // In a real app, this would upload the file to a storage service
-      // For now, we'll just create a temporary URL
+      // Create a blob URL for local preview
       const previewUrl = URL.createObjectURL(file);
       setAvatar(previewUrl);
+      setAvatarFile(file);
       setPreviewKey(Date.now()); // Force avatar preview to refresh
     }
   };
@@ -123,7 +125,7 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
                 name={user?.name || ""} 
                 image={avatar}
                 size="lg"
-                key={previewKey} // Force re-render with new image
+                key={`avatar-${previewKey}`} // Force re-render with new image
               />
               <label 
                 htmlFor="avatar-upload" 

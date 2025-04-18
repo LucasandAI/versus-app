@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -18,6 +18,21 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   className,
   onClick
 }) => {
+  // Force re-render when image changes by using state
+  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
+  
+  useEffect(() => {
+    // Only process valid images
+    if (image && image.trim() !== '') {
+      // Add cache-busting parameter for non-URL objects (blob URLs don't need cache busting)
+      const isObjectUrl = image.startsWith('blob:');
+      const url = isObjectUrl ? image : `${image}?t=${Date.now()}`;
+      setImageUrl(url);
+    } else {
+      setImageUrl(undefined);
+    }
+  }, [image]);
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -33,20 +48,14 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
     lg: 'h-16 w-16 text-xl'
   };
 
-  // Force image update by adding timestamp to URL
-  const timestamp = Date.now();
-  
-  // Only add image if it exists and is not empty
-  const imageSrc = image && image.trim() !== '' 
-    ? `${image}?t=${timestamp}` 
-    : undefined;
-
   return (
     <Avatar 
       className={cn(sizeClasses[size], className, onClick ? 'cursor-pointer' : '')}
       onClick={onClick}
     >
-      <AvatarImage src={imageSrc} alt={name} className="object-cover" />
+      {imageUrl && (
+        <AvatarImage src={imageUrl} alt={name} className="object-cover" />
+      )}
       <AvatarFallback className="bg-secondary text-secondary-foreground">
         {getInitials(name)}
       </AvatarFallback>
