@@ -3,7 +3,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'strava';
+  variant?: 'primary' | 'secondary' | 'outline' | 'strava' | 'link';
   size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
   loading?: boolean;
@@ -24,7 +24,8 @@ const Button: React.FC<ButtonProps> = ({
     primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
     secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/90',
     outline: 'border border-border bg-background hover:bg-muted',
-    strava: 'bg-strava text-white hover:bg-strava-dark'
+    strava: 'bg-strava text-white hover:bg-strava-dark',
+    link: 'text-primary hover:underline p-0 h-auto'
   };
 
   const sizeClasses = {
@@ -38,7 +39,7 @@ const Button: React.FC<ButtonProps> = ({
       className={cn(
         'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
         variantClasses[variant],
-        sizeClasses[size],
+        variant !== 'link' ? sizeClasses[size] : '',
         fullWidth ? 'w-full' : '',
         className
       )}

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ArrowLeft, User as UserIcon, Calendar, TrendingUp, TrendingDown, ArrowRight, LogOut, Info, Users } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -52,6 +51,7 @@ const ClubDetail: React.FC = () => {
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+  const [showMatchDetails, setShowMatchDetails] = useState(false);
   
   if (!selectedClub) {
     return (
@@ -254,7 +254,6 @@ const ClubDetail: React.FC = () => {
     member.id === currentUser.id && member.isAdmin
   );
   
-  // Component to render club members list
   const ClubMembersList = () => (
     <div className="space-y-3">
       {selectedClub?.members.map((member) => (
@@ -297,7 +296,6 @@ const ClubDetail: React.FC = () => {
         </div>
       </div>
 
-      {/* New Club Header Section */}
       <div className="bg-white shadow-md">
         <div className="container-mobile py-6">
           <div className="flex flex-col md:flex-row items-center justify-between">
@@ -367,7 +365,6 @@ const ClubDetail: React.FC = () => {
             </div>
           </div>
           
-          {/* Club Bio Section */}
           <div className="mt-4 border-t pt-4 text-center md:text-left">
             <p className="text-gray-600 text-sm">
               {selectedClub.bio || `Welcome to ${selectedClub.name}! We're a group of passionate runners looking to challenge ourselves and improve together.`}
@@ -397,7 +394,6 @@ const ClubDetail: React.FC = () => {
           </div>
         )}
 
-        {/* New Integrated Club Information Display */}
         <Tabs defaultValue="overview" className="mb-6">
           <TabsList className="grid grid-cols-3 mb-2">
             <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -469,6 +465,57 @@ const ClubDetail: React.FC = () => {
                       awayDistance={currentMatch.awayClub.totalDistance}
                       className="mb-4"
                     />
+                    
+                    <Button 
+                      variant="link" 
+                      size="sm" 
+                      className="w-full mt-2 mb-2 text-sm flex items-center justify-center"
+                      onClick={() => setShowMatchDetails(!showMatchDetails)}
+                    >
+                      {showMatchDetails ? 'Hide Team Contributions' : 'View Team Contributions'} 
+                      <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${showMatchDetails ? 'rotate-180' : ''}`} />
+                    </Button>
+                    
+                    {showMatchDetails && (
+                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-3 rounded-md">
+                        <div>
+                          <p className="text-sm font-medium mb-2">{currentMatch.homeClub.name}</p>
+                          <div className="space-y-2">
+                            {currentMatch.homeClub.members.map(member => (
+                              <div 
+                                key={member.id} 
+                                className="flex items-center justify-between cursor-pointer hover:bg-gray-100 rounded p-1"
+                                onClick={() => handleSelectUser(member.id, member.name, member.avatar)}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <UserAvatar name={member.name} image={member.avatar} size="sm" />
+                                  <span className="text-sm">{member.name}</span>
+                                </div>
+                                <span className="text-sm font-medium">{member.distanceContribution?.toFixed(1)} km</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium mb-2">{currentMatch.awayClub.name}</p>
+                          <div className="space-y-2">
+                            {currentMatch.awayClub.members.map(member => (
+                              <div 
+                                key={member.id} 
+                                className="flex items-center justify-between cursor-pointer hover:bg-gray-100 rounded p-1"
+                                onClick={() => handleSelectUser(member.id, member.name, member.avatar)}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <UserAvatar name={member.name} image={member.avatar} size="sm" />
+                                  <span className="text-sm">{member.name}</span>
+                                </div>
+                                <span className="text-sm font-medium">{member.distanceContribution?.toFixed(1)} km</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
