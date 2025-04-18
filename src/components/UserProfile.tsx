@@ -243,20 +243,28 @@ const UserProfile: React.FC = () => {
 
       <Card className={`w-full ${isMobile ? 'mx-4' : 'max-w-md mx-auto'} mt-4 p-6 rounded-lg`}>
         <div className="flex flex-col space-y-4 w-full">
-          {loading ? (
-            <Skeleton className="h-24 w-24 rounded-full" />
-          ) : (
-            <UserAvatar 
-              name={selectedUser.name} 
-              image={selectedUser.avatar} 
-              size="lg" 
-              className="h-24 w-24"
-            />
-          )}
-
-          <div className="text-center">
-            <h2 className="text-xl font-bold">{loading ? <Skeleton className="h-6 w-32 mx-auto" /> : selectedUser.name}</h2>
-            <p className="text-gray-500">{loading ? <Skeleton className="h-4 w-24 mx-auto" /> : selectedUser.bio || 'Strava Athlete'}</p>
+          <div className="flex items-center gap-6">
+            {loading ? (
+              <div className="h-24 w-24 rounded-full flex-shrink-0">
+                <Skeleton className="h-full w-full rounded-full" />
+              </div>
+            ) : (
+              <UserAvatar 
+                name={selectedUser.name} 
+                image={selectedUser.avatar} 
+                size="lg" 
+                className="h-24 w-24 flex-shrink-0"
+              />
+            )}
+            
+            <div className="flex-1">
+              <h2 className="text-xl font-bold">
+                {loading ? <Skeleton className="h-6 w-32" /> : selectedUser.name}
+              </h2>
+              <p className="text-gray-500">
+                {loading ? <Skeleton className="h-4 w-24" /> : selectedUser.bio || 'Strava Athlete'}
+              </p>
+            </div>
           </div>
 
           <div className="flex justify-center space-x-4">
