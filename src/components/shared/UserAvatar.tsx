@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface UserAvatarProps {
   name: string;
-  image?: string;
+  image?: string | null;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   onClick?: () => void;
@@ -18,7 +18,6 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   className,
   onClick
 }) => {
-  // Force re-render when image changes by using state
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   
   useEffect(() => {
@@ -34,6 +33,9 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   }, [image]);
 
   const getInitials = (name: string) => {
+    // Handle empty or null names
+    if (!name) return 'NA';
+    
     return name
       .split(' ')
       .map(n => n[0])
