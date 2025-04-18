@@ -69,9 +69,27 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
           },
           {
             id: 'ac3',
-            name: 'Urban Pacers',
+            name: 'Trail Blazers',
             division: 'Bronze' as Division,
             tier: 5,
+            logo: '/placeholder.svg',
+            members: [],
+            matchHistory: [] // Add required property from Club type
+          },
+          {
+            id: 'ac4',
+            name: 'Mountain Goats',
+            division: 'Silver' as Division,
+            tier: 4,
+            logo: '/placeholder.svg',
+            members: [],
+            matchHistory: [] // Add required property from Club type
+          },
+          {
+            id: 'ac5',
+            name: 'Speed Demons',
+            division: 'Gold' as Division,
+            tier: 1,
             logo: '/placeholder.svg',
             members: [],
             matchHistory: [] // Add required property from Club type
@@ -109,10 +127,12 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     }
   };
 
-  // Always show blue highlight for notifications in the popover
-  // This makes it visually clear which notifications are new/recent
+  // Always show blue highlight for unread notifications
+  const isUnread = !notification.read;
+  const bgClass = isUnread ? "bg-blue-50" : "";
+
   return (
-    <div className="p-3 border-b hover:bg-gray-50 transition-colors bg-blue-50">
+    <div className={`p-3 border-b hover:bg-gray-50 transition-colors ${bgClass}`}>
       <div className="flex items-start gap-3">
         <UserAvatar 
           name={notification.userName} 

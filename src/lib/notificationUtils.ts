@@ -1,3 +1,4 @@
+
 import { Notification } from '@/types';
 
 export const simulateUnreadNotifications = () => {
@@ -26,6 +27,7 @@ export const simulateUnreadNotifications = () => {
       read: true,
       type: 'activity'
     },
+    // Add 4 new club invite notifications
     {
       id: 'club-invite-1',
       userId: '7',
@@ -90,6 +92,12 @@ export const simulateUnreadNotifications = () => {
 
   const unreadEvent = new CustomEvent('unreadMessagesUpdated');
   window.dispatchEvent(unreadEvent);
+};
+
+// Force refresh notifications by removing existing ones first
+export const refreshNotifications = () => {
+  localStorage.removeItem('notifications');
+  simulateUnreadNotifications();
 };
 
 if (typeof window !== 'undefined') {

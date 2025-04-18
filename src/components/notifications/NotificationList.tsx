@@ -21,9 +21,15 @@ export const NotificationList: React.FC<NotificationListProps> = ({
   onClearAll,
   formatTime,
 }) => {
-  const sortedNotifications = [...notifications].sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-  );
+  // Sort notifications by timestamp (newest first) and then by read status (unread first)
+  const sortedNotifications = [...notifications].sort((a, b) => {
+    // First sort by read status (unread first)
+    if (a.read !== b.read) {
+      return a.read ? 1 : -1;
+    }
+    // Then sort by timestamp (newest first)
+    return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+  });
 
   if (sortedNotifications.length === 0) {
     return (
@@ -47,7 +53,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({
         </Button>
       </div>
       
-      <div className="max-h-[300px] overflow-y-auto">
+      <div className="max-h-[400px] overflow-y-auto">
         {sortedNotifications.map(notification => (
           <NotificationItem
             key={notification.id}

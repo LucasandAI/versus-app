@@ -13,6 +13,8 @@ import FindClubsSection from '@/components/home/FindClubsSection';
 import HomeNotifications from '@/components/home/HomeNotifications';
 import { useClubActions } from '@/hooks/home/useClubActions';
 import { useSupportActions } from '@/hooks/home/useSupportActions';
+import { toast } from '@/hooks/use-toast';
+import { refreshNotifications } from '@/lib/notificationUtils';
 
 interface HomeViewProps {
   chatNotifications?: number;
@@ -85,6 +87,11 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
     // Dispatch event to update notifications
     const event = new CustomEvent('notificationsUpdated');
     window.dispatchEvent(event);
+    
+    toast({
+      title: "Invitation Declined",
+      description: "You have declined the club invitation"
+    });
   };
 
   const handleClearAllNotifications = () => {
@@ -110,6 +117,12 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
       }
     }, 100);
   };
+
+  // Force refresh notifications on first load
+  React.useEffect(() => {
+    // Refresh notifications when the component mounts
+    refreshNotifications();
+  }, []);
 
   return (
     <div className="pb-20 pt-6">
