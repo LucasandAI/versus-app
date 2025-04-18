@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { ArrowLeft, User as UserIcon, Calendar, TrendingUp, TrendingDown, ArrowRight, LogOut, Info, Users } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Calendar, TrendingUp, TrendingDown, ArrowRight, LogOut, Info, Users, ChevronDown } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import MatchProgressBar from './shared/MatchProgressBar';
 import UserAvatar from './shared/UserAvatar';
