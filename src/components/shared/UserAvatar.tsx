@@ -72,7 +72,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
         />
       ) : (
         <AvatarFallback 
-          className="bg-secondary text-secondary-foreground"
+          className="bg-secondary text-secondary-foreground font-medium"
           delayMs={0}
         >
           {getInitials(name)}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageCircle, Plus, Search, UserPlus, X } from 'lucide-react';
+import { MessageCircle, Plus, Search, UserPlus, X, Bell } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from './shared/UserAvatar';
 import { Club } from '@/types';
@@ -12,6 +12,7 @@ import ClubCard from './club/ClubCard';
 import AvailableClubs from './club/AvailableClubs';
 import CreateClubDialog from './club/CreateClubDialog';
 import { formatLeagueWithTier } from '@/lib/format';
+import NotificationPopover from './shared/NotificationPopover';
 
 const mockClubs: Club[] = [
   {
@@ -143,6 +144,41 @@ const HomeView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [createClubDialogOpen, setCreateClubDialogOpen] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(2);
+  const [notifications, setNotifications] = useState([
+    {
+      id: '1',
+      userId: '2',
+      userName: 'Jane Sprinter',
+      userAvatar: '/placeholder.svg',
+      clubId: '1',
+      clubName: 'Weekend Warriors',
+      distance: 5.2,
+      timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
+      read: false
+    },
+    {
+      id: '2',
+      userId: '3',
+      userName: 'Bob Marathon',
+      userAvatar: '/placeholder.svg',
+      clubId: '1',
+      clubName: 'Weekend Warriors',
+      distance: 10.7,
+      timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+      read: false
+    },
+    {
+      id: '3',
+      userId: '7',
+      userName: 'Alice Sprint',
+      userAvatar: '/placeholder.svg',
+      clubId: '2',
+      clubName: 'Road Runners',
+      distance: 8.3,
+      timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+      read: true
+    }
+  ]);
 
   const userClubs = currentUser?.clubs || [];
   const isAtClubCapacity = userClubs.length >= MAX_CLUBS_PER_USER;
@@ -208,6 +244,18 @@ const HomeView: React.FC = () => {
     setCreateClubDialogOpen(true);
   };
 
+  const handleMarkNotificationAsRead = (id: string) => {
+    setNotifications(prev => 
+      prev.map(notification => 
+        notification.id === id ? { ...notification, read: true } : notification
+      )
+    );
+  };
+
+  const handleClearAllNotifications = () => {
+    setNotifications([]);
+  };
+
   const filteredClubs = availableClubs.filter(club => 
     club.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -218,6 +266,12 @@ const HomeView: React.FC = () => {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">My Clubs</h1>
           <div className="flex items-center gap-2">
+            <NotificationPopover 
+              notifications={notifications}
+              onMarkAsRead={handleMarkNotificationAsRead}
+              onClearAll={handleClearAllNotifications}
+              onUserClick={handleSelectUser}
+            />
             <Button 
               variant="link"
               onClick={handleOpenChat}
