@@ -14,7 +14,7 @@ const AppContent: React.FC = () => {
   const { currentView, currentUser } = useApp();
   const [chatNotifications, setChatNotifications] = useState(0);
 
-  // Listen for support ticket created events
+  // Listen for support ticket created events and load existing unread counts
   useEffect(() => {
     const handleSupportTicketCreated = (event: CustomEvent) => {
       if (event.detail && event.detail.count) {
@@ -24,33 +24,43 @@ const AppContent: React.FC = () => {
 
     window.addEventListener('supportTicketCreated', handleSupportTicketCreated as EventListener);
     
-    // Also load initial unread counts from localStorage
+    // Load initial unread counts from localStorage
     const loadUnreadCounts = () => {
       const unreadMessages = localStorage.getItem('unreadMessages');
       if (unreadMessages) {
         try {
           const unreadMap = JSON.parse(unreadMessages);
-          // Fix TypeScript error: Ensure proper type handling for the reduce operation
+          // Calculate total unread count
           const totalUnread = Object.values(unreadMap).reduce(
             (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 
             0
           );
-          // Explicitly set as a number to satisfy TypeScript
+          // Explicitly set as a number
           setChatNotifications(Number(totalUnread));
         } catch (error) {
           console.error("Error parsing unread messages:", error);
+          setChatNotifications(0); // Reset to 0 on error
         }
+      } else {
+        setChatNotifications(0); // Reset to 0 if no unread messages
       }
     };
     
+    // Load unread counts immediately and on window focus
     loadUnreadCounts();
-    
-    // Listen for route changes or app focus to refresh unread counts
     window.addEventListener('focus', loadUnreadCounts);
+    
+    // Also listen for chat drawer closed event to refresh the count
+    const handleChatClosed = () => {
+      loadUnreadCounts();
+    };
+    
+    window.addEventListener('chatDrawerClosed', handleChatClosed);
     
     return () => {
       window.removeEventListener('supportTicketCreated', handleSupportTicketCreated as EventListener);
       window.removeEventListener('focus', loadUnreadCounts);
+      window.removeEventListener('chatDrawerClosed', handleChatClosed);
     };
   }, []);
 

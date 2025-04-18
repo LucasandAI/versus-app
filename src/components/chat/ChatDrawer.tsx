@@ -53,6 +53,23 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
     }
   }, [open, externalSupportTickets, refreshKey]);
 
+  // Notify when the drawer is closed
+  useEffect(() => {
+    if (!open) {
+      // Dispatch event to notify that chat drawer was closed
+      const event = new CustomEvent('chatDrawerClosed');
+      window.dispatchEvent(event);
+      
+      // Also mark all tickets as read when drawer closes
+      if (selectedTicket) {
+        markTicketAsRead(selectedTicket.id);
+      }
+      
+      // Save current unread state to localStorage
+      localStorage.setItem('unreadMessages', JSON.stringify(unreadMessages));
+    }
+  }, [open, selectedTicket, markTicketAsRead, unreadMessages]);
+
   const handleSelectClub = (club: Club) => {
     setSelectedLocalClub(club);
     setSelectedTicket(null);

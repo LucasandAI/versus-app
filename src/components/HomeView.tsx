@@ -182,17 +182,6 @@ const HomeView: React.FC = () => {
     }
   ]);
   
-  useEffect(() => {
-    const savedNotifications = localStorage.getItem('notifications');
-    if (savedNotifications) {
-      setNotifications(JSON.parse(savedNotifications));
-    }
-  }, []);
-  
-  useEffect(() => {
-    localStorage.setItem('notifications', JSON.stringify(notifications));
-  }, [notifications]);
-  
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
   
   useEffect(() => {
@@ -200,12 +189,51 @@ const HomeView: React.FC = () => {
     if (savedTickets) {
       setSupportTickets(JSON.parse(savedTickets));
     }
+    
+    const savedUnread = localStorage.getItem('unreadMessages');
+    if (savedUnread) {
+      try {
+        const unreadMap = JSON.parse(savedUnread);
+        const totalUnread = Object.values(unreadMap).reduce(
+          (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 
+          0
+        );
+        setUnreadMessages(Number(totalUnread));
+      } catch (error) {
+        console.error("Error parsing unread messages:", error);
+        setUnreadMessages(0);
+      }
+    }
+    
+    const handleChatClosed = () => {
+      const savedUnread = localStorage.getItem('unreadMessages');
+      if (savedUnread) {
+        try {
+          const unreadMap = JSON.parse(savedUnread);
+          const totalUnread = Object.values(unreadMap).reduce(
+            (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 
+            0
+          );
+          setUnreadMessages(Number(totalUnread));
+        } catch (error) {
+          console.error("Error parsing unread messages after chat closed:", error);
+        }
+      } else {
+        setUnreadMessages(0);
+      }
+    };
+    
+    window.addEventListener('chatDrawerClosed', handleChatClosed);
+    
+    return () => {
+      window.removeEventListener('chatDrawerClosed', handleChatClosed);
+    };
   }, []);
   
   useEffect(() => {
     localStorage.setItem('supportTickets', JSON.stringify(supportTickets));
   }, [supportTickets]);
-
+  
   const userClubs = currentUser?.clubs || [];
   const isAtClubCapacity = userClubs.length >= MAX_CLUBS_PER_USER;
 
@@ -243,7 +271,6 @@ const HomeView: React.FC = () => {
 
   const handleOpenChat = () => {
     setChatDrawerOpen(true);
-    setUnreadMessages(0);
   };
 
   const handleOpenSearch = () => {
@@ -523,7 +550,13 @@ const HomeView: React.FC = () => {
 
       <ChatDrawer 
         open={chatDrawerOpen} 
-        onOpenChange={setChatDrawerOpen} 
+        onOpenChange={(open) => {
+          setChatDrawerOpen(open);
+          if (!open) {
+            const event = new CustomEvent('chatDrawerClosed');
+            window.dispatchEvent(event);
+          }
+        }} 
         clubs={userClubs}
         onNewMessage={(count) => setUnreadMessages(count)} 
         supportTickets={supportTickets}

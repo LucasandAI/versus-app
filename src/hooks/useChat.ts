@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ChatMessage, ChatState, SupportTicket } from '@/types/chat';
 import { Club } from '@/types';
 
@@ -11,25 +10,29 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
 
   // Load messages and tickets from localStorage on mount
   useEffect(() => {
-    const savedMessages = localStorage.getItem('chatMessages');
-    if (savedMessages) {
-      setMessages(JSON.parse(savedMessages));
-    }
+    const loadDataFromStorage = () => {
+      const savedMessages = localStorage.getItem('chatMessages');
+      if (savedMessages) {
+        setMessages(JSON.parse(savedMessages));
+      }
+      
+      const savedTickets = localStorage.getItem('supportTickets');
+      if (savedTickets) {
+        const tickets: SupportTicket[] = JSON.parse(savedTickets);
+        const ticketsRecord: Record<string, SupportTicket> = {};
+        tickets.forEach(ticket => {
+          ticketsRecord[ticket.id] = ticket;
+        });
+        setSupportTickets(ticketsRecord);
+      }
+      
+      const savedUnread = localStorage.getItem('unreadMessages');
+      if (savedUnread) {
+        setUnreadMessages(JSON.parse(savedUnread));
+      }
+    };
     
-    const savedTickets = localStorage.getItem('supportTickets');
-    if (savedTickets) {
-      const tickets: SupportTicket[] = JSON.parse(savedTickets);
-      const ticketsRecord: Record<string, SupportTicket> = {};
-      tickets.forEach(ticket => {
-        ticketsRecord[ticket.id] = ticket;
-      });
-      setSupportTickets(ticketsRecord);
-    }
-    
-    const savedUnread = localStorage.getItem('unreadMessages');
-    if (savedUnread) {
-      setUnreadMessages(JSON.parse(savedUnread));
-    }
+    loadDataFromStorage();
   }, [refreshKey]); // Added refreshKey as a dependency to reload when it changes
 
   // Save to localStorage whenever data changes
@@ -41,9 +44,11 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     localStorage.setItem('unreadMessages', JSON.stringify(unreadMessages));
   }, [unreadMessages]);
 
+  // Reset notification count when the drawer is open
   useEffect(() => {
     if (open) {
       setRefreshKey(Date.now());
+      
       // Only reset notification count when the drawer is actually open
       if (onNewMessage) {
         onNewMessage(0);
@@ -53,12 +58,15 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
 
   // Update notification count whenever unreadMessages changes
   useEffect(() => {
-    if (!open && onNewMessage) {
+    if (onNewMessage) {
+      // Always update the notification count based on the current state of unreadMessages
       const totalUnread = Object.values(unreadMessages).reduce((sum: number, count: unknown) => 
         sum + (typeof count === 'number' ? count : 0), 0);
-      onNewMessage(totalUnread);
+      
+      // Ensure we're passing a number to onNewMessage
+      onNewMessage(Number(totalUnread));
     }
-  }, [unreadMessages, open, onNewMessage]);
+  }, [unreadMessages, onNewMessage]);
 
   // Check for new support tickets on component mount and when they change
   useEffect(() => {
@@ -103,7 +111,24 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
       [clubId]: [...(messages[clubId] || []), message]
     };
     localStorage.setItem('chatMessages', JSON.stringify(updatedMessages));
+    
+    // Also update the unread message count in localStorage
+    const updatedUnread = {
+      ...unreadMessages,
+      [clubId]: isOpen ? 0 : (unreadMessages[clubId] || 0) + 1
+    };
+    localStorage.setItem('unreadMessages', JSON.stringify(updatedUnread));
   };
+
+  // Make markTicketAsRead a memoized callback
+  const markTicketAsRead = useCallback((ticketId: string) => {
+    setUnreadMessages(prev => {
+      const updated = { ...prev, [ticketId]: 0 };
+      // Save to localStorage immediately
+      localStorage.setItem('unreadMessages', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
 
   const createSupportTicket = (ticketId: string, subject: string, message: string, userId: string, userName: string, userAvatar?: string) => {
     const timestamp = new Date().toISOString();
@@ -173,30 +198,6 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     
     // Force a refresh to ensure the new ticket appears in the list
     setRefreshKey(Date.now());
-  };
-
-  // Method to update unread messages and persist to localStorage
-  const markTicketAsRead = (ticketId: string) => {
-    setUnreadMessages(prev => {
-      const updated = { ...prev, [ticketId]: 0 };
-      // Save to localStorage immediately
-      localStorage.setItem('unreadMessages', JSON.stringify(updated));
-      return updated;
-    });
-    
-    // Make sure we also update the global unread count
-    if (onNewMessage) {
-      setTimeout(() => {
-        const currentUnread = JSON.parse(localStorage.getItem('unreadMessages') || '{}');
-        // Fix TypeScript error: Ensure proper type handling for the reduce operation
-        const totalUnread = Object.values(currentUnread).reduce(
-          (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 
-          0
-        );
-        // Ensure we're passing a number to onNewMessage
-        onNewMessage(Number(totalUnread));
-      }, 100);
-    }
   };
 
   return {
