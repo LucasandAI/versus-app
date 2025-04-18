@@ -57,12 +57,14 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   };
 
   const handleMarkNotificationAsRead = (id: string) => {
+    // Update the UI state
     setNotifications(prev => 
       prev.map(notification => 
         notification.id === id ? { ...notification, read: true } : notification
       )
     );
     
+    // Update localStorage
     const updatedNotifications = notifications.map(notification => 
       notification.id === id ? { ...notification, read: true } : notification
     );

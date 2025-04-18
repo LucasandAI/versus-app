@@ -32,8 +32,10 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     }
   };
 
+  // Always show blue highlight for notifications in the popover
+  // This makes it visually clear which notifications are new/recent
   return (
-    <div className={`p-3 border-b hover:bg-gray-50 transition-colors ${!notification.read ? 'bg-blue-50' : ''}`}>
+    <div className="p-3 border-b hover:bg-gray-50 transition-colors bg-blue-50">
       <div className="flex items-start gap-3">
         <UserAvatar 
           name={notification.userName} 

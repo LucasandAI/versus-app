@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Bell } from 'lucide-react';
 import { 
@@ -39,9 +38,6 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
       }));
       
       localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
-      notifications.forEach(n => {
-        if (!n.read) onMarkAsRead(n.id);
-      });
       
       const event = new CustomEvent('notificationsUpdated');
       window.dispatchEvent(event);
