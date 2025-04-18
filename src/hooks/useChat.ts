@@ -9,6 +9,38 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
   const [unreadMessages, setUnreadMessages] = useState<Record<string, number>>({});
   const [refreshKey, setRefreshKey] = useState(Date.now());
 
+  // Load messages and tickets from localStorage on mount
+  useEffect(() => {
+    const savedMessages = localStorage.getItem('chatMessages');
+    if (savedMessages) {
+      setMessages(JSON.parse(savedMessages));
+    }
+    
+    const savedTickets = localStorage.getItem('supportTickets');
+    if (savedTickets) {
+      const tickets: SupportTicket[] = JSON.parse(savedTickets);
+      const ticketsRecord: Record<string, SupportTicket> = {};
+      tickets.forEach(ticket => {
+        ticketsRecord[ticket.id] = ticket;
+      });
+      setSupportTickets(ticketsRecord);
+    }
+    
+    const savedUnread = localStorage.getItem('unreadMessages');
+    if (savedUnread) {
+      setUnreadMessages(JSON.parse(savedUnread));
+    }
+  }, []);
+
+  // Save to localStorage whenever data changes
+  useEffect(() => {
+    localStorage.setItem('chatMessages', JSON.stringify(messages));
+  }, [messages]);
+  
+  useEffect(() => {
+    localStorage.setItem('unreadMessages', JSON.stringify(unreadMessages));
+  }, [unreadMessages]);
+
   useEffect(() => {
     if (open) {
       setRefreshKey(Date.now());
@@ -37,6 +69,13 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
         [clubId]: (prev[clubId] || 0) + 1
       }));
     }
+    
+    // Save to localStorage
+    const updatedMessages = {
+      ...messages,
+      [clubId]: [...(messages[clubId] || []), message]
+    };
+    localStorage.setItem('chatMessages', JSON.stringify(updatedMessages));
   };
 
   const createSupportTicket = (ticketId: string, subject: string, message: string, userId: string, userName: string, userAvatar?: string) => {
@@ -47,17 +86,30 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
       sender: {
         id: userId,
         name: userName,
-        avatar: userAvatar
+        avatar: userAvatar || '/placeholder.svg'
       },
       timestamp,
       isSupport: false
+    };
+
+    // Auto-response from support
+    const supportResponse: ChatMessage = {
+      id: 'support-' + Date.now(),
+      text: `Thank you for contacting support about "${subject}". A support agent will review your request and respond shortly.`,
+      sender: {
+        id: 'support',
+        name: 'Support Team',
+        avatar: '/placeholder.svg'
+      },
+      timestamp: new Date(Date.now() + 1000).toISOString(), // 1 second later
+      isSupport: true
     };
 
     const ticket: SupportTicket = {
       id: ticketId,
       subject,
       createdAt: timestamp,
-      messages: [newMessage]
+      messages: [newMessage, supportResponse]
     };
 
     setSupportTickets(prev => ({
@@ -70,6 +122,19 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
       ...prev,
       [ticketId]: 1
     }));
+    
+    // Save to localStorage - both as record and as array
+    const updatedTickets = {
+      ...supportTickets,
+      [ticketId]: ticket
+    };
+    
+    // Save as record for internal use
+    localStorage.setItem('supportTicketsRecord', JSON.stringify(updatedTickets));
+    
+    // Save as array for external components
+    const ticketsArray = Object.values(updatedTickets);
+    localStorage.setItem('supportTickets', JSON.stringify(ticketsArray));
   };
 
   return {

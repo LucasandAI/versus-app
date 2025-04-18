@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MessageCircle, Plus, Search, UserPlus, X, Bell } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from './shared/UserAvatar';
@@ -183,8 +182,29 @@ const HomeView: React.FC = () => {
     }
   ]);
   
-  // Add support tickets state
+  useEffect(() => {
+    const savedNotifications = localStorage.getItem('notifications');
+    if (savedNotifications) {
+      setNotifications(JSON.parse(savedNotifications));
+    }
+  }, []);
+  
+  useEffect(() => {
+    localStorage.setItem('notifications', JSON.stringify(notifications));
+  }, [notifications]);
+  
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
+  
+  useEffect(() => {
+    const savedTickets = localStorage.getItem('supportTickets');
+    if (savedTickets) {
+      setSupportTickets(JSON.parse(savedTickets));
+    }
+  }, []);
+  
+  useEffect(() => {
+    localStorage.setItem('supportTickets', JSON.stringify(supportTickets));
+  }, [supportTickets]);
 
   const userClubs = currentUser?.clubs || [];
   const isAtClubCapacity = userClubs.length >= MAX_CLUBS_PER_USER;
@@ -276,17 +296,27 @@ const HomeView: React.FC = () => {
           sender: {
             id: currentUser.id,
             name: currentUser.name,
-            avatar: currentUser.avatar
+            avatar: currentUser.avatar || '/placeholder.svg'
           },
           timestamp: new Date().toISOString(),
           isSupport: false
+        },
+        {
+          id: 'support-' + Date.now() + '-response',
+          text: `Thank you for contacting support about "${subject}". A support agent will review your request and respond shortly.`,
+          sender: {
+            id: 'support',
+            name: 'Support Team',
+            avatar: '/placeholder.svg'
+          },
+          timestamp: new Date(Date.now() + 10000).toISOString(),
+          isSupport: true
         }
       ]
     };
     
     setSupportTickets(prev => [...prev, newTicket]);
     
-    // Open chat drawer to show the new ticket
     setChatDrawerOpen(true);
   };
 

@@ -23,18 +23,28 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
   open, 
   onOpenChange, 
   clubs,
-  onNewMessage 
+  onNewMessage,
+  supportTickets: externalSupportTickets = []
 }) => {
   const { setCurrentView, setSelectedUser, setSelectedClub, currentUser } = useApp();
   const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>(externalSupportTickets);
+  
+  // Update local tickets when external tickets change
+  useEffect(() => {
+    if (externalSupportTickets.length > 0) {
+      setLocalSupportTickets(externalSupportTickets);
+    }
+  }, [externalSupportTickets]);
+  
   const { 
     messages, 
     supportTickets, 
     unreadMessages, 
     refreshKey, 
-    handleNewMessage, 
-    setUnreadMessages 
+    handleNewMessage,
+    setUnreadMessages
   } = useChat(open, onNewMessage);
 
   const handleSelectClub = (club: Club) => {
@@ -100,24 +110,57 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
           avatar: currentUser?.avatar || '/placeholder.svg',
         },
         timestamp: new Date().toISOString(),
+        isSupport: false
       };
       
       // Add message to existing ticket
-      setSupportTickets(prev => ({
-        ...prev,
-        [selectedTicket.id]: {
-          ...prev[selectedTicket.id],
-          messages: [...prev[selectedTicket.id].messages, newMessage]
-        }
-      }));
+      const updatedTicket = {
+        ...selectedTicket,
+        messages: [...selectedTicket.messages, newMessage]
+      };
+      
+      // Update the local tickets state
+      setLocalSupportTickets(prev => 
+        prev.map(ticket => 
+          ticket.id === selectedTicket.id ? updatedTicket : ticket
+        )
+      );
+      
+      // Add auto-response from support after a small delay
+      setTimeout(() => {
+        const supportResponse = {
+          id: 'support-' + Date.now() + '-response',
+          text: "We've received your message. Our support team will get back to you as soon as possible.",
+          sender: {
+            id: 'support',
+            name: 'Support Team',
+            avatar: '/placeholder.svg'
+          },
+          timestamp: new Date().toISOString(),
+          isSupport: true
+        };
+        
+        setLocalSupportTickets(prev => 
+          prev.map(ticket => 
+            ticket.id === selectedTicket.id 
+              ? { ...ticket, messages: [...ticket.messages, supportResponse] }
+              : ticket
+          )
+        );
+        
+        // Update the selected ticket to show the new response
+        setSelectedTicket(prev => 
+          prev ? { ...prev, messages: [...prev.messages, supportResponse] } : null
+        );
+      }, 1000);
+      
+      // Persist to localStorage
+      localStorage.setItem('supportTickets', JSON.stringify(
+        localSupportTickets.map(ticket => 
+          ticket.id === selectedTicket.id ? updatedTicket : ticket
+        )
+      ));
     }
-  };
-
-  // Declare the setSupportTickets function that was missing
-  const setSupportTickets = (updater: React.SetStateAction<Record<string, SupportTicket>>) => {
-    // This is just a placeholder as we need to update our useChat hook to properly handle this
-    console.log("Support ticket update requested", updater);
-    // In a real implementation, this would call the proper state setter from useChat
   };
 
   return (
@@ -137,7 +180,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
             clubs={currentUser?.clubs || []}
             selectedClub={selectedLocalClub}
             selectedTicket={selectedTicket}
-            supportTickets={Object.values(supportTickets || {})}
+            supportTickets={localSupportTickets}
             onSelectClub={handleSelectClub}
             onSelectTicket={handleSelectTicket}
             unreadCounts={unreadMessages}
@@ -172,7 +215,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
               <ChatMessages 
                 messages={selectedTicket.messages || []} 
                 clubMembers={currentUser ? [currentUser] : []}
-                isSupport
+                isSupport={true}
               />
               
               <ChatInput onSendMessage={handleSendMessage} />

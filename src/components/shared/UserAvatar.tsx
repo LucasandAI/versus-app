@@ -31,6 +31,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
     // Handle empty or null names
     if (!name || name.trim() === '') return 'NA';
     
+    // For club names, use first letters of each word (up to 2)
     return name
       .split(' ')
       .map(n => n[0])
@@ -53,6 +54,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
     setImageLoaded(true);
   };
 
+  const shouldShowImage = image && !imageError && image !== '/placeholder.svg';
   const initials = getInitials(name);
 
   return (
@@ -60,7 +62,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
       className={cn(sizeClasses[size], className, onClick ? 'cursor-pointer' : '')}
       onClick={onClick}
     >
-      {image && !imageError ? (
+      {shouldShowImage ? (
         <AvatarImage 
           src={image} 
           alt={name} 

@@ -39,9 +39,10 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   
   const unreadCount = notifications.filter(n => !n.read).length;
   
+  // When the popover opens, mark all notifications as read
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
-    // Mark all as read when opening the popover instead of closing
+    // Mark all as read when opening the popover
     if (isOpen && unreadCount > 0) {
       notifications.forEach(n => {
         if (!n.read) onMarkAsRead(n.id);

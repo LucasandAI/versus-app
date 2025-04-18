@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { HelpCircle, MessageSquare, AlertCircle, Flag } from 'lucide-react';
 import { 
@@ -18,7 +19,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/use-toast";
 import { useApp } from '@/context/AppContext';
-import { ChatMessage } from '@/types/chat';
 
 interface SupportOption {
   id: string;
@@ -105,6 +105,43 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
     if (onCreateSupportChat) {
       onCreateSupportChat(ticketId, subject, messageContent);
     }
+    
+    // Also store the ticket in localStorage to ensure it's available
+    const existingTickets = localStorage.getItem('supportTickets');
+    const tickets = existingTickets ? JSON.parse(existingTickets) : [];
+    
+    const newTicket = {
+      id: ticketId,
+      subject: subject,
+      createdAt: new Date().toISOString(),
+      messages: [
+        {
+          id: Date.now().toString(),
+          text: messageContent,
+          sender: {
+            id: currentUser?.id || 'anonymous',
+            name: currentUser?.name || 'Anonymous',
+            avatar: currentUser?.avatar || '/placeholder.svg',
+          },
+          timestamp: new Date().toISOString(),
+          isSupport: false
+        },
+        {
+          id: 'support-auto-' + Date.now(),
+          text: `Thank you for contacting support about "${subject}". A support agent will review your request and respond shortly.`,
+          sender: {
+            id: 'support',
+            name: 'Support Team',
+            avatar: '/placeholder.svg'
+          },
+          timestamp: new Date(Date.now() + 1000).toISOString(),
+          isSupport: true
+        }
+      ]
+    };
+    
+    tickets.push(newTicket);
+    localStorage.setItem('supportTickets', JSON.stringify(tickets));
   };
 
   return (
