@@ -57,12 +57,16 @@ const AppContent: React.FC = () => {
     window.addEventListener('focus', handleUnreadMessagesUpdated);
     window.addEventListener('notificationsUpdated', handleUnreadMessagesUpdated);
     
+    // Make sure to persistently check for notification changes when app loads
+    const checkInterval = setInterval(handleUnreadMessagesUpdated, 2000);
+    
     return () => {
       window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
       window.removeEventListener('supportTicketCreated', handleSupportTicketCreated as EventListener);
       window.removeEventListener('chatDrawerClosed', handleUnreadMessagesUpdated);
       window.removeEventListener('focus', handleUnreadMessagesUpdated);
       window.removeEventListener('notificationsUpdated', handleUnreadMessagesUpdated);
+      clearInterval(checkInterval);
     };
   }, []);
 

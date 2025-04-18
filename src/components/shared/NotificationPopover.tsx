@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { 
@@ -336,6 +337,10 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
                           Decline
                         </Button>
                       </div>
+                    )}
+
+                    {!notification.read && (
+                      <Badge variant="default" className="mt-1 bg-primary text-white text-[10px] h-5">New</Badge>
                     )}
                   </div>
                 </div>
