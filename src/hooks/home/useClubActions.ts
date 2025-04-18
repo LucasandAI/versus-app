@@ -7,7 +7,7 @@ import { toast } from "@/hooks/use-toast";
 const MAX_CLUBS_PER_USER = 3;
 
 export const useClubActions = () => {
-  const { currentUser } = useApp();
+  const { currentUser, setCurrentUser } = useApp();
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   const [createClubDialogOpen, setCreateClubDialogOpen] = useState(false);
 
@@ -118,9 +118,11 @@ export const useClubActions = () => {
     setCreateClubDialogOpen,
     handleRequestToJoin,
     handleJoinClub,
+    availableClubs
   };
 };
 
+// Define available clubs mock data within the hook file
 const availableClubs = [
   {
     id: 'ac1',

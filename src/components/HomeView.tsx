@@ -30,7 +30,8 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
     createClubDialogOpen,
     setCreateClubDialogOpen,
     handleRequestToJoin,
-    handleJoinClub
+    handleJoinClub,
+    availableClubs
   } = useClubActions();
 
   const { supportTickets, handleCreateSupportTicket } = useSupportActions();
@@ -145,7 +146,7 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
         open={searchDialogOpen}
         onOpenChange={setSearchDialogOpen}
         clubs={availableClubs}
-        onRequestJoin={handleRequestToJoin}
+        onRequestJoin={handleRequestJoin}
       />
 
       <CreateClubDialog
