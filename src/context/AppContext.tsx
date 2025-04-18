@@ -218,6 +218,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             }
           };
         }
+        
+        // Also check and update away club if user is there
+        if (updatedCurrentMatch.awayClub.members.some(m => m.id === user.id)) {
+          const updatedAwayMembers = updatedCurrentMatch.awayClub.members.map(member => {
+            if (member.id === user.id) {
+              return {
+                ...member,
+                name: user.name,
+                avatar: user.avatar
+              };
+            }
+            return member;
+          });
+          
+          updatedCurrentMatch = {
+            ...updatedCurrentMatch,
+            awayClub: {
+              ...updatedCurrentMatch.awayClub,
+              members: updatedAwayMembers
+            }
+          };
+        }
       }
       
       return {

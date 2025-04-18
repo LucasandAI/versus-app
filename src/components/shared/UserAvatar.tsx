@@ -36,8 +36,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   // Force image update by adding timestamp to URL
   const timestamp = Date.now();
   
-  // Use default placeholder if image is empty string or undefined
-  // Add cache-busting parameter to ensure avatar image refreshes
+  // Only add image if it exists and is not empty
   const imageSrc = image && image.trim() !== '' 
     ? `${image}?t=${timestamp}` 
     : undefined;
