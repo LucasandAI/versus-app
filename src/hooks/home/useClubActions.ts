@@ -33,14 +33,12 @@ export const useClubActions = () => {
   const handleJoinClub = (clubId: string, clubName: string) => {
     if (!currentUser) return;
     
-    // Fix club ID comparison - ensure it's a strict comparison
-    const isAlreadyMember = currentUser.clubs.some(club => 
-      club.id === clubId
-    );
-    
-    // Debug the membership check
+    // Debug logging
     console.log('Joining club:', clubId, clubName);
     console.log('Current user clubs:', currentUser.clubs);
+    
+    // Check if user is already a member by comparing club IDs
+    const isAlreadyMember = currentUser.clubs.some(club => club.id === clubId);
     console.log('Is already member:', isAlreadyMember);
     
     if (isAlreadyMember) {
@@ -61,14 +59,15 @@ export const useClubActions = () => {
       return;
     }
     
+    // Get clubs from localStorage or initialize empty array
     const allClubs = localStorage.getItem('clubs') || '[]';
     const clubs = JSON.parse(allClubs);
     
-    // Find the club or create it if it doesn't exist
+    // Find the club in existing clubs or create it if it doesn't exist
     let clubToJoin = clubs.find((club: any) => club.id === clubId);
     
     if (!clubToJoin) {
-      // Try to find the club in available clubs first
+      // Try to find the club in available clubs
       const mockClub = availableClubs.find(club => club.id === clubId);
       
       if (mockClub) {
@@ -103,8 +102,10 @@ export const useClubActions = () => {
     
     // Now we have a club object, add the user as a member
     if (clubToJoin) {
-      // Double check that user isn't already a member
-      const userIsMember = clubToJoin.members.some((member: any) => member.id === currentUser.id);
+      // Double check that user isn't already a member of this specific club
+      const userIsMember = clubToJoin.members.some((member: any) => 
+        member.id === currentUser.id
+      );
       
       if (!userIsMember) {
         // Add user to club members

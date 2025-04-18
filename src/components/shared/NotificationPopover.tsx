@@ -29,11 +29,9 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   const [open, setOpen] = useState(false);
   const unreadCount = notifications.filter(n => !n.read).length;
   
+  // Simply track popover state without automatically marking as read
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
-    
-    // Don't automatically mark notifications as read when opening
-    // This way the badge will remain until explicitly cleared or actioned
   };
 
   const formatTime = (timestamp: string) => {
