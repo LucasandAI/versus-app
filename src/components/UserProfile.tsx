@@ -33,6 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from "@/components/ui/alert-dialog";
+import { useIsMobile } from '@/hooks/use-is-mobile';
 
 const UserProfile: React.FC = () => {
   const { selectedUser, setCurrentView, currentUser, setSelectedUser, setSelectedClub, currentView } = useApp();
@@ -41,6 +42,7 @@ const UserProfile: React.FC = () => {
   const [showMoreAchievements, setShowMoreAchievements] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     setTimeout(() => {
@@ -135,6 +137,10 @@ const UserProfile: React.FC = () => {
     }
   ];
 
+  const handleOpenStravaProfile = () => {
+    window.open('https://www.strava.com/athletes/' + selectedUser?.id, '_blank', 'noopener,noreferrer');
+  };
+
   const handleShareProfile = () => {
     toast({
       title: "Profile shared",
@@ -142,31 +148,24 @@ const UserProfile: React.FC = () => {
     });
   };
 
-  const handleOpenStravaProfile = () => {
-    toast({
-      title: "Opening Strava profile",
-      description: "Redirecting to Strava...",
-    });
-  };
+  const handleSocialLink = (platform: string, username: string) => {
+    if (!username) {
+      toast({
+        title: "No Profile Link",
+        description: `No ${platform} profile has been added yet.`,
+      });
+      return;
+    }
 
-  const handleLogout = () => {
-    setLogoutDialogOpen(false);
-    toast({
-      title: "Logged out",
-      description: "You have been logged out successfully",
-    });
-    setCurrentView('connect');
-  };
+    const urls = {
+      instagram: `https://instagram.com/${username}`,
+      twitter: `https://twitter.com/${username}`,
+      linkedin: `https://linkedin.com/in/${username}`,
+      facebook: `https://facebook.com/${username}`,
+      website: username // Direct URL for website
+    };
 
-  const handleEditProfile = () => {
-    setEditProfileOpen(true);
-  };
-
-  const handleEditSocialLinks = (platform: string) => {
-    toast({
-      title: `Edit ${platform}`,
-      description: `${platform} link update functionality not implemented yet`,
-    });
+    window.open(urls[platform as keyof typeof urls], '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -177,8 +176,8 @@ const UserProfile: React.FC = () => {
         </h1>
       </div>
 
-      <Card className="w-full max-w-md mx-auto mt-4 p-6 rounded-lg">
-        <div className="flex flex-col items-center space-y-4">
+      <Card className={`w-full ${isMobile ? 'mx-4' : 'max-w-md mx-auto'} mt-4 p-6 rounded-lg`}>
+        <div className="flex flex-col space-y-4 w-full">
           {loading ? (
             <Skeleton className="h-24 w-24 rounded-full" />
           ) : (
@@ -195,7 +194,7 @@ const UserProfile: React.FC = () => {
             <p className="text-gray-500">{loading ? <Skeleton className="h-4 w-24 mx-auto" /> : 'Strava Athlete'}</p>
           </div>
 
-          <div className="flex space-x-4">
+          <div className="flex flex-col space-y-2 md:space-y-0 md:space-x-2">
             {isCurrentUserProfile ? (
               <>
                 <TooltipProvider>
@@ -204,7 +203,7 @@ const UserProfile: React.FC = () => {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="rounded-full"
+                        className={`rounded-full ${isMobile ? 'w-full' : ''}`}
                         onClick={handleEditProfile}
                       >
                         <Settings className="h-5 w-5" />
@@ -221,7 +220,11 @@ const UserProfile: React.FC = () => {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="rounded-full">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className={`rounded-full ${isMobile ? 'w-full' : ''}`}
+                          >
                             <Share2 className="h-5 w-5" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -231,7 +234,7 @@ const UserProfile: React.FC = () => {
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="w-[200px]">
                     <DropdownMenuLabel>Share Profile</DropdownMenuLabel>
                     <DropdownMenuItem onClick={handleShareProfile}>
                       <Share2 className="h-4 w-4 mr-2" />
@@ -239,23 +242,23 @@ const UserProfile: React.FC = () => {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuLabel>Social Media</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => toast({ title: "Instagram", description: "Opening Instagram..." })}>
+                    <DropdownMenuItem onClick={() => handleSocialLink('instagram', selectedUser?.instagram || '')}>
                       <Instagram className="h-4 w-4 mr-2" />
                       Instagram
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => toast({ title: "Twitter", description: "Opening Twitter..." })}>
+                    <DropdownMenuItem onClick={() => handleSocialLink('twitter', selectedUser?.twitter || '')}>
                       <Twitter className="h-4 w-4 mr-2" />
                       Twitter
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => toast({ title: "Facebook", description: "Opening Facebook..." })}>
+                    <DropdownMenuItem onClick={() => handleSocialLink('facebook', selectedUser?.facebook || '')}>
                       <Facebook className="h-4 w-4 mr-2" />
                       Facebook
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => toast({ title: "LinkedIn", description: "Opening LinkedIn..." })}>
+                    <DropdownMenuItem onClick={() => handleSocialLink('linkedin', selectedUser?.linkedin || '')}>
                       <Linkedin className="h-4 w-4 mr-2" />
                       LinkedIn
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => toast({ title: "Website", description: "Opening Website..." })}>
+                    <DropdownMenuItem onClick={() => handleSocialLink('website', selectedUser?.website || '')}>
                       <Globe className="h-4 w-4 mr-2" />
                       Website
                     </DropdownMenuItem>
@@ -323,7 +326,10 @@ const UserProfile: React.FC = () => {
             )}
           </div>
 
-          <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={handleOpenStravaProfile}>
+          <Button 
+            className="bg-green-500 hover:bg-green-600 text-white w-full"
+            onClick={handleOpenStravaProfile}
+          >
             Strava Profile
           </Button>
 

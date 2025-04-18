@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Instagram, Linkedin, Globe, Twitter } from "lucide-react";
 import UserAvatar from "@/components/shared/UserAvatar";
 import { toast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface EditProfileDialogProps {
   open: boolean;
@@ -28,8 +29,18 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
   const [linkedin, setLinkedin] = useState("");
   const [twitter, setTwitter] = useState("");
   const [website, setWebsite] = useState("");
+  const isMobile = useIsMobile();
 
   const handleSaveChanges = () => {
+    if (!name.trim()) {
+      toast({
+        title: "Error",
+        description: "Name cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Mock save functionality
     toast({
       title: "Profile Updated",
@@ -40,7 +51,7 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className={`${isMobile ? 'w-[95vw] max-w-[95vw]' : 'sm:max-w-[425px]'}`}>
         <DialogHeader>
           <DialogTitle>Edit Profile</DialogTitle>
         </DialogHeader>
@@ -63,6 +74,7 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
+              required
             />
           </div>
 
@@ -74,6 +86,7 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
               onChange={(e) => setBio(e.target.value)}
               placeholder="Tell us about yourself"
               className="resize-none"
+              rows={3}
             />
           </div>
 
@@ -119,11 +132,11 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
             </div>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className={`${isMobile ? 'flex-col gap-2' : ''}`}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} className={isMobile ? 'w-full' : ''}>
             Cancel
           </Button>
-          <Button onClick={handleSaveChanges}>
+          <Button onClick={handleSaveChanges} className={isMobile ? 'w-full' : ''}>
             Save Changes
           </Button>
         </DialogFooter>
