@@ -33,7 +33,7 @@ export const useClubActions = () => {
   const handleJoinClub = (clubId: string, clubName: string) => {
     if (!currentUser) return;
     
-    // Check if user is already a member of this club
+    // Fixed check for existing membership - exact string comparison for clubId
     const isAlreadyMember = currentUser.clubs.some(club => club.id === clubId);
     
     if (isAlreadyMember) {
@@ -57,9 +57,11 @@ export const useClubActions = () => {
     const allClubs = localStorage.getItem('clubs') || '[]';
     const clubs = JSON.parse(allClubs);
     
+    // Find the club or create it if it doesn't exist
     let clubToJoin = clubs.find((club: any) => club.id === clubId);
     
     if (!clubToJoin) {
+      // Try to find the club in available clubs first
       const mockClub = availableClubs.find(club => club.id === clubId);
       
       if (mockClub) {
@@ -76,6 +78,7 @@ export const useClubActions = () => {
         
         clubs.push(clubToJoin);
       } else {
+        // Create a new club if not found in available clubs
         clubToJoin = {
           id: clubId,
           name: clubName,
@@ -91,11 +94,13 @@ export const useClubActions = () => {
       }
     }
     
+    // Now we have a club object, add the user as a member
     if (clubToJoin) {
-      // Check again if the user is already a member in the clubToJoin object
+      // Double check that user isn't already a member
       const userIsMember = clubToJoin.members.some((member: any) => member.id === currentUser.id);
       
       if (!userIsMember) {
+        // Add user to club members
         clubToJoin.members.push({
           id: currentUser.id,
           name: currentUser.name,
@@ -103,21 +108,34 @@ export const useClubActions = () => {
           isAdmin: false
         });
         
+        // Save updated clubs to localStorage
         localStorage.setItem('clubs', JSON.stringify(clubs));
         
+        // Update user's club membership
         const updatedUser = {
           ...currentUser,
           clubs: [...currentUser.clubs, clubToJoin]
         };
         
         setCurrentUser(updatedUser);
-        
         localStorage.setItem('currentUser', JSON.stringify(updatedUser));
         
+        // Show success message
         toast({
           title: "Club Joined",
           description: `You have successfully joined ${clubName}!`
         });
+        
+        // Remove the invitation notification
+        const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+        const updatedNotifications = notifications.filter(
+          (n: any) => !(n.type === 'invitation' && n.clubId === clubId)
+        );
+        localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+        
+        // Dispatch event to update notifications
+        const event = new CustomEvent('notificationsUpdated');
+        window.dispatchEvent(event);
       } else {
         toast({
           title: "Already a Member",
@@ -157,7 +175,7 @@ const availableClubs = [
   },
   {
     id: 'ac3',
-    name: 'Urban Pacers',
+    name: 'Urban Pacers', // This is different from 'Urban Runners' in the notification
     division: 'Bronze',
     tier: 5,
     members: 2

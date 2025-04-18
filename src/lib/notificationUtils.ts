@@ -48,7 +48,7 @@ export const simulateUnreadNotifications = () => {
       userName: 'Sarah Pacer',
       userAvatar: '/placeholder.svg',
       clubId: 'ac3',
-      clubName: 'Urban Runners',
+      clubName: 'Urban Pacers', // Fixed to match available club
       distance: 0,
       timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
       read: false,
@@ -76,5 +76,9 @@ export const simulateUnreadNotifications = () => {
 
 // If this code is run in the browser, immediately simulate notifications
 if (typeof window !== 'undefined') {
-  simulateUnreadNotifications();
+  // Only simulate if needed - don't override existing notifications
+  const existingNotifications = localStorage.getItem('notifications');
+  if (!existingNotifications) {
+    simulateUnreadNotifications();
+  }
 }
