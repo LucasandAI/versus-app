@@ -16,6 +16,17 @@ const ClubMembersList: React.FC<ClubMembersListProps> = ({
   currentMatch, 
   onSelectMember 
 }) => {
+  // Create a map to deduplicate members by ID
+  const uniqueMembers = members.reduce((acc, member) => {
+    if (!acc.has(member.id)) {
+      acc.set(member.id, member);
+    }
+    return acc;
+  }, new Map<string, ClubMember>());
+  
+  // Convert back to array
+  const deduplicatedMembers = Array.from(uniqueMembers.values());
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -25,13 +36,13 @@ const ClubMembersList: React.FC<ClubMembersListProps> = ({
             Members
           </CardTitle>
           <span className="text-xs text-gray-500">
-            {members.length}/5 members
+            {deduplicatedMembers.length}/5 members
           </span>
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {members.map((member) => (
+          {deduplicatedMembers.map((member) => (
             <div 
               key={member.id} 
               className="flex items-center justify-between cursor-pointer"

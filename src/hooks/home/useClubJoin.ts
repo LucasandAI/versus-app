@@ -1,12 +1,12 @@
 
 import { useApp } from '@/context/AppContext';
-import { getClubToJoin, isUserClubMember } from '@/utils/clubUtils';
+import { getClubToJoin } from '@/utils/clubUtils';
 import { useClubValidation } from './useClubValidation';
 import { toast } from "@/hooks/use-toast";
 
 export const useClubJoin = () => {
   const { currentUser, setCurrentUser } = useApp();
-  const { validateClubJoin, validateClubRequest, validateExistingMembership } = useClubValidation();
+  const { validateClubJoin, validateClubRequest } = useClubValidation();
 
   const handleRequestToJoin = (clubId: string, clubName: string) => {
     if (validateClubJoin(currentUser, clubName)) {
@@ -50,6 +50,9 @@ export const useClubJoin = () => {
       clubToJoin.members = [];
     }
     
+    // Remove any existing instances of the user in the club members list to prevent duplicates
+    clubToJoin.members = clubToJoin.members.filter(member => member.id !== currentUser.id);
+    
     // Add user to club members
     clubToJoin.members.push({
       id: currentUser.id,
@@ -72,7 +75,7 @@ export const useClubJoin = () => {
     
     const updatedUser = {
       ...currentUser,
-      clubs: [...currentUser.clubs, clubToJoin]
+      clubs: [...currentUser.clubs.filter(club => club.id !== clubId), clubToJoin]
     };
     
     setCurrentUser(updatedUser);

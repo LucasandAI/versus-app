@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { 
   Popover, 
@@ -29,10 +29,18 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   const [open, setOpen] = useState(false);
   const unreadCount = notifications.filter(n => !n.read).length;
   
-  // When the popover opens, we don't automatically mark notifications as read
-  // User needs to interact with them or click "Mark as Read" button
+  // When the popover opens, mark all notifications as read
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
+    
+    // Mark all as read when opening the popover
+    if (isOpen && unreadCount > 0) {
+      notifications.forEach(notification => {
+        if (!notification.read) {
+          onMarkAsRead(notification.id);
+        }
+      });
+    }
   };
 
   const formatTime = (timestamp: string) => {
