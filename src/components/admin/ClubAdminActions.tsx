@@ -12,6 +12,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Edit, UserMinus, Users, ShieldAlert, UserCog } from 'lucide-react';
 import EditClubDialog from './EditClubDialog';
 import JoinRequestsDialog from './JoinRequestsDialog';
+import { useApp } from '@/context/AppContext';
 
 interface ClubAdminActionsProps {
   club: Club;
@@ -21,6 +22,7 @@ interface ClubAdminActionsProps {
 const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({ club, currentUser }) => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [requestsDialogOpen, setRequestsDialogOpen] = useState(false);
+  const { setCurrentUser, setSelectedClub } = useApp();
 
   // Check if the current user is an admin of this club
   const isAdmin = currentUser && club.members.some(member => 
@@ -30,6 +32,40 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({ club, currentUser }
   if (!isAdmin) return null;
 
   const handleRemoveMember = (memberId: string, memberName: string) => {
+    // Create a new members array without the removed member
+    const updatedMembers = club.members.filter(member => member.id !== memberId);
+    
+    // Update the club with the new members array
+    const updatedClub = {
+      ...club,
+      members: updatedMembers
+    };
+    
+    // Update the selected club with the changes
+    setSelectedClub(updatedClub);
+    
+    // If the current user is also in other clubs, update their clubs list
+    if (currentUser) {
+      setCurrentUser(prev => {
+        if (!prev) return prev;
+        
+        const updatedUserClubs = prev.clubs.map(userClub => {
+          if (userClub.id === club.id) {
+            return {
+              ...userClub,
+              members: updatedMembers
+            };
+          }
+          return userClub;
+        });
+        
+        return {
+          ...prev,
+          clubs: updatedUserClubs
+        };
+      });
+    }
+    
     toast({
       title: "Member Removed",
       description: `${memberName} has been removed from the club.`,
@@ -37,6 +73,48 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({ club, currentUser }
   };
   
   const handleMakeAdmin = (memberId: string, memberName: string) => {
+    // Create a new members array with the updated admin status
+    const updatedMembers = club.members.map(member => {
+      if (member.id === memberId) {
+        return {
+          ...member,
+          isAdmin: true
+        };
+      }
+      return member;
+    });
+    
+    // Update the club with the new members array
+    const updatedClub = {
+      ...club,
+      members: updatedMembers
+    };
+    
+    // Update the selected club with the changes
+    setSelectedClub(updatedClub);
+    
+    // If the current user is also in other clubs, update their clubs list
+    if (currentUser) {
+      setCurrentUser(prev => {
+        if (!prev) return prev;
+        
+        const updatedUserClubs = prev.clubs.map(userClub => {
+          if (userClub.id === club.id) {
+            return {
+              ...userClub,
+              members: updatedMembers
+            };
+          }
+          return userClub;
+        });
+        
+        return {
+          ...prev,
+          clubs: updatedUserClubs
+        };
+      });
+    }
+    
     toast({
       title: "Admin Role Granted",
       description: `${memberName} is now an admin of the club.`,
