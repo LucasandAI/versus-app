@@ -265,9 +265,17 @@ const ClubDetail: React.FC = () => {
 
             <div className="flex justify-between items-center mb-3">
               <div className="text-center">
-                <div className="bg-gray-200 h-14 w-14 mx-auto rounded-full flex items-center justify-center">
-                  <span className="font-bold text-sm">{currentMatch.homeClub.name.substring(0, 2)}</span>
-                </div>
+                {currentMatch.homeClub.logo ? (
+                  <img 
+                    src={currentMatch.homeClub.logo} 
+                    alt={currentMatch.homeClub.name} 
+                    className="h-14 w-14 mx-auto rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="bg-gray-200 h-14 w-14 mx-auto rounded-full flex items-center justify-center">
+                    <span className="font-bold text-sm">{currentMatch.homeClub.name.substring(0, 2)}</span>
+                  </div>
+                )}
                 <h3 className="mt-1 font-medium text-sm">{currentMatch.homeClub.name}</h3>
                 <p className="font-bold text-lg">{currentMatch.homeClub.totalDistance.toFixed(1)} km</p>
               </div>
@@ -277,9 +285,17 @@ const ClubDetail: React.FC = () => {
               </div>
 
               <div className="text-center">
-                <div className="bg-gray-200 h-14 w-14 mx-auto rounded-full flex items-center justify-center">
-                  <span className="font-bold text-sm">{currentMatch.awayClub.name.substring(0, 2)}</span>
-                </div>
+                {currentMatch.awayClub.logo ? (
+                  <img 
+                    src={currentMatch.awayClub.logo} 
+                    alt={currentMatch.awayClub.name} 
+                    className="h-14 w-14 mx-auto rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="bg-gray-200 h-14 w-14 mx-auto rounded-full flex items-center justify-center">
+                    <span className="font-bold text-sm">{currentMatch.awayClub.name.substring(0, 2)}</span>
+                  </div>
+                )}
                 <h3 className="mt-1 font-medium text-sm">{currentMatch.awayClub.name}</h3>
                 <p className="font-bold text-lg">{currentMatch.awayClub.totalDistance.toFixed(1)} km</p>
               </div>

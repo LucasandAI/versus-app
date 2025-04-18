@@ -38,7 +38,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
       className={cn(sizeClasses[size], className, onClick ? 'cursor-pointer' : '')}
       onClick={onClick}
     >
-      <AvatarImage src={image} alt={name} />
+      <AvatarImage src={image} alt={name} className="object-cover" />
       <AvatarFallback className="bg-secondary text-secondary-foreground">
         {getInitials(name)}
       </AvatarFallback>

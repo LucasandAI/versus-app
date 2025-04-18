@@ -48,7 +48,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ clubs, selectedClub, onSelect
               >
                 <div className="flex-shrink-0 mr-2">
                   {club.logo ? (
-                    <img src={club.logo} alt={club.name} className="h-8 w-8 rounded-full" />
+                    <img src={club.logo} alt={club.name} className="h-8 w-8 rounded-full object-cover" />
                   ) : (
                     <div className="bg-gray-200 h-8 w-8 rounded-full flex items-center justify-center">
                       <span className="font-bold text-xs text-gray-700">{club.name.substring(0, 2)}</span>
@@ -60,11 +60,11 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ clubs, selectedClub, onSelect
                   <div className="flex items-center">
                     <Popover>
                       <PopoverTrigger asChild>
-                        <button className="text-xs text-gray-500 hover:text-primary flex items-center" onClick={(e) => e.stopPropagation()}>
+                        <div className="text-xs text-gray-500 hover:text-primary flex items-center">
                           <Users className="h-3 w-3 mr-1" />
                           {club.members.length} members
                           <ChevronDown className="h-3 w-3 ml-1" />
-                        </button>
+                        </div>
                       </PopoverTrigger>
                       <PopoverContent className="w-60 p-2" align="start">
                         <h4 className="text-sm font-medium mb-2">Club Members</h4>

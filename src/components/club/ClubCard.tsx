@@ -34,8 +34,14 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser })
       onClick={() => onSelectClub(club)}
     >
       <div className="flex items-center gap-3 mb-4">
-        <div className="bg-gray-200 h-12 w-12 rounded-full flex items-center justify-center">
-          <span className="font-bold text-gray-700">{club.name.substring(0, 2)}</span>
+        <div className="flex-shrink-0">
+          {club.logo ? (
+            <img src={club.logo} alt={club.name} className="h-12 w-12 rounded-full object-cover" />
+          ) : (
+            <div className="bg-gray-200 h-12 w-12 rounded-full flex items-center justify-center">
+              <span className="font-bold text-gray-700">{club.name.substring(0, 2)}</span>
+            </div>
+          )}
         </div>
         <div>
           <h3 className="font-medium">{club.name}</h3>

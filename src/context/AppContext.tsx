@@ -39,7 +39,14 @@ const mockUser: User = {
       ],
       matchHistory: []
     }
-  ]
+  ],
+  bio: '',
+  instagram: '',
+  twitter: '',
+  facebook: '',
+  linkedin: '',
+  website: '',
+  tiktok: ''
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -76,7 +83,40 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             isAdmin: true
           }
         ],
-        matchHistory: []
+        matchHistory: [],
+        // Add a mock current match for newly created clubs
+        currentMatch: {
+          id: `m-${Math.random().toString(36).substr(2, 9)}`,
+          homeClub: {
+            id: Math.random().toString(36).substr(2, 9),
+            name: name,
+            logo: logo,
+            totalDistance: 25.5,
+            members: [
+              {
+                id: currentUser.id,
+                name: currentUser.name,
+                avatar: currentUser.avatar,
+                isAdmin: true,
+                distanceContribution: 25.5
+              }
+            ]
+          },
+          awayClub: {
+            id: Math.random().toString(36).substr(2, 9),
+            name: 'Challenger Team',
+            logo: '/placeholder.svg',
+            totalDistance: 22.3,
+            members: [
+              { id: 'c1', name: 'Runner 1', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 7.5 },
+              { id: 'c2', name: 'Runner 2', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 7.8 },
+              { id: 'c3', name: 'Runner 3', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 7.0 }
+            ]
+          },
+          startDate: new Date(new Date().getTime() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          endDate: new Date(new Date().getTime() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          status: 'active'
+        }
       };
 
       setCurrentUser(prev => {
