@@ -11,9 +11,10 @@ interface ChatMessagesProps {
     name: string;
     avatar?: string;
   }>;
+  isSupport?: boolean;
 }
 
-const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, clubMembers }) => {
+const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, clubMembers, isSupport = false }) => {
   const { setCurrentView, setSelectedUser, currentUser } = useApp();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -41,7 +42,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, clubMembers }) =>
   };
 
   const handleUserClick = (senderId: string) => {
-    if (isCurrentUser(senderId)) return; // Don't navigate to your own profile
+    if (isCurrentUser(senderId) || isSupport) return; // Don't navigate to your own profile or for support messages
     
     const member = clubMembers.find(m => m.id === senderId);
     if (member) {
@@ -76,18 +77,19 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, clubMembers }) =>
                 name={message.sender.name} 
                 image={message.sender.avatar} 
                 size="sm" 
-                className="mr-2 flex-shrink-0 cursor-pointer"
-                onClick={() => handleUserClick(message.sender.id)}
+                className={`mr-2 flex-shrink-0 ${!isSupport && 'cursor-pointer'}`}
+                onClick={!isSupport ? () => handleUserClick(message.sender.id) : undefined}
               />
             )}
             
             <div className={`max-w-[70%] ${isCurrentUser(message.sender.id) ? 'order-2' : 'order-1'}`}>
               {!isCurrentUser(message.sender.id) && (
                 <button 
-                  className="text-xs text-gray-500 mb-1 cursor-pointer hover:text-primary text-left"
-                  onClick={() => handleUserClick(message.sender.id)}
+                  className={`text-xs text-gray-500 mb-1 ${!isSupport && 'cursor-pointer hover:text-primary'} text-left`}
+                  onClick={!isSupport ? () => handleUserClick(message.sender.id) : undefined}
                 >
                   {message.sender.name}
+                  {message.isSupport && <span className="ml-1 text-blue-500">(Support)</span>}
                 </button>
               )}
               
@@ -95,6 +97,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, clubMembers }) =>
                 className={`rounded-lg p-3 text-sm break-words ${
                   isCurrentUser(message.sender.id) 
                     ? 'bg-primary text-white' 
+                    : message.isSupport
+                    ? 'bg-blue-100 text-blue-800'
                     : 'bg-gray-100 text-gray-800'
                 }`}
               >
