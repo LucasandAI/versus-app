@@ -1,7 +1,8 @@
-
 import React from 'react';
 import Button from './shared/Button';
 import { useApp } from '@/context/AppContext';
+import StravaLogo from '@/assets/strava-logo-connect.png';
+import PoweredByStravaLogo from '@/assets/strava-powered-by.png';
 
 const ConnectScreen: React.FC = () => {
   const { connectToStrava } = useApp();
@@ -65,12 +66,26 @@ const ConnectScreen: React.FC = () => {
             size="lg" 
             fullWidth 
             onClick={connectToStrava}
+            className="flex items-center justify-center gap-2"
           >
-            Login with Strava
+            <img 
+              src={StravaLogo} 
+              alt="Connect with Strava" 
+              className="h-6 w-auto mr-2" 
+            />
+            Connect with Strava
           </Button>
           <p className="text-xs text-gray-500">
             We'll sync your running activities automatically
           </p>
+        </div>
+
+        <div className="mt-8 flex justify-center">
+          <img 
+            src={PoweredByStravaLogo} 
+            alt="Powered by Strava" 
+            className="h-8 w-auto" 
+          />
         </div>
       </div>
     </div>
