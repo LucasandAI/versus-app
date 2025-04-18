@@ -25,12 +25,14 @@ export const useNotifications = ({ setNotifications }: UseNotificationsProps) =>
       loadNotificationsFromStorage();
     };
     
+    // Add event listeners for updates
     window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
-    window.addEventListener('focus', handleNotificationsUpdated); // Reload on window focus
+    
+    // No longer reload notifications on window focus to avoid resetting read status
+    // This prevents notifications from reappearing after navigation
 
     return () => {
       window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
-      window.removeEventListener('focus', handleNotificationsUpdated);
     };
   }, [setNotifications]);
 };

@@ -26,10 +26,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   const { setCurrentView, setSelectedClub } = useApp();
 
   const handleClubClick = () => {
-    // Mark as read when club is clicked - explicit user interaction
-    if (!notification.read) {
-      handleNotification(notification.id, 'read');
-    }
+    // The notification should already be marked as read by opening the popover
+    // No need to mark it as read again when clicking on club
     
     const club = findClubFromStorage(notification.clubId);
     
@@ -49,17 +47,15 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   };
 
   const handleUserItemClick = () => {
-    // Mark as read when user is clicked - explicit user interaction
-    if (!notification.read) {
-      handleNotification(notification.id, 'read');
-    }
+    // The notification should already be marked as read by opening the popover
+    // No need to mark it as read again when clicking on user
     
     onUserClick(notification.userId, notification.userName);
   };
 
   const handleJoinClub = () => {
     if (onJoinClub) {
-      // When joining club, completely remove the notification - explicit user interaction
+      // When joining club, completely remove the notification from storage
       handleNotification(notification.id, 'delete');
       onJoinClub(notification.clubId, notification.clubName);
     }
@@ -67,12 +63,14 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
 
   const handleDeclineInvite = () => {
     if (onDeclineInvite) {
-      // When declining invitation, completely remove the notification - explicit user interaction
+      // When declining invitation, completely remove the notification from storage
       handleNotification(notification.id, 'delete');
       onDeclineInvite(notification.id);
     }
   };
 
+  // Notification should be highlighted only if it's still marked as unread in storage
+  // But all should be read once the popover is opened
   const isUnread = !notification.read;
   const bgClass = isUnread ? "bg-blue-50" : "";
 

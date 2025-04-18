@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/popover';
 import { NotificationList } from '../notifications/NotificationList';
 import { Notification } from '@/types';
+import { markAllNotificationsAsRead } from '@/lib/notificationUtils';
 
 interface NotificationPopoverProps {
   notifications: Notification[];
@@ -29,13 +30,15 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   const [open, setOpen] = useState(false);
   const unreadCount = notifications.filter(n => !n.read).length;
   
-  // When popover opens, display notifications but don't mark them as read
-  // Only track that they've been seen by the user
+  // When the popover opens, mark all notifications as read immediately
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
     
-    // No automatic marking as read when opening the popover
-    // Notifications will remain unread until user interaction
+    // Mark all as read when opening the popover
+    if (isOpen && unreadCount > 0) {
+      // Use the utility function to mark all as read
+      markAllNotificationsAsRead();
+    }
   };
 
   const formatTime = (timestamp: string) => {
@@ -68,20 +71,9 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
       <PopoverContent className="w-80 p-0 max-w-[90vw]" align="end">
         <NotificationList
           notifications={notifications}
-          onUserClick={(userId, userName) => {
-            // Only mark specific notification as read when user clicks
-            // notifications
-            //   .filter(n => n.userId === userId && !n.read)
-            //   .forEach(n => onMarkAsRead(n.id));
-            onUserClick(userId, userName);
-          }}
-          onJoinClub={(clubId, clubName) => {
-            // Only mark as read when user explicitly handles notification
-            if (onJoinClub) onJoinClub(clubId, clubName);
-          }}
-          onDeclineInvite={(id) => {
-            if (onDeclineInvite) onDeclineInvite(id);
-          }}
+          onUserClick={onUserClick}
+          onJoinClub={onJoinClub}
+          onDeclineInvite={onDeclineInvite}
           onClearAll={onClearAll}
           formatTime={formatTime}
         />

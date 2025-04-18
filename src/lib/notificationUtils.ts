@@ -110,15 +110,25 @@ export const getNotificationsFromStorage = (): Notification[] => {
 
 // Mark all notifications as read
 export const markAllNotificationsAsRead = () => {
+  console.log("Marking all notifications as read");
   const storedNotifications = localStorage.getItem('notifications');
   if (!storedNotifications) return;
   
   try {
     const notifications: Notification[] = JSON.parse(storedNotifications);
+    
+    // If there are no unread notifications, do nothing
+    if (notifications.every(n => n.read)) {
+      console.log("All notifications are already read");
+      return notifications;
+    }
+    
     const updatedNotifications = notifications.map(notification => ({
       ...notification,
       read: true
     }));
+    
+    console.log("Updated all notifications to read:", updatedNotifications);
     
     // Save back to localStorage
     localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
