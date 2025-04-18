@@ -1,7 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { ChatMessage, ChatState, SupportTicket } from '@/types/chat';
-import { Club } from '@/types';
 
 export const useChat = (open: boolean, onNewMessage?: (count: number) => void) => {
   const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({});
@@ -39,11 +38,21 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     const handleFocus = () => {
       loadDataFromStorage();
     };
+
+    // Listen for notifications update events
+    const handleNotificationsUpdated = () => {
+      loadDataFromStorage();
+      setRefreshKey(Date.now()); // Force UI refresh
+    };
     
     window.addEventListener('focus', handleFocus);
+    window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
+    window.addEventListener('supportTicketCreated', handleNotificationsUpdated);
     
     return () => {
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
+      window.removeEventListener('supportTicketCreated', handleNotificationsUpdated);
     };
   }, [refreshKey]); // Added refreshKey as a dependency to reload when it changes
 
@@ -195,6 +204,11 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     
     // Force a refresh to ensure the new ticket appears in the list
     setRefreshKey(Date.now());
+    
+    // Dispatch a custom event for support ticket creation
+    window.dispatchEvent(new CustomEvent('supportTicketCreated', { 
+      detail: { ticketId, count: 1 }
+    }));
   };
 
   // Add the ability to delete a chat or support ticket

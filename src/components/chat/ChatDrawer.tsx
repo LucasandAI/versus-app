@@ -49,11 +49,39 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
       // Load the latest tickets from localStorage
       const storedTickets = localStorage.getItem('supportTickets');
       if (storedTickets) {
-        const parsedTickets = JSON.parse(storedTickets);
-        setLocalSupportTickets(parsedTickets);
+        try {
+          const parsedTickets = JSON.parse(storedTickets);
+          setLocalSupportTickets(parsedTickets);
+        } catch (error) {
+          console.error("Error parsing support tickets:", error);
+        }
       }
     }
   }, [open, externalSupportTickets, refreshKey]);
+
+  // Handle support ticket updates
+  useEffect(() => {
+    const handleSupportTicketCreated = () => {
+      // Load the latest tickets when a new ticket is created
+      const storedTickets = localStorage.getItem('supportTickets');
+      if (storedTickets) {
+        try {
+          const parsedTickets = JSON.parse(storedTickets);
+          setLocalSupportTickets(parsedTickets);
+        } catch (error) {
+          console.error("Error parsing support tickets:", error);
+        }
+      }
+    };
+    
+    window.addEventListener('supportTicketCreated', handleSupportTicketCreated);
+    window.addEventListener('notificationsUpdated', handleSupportTicketCreated);
+    
+    return () => {
+      window.removeEventListener('supportTicketCreated', handleSupportTicketCreated);
+      window.removeEventListener('notificationsUpdated', handleSupportTicketCreated);
+    };
+  }, []);
 
   // Notify when the drawer is opened/closed
   useEffect(() => {

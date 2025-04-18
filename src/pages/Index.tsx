@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { AppProvider, useApp } from '@/context/AppContext';
 import ConnectScreen from '@/components/ConnectScreen';
@@ -60,8 +59,8 @@ const AppContent: React.FC = () => {
     window.addEventListener('focus', handleUnreadMessagesUpdated);
     window.addEventListener('notificationsUpdated', handleUnreadMessagesUpdated);
     
-    // Make sure to persistently check for notification changes when app loads
-    const checkInterval = setInterval(handleUnreadMessagesUpdated, 2000);
+    // Make sure to check for notification changes frequently for better UX
+    const checkInterval = setInterval(handleUnreadMessagesUpdated, 1000);
     
     return () => {
       window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
@@ -91,8 +90,24 @@ const AppContent: React.FC = () => {
   };
 
   const handleCreateSupportChat = (ticketId: string, subject: string, message: string) => {
-    // Update local state immediately
+    // Update local state immediately 
     setChatNotifications(prev => prev + 1);
+    
+    // Force a reload of unread counts from localStorage
+    const unreadMessages = localStorage.getItem('unreadMessages');
+    if (unreadMessages) {
+      try {
+        const unreadMap = JSON.parse(unreadMessages);
+        // Calculate total unread count
+        const totalUnread = Object.values(unreadMap).reduce(
+          (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 
+          0
+        );
+        setChatNotifications(Number(totalUnread));
+      } catch (error) {
+        console.error("Error parsing unread messages:", error);
+      }
+    }
     
     // Dispatch event to notify other components
     const event = new CustomEvent('unreadMessagesUpdated');
