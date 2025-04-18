@@ -28,6 +28,8 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   onDeclineInvite
 }) => {
   const [open, setOpen] = useState(false);
+  
+  // Count notifications that haven't been read yet
   const unreadCount = notifications.filter(n => !n.read).length;
   
   // When the popover opens, mark all notifications as read immediately
