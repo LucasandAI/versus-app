@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
 import { Club } from '@/types';
+import { SupportTicket } from '@/types/chat';
 import UserAvatar from '../shared/UserAvatar';
-import { ChevronDown, Users } from 'lucide-react';
+import { ChevronDown, Users, HelpCircle } from 'lucide-react';
 import { 
   Popover,
   PopoverContent,
@@ -13,14 +14,20 @@ import { useApp } from '@/context/AppContext';
 interface ChatSidebarProps {
   clubs: Club[];
   selectedClub: Club | null;
+  selectedTicket: SupportTicket | null;
+  supportTickets: SupportTicket[];
   onSelectClub: (club: Club) => void;
+  onSelectTicket: (ticket: SupportTicket) => void;
   unreadCounts?: Record<string, number>;
 }
 
 const ChatSidebar: React.FC<ChatSidebarProps> = ({ 
   clubs, 
   selectedClub, 
+  selectedTicket,
+  supportTickets,
   onSelectClub,
+  onSelectTicket,
   unreadCounts = {}
 }) => {
   const { setCurrentView, setSelectedUser } = useApp();
@@ -39,6 +46,45 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
   return (
     <div className="w-[240px] border-r overflow-auto">
+      {supportTickets.length > 0 && (
+        <div className="p-3">
+          <h3 className="text-sm font-medium mb-2">Support Tickets</h3>
+          
+          <div className="space-y-1">
+            {supportTickets.map((ticket) => (
+              <button
+                key={`ticket-${ticket.id}-${refreshKey}`}
+                className={`w-full flex items-center p-2 rounded-md text-left transition-colors ${
+                  selectedTicket?.id === ticket.id 
+                    ? 'bg-primary/10 text-primary'
+                    : 'hover:bg-gray-100'
+                }`}
+                onClick={() => onSelectTicket(ticket)}
+              >
+                <div className="flex-shrink-0 mr-2">
+                  <div className="bg-blue-100 text-blue-700 h-8 w-8 rounded-full flex items-center justify-center">
+                    <HelpCircle className="h-4 w-4" />
+                  </div>
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium truncate">{ticket.subject}</p>
+                    {unreadCounts[ticket.id] > 0 && (
+                      <span className="ml-1 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
+                        {unreadCounts[ticket.id] > 9 ? '9+' : unreadCounts[ticket.id]}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 truncate">
+                    {new Date(ticket.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="p-3">
         <h3 className="text-sm font-medium mb-2">Your Clubs</h3>
         

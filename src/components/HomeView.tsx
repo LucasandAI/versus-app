@@ -1,10 +1,13 @@
+
 import React, { useState } from 'react';
 import { MessageCircle, Plus, Search, UserPlus, X, Bell } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from './shared/UserAvatar';
 import { Club } from '@/types';
+import { SupportTicket } from '@/types/chat';
 import { toast } from "@/components/ui/use-toast";
 import ChatDrawer from './chat/ChatDrawer';
+import SupportPopover from './shared/SupportPopover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import Button from './shared/Button';
@@ -179,6 +182,9 @@ const HomeView: React.FC = () => {
       read: true
     }
   ]);
+  
+  // Add support tickets state
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
 
   const userClubs = currentUser?.clubs || [];
   const isAtClubCapacity = userClubs.length >= MAX_CLUBS_PER_USER;
@@ -254,6 +260,34 @@ const HomeView: React.FC = () => {
 
   const handleClearAllNotifications = () => {
     setNotifications([]);
+  };
+
+  const handleCreateSupportTicket = (ticketId: string, subject: string, message: string) => {
+    if (!currentUser) return;
+    
+    const newTicket: SupportTicket = {
+      id: ticketId,
+      subject,
+      createdAt: new Date().toISOString(),
+      messages: [
+        {
+          id: Date.now().toString(),
+          text: message,
+          sender: {
+            id: currentUser.id,
+            name: currentUser.name,
+            avatar: currentUser.avatar
+          },
+          timestamp: new Date().toISOString(),
+          isSupport: false
+        }
+      ]
+    };
+    
+    setSupportTickets(prev => [...prev, newTicket]);
+    
+    // Open chat drawer to show the new ticket
+    setChatDrawerOpen(true);
   };
 
   const filteredClubs = availableClubs.filter(club => 
@@ -360,6 +394,7 @@ const HomeView: React.FC = () => {
         onOpenChange={setChatDrawerOpen} 
         clubs={userClubs}
         onNewMessage={(count) => setUnreadMessages(count)} 
+        supportTickets={supportTickets}
       />
 
       <Dialog open={searchDialogOpen} onOpenChange={setSearchDialogOpen}>
@@ -433,6 +468,8 @@ const HomeView: React.FC = () => {
         open={createClubDialogOpen}
         onOpenChange={setCreateClubDialogOpen}
       />
+      
+      <SupportPopover onCreateSupportChat={handleCreateSupportTicket} />
     </div>
   );
 };

@@ -72,7 +72,6 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
       
       <AvatarFallback 
         className="bg-primary/10 text-primary font-bold"
-        delayMs={0}
       >
         {initials}
       </AvatarFallback>

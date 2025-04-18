@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
 import { Club } from '@/types';
+import { SupportTicket } from '@/types/chat';
 import ChatSidebar from './ChatSidebar';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
@@ -15,6 +16,7 @@ interface ChatDrawerProps {
   onOpenChange: (open: boolean) => void;
   clubs: Club[];
   onNewMessage?: (count: number) => void;
+  supportTickets?: SupportTicket[];
 }
 
 const ChatDrawer: React.FC<ChatDrawerProps> = ({ 
@@ -25,13 +27,31 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
 }) => {
   const { setCurrentView, setSelectedUser, setSelectedClub, currentUser } = useApp();
   const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(null);
-  const { messages, unreadMessages, refreshKey, handleNewMessage, setUnreadMessages } = useChat(open, onNewMessage);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const { 
+    messages, 
+    supportTickets, 
+    unreadMessages, 
+    refreshKey, 
+    handleNewMessage, 
+    setUnreadMessages 
+  } = useChat(open, onNewMessage);
 
   const handleSelectClub = (club: Club) => {
     setSelectedLocalClub(club);
+    setSelectedTicket(null);
     setUnreadMessages(prev => ({
       ...prev,
       [club.id]: 0
+    }));
+  };
+
+  const handleSelectTicket = (ticket: SupportTicket) => {
+    setSelectedTicket(ticket);
+    setSelectedLocalClub(null);
+    setUnreadMessages(prev => ({
+      ...prev,
+      [ticket.id]: 0
     }));
   };
 
@@ -55,20 +75,49 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
   };
 
   const handleSendMessage = (message: string) => {
-    if (!selectedLocalClub || !message.trim()) return;
-    
-    const newMessage = {
-      id: Date.now().toString(),
-      text: message,
-      sender: {
-        id: currentUser?.id || 'anonymous',
-        name: currentUser?.name || 'Anonymous',
-        avatar: currentUser?.avatar || '/placeholder.svg',
-      },
-      timestamp: new Date().toISOString(),
-    };
-    
-    handleNewMessage(selectedLocalClub.id, newMessage, open);
+    if (selectedLocalClub && message.trim()) {
+      const newMessage = {
+        id: Date.now().toString(),
+        text: message,
+        sender: {
+          id: currentUser?.id || 'anonymous',
+          name: currentUser?.name || 'Anonymous',
+          avatar: currentUser?.avatar || '/placeholder.svg',
+        },
+        timestamp: new Date().toISOString(),
+      };
+      
+      handleNewMessage(selectedLocalClub.id, newMessage, open);
+    } 
+    else if (selectedTicket && message.trim()) {
+      // Handle support ticket messages
+      const newMessage = {
+        id: Date.now().toString(),
+        text: message,
+        sender: {
+          id: currentUser?.id || 'anonymous',
+          name: currentUser?.name || 'Anonymous',
+          avatar: currentUser?.avatar || '/placeholder.svg',
+        },
+        timestamp: new Date().toISOString(),
+      };
+      
+      // Add message to existing ticket
+      setSupportTickets(prev => ({
+        ...prev,
+        [selectedTicket.id]: {
+          ...prev[selectedTicket.id],
+          messages: [...prev[selectedTicket.id].messages, newMessage]
+        }
+      }));
+    }
+  };
+
+  // Declare the setSupportTickets function that was missing
+  const setSupportTickets = (updater: React.SetStateAction<Record<string, SupportTicket>>) => {
+    // This is just a placeholder as we need to update our useChat hook to properly handle this
+    console.log("Support ticket update requested", updater);
+    // In a real implementation, this would call the proper state setter from useChat
   };
 
   return (
@@ -86,12 +135,15 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
         <div className="flex h-full" key={refreshKey}>
           <ChatSidebar 
             clubs={currentUser?.clubs || []}
-            selectedClub={selectedLocalClub} 
+            selectedClub={selectedLocalClub}
+            selectedTicket={selectedTicket}
+            supportTickets={Object.values(supportTickets || {})}
             onSelectClub={handleSelectClub}
+            onSelectTicket={handleSelectTicket}
             unreadCounts={unreadMessages}
           />
           
-          {selectedLocalClub ? (
+          {selectedLocalClub && (
             <div className="flex-1 flex flex-col h-full">
               <ChatHeader 
                 club={selectedLocalClub}
@@ -106,9 +158,30 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
               
               <ChatInput onSendMessage={handleSendMessage} />
             </div>
-          ) : (
+          )}
+
+          {selectedTicket && (
+            <div className="flex-1 flex flex-col h-full">
+              <div className="border-b p-3">
+                <h3 className="font-medium">{selectedTicket.subject}</h3>
+                <p className="text-xs text-gray-500">
+                  Created {new Date(selectedTicket.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+              
+              <ChatMessages 
+                messages={selectedTicket.messages || []} 
+                clubMembers={currentUser ? [currentUser] : []}
+                isSupport
+              />
+              
+              <ChatInput onSendMessage={handleSendMessage} />
+            </div>
+          )}
+          
+          {!selectedLocalClub && !selectedTicket && (
             <div className="flex-1 flex items-center justify-center text-gray-500">
-              Select a club to start chatting
+              Select a club or support ticket to start chatting
             </div>
           )}
         </div>

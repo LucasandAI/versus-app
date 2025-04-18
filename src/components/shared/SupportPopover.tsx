@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { HelpCircle, MessageSquare, AlertCircle, Flag } from 'lucide-react';
 import { 
@@ -19,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/use-toast";
 import { useApp } from '@/context/AppContext';
+import { ChatMessage } from '@/types/chat';
 
 interface SupportOption {
   id: string;
@@ -48,7 +48,13 @@ const supportOptions: SupportOption[] = [
   }
 ];
 
-const SupportPopover: React.FC = () => {
+interface SupportPopoverProps {
+  onCreateSupportChat?: (ticketId: string, subject: string, message: string) => void;
+}
+
+const SupportPopover: React.FC<SupportPopoverProps> = ({
+  onCreateSupportChat
+}) => {
   const { currentUser } = useApp();
   const [open, setOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -84,10 +90,9 @@ const SupportPopover: React.FC = () => {
   };
 
   const createSupportChat = (option: SupportOption, messageContent: string) => {
-    // This would ideally connect to your backend to create a new support ticket
-    // and open a chat with support
+    const ticketId = 'support-' + Date.now();
+    const subject = option.label;
     
-    // For now, we'll just log the information and show a toast
     console.log('Support request created:', {
       type: option.id,
       label: option.label,
@@ -96,22 +101,10 @@ const SupportPopover: React.FC = () => {
       timestamp: new Date().toISOString()
     });
     
-    // In a real implementation, this would trigger opening the chat drawer
-    // with a new support conversation
-    // For example: 
-    // openChatDrawer({
-    //   id: 'support-' + Date.now(),
-    //   name: 'Support: ' + option.label,
-    //   isSupport: true,
-    //   messages: [
-    //     {
-    //       id: Date.now().toString(),
-    //       sender: { id: currentUser?.id || 'guest', name: currentUser?.name || 'Guest' },
-    //       text: messageContent,
-    //       timestamp: new Date().toISOString()
-    //     }
-    //   ]
-    // });
+    // If the callback exists, use it to create a support chat
+    if (onCreateSupportChat) {
+      onCreateSupportChat(ticketId, subject, messageContent);
+    }
   };
 
   return (
