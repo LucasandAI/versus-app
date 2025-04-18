@@ -2,7 +2,7 @@
 import React from 'react';
 import Button from './shared/Button';
 import { useApp } from '@/context/AppContext';
-import StravaConnectLogo from '@/assets/strava-connect-logo.png';
+import StravaConnectLogo from '@/assets/strava-logo-connect.png';
 import StravaPoweredByLogo from '@/assets/strava-powered-by-logo.png';
 
 const ConnectScreen: React.FC = () => {
@@ -67,12 +67,12 @@ const ConnectScreen: React.FC = () => {
             size="lg" 
             fullWidth 
             onClick={connectToStrava}
-            className="p-0 bg-transparent hover:bg-transparent"
+            className="p-0 bg-transparent hover:bg-transparent flex justify-center"
           >
             <img 
-              src={StravaConnectLogo} 
+              src="/lovable-uploads/3a4510f7-9a3b-4980-8479-b78f493f9c52.png" 
               alt="Connect with Strava" 
-              className="w-full max-w-full h-auto object-contain" 
+              className="h-auto w-auto max-w-full object-contain" 
               onError={(e) => {
                 console.error('Strava Connect Logo failed to load', e);
                 e.currentTarget.style.display = 'none';
@@ -101,4 +101,3 @@ const ConnectScreen: React.FC = () => {
 };
 
 export default ConnectScreen;
-
