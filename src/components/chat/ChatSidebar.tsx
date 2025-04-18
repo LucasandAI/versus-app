@@ -14,9 +14,15 @@ interface ChatSidebarProps {
   clubs: Club[];
   selectedClub: Club | null;
   onSelectClub: (club: Club) => void;
+  unreadCounts?: Record<string, number>;
 }
 
-const ChatSidebar: React.FC<ChatSidebarProps> = ({ clubs, selectedClub, onSelectClub }) => {
+const ChatSidebar: React.FC<ChatSidebarProps> = ({ 
+  clubs, 
+  selectedClub, 
+  onSelectClub,
+  unreadCounts = {}
+}) => {
   const { setCurrentView, setSelectedUser } = useApp();
   const [refreshKey] = useState(Date.now()); // Force component refresh
 
@@ -56,7 +62,14 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ clubs, selectedClub, onSelect
                   />
                 </div>
                 <div className="flex-1 overflow-hidden">
-                  <p className="text-sm font-medium truncate">{club.name}</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium truncate">{club.name}</p>
+                    {unreadCounts[club.id] > 0 && (
+                      <span className="ml-1 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
+                        {unreadCounts[club.id] > 9 ? '9+' : unreadCounts[club.id]}
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center">
                     <Popover>
                       <PopoverTrigger asChild>

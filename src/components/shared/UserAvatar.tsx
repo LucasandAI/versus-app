@@ -58,30 +58,26 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
     setImageError(true);
   };
 
-  // Determine if fallback should be shown immediately
-  const showFallback = !imageUrl || imageError;
-
   return (
     <Avatar 
       className={cn(sizeClasses[size], className, onClick ? 'cursor-pointer' : '')}
       onClick={onClick}
     >
-      {!showFallback && imageUrl && (
+      {!imageError && imageUrl ? (
         <AvatarImage 
           src={imageUrl} 
           alt={name} 
           className="object-cover" 
           onError={handleImageError}
         />
+      ) : (
+        <AvatarFallback 
+          className="bg-secondary text-secondary-foreground"
+          delayMs={0}
+        >
+          {getInitials(name)}
+        </AvatarFallback>
       )}
-      
-      {/* Always render the fallback but force immediate display when needed */}
-      <AvatarFallback 
-        className="bg-secondary text-secondary-foreground"
-        delayMs={0} // Always show immediately
-      >
-        {getInitials(name)}
-      </AvatarFallback>
     </Avatar>
   );
 };

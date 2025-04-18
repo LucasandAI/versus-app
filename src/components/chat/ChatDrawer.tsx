@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Send, X, Users, ChevronDown, Trophy } from 'lucide-react';
 import { 
@@ -20,29 +19,49 @@ interface ChatDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   clubs: Club[];
+  onNewMessage?: (count: number) => void;
 }
 
-const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) => {
+const ChatDrawer: React.FC<ChatDrawerProps> = ({ 
+  open, 
+  onOpenChange, 
+  clubs,
+  onNewMessage 
+}) => {
   const { setCurrentView, setSelectedUser, setSelectedClub, currentUser } = useApp();
   const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(null);
   const [messages, setMessages] = useState<Record<string, any[]>>({});
   const [refreshKey, setRefreshKey] = useState(Date.now());
+  const [unreadMessages, setUnreadMessages] = useState<Record<string, number>>({});
   
-  // Always refresh club list when drawer opens or currentUser changes
   useEffect(() => {
     if (open && currentUser) {
-      // Force refresh of all avatars and images
       setRefreshKey(Date.now());
       
-      // Set selected club to first club if none selected yet
       if (!selectedLocalClub && currentUser.clubs.length > 0) {
         setSelectedLocalClub(currentUser.clubs[0]);
       }
+      
+      if (onNewMessage) {
+        onNewMessage(0);
+      }
+      setUnreadMessages({});
     }
-  }, [open, currentUser, selectedLocalClub]);
+  }, [open, currentUser, selectedLocalClub, onNewMessage]);
+
+  useEffect(() => {
+    if (!open && onNewMessage) {
+      const totalUnread = Object.values(unreadMessages).reduce((sum, count) => sum + count, 0);
+      onNewMessage(totalUnread);
+    }
+  }, [unreadMessages, open, onNewMessage]);
 
   const handleSelectClub = (club: Club) => {
     setSelectedLocalClub(club);
+    setUnreadMessages(prev => ({
+      ...prev,
+      [club.id]: 0
+    }));
   };
 
   const handleSelectUser = (userId: string, userName: string, userAvatar: string = '/placeholder.svg') => {
@@ -54,19 +73,14 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) =>
       clubs: []
     });
     setCurrentView('profile');
-    onOpenChange(false); // Close the drawer
+    onOpenChange(false);
   };
 
   const handleMatchClick = () => {
     if (!selectedLocalClub || !selectedLocalClub.currentMatch) return;
     
-    // Set the selected club in the global context
     setSelectedClub(selectedLocalClub);
-    
-    // Navigate to club detail view
     setCurrentView('clubDetail');
-    
-    // Close the drawer
     onOpenChange(false);
   };
 
@@ -105,6 +119,13 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) =>
         ...prev,
         [selectedLocalClub.id]: [...(prev[selectedLocalClub.id] || []), responseMessage]
       }));
+      
+      if (!open) {
+        setUnreadMessages(prev => ({
+          ...prev,
+          [selectedLocalClub.id]: (prev[selectedLocalClub.id] || 0) + 1
+        }));
+      }
     }, 1000);
   };
 
@@ -115,7 +136,6 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) =>
 
   const currentMatch = getCurrentMatch();
 
-  // Use the actual currentUser clubs for display
   const userClubs = currentUser?.clubs || [];
 
   return (
@@ -134,7 +154,8 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) =>
           <ChatSidebar 
             clubs={userClubs} 
             selectedClub={selectedLocalClub} 
-            onSelectClub={handleSelectClub} 
+            onSelectClub={handleSelectClub}
+            unreadCounts={unreadMessages}
           />
           
           {selectedLocalClub ? (

@@ -142,6 +142,7 @@ const HomeView: React.FC = () => {
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [createClubDialogOpen, setCreateClubDialogOpen] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(2);
 
   const userClubs = currentUser?.clubs || [];
   const isAtClubCapacity = userClubs.length >= MAX_CLUBS_PER_USER;
@@ -180,6 +181,7 @@ const HomeView: React.FC = () => {
 
   const handleOpenChat = () => {
     setChatDrawerOpen(true);
+    setUnreadMessages(0);
   };
 
   const handleOpenSearch = () => {
@@ -216,12 +218,13 @@ const HomeView: React.FC = () => {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">My Clubs</h1>
           <div className="flex items-center gap-2">
-            <button 
+            <Button 
+              variant="link"
               onClick={handleOpenChat}
               className="text-primary hover:bg-gray-100 rounded-full p-2"
-            >
-              <MessageCircle className="h-5 w-5" />
-            </button>
+              icon={<MessageCircle className="h-5 w-5" />}
+              badge={unreadMessages}
+            />
             <UserAvatar 
               name={currentUser?.name || "User"} 
               image={currentUser?.avatar} 
@@ -301,7 +304,8 @@ const HomeView: React.FC = () => {
       <ChatDrawer 
         open={chatDrawerOpen} 
         onOpenChange={setChatDrawerOpen} 
-        clubs={userClubs} 
+        clubs={userClubs}
+        onNewMessage={(count) => setUnreadMessages(count)} 
       />
 
       <Dialog open={searchDialogOpen} onOpenChange={setSearchDialogOpen}>

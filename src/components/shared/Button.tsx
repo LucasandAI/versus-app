@@ -8,6 +8,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean;
   loading?: boolean;
   icon?: React.ReactNode;
+  badge?: number;
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -18,6 +19,7 @@ const Button: React.FC<ButtonProps> = ({
   fullWidth = false,
   loading = false,
   icon,
+  badge,
   ...props
 }) => {
   const variantClasses = {
@@ -37,7 +39,7 @@ const Button: React.FC<ButtonProps> = ({
   return (
     <button
       className={cn(
-        'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
+        'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 relative',
         variantClasses[variant],
         variant !== 'link' ? sizeClasses[size] : '',
         fullWidth ? 'w-full' : '',
@@ -68,7 +70,14 @@ const Button: React.FC<ButtonProps> = ({
           ></path>
         </svg>
       ) : icon ? (
-        <span className="mr-2">{icon}</span>
+        <span className="mr-2 relative">
+          {icon}
+          {badge !== undefined && badge > 0 && (
+            <span className="absolute -top-1 -right-1 h-4 w-4 text-[10px] flex items-center justify-center bg-red-500 text-white rounded-full">
+              {badge > 9 ? '9+' : badge}
+            </span>
+          )}
+        </span>
       ) : null}
       {children}
     </button>
