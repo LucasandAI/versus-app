@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
@@ -59,69 +58,108 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   };
 
   const handleMarkNotificationAsRead = (id: string) => {
-    // Update the UI state
     setNotifications(prev => 
       prev.map(notification => 
         notification.id === id ? { ...notification, read: true } : notification
       )
     );
     
-    // Update localStorage
-    const updatedNotifications = notifications.map(notification => 
-      notification.id === id ? { ...notification, read: true } : notification
-    );
-    localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
-    
-    const event = new CustomEvent('notificationsUpdated');
-    window.dispatchEvent(event);
+    const storedNotifications = localStorage.getItem('notifications');
+    if (storedNotifications) {
+      try {
+        const parsedNotifications = JSON.parse(storedNotifications);
+        const updatedNotifications = parsedNotifications.map((notification: any) => 
+          notification.id === id ? { ...notification, read: true } : notification
+        );
+        localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+        
+        const event = new CustomEvent('notificationsUpdated');
+        window.dispatchEvent(event);
+      } catch (error) {
+        console.error("Error updating notification:", error);
+      }
+    }
   };
 
   const handleDeclineInvite = (id: string) => {
-    // Remove the notification from the UI
+    const notification = notifications.find(n => n.id === id);
+    const clubName = notification?.clubName || "the club";
+    
     setNotifications(prev => prev.filter(notification => notification.id !== id));
     
-    // Update localStorage
-    const updatedNotifications = notifications.filter(notification => notification.id !== id);
-    localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
-    
-    // Dispatch event to update notifications
-    const event = new CustomEvent('notificationsUpdated');
-    window.dispatchEvent(event);
-    
-    toast({
-      title: "Invitation Declined",
-      description: "You have declined the club invitation"
-    });
+    const storedNotifications = localStorage.getItem('notifications');
+    if (storedNotifications) {
+      try {
+        const parsedNotifications = JSON.parse(storedNotifications);
+        const updatedNotifications = parsedNotifications.filter(
+          (n: any) => n.id !== id
+        );
+        localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+        
+        const event = new CustomEvent('notificationsUpdated');
+        window.dispatchEvent(event);
+        
+        toast({
+          title: "Invitation Declined",
+          description: `You have declined the invitation to join ${clubName}`
+        });
+      } catch (error) {
+        console.error("Error declining invitation:", error);
+      }
+    }
   };
 
   const handleClearAllNotifications = () => {
     setNotifications([]);
+    
     localStorage.setItem('notifications', JSON.stringify([]));
     
     const event = new CustomEvent('notificationsUpdated');
     window.dispatchEvent(event);
+    
+    toast({
+      title: "Notifications Cleared",
+      description: "All notifications have been cleared"
+    });
   };
 
   const userClubs = currentUser?.clubs || [];
   const isAtClubCapacity = userClubs.length >= 3;
 
-  // Function to handle joining a club specifically from notifications
   const handleJoinClubFromNotification = (clubId: string, clubName: string) => {
     handleJoinClub(clubId, clubName);
     
-    // Force refresh notifications after joining
     setTimeout(() => {
       const notificationsFromStorage = localStorage.getItem('notifications');
       if (notificationsFromStorage) {
-        setNotifications(JSON.parse(notificationsFromStorage));
+        try {
+          setNotifications(JSON.parse(notificationsFromStorage));
+        } catch (error) {
+          console.error("Error parsing notifications:", error);
+        }
       }
     }, 100);
   };
 
-  // Force refresh notifications on first load
-  React.useEffect(() => {
-    // Refresh notifications when the component mounts
+  useEffect(() => {
     refreshNotifications();
+    
+    const handleNotificationsUpdated = () => {
+      const storedNotifications = localStorage.getItem('notifications');
+      if (storedNotifications) {
+        try {
+          setNotifications(JSON.parse(storedNotifications));
+        } catch (error) {
+          console.error("Error parsing notifications:", error);
+        }
+      }
+    };
+    
+    window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
+    
+    return () => {
+      window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
+    };
   }, []);
 
   return (

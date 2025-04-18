@@ -82,11 +82,14 @@ export const simulateUnreadNotifications = () => {
     }
   ];
 
+  // Make sure to save to localStorage
   localStorage.setItem('notifications', JSON.stringify(unreadNotifications));
 
+  // Trigger notification update event
   const event = new CustomEvent('notificationsUpdated');
   window.dispatchEvent(event);
 
+  // Also update unread messages map
   const unreadMessagesMap = {};
   localStorage.setItem('unreadMessages', JSON.stringify(unreadMessagesMap));
 
@@ -100,6 +103,7 @@ export const refreshNotifications = () => {
   simulateUnreadNotifications();
 };
 
+// Initialize notifications on first load if they don't exist yet
 if (typeof window !== 'undefined') {
   const existingNotifications = localStorage.getItem('notifications');
   if (!existingNotifications) {

@@ -21,7 +21,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({
   onClearAll,
   formatTime,
 }) => {
-  // Sort notifications by timestamp (newest first) and then by read status (unread first)
+  // Sort notifications by read status (unread first) and then by timestamp (newest first)
   const sortedNotifications = [...notifications].sort((a, b) => {
     // First sort by read status (unread first)
     if (a.read !== b.read) {

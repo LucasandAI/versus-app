@@ -17,6 +17,7 @@ export const useNotifications = ({ setNotifications }: UseNotificationsProps) =>
           setNotifications(parsedNotifications);
         } catch (error) {
           console.error("Error parsing notifications:", error);
+          // If we can't parse, reset the notifications
           simulateUnreadNotifications();
         }
       } else {
@@ -29,10 +30,14 @@ export const useNotifications = ({ setNotifications }: UseNotificationsProps) =>
     loadNotificationsFromStorage();
 
     // Listen for notification updates
-    window.addEventListener('notificationsUpdated', loadNotificationsFromStorage);
+    const handleNotificationsUpdated = () => {
+      loadNotificationsFromStorage();
+    };
+    
+    window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
 
     return () => {
-      window.removeEventListener('notificationsUpdated', loadNotificationsFromStorage);
+      window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
     };
   }, [setNotifications]);
 };
