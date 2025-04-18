@@ -33,9 +33,8 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
     lg: 'h-16 w-16 text-xl'
   };
 
-  // Generate a unique cache-busting timestamp
-  // Using a timestamp makes sure the browser doesn't cache the image
-  const timestamp = React.useMemo(() => Date.now(), [image]);
+  // Force image update by adding timestamp to URL
+  const timestamp = Date.now();
   
   // Use default placeholder if image is empty string or undefined
   // Add cache-busting parameter to ensure avatar image refreshes

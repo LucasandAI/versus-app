@@ -26,10 +26,14 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) =>
   const { setCurrentView, setSelectedUser, setSelectedClub, currentUser } = useApp();
   const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(null);
   const [messages, setMessages] = useState<Record<string, any[]>>({});
+  const [refreshKey, setRefreshKey] = useState(Date.now());
   
   // Always refresh club list when drawer opens or currentUser changes
   useEffect(() => {
     if (open && currentUser) {
+      // Force refresh of all avatars and images
+      setRefreshKey(Date.now());
+      
       // Set selected club to first club if none selected yet
       if (!selectedLocalClub && currentUser.clubs.length > 0) {
         setSelectedLocalClub(currentUser.clubs[0]);
@@ -126,7 +130,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) =>
           </div>
         </DrawerHeader>
         
-        <div className="flex h-full">
+        <div className="flex h-full" key={refreshKey}>
           <ChatSidebar 
             clubs={userClubs} 
             selectedClub={selectedLocalClub} 

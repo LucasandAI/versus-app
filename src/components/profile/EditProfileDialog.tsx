@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -35,10 +35,11 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
   const [website, setWebsite] = useState(user?.website || "");
   const [tiktok, setTiktok] = useState(user?.tiktok || "");
   const [avatar, setAvatar] = useState(user?.avatar || "");
+  const [previewKey, setPreviewKey] = useState(Date.now());
   const isMobile = useIsMobile();
 
   // Reset form fields when user changes or dialog opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (user) {
       setName(user.name || "");
       setBio(user.bio || "Strava Athlete");
@@ -49,6 +50,7 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
       setWebsite(user.website || "");
       setTiktok(user.tiktok || "");
       setAvatar(user.avatar || "");
+      setPreviewKey(Date.now()); // Force avatar preview to refresh
     }
   }, [user, open]);
 
@@ -59,6 +61,7 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
       // For now, we'll just create a temporary URL
       const previewUrl = URL.createObjectURL(file);
       setAvatar(previewUrl);
+      setPreviewKey(Date.now()); // Force avatar preview to refresh
     }
   };
 
@@ -120,6 +123,7 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
                 name={user?.name || ""} 
                 image={avatar}
                 size="lg"
+                key={previewKey} // Force re-render with new image
               />
               <label 
                 htmlFor="avatar-upload" 

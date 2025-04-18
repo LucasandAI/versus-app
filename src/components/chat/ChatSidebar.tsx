@@ -47,17 +47,11 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ clubs, selectedClub, onSelect
                 onClick={() => onSelectClub(club)}
               >
                 <div className="flex-shrink-0 mr-2">
-                  {club.logo ? (
-                    <img 
-                      src={`${club.logo}?t=${Date.now()}`} 
-                      alt={club.name} 
-                      className="h-8 w-8 rounded-full object-cover" 
-                    />
-                  ) : (
-                    <div className="bg-gray-200 h-8 w-8 rounded-full flex items-center justify-center">
-                      <span className="font-bold text-xs text-gray-700">{club.name.substring(0, 2)}</span>
-                    </div>
-                  )}
+                  <UserAvatar 
+                    name={club.name} 
+                    image={club.logo} 
+                    size="sm" 
+                  />
                 </div>
                 <div className="flex-1 overflow-hidden">
                   <p className="text-sm font-medium truncate">{club.name}</p>
