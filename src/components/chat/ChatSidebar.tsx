@@ -24,8 +24,9 @@ interface ChatSidebarProps {
   supportTickets: SupportTicket[];
   onSelectClub: (club: Club) => void;
   onSelectTicket: (ticket: SupportTicket) => void;
-  onDeleteChat?: (chatId: string, isTicket: boolean) => void;
+  onDeleteChat?: (chatId: string, isTicket?: boolean) => void;
   unreadCounts?: Record<string, number>;
+  onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
 }
 
 const ChatSidebar: React.FC<ChatSidebarProps> = ({ 
@@ -36,21 +37,11 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onSelectClub,
   onSelectTicket,
   onDeleteChat,
-  unreadCounts = {}
+  unreadCounts = {},
+  onSelectUser
 }) => {
   const { setCurrentView, setSelectedUser } = useApp();
   const [chatToDelete, setChatToDelete] = useState<{id: string, name: string, isTicket: boolean} | null>(null);
-
-  const handleSelectUser = (userId: string, userName: string, userAvatar: string = '/placeholder.svg') => {
-    setSelectedUser({
-      id: userId,
-      name: userName,
-      avatar: userAvatar,
-      stravaConnected: true,
-      clubs: []
-    });
-    setCurrentView('profile');
-  };
 
   const handleDeleteChat = () => {
     if (chatToDelete && onDeleteChat) {
@@ -80,7 +71,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
         onSelectClub={onSelectClub}
         onDeleteChat={onDeleteChat}
         unreadCounts={unreadCounts}
-        onSelectUser={handleSelectUser}
+        onSelectUser={onSelectUser}
         setChatToDelete={setChatToDelete}
       />
 
