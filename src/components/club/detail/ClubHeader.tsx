@@ -5,7 +5,7 @@ import { Club } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
 import Button from '@/components/shared/Button';
 import { formatLeagueWithTier } from '@/lib/format';
-import { hasPendingInvite } from '@/lib/notificationUtils';
+import { hasPendingInvite } from '@/utils/notificationUtils';
 import {
   Tooltip,
   TooltipContent,
