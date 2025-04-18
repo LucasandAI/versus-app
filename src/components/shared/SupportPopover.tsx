@@ -145,9 +145,10 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
     localStorage.setItem('unreadMessages', JSON.stringify(unreadMap));
     
     // Trigger a window event to notify other components about the new message
-    window.dispatchEvent(new CustomEvent('supportTicketCreated', {
+    const event = new CustomEvent('supportTicketCreated', {
       detail: { ticketId, count: 1 }
-    }));
+    });
+    window.dispatchEvent(event);
     
     // If the callback exists, use it to create a support chat
     if (onCreateSupportChat) {

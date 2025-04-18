@@ -179,6 +179,13 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
     }
   };
 
+  // Mark the selected ticket as read whenever the drawer closes
+  useEffect(() => {
+    if (!open && selectedTicket) {
+      markTicketAsRead(selectedTicket.id);
+    }
+  }, [open, selectedTicket]);
+
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="h-[80vh] rounded-t-xl p-0">

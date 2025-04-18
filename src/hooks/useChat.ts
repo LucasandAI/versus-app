@@ -172,7 +172,7 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     setRefreshKey(Date.now());
   };
 
-  // New method to update unread messages and persist to localStorage
+  // Method to update unread messages and persist to localStorage
   const markTicketAsRead = (ticketId: string) => {
     setUnreadMessages(prev => {
       const updated = { ...prev, [ticketId]: 0 };
@@ -180,6 +180,15 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
       localStorage.setItem('unreadMessages', JSON.stringify(updated));
       return updated;
     });
+    
+    // Make sure we also update the global unread count
+    if (onNewMessage) {
+      setTimeout(() => {
+        const currentUnread = JSON.parse(localStorage.getItem('unreadMessages') || '{}');
+        const totalUnread = Object.values(currentUnread).reduce((sum, count) => sum + (count as number), 0);
+        onNewMessage(totalUnread);
+      }, 100);
+    }
   };
 
   return {

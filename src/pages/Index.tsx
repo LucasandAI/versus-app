@@ -24,8 +24,28 @@ const AppContent: React.FC = () => {
 
     window.addEventListener('supportTicketCreated', handleSupportTicketCreated as EventListener);
     
+    // Also load initial unread counts from localStorage
+    const loadUnreadCounts = () => {
+      const unreadMessages = localStorage.getItem('unreadMessages');
+      if (unreadMessages) {
+        try {
+          const unreadMap = JSON.parse(unreadMessages);
+          const totalUnread = Object.values(unreadMap).reduce((sum, count) => sum + (count as number), 0);
+          setChatNotifications(totalUnread);
+        } catch (error) {
+          console.error("Error parsing unread messages:", error);
+        }
+      }
+    };
+    
+    loadUnreadCounts();
+    
+    // Listen for route changes or app focus to refresh unread counts
+    window.addEventListener('focus', loadUnreadCounts);
+    
     return () => {
       window.removeEventListener('supportTicketCreated', handleSupportTicketCreated as EventListener);
+      window.removeEventListener('focus', loadUnreadCounts);
     };
   }, []);
 

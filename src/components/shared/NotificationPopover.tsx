@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, Plus } from 'lucide-react';
 import { 
   Popover, 
   PopoverContent, 
@@ -82,12 +82,20 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
         description: `You are already a member of ${clubName}.`,
         variant: "destructive"
       });
+      // Remove the notification even if already a member
+      if (onDeclineInvite) {
+        onDeclineInvite(notificationId);
+      }
     } else if (currentUser.clubs.length >= 3) {
       toast({
         title: "Cannot Join Club",
         description: "You are already a member of 3 clubs, which is the maximum allowed.",
         variant: "destructive"
       });
+      // Remove the notification if can't join
+      if (onDeclineInvite) {
+        onDeclineInvite(notificationId);
+      }
     } else {
       if (onJoinClub) {
         onJoinClub(clubId, clubName);
@@ -129,24 +137,29 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
             });
           }
         }
-      } else {
-        toast({
-          title: "Club Joined",
-          description: `You have successfully joined ${clubName}!`
-        });
       }
-    }
-    
-    // Always remove the notification after handling
-    if (onDeclineInvite) {
-      onDeclineInvite(notificationId);
+      
+      // Always remove the notification after handling
+      if (onDeclineInvite) {
+        onDeclineInvite(notificationId);
+      }
     }
   };
 
   const handleDeclineInvite = (notificationId: string) => {
     if (onDeclineInvite) {
       onDeclineInvite(notificationId);
-    } else {
+      
+      // Remove from localStorage
+      const storedNotifications = localStorage.getItem('notifications');
+      if (storedNotifications) {
+        const parsedNotifications = JSON.parse(storedNotifications);
+        const filteredNotifications = parsedNotifications.filter(
+          (notification: Notification) => notification.id !== notificationId
+        );
+        localStorage.setItem('notifications', JSON.stringify(filteredNotifications));
+      }
+      
       toast({
         title: "Invitation Declined",
         description: "You have declined the club invitation."
@@ -171,7 +184,7 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
 
   const createTestInvitation = () => {
     // Create a test invitation for a club the user is not already a member of
-    const clubIds = ['test-club-1', 'test-club-2', 'test-club-3'];
+    const clubIds = ['test-club-1', 'test-club-2', 'cressay-running-club'];
     const clubNames = ['Road Runners', 'Sprint Masters', 'Cressay Running Club'];
     
     // Find a club the user is not already a member of
@@ -179,10 +192,11 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
     
     if (currentUser && currentUser.clubs.length > 0) {
       const userClubIds = currentUser.clubs.map(club => club.id);
-      // Find the first club that the user is not a member of
-      const nonMemberClubIndex = clubIds.findIndex(id => !userClubIds.includes(id));
-      if (nonMemberClubIndex !== -1) {
-        clubIndex = nonMemberClubIndex;
+      
+      // Always use Cressay Running Club as it's the one we want to test
+      if (userClubIds.includes('cressay-running-club')) {
+        // If user has Cressay, use another club
+        clubIndex = userClubIds.includes('test-club-1') ? 1 : 0;
       }
     }
     
@@ -210,6 +224,7 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
       description: `A club invitation notification has been added for ${clubNames[clubIndex]}.`
     });
     
+    // Trigger a reload to see the new notification
     window.location.reload();
   };
 
@@ -239,11 +254,10 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
                 variant="primary" 
                 size="sm" 
                 onClick={createTestInvitation}
-                className="p-0 h-auto text-xs text-green-500 hover:text-green-700"
+                className="p-1 h-6 w-6 flex justify-center items-center text-green-500 hover:text-green-700"
               >
-                <span className="sr-only">Test Invite</span>
-                <span className="sm:inline-block hidden">+</span>
-                <span className="sm:hidden inline-block">+</span>
+                <Plus className="h-4 w-4" />
+                <span className="sr-only">Add test invite</span>
               </Button>
             )}
             {notifications.length > 0 && (
@@ -278,8 +292,8 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
                     }}
                   />
                   
-                  <div className="flex-1">
-                    <p className="text-sm">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm break-words">
                       <span 
                         className="font-medium cursor-pointer hover:text-primary"
                         onClick={() => {
