@@ -157,15 +157,32 @@ const UserProfile: React.FC = () => {
       return;
     }
 
-    const urls: Record<string, string> = {
-      instagram: `https://instagram.com/${username}`,
-      twitter: `https://twitter.com/${username}`,
-      linkedin: `https://linkedin.com/in/${username}`,
-      facebook: `https://facebook.com/${username}`,
-      website: username // Direct URL for website
-    };
+    let url = '';
+    
+    switch(platform) {
+      case 'instagram':
+        url = `https://instagram.com/${username}`;
+        break;
+      case 'twitter':
+        url = `https://twitter.com/${username}`;
+        break;
+      case 'facebook': 
+        url = username.startsWith('http') ? username : `https://${username}`;
+        break;
+      case 'linkedin':
+        url = username.startsWith('http') ? username : `https://${username}`;
+        break;
+      case 'website':
+        url = username.startsWith('http') ? username : `https://${username}`;
+        break;
+      case 'tiktok':
+        url = `https://tiktok.com/@${username}`;
+        break;
+      default:
+        url = username;
+    }
 
-    window.open(urls[platform], '_blank', 'noopener,noreferrer');
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const handleEditProfile = () => {
@@ -204,8 +221,7 @@ const UserProfile: React.FC = () => {
             <p className="text-gray-500">{loading ? <Skeleton className="h-4 w-24 mx-auto" /> : selectedUser.bio || 'Strava Athlete'}</p>
           </div>
 
-          {/* Updated profile action buttons to be in one line */}
-          <div className="flex justify-center space-x-2">
+          <div className="flex justify-center space-x-4">
             {isCurrentUserProfile ? (
               <>
                 <TooltipProvider>
@@ -269,6 +285,24 @@ const UserProfile: React.FC = () => {
                       <Linkedin className="h-4 w-4 mr-2" />
                       LinkedIn
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleSocialLink('tiktok', selectedUser?.tiktok || '')}>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-4 w-4 mr-2"
+                      >
+                        <path d="M9 12A3 3 0 1 0 9 6a3 3 0 0 0 0 6Z" />
+                        <path d="M9 6v12m6-6v6m0-9v3" />
+                      </svg>
+                      TikTok
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleSocialLink('website', selectedUser?.website || '')}>
                       <Globe className="h-4 w-4 mr-2" />
                       Website
@@ -327,6 +361,24 @@ const UserProfile: React.FC = () => {
                   <DropdownMenuItem onClick={() => handleSocialLink('linkedin', selectedUser?.linkedin || '')}>
                     <Linkedin className="h-4 w-4 mr-2" />
                     LinkedIn
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleSocialLink('tiktok', selectedUser?.tiktok || '')}>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4 mr-2"
+                    >
+                      <path d="M9 12A3 3 0 1 0 9 6a3 3 0 0 0 0 6Z" />
+                      <path d="M9 6v12m6-6v6m0-9v3" />
+                    </svg>
+                    TikTok
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleSocialLink('website', selectedUser?.website || '')}>
                     <Globe className="h-4 w-4 mr-2" />

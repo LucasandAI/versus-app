@@ -10,6 +10,7 @@ export interface User {
   facebook?: string;
   linkedin?: string;
   website?: string;
+  tiktok?: string;
 }
 
 export interface Club {
@@ -17,7 +18,7 @@ export interface Club {
   name: string;
   logo: string;
   division: Division;
-  tier?: number; // Added tier for division rankings (1-5, with 1 being highest)
+  tier?: number;
   members: ClubMember[];
   currentMatch?: Match;
   matchHistory: Match[];
@@ -28,7 +29,7 @@ export interface ClubMember {
   name: string;
   avatar: string;
   isAdmin: boolean;
-  distanceContribution?: number; // in km
+  distanceContribution?: number;
 }
 
 export interface Match {
@@ -37,14 +38,14 @@ export interface Match {
     id: string;
     name: string;
     logo: string;
-    totalDistance: number; // in km
+    totalDistance: number;
     members: ClubMember[];
   };
   awayClub: {
     id: string;
     name: string;
     logo: string;
-    totalDistance: number; // in km
+    totalDistance: number;
     members: ClubMember[];
   };
   startDate: string;
