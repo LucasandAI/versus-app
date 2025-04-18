@@ -1,10 +1,16 @@
-
 import React from 'react';
 import { ArrowLeft, Users } from 'lucide-react';
 import { Club } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
 import Button from '@/components/shared/Button';
 import { formatLeagueWithTier } from '@/lib/format';
+import { hasPendingInvite } from '@/lib/notificationUtils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ClubHeaderProps {
   club: Club;
@@ -14,6 +20,8 @@ interface ClubHeaderProps {
   onInvite: () => void;
   onRequestJoin: () => void;
   onLeaveClub: () => void;
+  onJoinClub: () => void;
+  onDeclineInvite: () => void;
 }
 
 const ClubHeader: React.FC<ClubHeaderProps> = ({
@@ -24,7 +32,12 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
   onInvite,
   onRequestJoin,
   onLeaveClub,
+  onJoinClub,
+  onDeclineInvite,
 }) => {
+  const hasPending = hasPendingInvite(club.id);
+  const isClubFull = club.members.length >= 5;
+
   return (
     <>
       <div className="bg-primary/95 text-white p-4 sticky top-0 z-10">
@@ -73,7 +86,41 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
                   </Button>
                 )}
                 
-                {club.members.length < 5 && !isActuallyMember && (
+                {!isActuallyMember && hasPending && (
+                  <div className="flex space-x-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>
+                            <Button 
+                              variant="primary" 
+                              size="sm"
+                              onClick={onJoinClub}
+                              disabled={isClubFull}
+                            >
+                              Join Club
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        {isClubFull && (
+                          <TooltipContent>
+                            <p>This club is currently full</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={onDeclineInvite}
+                    >
+                      Decline Invite
+                    </Button>
+                  </div>
+                )}
+                
+                {!isActuallyMember && !hasPending && club.members.length < 5 && (
                   <Button 
                     variant="primary" 
                     size="sm"

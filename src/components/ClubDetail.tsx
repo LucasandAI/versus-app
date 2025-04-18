@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club, Division, Match } from '@/types';
@@ -20,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import InviteUserDialog from './club/InviteUserDialog';
 import ClubAdminActions from './admin/ClubAdminActions';
+import { handleNotification } from '@/lib/notificationUtils';
 
 const ClubDetail: React.FC = () => {
   const { selectedClub, setCurrentView, currentUser, setSelectedUser, setSelectedClub } = useApp();
@@ -40,7 +40,6 @@ const ClubDetail: React.FC = () => {
     );
   }
 
-  // Check if user is actually a member
   const isActuallyMember = currentUser?.clubs.some(club => club.id === selectedClub.id) || false;
   const isAdmin = isActuallyMember && currentUser && selectedClub.members.some(member => 
     member.id === currentUser.id && member.isAdmin
@@ -69,25 +68,52 @@ const ClubDetail: React.FC = () => {
   const handleLeaveClub = () => {
     if (!currentUser || !isActuallyMember) return;
     
-    // Update currentUser by removing this club
     const updatedClubs = currentUser.clubs.filter(club => club.id !== selectedClub.id);
     const updatedUser = {
       ...currentUser,
       clubs: updatedClubs
     };
     
-    // Save to localStorage
     localStorage.setItem('currentUser', JSON.stringify(updatedUser));
     
-    // Update app state
     toast({
       title: "Left Club",
       description: `You have successfully left ${selectedClub.name}.`,
     });
     setCurrentView('home');
     
-    // Dispatch events to update UI
     window.dispatchEvent(new CustomEvent('userDataUpdated'));
+  };
+
+  const handleJoinFromInvite = () => {
+    if (!selectedClub || !currentUser) return;
+    
+    const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+    const invitation = notifications.find(
+      (n: any) => n.type === 'invitation' && n.clubId === selectedClub.id
+    );
+    
+    if (invitation) {
+      handleNotification(invitation.id, 'delete');
+      handleJoinClub(selectedClub.id, selectedClub.name);
+    }
+  };
+
+  const handleDeclineInvite = () => {
+    if (!selectedClub) return;
+    
+    const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+    const invitation = notifications.find(
+      (n: any) => n.type === 'invitation' && n.clubId === selectedClub.id
+    );
+    
+    if (invitation) {
+      handleNotification(invitation.id, 'delete');
+      toast({
+        title: "Invite Declined",
+        description: `You have declined the invitation to join ${selectedClub.name}.`
+      });
+    }
   };
 
   return (
@@ -100,6 +126,8 @@ const ClubDetail: React.FC = () => {
         onInvite={() => setShowInviteDialog(true)}
         onRequestJoin={handleRequestToJoin}
         onLeaveClub={() => setShowLeaveDialog(true)}
+        onJoinClub={handleJoinFromInvite}
+        onDeclineInvite={handleDeclineInvite}
       />
 
       <div className="container-mobile pt-4">

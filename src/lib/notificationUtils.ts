@@ -164,3 +164,20 @@ export const generateTestNotifications = () => {
 
 // Execute the function immediately to generate notifications
 generateTestNotifications();
+
+export const hasPendingInvite = (clubId: string): boolean => {
+  const storedNotifications = localStorage.getItem('notifications');
+  if (!storedNotifications) return false;
+  
+  try {
+    const notifications: Notification[] = JSON.parse(storedNotifications);
+    return notifications.some(notification => 
+      notification.type === 'invitation' && 
+      notification.clubId === clubId && 
+      !notification.read
+    );
+  } catch (error) {
+    console.error('Error checking pending invites:', error);
+    return false;
+  }
+};
