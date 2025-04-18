@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { AppContextType, AppView, Club, User } from '../types';
 
@@ -96,6 +97,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     currentView,
     selectedClub,
     selectedUser,
+    setCurrentUser,
     setCurrentView,
     setSelectedClub,
     setSelectedUser,
