@@ -58,6 +58,8 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
     setImageError(true);
   };
 
+  const initials = getInitials(name);
+
   return (
     <Avatar 
       className={cn(sizeClasses[size], className, onClick ? 'cursor-pointer' : '')}
@@ -72,10 +74,10 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
         />
       ) : (
         <AvatarFallback 
-          className="bg-secondary text-secondary-foreground font-medium"
+          className="bg-gray-200 text-gray-700 font-semibold"
           delayMs={0}
         >
-          {getInitials(name)}
+          {initials}
         </AvatarFallback>
       )}
     </Avatar>
