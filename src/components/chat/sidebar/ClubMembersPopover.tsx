@@ -1,0 +1,55 @@
+
+import React from 'react';
+import { ChevronDown, Users } from 'lucide-react';
+import { PopoverContent, PopoverTrigger, Popover } from "@/components/ui/popover";
+import UserAvatar from '../../shared/UserAvatar';
+import { Club } from '@/types';
+
+interface ClubMembersPopoverProps {
+  club: Club;
+  onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
+}
+
+const ClubMembersPopover: React.FC<ClubMembersPopoverProps> = ({
+  club,
+  onSelectUser,
+}) => {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <div className="text-xs text-gray-500 hover:text-primary flex items-center">
+          <Users className="h-3 w-3 mr-1" />
+          {club.members.length} members
+          <ChevronDown className="h-3 w-3 ml-1" />
+        </div>
+      </PopoverTrigger>
+      <PopoverContent className="w-60 p-2" align="start">
+        <h4 className="text-sm font-medium mb-2">Club Members</h4>
+        <div className="space-y-2 max-h-60 overflow-y-auto">
+          {club.members.map(member => (
+            <div
+              key={member.id}
+              className="w-full flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-md"
+            >
+              <UserAvatar 
+                name={member.name} 
+                image={member.avatar} 
+                size="sm" 
+                className="cursor-pointer"
+                onClick={() => onSelectUser(member.id, member.name, member.avatar)}
+              />
+              <span 
+                className="text-sm truncate cursor-pointer hover:text-primary"
+                onClick={() => onSelectUser(member.id, member.name, member.avatar)}
+              >
+                {member.name}
+              </span>
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+export default ClubMembersPopover;
