@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { 
@@ -266,7 +265,7 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
             sortedNotifications.map(notification => (
               <div 
                 key={notification.id} 
-                className={`p-3 border-b hover:bg-gray-50 transition-colors ${!notification.read ? 'bg-blue-50' : ''}`}
+                className={`p-3 border-b hover:bg-gray-50 transition-colors ${!notification.read ? 'bg-green-50' : ''}`}
               >
                 <div className="flex items-start gap-3">
                   <UserAvatar 
