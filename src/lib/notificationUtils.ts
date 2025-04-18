@@ -4,31 +4,6 @@ import { Notification } from '@/types';
 export const simulateUnreadNotifications = () => {
   const unreadNotifications: Notification[] = [
     {
-      id: 'team-activity-1',
-      userId: '2',
-      userName: 'Jane Sprinter',
-      userAvatar: '/placeholder.svg',
-      clubId: '1',
-      clubName: 'Weekend Warriors',
-      distance: 5.2,
-      timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-      read: true,
-      type: 'activity'
-    },
-    {
-      id: 'team-activity-2',
-      userId: '3',
-      userName: 'Mike Runner',
-      userAvatar: '/placeholder.svg', 
-      clubId: '2', 
-      clubName: 'City Striders',
-      distance: 7.5,
-      timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-      read: true,
-      type: 'activity'
-    },
-    // Add 4 new club invite notifications
-    {
       id: 'club-invite-1',
       userId: '7',
       userName: 'Alice Sprint',
@@ -53,36 +28,10 @@ export const simulateUnreadNotifications = () => {
       read: false,
       type: 'invitation',
       message: 'invited you to join'
-    },
-    {
-      id: 'club-invite-3',
-      userId: '9',
-      userName: 'Charlie Race',
-      userAvatar: '/placeholder.svg',
-      clubId: 'ac1',
-      clubName: 'Morning Joggers',
-      distance: 0,
-      timestamp: new Date(Date.now() - 8 * 60 * 1000).toISOString(),
-      read: false,
-      type: 'invitation',
-      message: 'invited you to join'
-    },
-    {
-      id: 'club-invite-4',
-      userId: '10',
-      userName: 'Diana Track',
-      userAvatar: '/placeholder.svg',
-      clubId: 'ac3',
-      clubName: 'Urban Pacers',
-      distance: 0,
-      timestamp: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
-      read: false,
-      type: 'invitation',
-      message: 'invited you to join'
     }
   ];
 
-  // Make sure to save to localStorage
+  // Save to localStorage
   localStorage.setItem('notifications', JSON.stringify(unreadNotifications));
 
   // Trigger notification update event
