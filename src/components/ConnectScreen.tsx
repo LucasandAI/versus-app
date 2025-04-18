@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Button from './shared/Button';
 import { useApp } from '@/context/AppContext';
@@ -66,14 +67,13 @@ const ConnectScreen: React.FC = () => {
             size="lg" 
             fullWidth 
             onClick={connectToStrava}
-            className="flex items-center justify-center gap-2"
+            className="p-0 bg-transparent hover:bg-transparent"
           >
             <img 
               src={StravaLogo} 
               alt="Connect with Strava" 
-              className="h-6 w-auto mr-2" 
+              className="w-full h-auto" 
             />
-            Connect with Strava
           </Button>
           <p className="text-xs text-gray-500">
             We'll sync your running activities automatically
