@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { 
@@ -46,16 +45,13 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   
   const unreadCount = notifications.filter(n => !n.read).length;
   
-  // When the popover opens, mark all notifications as read
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
-    // Mark all as read when opening the popover
     if (isOpen && unreadCount > 0) {
       notifications.forEach(n => {
         if (!n.read) onMarkAsRead(n.id);
       });
       
-      // Also ensure the notifications are saved to localStorage right away
       const updatedNotifications = notifications.map(n => ({
         ...n,
         read: true
@@ -68,7 +64,6 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
     if (onJoinClub) {
       onJoinClub(clubId, clubName);
     } else {
-      // Check if user is already in 3 clubs
       const existingClubs = localStorage.getItem('userClubs');
       const clubs = existingClubs ? JSON.parse(existingClubs) : [];
       
@@ -86,7 +81,6 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
       }
     }
     
-    // Remove this notification
     if (onDeclineInvite) {
       onDeclineInvite(notificationId);
     }
@@ -118,7 +112,6 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
     return date.toLocaleDateString();
   };
 
-  // Function to create a test club invitation notification
   const createTestInvitation = () => {
     const newNotification: Notification = {
       id: `invite-${Date.now()}`,
@@ -144,7 +137,6 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
       description: "A club invitation notification has been added."
     });
     
-    // Reload the page to show the notification
     window.location.reload();
   };
 
@@ -164,7 +156,6 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="font-medium">Notifications</h3>
           <div className="flex gap-2">
-            {/* Test button - Only visible in development */}
             {process.env.NODE_ENV !== 'production' && (
               <Button 
                 variant="link" 
@@ -225,8 +216,6 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
                           <span 
                             className="font-medium cursor-pointer hover:underline text-primary"
                             onClick={() => {
-                              // Navigate to club details
-                              // For now just show a toast
                               toast({
                                 title: "Club Details",
                                 description: `Viewing ${notification.clubName} details`
@@ -250,7 +239,7 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
                     {notification.type === 'invitation' && (
                       <div className="flex mt-2 gap-2">
                         <Button
-                          variant="default"
+                          variant="primary"
                           size="sm"
                           className="h-8 bg-green-500 hover:bg-green-600"
                           onClick={() => handleJoinClub(notification.clubId, notification.clubName, notification.id)}
