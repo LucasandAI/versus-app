@@ -4,7 +4,11 @@ import { Home, Trophy, User } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
 
-const Navigation: React.FC = () => {
+interface NavigationProps {
+  // We could add props here in the future if needed, but now we don't need any
+}
+
+const Navigation: React.FC<NavigationProps> = () => {
   const { currentView, setCurrentView, setSelectedUser, currentUser } = useApp();
 
   const handleProfileClick = () => {

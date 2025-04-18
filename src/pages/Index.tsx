@@ -34,7 +34,7 @@ const AppContent: React.FC = () => {
       case 'connect':
         return <ConnectScreen />;
       case 'home':
-        return <HomeView chatNotifications={chatNotifications} onChatOpen={() => setChatNotifications(0)} />;
+        return <HomeView />;
       case 'clubDetail':
         return <ClubDetail />;
       case 'leaderboard':
@@ -53,7 +53,7 @@ const AppContent: React.FC = () => {
   return (
     <>
       {renderView()}
-      {currentUser?.stravaConnected && currentView !== 'connect' && <Navigation chatNotifications={chatNotifications} />}
+      {currentUser?.stravaConnected && currentView !== 'connect' && <Navigation />}
       {currentUser?.stravaConnected && <SupportPopover onCreateSupportChat={handleCreateSupportChat} />}
       <Toaster />
     </>
