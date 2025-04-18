@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ArrowLeft, Users } from 'lucide-react';
 import { Club } from '@/types';
@@ -127,6 +128,16 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
                     onClick={onRequestJoin}
                   >
                     Request to Join
+                  </Button>
+                )}
+                
+                {isActuallyMember && !isAdmin && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={onLeaveClub}
+                  >
+                    Leave Club
                   </Button>
                 )}
               </div>

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club, Division, Match } from '@/types';
@@ -27,7 +26,7 @@ const ClubDetail: React.FC = () => {
   const { selectedClub, setCurrentView, currentUser, setSelectedUser, setSelectedClub } = useApp();
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
-  const { handleJoinClub } = useClubJoin();
+  const { handleRequestToJoin, handleJoinClub } = useClubJoin();
   
   if (!selectedClub) {
     return (
@@ -48,13 +47,9 @@ const ClubDetail: React.FC = () => {
     member.id === currentUser.id && member.isAdmin
   );
 
-  const handleRequestToJoin = () => {
+  const handleRequestToJoinClub = () => {
     if (!selectedClub) return;
-    
-    toast({
-      title: "Request Sent",
-      description: `Your request to join ${selectedClub.name} has been sent.`,
-    });
+    handleRequestToJoin(selectedClub.id, selectedClub.name);
   };
 
   const handleSelectUser = (userId: string, name: string, avatar?: string) => {
@@ -127,7 +122,7 @@ const ClubDetail: React.FC = () => {
         isAdmin={isAdmin}
         onBack={() => setCurrentView('home')}
         onInvite={() => setShowInviteDialog(true)}
-        onRequestJoin={handleRequestToJoin}
+        onRequestJoin={handleRequestToJoinClub}
         onLeaveClub={() => setShowLeaveDialog(true)}
         onJoinClub={handleJoinFromInvite}
         onDeclineInvite={handleDeclineInvite}
