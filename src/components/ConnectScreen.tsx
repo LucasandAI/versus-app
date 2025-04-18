@@ -2,8 +2,8 @@
 import React from 'react';
 import Button from './shared/Button';
 import { useApp } from '@/context/AppContext';
-import StravaLogo from '@/assets/strava-logo-connect.png';
-import PoweredByStravaLogo from '@/assets/strava-powered-by.png';
+import StravaConnectLogo from '@/assets/strava-connect-logo.png';
+import StravaPoweredByLogo from '@/assets/strava-powered-by-logo.png';
 
 const ConnectScreen: React.FC = () => {
   const { connectToStrava } = useApp();
@@ -70,7 +70,7 @@ const ConnectScreen: React.FC = () => {
             className="p-0 bg-transparent hover:bg-transparent"
           >
             <img 
-              src={StravaLogo} 
+              src={StravaConnectLogo} 
               alt="Connect with Strava" 
               className="w-full h-auto" 
             />
@@ -82,7 +82,7 @@ const ConnectScreen: React.FC = () => {
 
         <div className="mt-8 flex justify-center">
           <img 
-            src={PoweredByStravaLogo} 
+            src={StravaPoweredByLogo} 
             alt="Powered by Strava" 
             className="h-8 w-auto" 
           />
