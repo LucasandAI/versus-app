@@ -54,7 +54,7 @@ export const InvitationNotification: React.FC<InvitationNotificationProps> = ({
       </p>
       <div className="flex mt-2 gap-2 flex-wrap">
         <Button
-          variant="primary"
+          variant="default"
           size="sm"
           className="h-8 bg-green-500 hover:bg-green-600"
           onClick={onJoinClub}
