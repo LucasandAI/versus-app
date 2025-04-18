@@ -1,4 +1,4 @@
-import { Notification } from '@/types';
+import { Notification, Club } from '@/types';
 import { toast } from '@/hooks/use-toast';
 
 // Function to handle individual notification actions (read, delete)
@@ -166,16 +166,25 @@ export const generateTestNotifications = () => {
 generateTestNotifications();
 
 export const hasPendingInvite = (clubId: string): boolean => {
+  console.log('Checking pending invite for club ID:', clubId);
   const storedNotifications = localStorage.getItem('notifications');
-  if (!storedNotifications) return false;
+  if (!storedNotifications) {
+    console.log('No notifications found in storage');
+    return false;
+  }
   
   try {
     const notifications: Notification[] = JSON.parse(storedNotifications);
-    return notifications.some(notification => 
+    console.log('All notifications:', notifications);
+    
+    const pendingInvites = notifications.filter(notification => 
       notification.type === 'invitation' && 
       notification.clubId === clubId && 
       !notification.read
     );
+    
+    console.log('Pending invites for club:', pendingInvites);
+    return pendingInvites.length > 0;
   } catch (error) {
     console.error('Error checking pending invites:', error);
     return false;

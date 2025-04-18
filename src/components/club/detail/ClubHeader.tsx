@@ -36,7 +36,10 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
   onJoinClub,
   onDeclineInvite,
 }) => {
+  // Debug the pending invite status
+  console.log('Checking pending invite for club:', club.id);
   const hasPending = hasPendingInvite(club.id);
+  console.log('Has pending invite:', hasPending);
   const isClubFull = club.members.length >= 5;
 
   return (

@@ -8,7 +8,7 @@ import ClubDetailTabs from './ClubDetailTabs';
 import ClubLeaveDialog from './dialogs/ClubLeaveDialog';
 import InviteUserDialog from '../InviteUserDialog';
 import { toast } from "@/hooks/use-toast";
-import { handleNotification } from '@/lib/notificationUtils';
+import { handleNotification, hasPendingInvite } from '@/utils/notificationUtils';
 
 interface ClubDetailContentProps {
   club: Club;
@@ -24,6 +24,11 @@ const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
   const isAdmin = isActuallyMember && currentUser && club.members.some(member => 
     member.id === currentUser.id && member.isAdmin
   );
+  
+  // Check if there's a pending invite
+  console.log('Club ID in DetailContent:', club.id); 
+  const hasPending = hasPendingInvite(club.id);
+  console.log('Has pending invite (DetailContent):', hasPending);
 
   const handleRequestToJoinClub = () => {
     handleRequestToJoin(club.id, club.name);
