@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
 import { useClubJoin } from '@/hooks/home/useClubJoin';
@@ -19,16 +19,34 @@ const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const { handleRequestToJoin, handleJoinClub } = useClubJoin();
+  const [hasPending, setHasPending] = useState(false);
 
   const isActuallyMember = currentUser?.clubs.some(c => c.id === club.id) || false;
   const isAdmin = isActuallyMember && currentUser && club.members.some(member => 
     member.id === currentUser.id && member.isAdmin
   );
   
-  // Check if there's a pending invite
-  console.log('Club ID in DetailContent:', club.id); 
-  const hasPending = hasPendingInvite(club.id);
-  console.log('Has pending invite (DetailContent):', hasPending);
+  // Effect to check for pending invites when the component mounts or when club changes
+  useEffect(() => {
+    console.log('Club ID in DetailContent effect:', club.id);
+    // Force new evaluation of hasPendingInvite on each render
+    const pending = hasPendingInvite(club.id);
+    console.log('Has pending invite (DetailContent effect):', pending);
+    setHasPending(pending);
+    
+    // Listen for notification updates
+    const handleNotificationUpdate = () => {
+      const newPending = hasPendingInvite(club.id);
+      console.log('Notification update - new pending state:', newPending);
+      setHasPending(newPending);
+    };
+    
+    window.addEventListener('notificationsUpdated', handleNotificationUpdate);
+    
+    return () => {
+      window.removeEventListener('notificationsUpdated', handleNotificationUpdate);
+    };
+  }, [club.id]);
 
   const handleRequestToJoinClub = () => {
     handleRequestToJoin(club.id, club.name);
@@ -65,6 +83,9 @@ const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
     if (invitation) {
       handleNotification(invitation.id, 'delete');
       handleJoinClub(club.id, club.name);
+      
+      // Update local state to reflect the invite has been processed
+      setHasPending(false);
     }
   };
 
@@ -82,6 +103,9 @@ const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
         title: "Invite Declined",
         description: `You have declined the invitation to join ${club.name}.`
       });
+      
+      // Update local state to reflect the invite has been declined
+      setHasPending(false);
     }
   };
 

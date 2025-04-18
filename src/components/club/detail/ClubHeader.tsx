@@ -36,10 +36,10 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
   onJoinClub,
   onDeclineInvite,
 }) => {
-  // Debug the pending invite status
   console.log('Checking pending invite for club:', club.id);
+  // Critical fix: Store the result of hasPendingInvite in a variable to ensure consistent value
   const hasPending = hasPendingInvite(club.id);
-  console.log('Has pending invite:', hasPending);
+  console.log('Has pending invite in ClubHeader:', hasPending);
   const isClubFull = club.members.length >= 5;
 
   return (
@@ -90,48 +90,53 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
                   </Button>
                 )}
                 
-                {!isActuallyMember && hasPending && (
-                  <div className="flex space-x-2">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span>
-                            <Button 
-                              variant="primary" 
-                              size="sm"
-                              onClick={onJoinClub}
-                              disabled={isClubFull}
-                            >
-                              Join Club
-                            </Button>
-                          </span>
-                        </TooltipTrigger>
-                        {isClubFull && (
-                          <TooltipContent>
-                            <p>This club is currently full</p>
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    </TooltipProvider>
-                    
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={onDeclineInvite}
-                    >
-                      Decline Invite
-                    </Button>
-                  </div>
-                )}
-                
-                {!isActuallyMember && !hasPending && club.members.length < 5 && (
-                  <Button 
-                    variant="primary" 
-                    size="sm"
-                    onClick={onRequestJoin}
-                  >
-                    Request to Join
-                  </Button>
+                {/* Key Fix: Improved logic for checking pending invites */}
+                {!isActuallyMember && (
+                  <>
+                    {hasPending ? (
+                      <div className="flex space-x-2">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>
+                                <Button 
+                                  variant="primary" 
+                                  size="sm"
+                                  onClick={onJoinClub}
+                                  disabled={isClubFull}
+                                >
+                                  Join Club
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            {isClubFull && (
+                              <TooltipContent>
+                                <p>This club is currently full</p>
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        </TooltipProvider>
+                        
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={onDeclineInvite}
+                        >
+                          Decline Invite
+                        </Button>
+                      </div>
+                    ) : (
+                      !isClubFull && (
+                        <Button 
+                          variant="primary" 
+                          size="sm"
+                          onClick={onRequestJoin}
+                        >
+                          Request to Join
+                        </Button>
+                      )
+                    )}
+                  </>
                 )}
                 
                 {isActuallyMember && !isAdmin && (

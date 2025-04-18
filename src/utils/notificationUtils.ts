@@ -207,17 +207,36 @@ export const generateTestNotifications = () => {
 // Execute the function immediately to generate notifications
 generateTestNotifications();
 
+// Key fix: Improved hasPendingInvite function with better logging and type validation
 export const hasPendingInvite = (clubId: string): boolean => {
+  if (!clubId) {
+    console.error('No clubId provided to hasPendingInvite');
+    return false;
+  }
+  
+  console.log('Checking pending invite for club ID:', clubId);
   const storedNotifications = localStorage.getItem('notifications');
-  if (!storedNotifications) return false;
+  if (!storedNotifications) {
+    console.log('No notifications found in storage');
+    return false;
+  }
   
   try {
     const notifications: Notification[] = JSON.parse(storedNotifications);
-    return notifications.some(notification => 
-      notification.type === 'invitation' && 
-      notification.clubId === clubId && 
-      !notification.read
-    );
+    console.log('All notifications:', notifications);
+    
+    // Enhanced filtering to explicitly check for invitation type and matching clubId
+    const pendingInvites = notifications.filter(notification => {
+      const isInvitation = notification.type === 'invitation';
+      const isForThisClub = notification.clubId === clubId;
+      const isUnread = !notification.read;
+      
+      console.log(`Checking notification: type=${notification.type}, clubId=${notification.clubId}, isUnread=${isUnread}`);
+      return isInvitation && isForThisClub && isUnread;
+    });
+    
+    console.log('Pending invites for club:', pendingInvites);
+    return pendingInvites.length > 0;
   } catch (error) {
     console.error('Error checking pending invites:', error);
     return false;
