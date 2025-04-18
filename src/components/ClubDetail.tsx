@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ArrowLeft, User as UserIcon, Calendar, TrendingUp, TrendingDown, ArrowRight, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -24,11 +23,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import ClubAdminActions from './admin/ClubAdminActions';
+import InviteUserDialog from './club/InviteUserDialog';
 
 const ClubDetail: React.FC = () => {
   const { selectedClub, setCurrentView, currentUser, setSelectedUser, setSelectedClub } = useApp();
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
   
   if (!selectedClub) {
     return (
@@ -314,6 +315,18 @@ const ClubDetail: React.FC = () => {
             ))}
           </div>
 
+          {selectedClub?.members.length < 5 && currentUser && selectedClub.members.some(m => m.id === currentUser.id && m.isAdmin) && (
+            <Button 
+              variant="primary" 
+              size="sm" 
+              fullWidth 
+              className="mt-4"
+              onClick={() => setShowInviteDialog(true)}
+            >
+              Invite Runner
+            </Button>
+          )}
+
           {selectedClub?.members.length < 5 && !isAlreadyMember && (
             <Button 
               variant="primary" 
@@ -430,7 +443,6 @@ const ClubDetail: React.FC = () => {
           )}
         </div>
 
-        {/* Admin actions section moved to the bottom */}
         {selectedClub && currentUser && (
           <ClubAdminActions club={selectedClub} currentUser={currentUser} />
         )}
@@ -565,6 +577,14 @@ const ClubDetail: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {selectedClub && (
+        <InviteUserDialog
+          open={showInviteDialog}
+          onOpenChange={setShowInviteDialog}
+          clubId={selectedClub.id}
+        />
+      )}
     </div>
   );
 };
