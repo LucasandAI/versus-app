@@ -57,6 +57,7 @@ export interface AppContextType {
   currentView: AppView;
   selectedClub: Club | null;
   selectedUser: User | null;
+  setCurrentUser: (user: User | null | ((prev: User | null) => User | null)) => void;
   setCurrentView: (view: AppView) => void;
   setSelectedClub: (club: Club | null) => void;
   setSelectedUser: (user: User | null) => void;
