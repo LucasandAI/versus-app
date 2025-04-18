@@ -1,117 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, Plus, Search, UserPlus, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import UserAvatar from './shared/UserAvatar';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
 import { toast } from "@/hooks/use-toast";
+import { X, Search, UserPlus } from 'lucide-react';
 import ChatDrawer from './chat/ChatDrawer';
 import SupportPopover from './shared/SupportPopover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import Button from './shared/Button';
-import ClubCard from './club/ClubCard';
-import AvailableClubs from './club/AvailableClubs';
 import CreateClubDialog from './club/CreateClubDialog';
+import NotificationHandler from './home/NotificationHandler';
+import HomeHeader from './home/HomeHeader';
+import ClubList from './home/ClubList';
+import FindClubsSection from './home/FindClubsSection';
 import { formatLeagueWithTier } from '@/lib/format';
-import NotificationPopover from './shared/NotificationPopover';
+import Button from './shared/Button';
+import AvailableClubs from './club/AvailableClubs';
 
-const mockClubs: Club[] = [
-  {
-    id: '1',
-    name: 'Weekend Warriors',
-    logo: '/placeholder.svg',
-    division: 'Silver',
-    tier: 2,
-    members: [
-      { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true },
-      { id: '2', name: 'Jane Sprinter', avatar: '/placeholder.svg', isAdmin: false },
-      { id: '3', name: 'Bob Marathon', avatar: '/placeholder.svg', isAdmin: false },
-      { id: '4', name: 'Emma Jogger', avatar: '/placeholder.svg', isAdmin: false },
-      { id: '5', name: 'Tom Walker', avatar: '/placeholder.svg', isAdmin: false },
-    ],
-    currentMatch: {
-      id: 'm1',
-      homeClub: {
-        id: '1',
-        name: 'Weekend Warriors',
-        logo: '/placeholder.svg',
-        totalDistance: 62.5,
-        members: [
-          { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true, distanceContribution: 15.3 },
-          { id: '2', name: 'Jane Sprinter', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 12.7 },
-          { id: '3', name: 'Bob Marathon', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 12.5 },
-          { id: '4', name: 'Emma Jogger', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 11.2 },
-          { id: '5', name: 'Tom Walker', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 10.8 },
-        ]
-      },
-      awayClub: {
-        id: '3',
-        name: 'Running Rebels',
-        logo: '/placeholder.svg',
-        totalDistance: 57.2,
-        members: [
-          { id: '6', name: 'Sarah Swift', avatar: '/placeholder.svg', isAdmin: true, distanceContribution: 12.8 },
-          { id: '7', name: 'Mike Miler', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 11.4 },
-          { id: '8', name: 'Lisa Long', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 11.0 },
-          { id: '9', name: 'David Dash', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 10.5 },
-          { id: '10', name: 'Kate Speed', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 11.5 },
-        ]
-      },
-      startDate: new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      endDate: new Date(new Date().getTime() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      status: 'active'
-    },
-    matchHistory: []
-  },
-  {
-    id: '2',
-    name: 'Road Runners',
-    logo: '/placeholder.svg',
-    division: 'Gold',
-    tier: 1,
-    members: [
-      { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true },
-      { id: '7', name: 'Alice Sprint', avatar: '/placeholder.svg', isAdmin: false },
-      { id: '8', name: 'Charlie Run', avatar: '/placeholder.svg', isAdmin: false },
-      { id: '11', name: 'Olivia Pace', avatar: '/placeholder.svg', isAdmin: false },
-      { id: '12', name: 'Paul Path', avatar: '/placeholder.svg', isAdmin: false },
-    ],
-    currentMatch: {
-      id: 'm2',
-      homeClub: {
-        id: '2',
-        name: 'Road Runners',
-        logo: '/placeholder.svg',
-        totalDistance: 78.3,
-        members: [
-          { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true, distanceContribution: 18.1 },
-          { id: '7', name: 'Alice Sprint', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 15.4 },
-          { id: '8', name: 'Charlie Run', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 16.8 },
-          { id: '11', name: 'Olivia Pace', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 14.2 },
-          { id: '12', name: 'Paul Path', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 13.8 },
-        ]
-      },
-      awayClub: {
-        id: '4',
-        name: 'Trail Blazers',
-        logo: '/placeholder.svg',
-        totalDistance: 85.1,
-        members: [
-          { id: '13', name: 'Mark Move', avatar: '/placeholder.svg', isAdmin: true, distanceContribution: 18.3 },
-          { id: '14', name: 'Eva Exercise', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 16.5 },
-          { id: '15', name: 'Tom Track', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 17.3 },
-          { id: '16', name: 'Susan Step', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 16.2 },
-          { id: '17', name: 'Robert Run', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 16.8 },
-        ]
-      },
-      startDate: new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      endDate: new Date(new Date().getTime() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      status: 'active'
-    },
-    matchHistory: []
-  }
-];
+const MAX_CLUBS_PER_USER = 3;
 
 const availableClubs = [
   {
@@ -137,122 +43,19 @@ const availableClubs = [
   }
 ];
 
-const MAX_CLUBS_PER_USER = 3;
-
 interface HomeViewProps {
   chatNotifications?: number;
 }
 
 const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   const { setCurrentView, setSelectedClub, setSelectedUser, currentUser, setCurrentUser } = useApp();
+  const [unreadMessages, setUnreadMessages] = useState(chatNotifications);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [createClubDialogOpen, setCreateClubDialogOpen] = useState(false);
-  const [unreadMessages, setUnreadMessages] = useState(chatNotifications);
-  const [notifications, setNotifications] = useState<any[]>([]);
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
-  
-  useEffect(() => {
-    const loadNotificationsFromStorage = () => {
-      const storedNotifications = localStorage.getItem('notifications');
-      if (storedNotifications) {
-        try {
-          const parsedNotifications = JSON.parse(storedNotifications);
-          setNotifications(parsedNotifications);
-        } catch (error) {
-          console.error("Error parsing notifications:", error);
-          initializeDefaultNotifications();
-        }
-      } else {
-        initializeDefaultNotifications();
-      }
-    };
-    
-    const initializeDefaultNotifications = () => {
-      const defaultNotifications = [
-        {
-          id: 'team-activity-1',
-          userId: '2',
-          userName: 'Jane Sprinter',
-          userAvatar: '/placeholder.svg',
-          clubId: '1',
-          clubName: 'Weekend Warriors',
-          distance: 5.2,
-          timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-          read: false,
-          type: 'activity'
-        },
-        {
-          id: 'club-invite-1',
-          userId: '7',
-          userName: 'Alice Sprint',
-          userAvatar: '/placeholder.svg',
-          clubId: 'ac2',
-          clubName: 'Hill Climbers',
-          distance: 0,
-          timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-          read: false,
-          type: 'invitation',
-          message: 'invited you to join'
-        }
-      ];
-      setNotifications(defaultNotifications);
-      localStorage.setItem('notifications', JSON.stringify(defaultNotifications));
-    };
-    
-    loadNotificationsFromStorage();
-    
-    const handleFocus = () => {
-      loadNotificationsFromStorage();
-    };
-    
-    window.addEventListener('focus', handleFocus);
-    
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, []);
-  
-  useEffect(() => {
-    setUnreadMessages(chatNotifications);
-    
-    const savedTickets = localStorage.getItem('supportTickets');
-    if (savedTickets) {
-      setSupportTickets(JSON.parse(savedTickets));
-    }
-    
-    const handleUnreadMessagesUpdated = () => {
-      const savedUnread = localStorage.getItem('unreadMessages');
-      if (savedUnread) {
-        try {
-          const unreadMap = JSON.parse(savedUnread);
-          const totalUnread = Object.values(unreadMap).reduce(
-            (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 
-            0
-          );
-          setUnreadMessages(Number(totalUnread));
-        } catch (error) {
-          console.error("Error parsing unread messages:", error);
-        }
-      } else {
-        setUnreadMessages(0);
-      }
-    };
-    
-    window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
-    
-    return () => {
-      window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
-    };
-  }, [chatNotifications]);
-  
-  useEffect(() => {
-    localStorage.setItem('supportTickets', JSON.stringify(supportTickets));
-  }, [supportTickets]);
-  
-  const userClubs = currentUser?.clubs || [];
-  const isAtClubCapacity = userClubs.length >= MAX_CLUBS_PER_USER;
 
   const handleSelectClub = (club: Club) => {
     setSelectedClub(club);
@@ -271,6 +74,9 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   };
 
   const handleRequestToJoin = (clubId: string, clubName: string) => {
+    const userClubs = currentUser?.clubs || [];
+    const isAtClubCapacity = userClubs.length >= MAX_CLUBS_PER_USER;
+    
     if (isAtClubCapacity) {
       toast({
         title: "Club Limit Reached",
@@ -291,6 +97,9 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   };
 
   const handleOpenSearch = () => {
+    const userClubs = currentUser?.clubs || [];
+    const isAtClubCapacity = userClubs.length >= MAX_CLUBS_PER_USER;
+    
     if (isAtClubCapacity) {
       toast({
         title: "Club Limit Reached",
@@ -303,6 +112,9 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   };
 
   const handleCreateClub = () => {
+    const userClubs = currentUser?.clubs || [];
+    const isAtClubCapacity = userClubs.length >= MAX_CLUBS_PER_USER;
+    
     if (isAtClubCapacity) {
       toast({
         title: "Club Limit Reached",
@@ -472,6 +284,8 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
     setChatDrawerOpen(true);
   };
 
+  const userClubs = currentUser?.clubs || [];
+  const isAtClubCapacity = userClubs.length >= MAX_CLUBS_PER_USER;
   const filteredClubs = availableClubs.filter(club => 
     club.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -479,88 +293,36 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   return (
     <div className="pb-20 pt-6">
       <div className="container-mobile">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">My Clubs</h1>
-          <div className="flex items-center gap-2">
-            <NotificationPopover 
-              notifications={notifications}
-              onMarkAsRead={handleMarkNotificationAsRead}
-              onClearAll={handleClearAllNotifications}
-              onUserClick={handleSelectUser}
-              onJoinClub={handleJoinClub}
-              onDeclineInvite={handleDeclineInvite}
-            />
-            <Button 
-              variant="link"
-              onClick={handleOpenChat}
-              className="text-primary hover:bg-gray-100 rounded-full p-2"
-              icon={<MessageCircle className="h-5 w-5" />}
-              badge={unreadMessages}
-            />
-            <UserAvatar 
-              name={currentUser?.name || "User"} 
-              image={currentUser?.avatar} 
-              size="sm"
-              onClick={() => setCurrentView('profile')}
-            />
-          </div>
-        </div>
+        <NotificationHandler 
+          setChatNotifications={setUnreadMessages}
+          setNotifications={setNotifications}
+        />
+        
+        <HomeHeader 
+          notifications={notifications}
+          unreadMessages={unreadMessages}
+          onMarkAsRead={handleMarkNotificationAsRead}
+          onClearAll={handleClearAllNotifications}
+          onUserClick={handleSelectUser}
+          onJoinClub={handleJoinClub}
+          onDeclineInvite={handleDeclineInvite}
+          onOpenChat={handleOpenChat}
+        />
 
-        <div className="space-y-6">
-          {userClubs.map((club) => (
-            <ClubCard
-              key={club.id}
-              club={club}
-              onSelectClub={handleSelectClub}
-              onSelectUser={handleSelectUser}
-            />
-          ))}
-
-          {userClubs.length === 0 && (
-            <div className="bg-white rounded-lg shadow-md p-6 text-center">
-              <h3 className="font-medium mb-2">No clubs yet</h3>
-              <p className="text-gray-500 text-sm mb-4">
-                Create or join a club to start competing
-              </p>
-              <Button 
-                variant="primary" 
-                size="sm"
-                onClick={handleCreateClub}
-              >
-                Create Club
-              </Button>
-            </div>
-          )}
-        </div>
+        <ClubList 
+          userClubs={userClubs}
+          onSelectClub={handleSelectClub}
+          onSelectUser={handleSelectUser}
+          onCreateClub={handleCreateClub}
+        />
 
         {!isAtClubCapacity && (
-          <div className="mt-10">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Find Clubs</h2>
-              <button 
-                className="text-primary flex items-center gap-1"
-                onClick={handleOpenSearch}
-              >
-                <Search className="h-4 w-4" />
-                <span className="text-sm">Search</span>
-              </button>
-            </div>
-
-            <AvailableClubs 
-              clubs={availableClubs}
-              onRequestJoin={handleRequestToJoin}
-            />
-
-            <div className="mt-6 text-center">
-              <Button 
-                variant="primary" 
-                size="md"
-                onClick={handleCreateClub}
-              >
-                Create Club
-              </Button>
-            </div>
-          </div>
+          <FindClubsSection 
+            clubs={availableClubs}
+            onRequestJoin={handleRequestToJoin}
+            onSearchClick={() => setSearchDialogOpen(true)}
+            onCreateClick={handleCreateClub}
+          />
         )}
 
         {isAtClubCapacity && (
