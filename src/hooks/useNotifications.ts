@@ -1,7 +1,7 @@
 
 import { useEffect } from 'react';
 import { Notification } from '@/types';
-import { simulateUnreadNotifications } from '@/lib/notificationUtils';
+import { getNotificationsFromStorage } from '@/lib/notificationUtils';
 
 interface UseNotificationsProps {
   setNotifications: (notifications: Notification[]) => void;
@@ -11,22 +11,9 @@ export const useNotifications = ({ setNotifications }: UseNotificationsProps) =>
   useEffect(() => {
     const loadNotificationsFromStorage = () => {
       console.log("Loading notifications from storage");
-      const storedNotifications = localStorage.getItem('notifications');
-      if (storedNotifications) {
-        try {
-          const parsedNotifications = JSON.parse(storedNotifications);
-          console.log("Loaded notifications:", parsedNotifications);
-          setNotifications(parsedNotifications);
-        } catch (error) {
-          console.error("Error parsing notifications:", error);
-          // If we can't parse, reset the notifications
-          simulateUnreadNotifications();
-        }
-      } else {
-        // If no notifications in storage, simulate them
-        console.log("No notifications in storage, simulating");
-        simulateUnreadNotifications();
-      }
+      const notifications = getNotificationsFromStorage();
+      console.log("Loaded notifications:", notifications);
+      setNotifications(notifications);
     };
 
     // Load notifications immediately
@@ -39,9 +26,11 @@ export const useNotifications = ({ setNotifications }: UseNotificationsProps) =>
     };
     
     window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
+    window.addEventListener('focus', handleNotificationsUpdated); // Reload on window focus
 
     return () => {
       window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
+      window.removeEventListener('focus', handleNotificationsUpdated);
     };
   }, [setNotifications]);
 };

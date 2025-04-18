@@ -3,6 +3,7 @@ import { useApp } from '@/context/AppContext';
 import { getClubToJoin } from '@/utils/clubUtils';
 import { useClubValidation } from './useClubValidation';
 import { toast } from "@/hooks/use-toast";
+import { handleNotification } from '@/lib/notificationUtils';
 
 export const useClubJoin = () => {
   const { currentUser, setCurrentUser } = useApp();
@@ -86,15 +87,18 @@ export const useClubJoin = () => {
       description: `You have successfully joined ${clubToJoin.name}!`
     });
     
-    // Update notifications - remove the invitation
+    // Find and remove all invitations to this club
     const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
-    const updatedNotifications = notifications.filter(
-      (n: any) => !(n.type === 'invitation' && n.clubId === clubId)
+    const invitationsToThisClub = notifications.filter(
+      (n: any) => n.type === 'invitation' && n.clubId === clubId
     );
-    localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+    
+    // Process each invitation to the club
+    invitationsToThisClub.forEach((invitation: any) => {
+      handleNotification(invitation.id, 'delete');
+    });
     
     // Dispatch events to update UI
-    window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     window.dispatchEvent(new CustomEvent('userDataUpdated'));
   };
 

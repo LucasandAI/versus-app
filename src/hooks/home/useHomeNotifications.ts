@@ -1,82 +1,87 @@
 
-import { useState, useEffect } from 'react';
-import { toast } from '@/hooks/use-toast';
-import { refreshNotifications } from '@/lib/notificationUtils';
+import { useState, useCallback, useEffect } from 'react';
+import { Notification } from '@/types';
+import { handleNotification } from '@/lib/notificationUtils';
+import { toast } from "@/hooks/use-toast";
 
 export const useHomeNotifications = () => {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadMessages, setUnreadMessages] = useState(0);
-  const [notifications, setNotifications] = useState<any[]>([]);
 
-  const handleMarkAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id ? { ...notification, read: true } : notification
-      )
-    );
+  const handleMarkAsRead = useCallback((id: string) => {
+    console.log("Marking notification as read:", id);
+    const updatedNotifications = handleNotification(id, 'read');
     
-    const storedNotifications = localStorage.getItem('notifications');
-    if (storedNotifications) {
-      try {
-        const parsedNotifications = JSON.parse(storedNotifications);
-        const updatedNotifications = parsedNotifications.map((notification: any) => 
-          notification.id === id ? { ...notification, read: true } : notification
-        );
-        localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
-        
-        const event = new CustomEvent('notificationsUpdated');
-        window.dispatchEvent(event);
-      } catch (error) {
-        console.error("Error updating notification:", error);
-      }
+    if (updatedNotifications) {
+      setNotifications(updatedNotifications);
     }
-  };
+  }, []);
 
-  const handleDeclineInvite = (id: string) => {
-    const notification = notifications.find(n => n.id === id);
-    const clubName = notification?.clubName || "the club";
+  const handleDeclineInvite = useCallback((id: string) => {
+    console.log("Declining invitation:", id);
+    const updatedNotifications = handleNotification(id, 'delete');
     
-    setNotifications(prev => prev.filter(notification => notification.id !== id));
-    
-    const storedNotifications = localStorage.getItem('notifications');
-    if (storedNotifications) {
-      try {
-        const parsedNotifications = JSON.parse(storedNotifications);
-        const updatedNotifications = parsedNotifications.filter(
-          (n: any) => n.id !== id
-        );
-        localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
-        
-        const event = new CustomEvent('notificationsUpdated');
-        window.dispatchEvent(event);
-        
-        toast({
-          title: "Invitation Declined",
-          description: `You have declined the invitation to join ${clubName}`
-        });
-      } catch (error) {
-        console.error("Error declining invitation:", error);
-      }
+    if (updatedNotifications) {
+      setNotifications(updatedNotifications);
+      
+      toast({
+        title: "Invitation Declined",
+        description: "The club invitation has been declined."
+      });
     }
-  };
+  }, []);
 
-  const handleClearAllNotifications = () => {
-    setNotifications([]);
+  const handleClearAllNotifications = useCallback(() => {
+    console.log("Clearing all notifications");
     localStorage.setItem('notifications', JSON.stringify([]));
+    setNotifications([]);
     
     const event = new CustomEvent('notificationsUpdated');
     window.dispatchEvent(event);
     
     toast({
       title: "Notifications Cleared",
-      description: "All notifications have been cleared"
+      description: "All notifications have been cleared."
     });
-  };
+  }, []);
+
+  // Load unread chat message counts from localStorage
+  useEffect(() => {
+    const handleUnreadMessagesUpdated = () => {
+      const unreadMessages = localStorage.getItem('unreadMessages');
+      if (unreadMessages) {
+        try {
+          const unreadMap = JSON.parse(unreadMessages);
+          const totalUnread = Object.values(unreadMap).reduce(
+            (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0),
+            0
+          );
+          setUnreadMessages(Number(totalUnread));
+        } catch (error) {
+          console.error("Error parsing unread messages:", error);
+          setUnreadMessages(0);
+        }
+      } else {
+        setUnreadMessages(0);
+      }
+    };
+
+    // Initial load
+    handleUnreadMessagesUpdated();
+    
+    // Set up listeners
+    window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
+    
+    return () => {
+      window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
+    };
+  }, []);
 
   return {
-    unreadMessages,
-    setUnreadMessages,
     notifications,
     setNotifications,
+    unreadMessages,
+    setUnreadMessages,
     handleMarkAsRead,
     handleDeclineInvite,
     handleClearAllNotifications

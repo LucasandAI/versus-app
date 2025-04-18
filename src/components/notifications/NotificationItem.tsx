@@ -6,6 +6,7 @@ import { useApp } from '@/context/AppContext';
 import { findClubFromStorage, getMockClub, handleClubError } from '@/utils/notificationUtils';
 import { ActivityNotification } from './ActivityNotification';
 import { InvitationNotification } from './InvitationNotification';
+import { handleNotification } from '@/lib/notificationUtils';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -25,6 +26,11 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   const { setCurrentView, setSelectedClub } = useApp();
 
   const handleClubClick = () => {
+    // Mark as read when club is clicked
+    if (!notification.read) {
+      handleNotification(notification.id, 'read');
+    }
+    
     const club = findClubFromStorage(notification.clubId);
     
     if (club) {
@@ -42,14 +48,27 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     }
   };
 
+  const handleUserItemClick = () => {
+    // Mark as read when user is clicked
+    if (!notification.read) {
+      handleNotification(notification.id, 'read');
+    }
+    
+    onUserClick(notification.userId, notification.userName);
+  };
+
   const handleJoinClub = () => {
     if (onJoinClub) {
+      // When joining club, completely remove the notification
+      handleNotification(notification.id, 'delete');
       onJoinClub(notification.clubId, notification.clubName);
     }
   };
 
   const handleDeclineInvite = () => {
     if (onDeclineInvite) {
+      // When declining invitation, completely remove the notification
+      handleNotification(notification.id, 'delete');
       onDeclineInvite(notification.id);
     }
   };
@@ -65,14 +84,14 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
           image={notification.userAvatar} 
           size="sm"
           className="cursor-pointer mt-1"
-          onClick={() => onUserClick(notification.userId, notification.userName)}
+          onClick={handleUserItemClick}
         />
         
         <div className="flex-1 min-w-0">
           {notification.type === 'invitation' ? (
             <InvitationNotification
               userName={notification.userName}
-              onUserClick={onUserClick}
+              onUserClick={handleUserItemClick}
               userId={notification.userId}
               clubName={notification.clubName}
               onClubClick={handleClubClick}

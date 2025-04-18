@@ -1,4 +1,3 @@
-
 import { Notification } from '@/types';
 
 export const simulateUnreadNotifications = () => {
@@ -53,6 +52,59 @@ export const refreshNotifications = () => {
   console.log("Refreshing notifications");
   localStorage.removeItem('notifications');
   simulateUnreadNotifications();
+};
+
+// Handle a notification (mark as read, join, decline, etc.)
+export const handleNotification = (notificationId: string, action: 'read' | 'delete') => {
+  console.log(`Handling notification ${notificationId} with action: ${action}`);
+  const storedNotifications = localStorage.getItem('notifications');
+  
+  if (!storedNotifications) return;
+  
+  try {
+    const notifications: Notification[] = JSON.parse(storedNotifications);
+    let updatedNotifications: Notification[];
+    
+    if (action === 'read') {
+      // Mark as read but keep in the list
+      updatedNotifications = notifications.map(notification => 
+        notification.id === notificationId 
+          ? { ...notification, read: true } 
+          : notification
+      );
+    } else {
+      // Remove from the list entirely
+      updatedNotifications = notifications.filter(
+        notification => notification.id !== notificationId
+      );
+    }
+    
+    // Save back to localStorage
+    localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+    
+    // Dispatch event to update UI
+    const event = new CustomEvent('notificationsUpdated');
+    window.dispatchEvent(event);
+    
+    return updatedNotifications;
+  } catch (error) {
+    console.error("Error handling notification:", error);
+    return null;
+  }
+};
+
+// Get all notifications from storage
+export const getNotificationsFromStorage = (): Notification[] => {
+  const storedNotifications = localStorage.getItem('notifications');
+  if (storedNotifications) {
+    try {
+      return JSON.parse(storedNotifications);
+    } catch (error) {
+      console.error("Error parsing notifications:", error);
+      return [];
+    }
+  }
+  return [];
 };
 
 // Initialize notifications on first load if they don't exist yet
