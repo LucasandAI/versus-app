@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
 import { useApp } from '@/context/AppContext';
 import { useChat } from '@/hooks/useChat';
-import { toast } from '@/hooks/use-toast';
 import { ChatProvider } from '@/context/ChatContext';
 import ChatSidebar from './ChatSidebar';
 import ChatClubContent from './ChatClubContent';
@@ -41,7 +41,7 @@ const ChatDrawer = ({
     deleteChat
   } = useChat(open, onNewMessage);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (open) {
       const storedTickets = localStorage.getItem('supportTickets');
       if (storedTickets) {
