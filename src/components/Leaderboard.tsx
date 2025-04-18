@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ArrowUp, ArrowDown, Trophy, Medal } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -105,19 +104,45 @@ const Leaderboard: React.FC = () => {
   const { setCurrentView, setSelectedClub, currentUser } = useApp();
   const [selectedDivision, setSelectedDivision] = React.useState<Division | 'All'>('All');
   const [activeTab, setActiveTab] = React.useState<'global' | 'myClubs'>('global');
-  const [leaderboardData] = React.useState<LeaderboardClub[]>(mockLeaderboardData);
+
+  // Create a complete leaderboard data set that includes user's custom clubs
+  const [leaderboardData] = React.useState<LeaderboardClub[]>(() => {
+    const baseData = [...mockLeaderboardData];
+    
+    // Add any user-created clubs that aren't already in the leaderboard
+    if (currentUser?.clubs) {
+      currentUser.clubs.forEach(club => {
+        // Check if club is already in the leaderboard
+        const existingClub = baseData.find(c => c.id === club.id);
+        if (!existingClub) {
+          // Add new club at an appropriate rank (near bottom based on Bronze tier 5)
+          const newRank = baseData.length + 1;
+          baseData.push({
+            id: club.id,
+            name: club.name,
+            division: club.division,
+            tier: club.tier,
+            rank: newRank,
+            points: 0,
+            change: 'same'
+          });
+        }
+      });
+    }
+    
+    return baseData;
+  });
 
   const filteredClubs = selectedDivision === 'All' 
     ? leaderboardData
     : leaderboardData.filter(club => club.division === selectedDivision);
 
-  // Find user's clubs - Updated to match the clubs in HomeView
-  const userClubs = currentUser?.clubs || [];
-  const userClubIds = userClubs.map(club => club.id);
+  // Find user's clubs - Updated to use the complete leaderboard data
+  const userClubIds = currentUser?.clubs.map(club => club.id) || [];
   const userClubsInLeaderboard = leaderboardData.filter(club => userClubIds.includes(club.id));
   
   const handleSelectClub = (clubId: string) => {
-    // In a real app, we would fetch the club data
+    // Find club in currentUser's clubs
     const club = currentUser?.clubs.find(c => c.id === clubId);
     if (club) {
       setSelectedClub(club);

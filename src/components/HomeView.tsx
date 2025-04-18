@@ -134,6 +134,8 @@ const availableClubs = [
   }
 ];
 
+const MAX_CLUBS_PER_USER = 3;
+
 const HomeView: React.FC = () => {
   const { setCurrentView, setSelectedClub, setSelectedUser, currentUser } = useApp();
   const [clubs] = React.useState<Club[]>(mockClubs);
@@ -141,6 +143,9 @@ const HomeView: React.FC = () => {
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [createClubDialogOpen, setCreateClubDialogOpen] = useState(false);
+
+  const userClubs = currentUser?.clubs || [];
+  const isAtClubCapacity = userClubs.length >= MAX_CLUBS_PER_USER;
 
   const handleSelectClub = (club: Club) => {
     setSelectedClub(club);
@@ -159,6 +164,15 @@ const HomeView: React.FC = () => {
   };
 
   const handleRequestToJoin = (clubId: string, clubName: string) => {
+    if (isAtClubCapacity) {
+      toast({
+        title: "Club Limit Reached",
+        description: `You can join a maximum of ${MAX_CLUBS_PER_USER} clubs.`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
     toast({
       title: "Request Sent",
       description: `Your request to join ${clubName} has been sent.`,
@@ -170,10 +184,26 @@ const HomeView: React.FC = () => {
   };
 
   const handleOpenSearch = () => {
+    if (isAtClubCapacity) {
+      toast({
+        title: "Club Limit Reached",
+        description: `You can join a maximum of ${MAX_CLUBS_PER_USER} clubs.`,
+        variant: "destructive"
+      });
+      return;
+    }
     setSearchDialogOpen(true);
   };
 
   const handleCreateClub = () => {
+    if (isAtClubCapacity) {
+      toast({
+        title: "Club Limit Reached",
+        description: `You can create a maximum of ${MAX_CLUBS_PER_USER} clubs.`,
+        variant: "destructive"
+      });
+      return;
+    }
     setCreateClubDialogOpen(true);
   };
 
@@ -203,7 +233,7 @@ const HomeView: React.FC = () => {
         </div>
 
         <div className="space-y-6">
-          {clubs.map((club) => (
+          {userClubs.map((club) => (
             <ClubCard
               key={club.id}
               club={club}
@@ -212,7 +242,7 @@ const HomeView: React.FC = () => {
             />
           ))}
 
-          {clubs.length === 0 && (
+          {userClubs.length === 0 && (
             <div className="bg-white rounded-lg shadow-md p-6 text-center">
               <h3 className="font-medium mb-2">No clubs yet</h3>
               <p className="text-gray-500 text-sm mb-4">
@@ -229,33 +259,44 @@ const HomeView: React.FC = () => {
           )}
         </div>
 
-        <div className="mt-10">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">Find Clubs</h2>
-            <button 
-              className="text-primary flex items-center gap-1"
-              onClick={handleOpenSearch}
-            >
-              <Search className="h-4 w-4" />
-              <span className="text-sm">Search</span>
-            </button>
-          </div>
+        {!isAtClubCapacity && (
+          <div className="mt-10">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Find Clubs</h2>
+              <button 
+                className="text-primary flex items-center gap-1"
+                onClick={handleOpenSearch}
+              >
+                <Search className="h-4 w-4" />
+                <span className="text-sm">Search</span>
+              </button>
+            </div>
 
-          <AvailableClubs 
-            clubs={availableClubs}
-            onRequestJoin={handleRequestToJoin}
-          />
+            <AvailableClubs 
+              clubs={availableClubs}
+              onRequestJoin={handleRequestToJoin}
+            />
 
-          <div className="mt-6 text-center">
-            <Button 
-              variant="primary" 
-              size="md"
-              onClick={handleCreateClub}
-            >
-              Create Club
-            </Button>
+            <div className="mt-6 text-center">
+              <Button 
+                variant="primary" 
+                size="md"
+                onClick={handleCreateClub}
+              >
+                Create Club
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
+
+        {isAtClubCapacity && (
+          <div className="mt-10 bg-white rounded-lg shadow-md p-6 text-center">
+            <h3 className="font-medium mb-2">Club Limit Reached</h3>
+            <p className="text-gray-500 text-sm mb-4">
+              You have reached the maximum of {MAX_CLUBS_PER_USER} clubs.
+            </p>
+          </div>
+        )}
       </div>
 
       <ChatDrawer 
