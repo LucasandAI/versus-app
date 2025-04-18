@@ -53,8 +53,6 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
     setImageLoaded(true);
   };
 
-  const shouldShowImage = image && !imageError && imageLoaded;
-  const shouldShowFallback = !image || imageError || !imageLoaded;
   const initials = getInitials(name);
 
   return (
@@ -72,14 +70,12 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
         />
       ) : null}
       
-      {shouldShowFallback && (
-        <AvatarFallback 
-          className="bg-primary/10 text-primary font-bold"
-          delayMs={0}
-        >
-          {initials}
-        </AvatarFallback>
-      )}
+      <AvatarFallback 
+        className="bg-primary/10 text-primary font-bold"
+        delayMs={0}
+      >
+        {initials}
+      </AvatarFallback>
     </Avatar>
   );
 };
