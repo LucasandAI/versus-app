@@ -4,7 +4,7 @@ import { ArrowLeft, User as UserIcon, Calendar, TrendingUp, TrendingDown, ArrowR
 import { useApp } from '@/context/AppContext';
 import MatchProgressBar from './shared/MatchProgressBar';
 import UserAvatar from './shared/UserAvatar';
-import { ClubMember } from '@/types';
+import { ClubMember, Division } from '@/types';
 import Button from './shared/Button';
 import { formatLeagueWithTier } from '@/lib/format';
 import { 
