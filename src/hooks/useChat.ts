@@ -54,7 +54,8 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
   // Update notification count whenever unreadMessages changes
   useEffect(() => {
     if (!open && onNewMessage) {
-      const totalUnread = Object.values(unreadMessages).reduce((sum, count) => sum + (count as number), 0);
+      const totalUnread = Object.values(unreadMessages).reduce((sum: number, count: unknown) => 
+        sum + (typeof count === 'number' ? count : 0), 0);
       onNewMessage(totalUnread);
     }
   }, [unreadMessages, open, onNewMessage]);
@@ -165,7 +166,8 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     // Notify the chat icon about the new unread message
     if (onNewMessage && !open) {
       // Fix TypeScript error: Ensure proper type handling for the reduce operation
-      const totalUnread = Object.values({...unreadMessages, [ticketId]: 1}).reduce((sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 0);
+      const totalUnread = Object.values({...unreadMessages, [ticketId]: 1}).reduce((sum: number, count: unknown) => 
+        sum + (typeof count === 'number' ? count : 0), 0);
       onNewMessage(totalUnread);
     }
     
@@ -187,7 +189,11 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
       setTimeout(() => {
         const currentUnread = JSON.parse(localStorage.getItem('unreadMessages') || '{}');
         // Fix TypeScript error: Ensure proper type handling for the reduce operation
-        const totalUnread = Object.values(currentUnread).reduce((sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 0);
+        const totalUnread = Object.values(currentUnread).reduce(
+          (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 
+          0
+        );
+        // Ensure we're passing a number to onNewMessage
         onNewMessage(totalUnread);
       }, 100);
     }

@@ -31,8 +31,11 @@ const AppContent: React.FC = () => {
         try {
           const unreadMap = JSON.parse(unreadMessages);
           // Fix TypeScript error: Ensure proper type handling for the reduce operation
-          const totalUnread = Object.values(unreadMap).reduce((sum: number, count: unknown) => 
-            sum + (typeof count === 'number' ? count : 0), 0);
+          const totalUnread = Object.values(unreadMap).reduce(
+            (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 
+            0
+          );
+          // Explicitly set as a number to satisfy TypeScript
           setChatNotifications(totalUnread);
         } catch (error) {
           console.error("Error parsing unread messages:", error);
