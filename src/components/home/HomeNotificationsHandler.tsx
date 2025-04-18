@@ -1,8 +1,8 @@
 
-import React, { useEffect } from 'react';
-import ChatDrawer from '../chat/ChatDrawer';
+import React from 'react';
 import { Club } from '@/types';
 import HomeNotifications from './HomeNotifications';
+import ChatDrawerHandler from './ChatDrawerHandler';
 import { useHomeNotifications } from '@/hooks/home/useHomeNotifications';
 
 interface HomeNotificationsHandlerProps {
@@ -23,48 +23,7 @@ const HomeNotificationsHandler: React.FC<HomeNotificationsHandlerProps> = ({
     setUnreadMessages,
     notifications,
     setNotifications,
-    handleMarkAsRead,
-    handleDeclineInvite,
-    handleClearAllNotifications
   } = useHomeNotifications();
-
-  const [chatDrawerOpen, setChatDrawerOpen] = React.useState(false);
-
-  useEffect(() => {
-    const loadUnreadCounts = () => {
-      const unreadMessages = localStorage.getItem('unreadMessages');
-      if (unreadMessages) {
-        try {
-          const unreadMap = JSON.parse(unreadMessages);
-          const totalUnread = Object.values(unreadMap).reduce(
-            (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 
-            0
-          );
-          setUnreadMessages(Number(totalUnread));
-        } catch (error) {
-          console.error("Error parsing unread messages:", error);
-          setUnreadMessages(0);
-        }
-      }
-    };
-
-    loadUnreadCounts();
-    
-    const handleUnreadMessagesUpdated = () => loadUnreadCounts();
-    
-    window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
-    window.addEventListener('focus', handleUnreadMessagesUpdated);
-    window.addEventListener('notificationsUpdated', handleUnreadMessagesUpdated);
-    
-    const checkInterval = setInterval(handleUnreadMessagesUpdated, 1000);
-    
-    return () => {
-      window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
-      window.removeEventListener('focus', handleUnreadMessagesUpdated);
-      window.removeEventListener('notificationsUpdated', handleUnreadMessagesUpdated);
-      clearInterval(checkInterval);
-    };
-  }, [setUnreadMessages]);
 
   return (
     <>
@@ -73,21 +32,15 @@ const HomeNotificationsHandler: React.FC<HomeNotificationsHandlerProps> = ({
         setNotifications={setNotifications}
       />
 
-      <ChatDrawer 
-        open={chatDrawerOpen} 
-        onOpenChange={(open) => {
-          setChatDrawerOpen(open);
-          if (!open) {
-            const event = new CustomEvent('chatDrawerClosed');
-            window.dispatchEvent(event);
-          }
-        }} 
-        clubs={userClubs}
-        onNewMessage={(count) => setUnreadMessages(count)} 
+      <ChatDrawerHandler 
+        userClubs={userClubs}
+        onSelectUser={onSelectUser}
         supportTickets={supportTickets}
+        setUnreadMessages={setUnreadMessages}
       />
     </>
   );
 };
 
 export default HomeNotificationsHandler;
+
