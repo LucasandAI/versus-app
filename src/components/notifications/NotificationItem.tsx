@@ -3,7 +3,7 @@ import React from 'react';
 import { toast } from '@/hooks/use-toast';
 import Button from '@/components/shared/Button';
 import UserAvatar from '@/components/shared/UserAvatar';
-import { Notification, Club } from '@/types';
+import { Notification, Club, Division } from '@/types';
 import { useApp } from '@/context/AppContext';
 
 interface NotificationItemProps {
@@ -52,7 +52,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
           {
             id: 'ac1',
             name: 'Morning Joggers',
-            division: 'Silver',
+            division: 'Silver' as Division,
             tier: 3,
             logo: '/placeholder.svg',
             members: [],
@@ -61,7 +61,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
           {
             id: 'ac2',
             name: 'Hill Climbers',
-            division: 'Gold',
+            division: 'Gold' as Division,
             tier: 2,
             logo: '/placeholder.svg',
             members: [],
@@ -70,7 +70,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
           {
             id: 'ac3',
             name: 'Urban Pacers',
-            division: 'Bronze',
+            division: 'Bronze' as Division,
             tier: 5,
             logo: '/placeholder.svg',
             members: [],
