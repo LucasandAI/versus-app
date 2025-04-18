@@ -172,7 +172,7 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
     const initializeDefaultNotifications = () => {
       const defaultNotifications = [
         {
-          id: '1',
+          id: 'team-activity-1',
           userId: '2',
           userName: 'Jane Sprinter',
           userAvatar: '/placeholder.svg',
@@ -180,29 +180,21 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
           clubName: 'Weekend Warriors',
           distance: 5.2,
           timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-          read: false
+          read: false,
+          type: 'activity'
         },
         {
-          id: '2',
-          userId: '3',
-          userName: 'Bob Marathon',
-          userAvatar: '/placeholder.svg',
-          clubId: '1',
-          clubName: 'Weekend Warriors',
-          distance: 10.7,
-          timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-          read: false
-        },
-        {
-          id: '3',
+          id: 'club-invite-1',
           userId: '7',
           userName: 'Alice Sprint',
           userAvatar: '/placeholder.svg',
-          clubId: '2',
-          clubName: 'Road Runners',
-          distance: 8.3,
-          timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-          read: true
+          clubId: 'ac2',
+          clubName: 'Hill Climbers',
+          distance: 0,
+          timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+          read: false,
+          type: 'invitation',
+          message: 'invited you to join'
         }
       ];
       setNotifications(defaultNotifications);
