@@ -1,15 +1,12 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { User } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { Button } from "@/components/ui/button";
-import { Settings, Share2, LogOut } from 'lucide-react';
+import { Settings, LogOut } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { toast } from "@/hooks/use-toast";
-import { useApp } from '@/context/AppContext';
-import { useIsMobile } from '@/hooks/use-mobile';
+import SocialLinksDropdown from './social/SocialLinksDropdown';
 
 interface UserHeaderProps {
   user: User;
@@ -26,47 +23,6 @@ const UserHeader: React.FC<UserHeaderProps> = ({
   onEditProfile,
   onLogoutClick
 }) => {
-  const isMobile = useIsMobile();
-
-  const handleSocialLink = (platform: string, username: string) => {
-    if (!username) {
-      toast({
-        title: "No Profile Link",
-        description: `No ${platform} profile has been added yet.`,
-      });
-      return;
-    }
-
-    let url = '';
-    switch(platform) {
-      case 'instagram':
-        url = `https://instagram.com/${username}`;
-        break;
-      case 'twitter':
-        url = `https://twitter.com/${username}`;
-        break;
-      case 'facebook': 
-        url = username.startsWith('http') ? username : `https://${username}`;
-        break;
-      case 'linkedin':
-        url = username.startsWith('http') ? username : `https://${username}`;
-        break;
-      case 'website':
-        url = username.startsWith('http') ? username : `https://${username}`;
-        break;
-      case 'tiktok':
-        url = `https://tiktok.com/@${username}`;
-        break;
-      default:
-        url = username;
-    }
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
-
-  const handleOpenStravaProfile = () => {
-    window.open('https://www.strava.com/athletes/' + user?.id, '_blank', 'noopener,noreferrer');
-  };
-
   const handleShareProfile = () => {
     toast({
       title: "Profile shared",
@@ -148,93 +104,11 @@ const UserHeader: React.FC<UserHeaderProps> = ({
 
       <Button 
         className="bg-green-500 hover:bg-green-600 text-white w-full"
-        onClick={handleOpenStravaProfile}
+        onClick={() => window.open('https://www.strava.com/athletes/' + user?.id, '_blank', 'noopener,noreferrer')}
       >
         Strava Profile
       </Button>
     </div>
-  );
-};
-
-interface SocialLinksDropdownProps {
-  user: User;
-  onShareProfile: () => void;
-}
-
-const SocialLinksDropdown: React.FC<SocialLinksDropdownProps> = ({ user, onShareProfile }) => {
-  const handleSocialLink = (platform: string, username: string) => {
-    if (!username) {
-      toast({
-        title: "No Profile Link",
-        description: `No ${platform} profile has been added yet.`,
-      });
-      return;
-    }
-
-    let url = '';
-    switch(platform) {
-      case 'instagram':
-        url = `https://instagram.com/${username}`;
-        break;
-      case 'twitter':
-        url = `https://twitter.com/${username}`;
-        break;
-      case 'facebook': 
-        url = username.startsWith('http') ? username : `https://${username}`;
-        break;
-      case 'linkedin':
-        url = username.startsWith('http') ? username : `https://${username}`;
-        break;
-      case 'website':
-        url = username.startsWith('http') ? username : `https://${username}`;
-        break;
-      case 'tiktok':
-        url = `https://tiktok.com/@${username}`;
-        break;
-      default:
-        url = username;
-    }
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
-
-  return (
-    <DropdownMenu>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="rounded-full">
-                <Share2 className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-          </TooltipTrigger>
-          <TooltipContent>
-            Social Links
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-      <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Connect with {user.name}</DropdownMenuLabel>
-        <DropdownMenuItem onClick={() => handleSocialLink('instagram', user?.instagram || '')}>
-          Instagram
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleSocialLink('twitter', user?.twitter || '')}>
-          Twitter
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleSocialLink('facebook', user?.facebook || '')}>
-          Facebook
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleSocialLink('linkedin', user?.linkedin || '')}>
-          LinkedIn
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleSocialLink('tiktok', user?.tiktok || '')}>
-          TikTok
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleSocialLink('website', user?.website || '')}>
-          Website
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 };
 
