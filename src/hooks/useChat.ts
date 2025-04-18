@@ -50,12 +50,37 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     }
   }, [open, onNewMessage]);
 
+  // Update notification count whenever unreadMessages changes
   useEffect(() => {
     if (!open && onNewMessage) {
       const totalUnread = Object.values(unreadMessages).reduce((sum, count) => sum + count, 0);
       onNewMessage(totalUnread);
     }
   }, [unreadMessages, open, onNewMessage]);
+
+  // Check for new support tickets on component mount and when they change
+  useEffect(() => {
+    const checkForNewSupportTickets = () => {
+      const savedTickets = localStorage.getItem('supportTickets');
+      if (!savedTickets) return;
+      
+      const tickets: SupportTicket[] = JSON.parse(savedTickets);
+      const currentTicketIds = Object.keys(supportTickets);
+      
+      tickets.forEach(ticket => {
+        // If this is a new ticket that we don't have in our state
+        if (!currentTicketIds.includes(ticket.id)) {
+          // Update unread messages for new tickets
+          setUnreadMessages(prev => ({
+            ...prev,
+            [ticket.id]: 1 // Set at least 1 unread message for the auto-response
+          }));
+        }
+      });
+    };
+    
+    checkForNewSupportTickets();
+  }, [supportTickets]);
 
   const handleNewMessage = (clubId: string, message: ChatMessage, isOpen: boolean) => {
     setMessages(prev => ({

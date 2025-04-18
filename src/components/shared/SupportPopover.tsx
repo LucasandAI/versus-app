@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { useApp } from '@/context/AppContext';
 
 interface SupportOption {
@@ -101,7 +101,7 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
       timestamp: new Date().toISOString()
     });
     
-    // Prepare ticket for storage
+    // Prepare ticket for storage with proper structure
     const newTicket = {
       id: ticketId,
       subject: subject,
@@ -132,11 +132,17 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
       ]
     };
     
-    // Store the ticket in localStorage whether or not the callback exists
+    // Store the ticket in localStorage
     const existingTickets = localStorage.getItem('supportTickets');
     const tickets = existingTickets ? JSON.parse(existingTickets) : [];
     tickets.push(newTicket);
     localStorage.setItem('supportTickets', JSON.stringify(tickets));
+    
+    // Update unread messages to show notification in chat icon
+    const unreadMessages = localStorage.getItem('unreadMessages');
+    const unreadMap = unreadMessages ? JSON.parse(unreadMessages) : {};
+    unreadMap[ticketId] = 1; // Set 1 unread message for the auto-response
+    localStorage.setItem('unreadMessages', JSON.stringify(unreadMap));
     
     // If the callback exists, use it to create a support chat
     if (onCreateSupportChat) {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { 
@@ -61,18 +62,27 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   };
 
   const handleJoinClub = (clubId: string, clubName: string, notificationId: string) => {
-    if (onJoinClub) {
-      onJoinClub(clubId, clubName);
+    // Check if user is already a member of this specific club
+    const existingClubs = localStorage.getItem('userClubs');
+    const clubs = existingClubs ? JSON.parse(existingClubs) : [];
+    
+    const isAlreadyMember = clubs.some((club: any) => club.id === clubId);
+    
+    if (isAlreadyMember) {
+      toast({
+        title: "Already a Member",
+        description: `You are already a member of ${clubName}.`,
+        variant: "destructive"
+      });
+    } else if (clubs.length >= 3) {
+      toast({
+        title: "Cannot Join Club",
+        description: "You are already a member of 3 clubs, which is the maximum allowed.",
+        variant: "destructive"
+      });
     } else {
-      const existingClubs = localStorage.getItem('userClubs');
-      const clubs = existingClubs ? JSON.parse(existingClubs) : [];
-      
-      if (clubs.length >= 3) {
-        toast({
-          title: "Cannot Join Club",
-          description: "You are already a member of 3 clubs, which is the maximum allowed.",
-          variant: "destructive"
-        });
+      if (onJoinClub) {
+        onJoinClub(clubId, clubName);
       } else {
         toast({
           title: "Club Joined",
@@ -81,6 +91,7 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
       }
     }
     
+    // Always remove the notification after handling
     if (onDeclineInvite) {
       onDeclineInvite(notificationId);
     }
@@ -140,6 +151,11 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
     window.location.reload();
   };
 
+  // Sort notifications from most recent to oldest
+  const sortedNotifications = [...notifications].sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
+
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
@@ -161,9 +177,10 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
                 variant="link" 
                 size="sm" 
                 onClick={createTestInvitation}
-                className="text-xs text-green-500 hover:text-green-700 p-0 h-auto"
+                className="p-0 h-auto text-xs text-green-500 hover:text-green-700"
               >
-                Test Invite
+                <span className="sr-only">Test Invite</span>
+                <span className="sm:hidden">+</span>
               </Button>
             )}
             {notifications.length > 0 && (
@@ -180,8 +197,8 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
         </div>
         
         <div className="max-h-[300px] overflow-y-auto">
-          {notifications.length > 0 ? (
-            notifications.map(notification => (
+          {sortedNotifications.length > 0 ? (
+            sortedNotifications.map(notification => (
               <div 
                 key={notification.id} 
                 className={`p-3 border-b hover:bg-gray-50 transition-colors ${!notification.read ? 'bg-blue-50' : ''}`}
