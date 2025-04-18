@@ -7,7 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogClose
+  DialogClose,
+  DialogDescription
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { Save, Upload } from 'lucide-react';
 import { Textarea } from "@/components/ui/textarea";
+import { useApp } from '@/context/AppContext';
 
 interface EditClubDialogProps {
   open: boolean;
@@ -27,9 +29,19 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
   onOpenChange, 
   club 
 }) => {
+  const { setSelectedClub, setCurrentUser } = useApp();
   const [name, setName] = useState(club.name);
-  const [bio, setBio] = useState('A club for enthusiastic runners');
+  const [bio, setBio] = useState(club.bio || 'A club for enthusiastic runners');
   const [logoPreview, setLogoPreview] = useState(club.logo || '/placeholder.svg');
+  
+  // Reset form when club or open state changes
+  React.useEffect(() => {
+    if (open && club) {
+      setName(club.name);
+      setBio(club.bio || 'A club for enthusiastic runners');
+      setLogoPreview(club.logo || '/placeholder.svg');
+    }
+  }, [club, open]);
   
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -42,11 +54,53 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
   };
 
   const handleSave = () => {
-    // In a real app, this would send the updates to the backend
+    if (!name.trim()) {
+      toast({
+        title: "Error",
+        description: "Club name cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Create an updated club with the new details
+    const updatedClub = {
+      ...club,
+      name: name.trim(),
+      bio: bio.trim(),
+      logo: logoPreview
+    };
+    
+    // Update the club in the context
+    setSelectedClub(updatedClub);
+    
+    // Update the club in user's clubs list
+    setCurrentUser(prev => {
+      if (!prev) return prev;
+      
+      const updatedClubs = prev.clubs.map(userClub => {
+        if (userClub.id === club.id) {
+          return {
+            ...userClub,
+            name: name.trim(),
+            bio: bio.trim(),
+            logo: logoPreview
+          };
+        }
+        return userClub;
+      });
+      
+      return {
+        ...prev,
+        clubs: updatedClubs
+      };
+    });
+    
     toast({
       title: "Club Updated",
       description: "The club details have been updated successfully.",
     });
+    
     onOpenChange(false);
   };
 
@@ -55,6 +109,7 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Club Details</DialogTitle>
+          <DialogDescription>Make changes to your club's profile here.</DialogDescription>
         </DialogHeader>
 
         <div className="py-4">

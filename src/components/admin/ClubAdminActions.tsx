@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Club, User } from '@/types';
 import { Button } from "@/components/ui/button";
 import { 
@@ -23,9 +23,16 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({ club, currentUser }
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [requestsDialogOpen, setRequestsDialogOpen] = useState(false);
   const { setCurrentUser, setSelectedClub } = useApp();
+  
+  // This will ensure we get the latest club data when the club prop changes
+  const [currentClub, setCurrentClub] = useState<Club>(club);
+  
+  useEffect(() => {
+    setCurrentClub(club);
+  }, [club]);
 
   // Check if the current user is an admin of this club
-  const isAdmin = currentUser && club.members.some(member => 
+  const isAdmin = currentUser && currentClub.members.some(member => 
     member.id === currentUser.id && member.isAdmin
   );
 
@@ -33,16 +40,17 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({ club, currentUser }
 
   const handleRemoveMember = (memberId: string, memberName: string) => {
     // Create a new members array without the removed member
-    const updatedMembers = club.members.filter(member => member.id !== memberId);
+    const updatedMembers = currentClub.members.filter(member => member.id !== memberId);
     
     // Update the club with the new members array
     const updatedClub = {
-      ...club,
+      ...currentClub,
       members: updatedMembers
     };
     
     // Update the selected club with the changes
     setSelectedClub(updatedClub);
+    setCurrentClub(updatedClub);
     
     // If the current user is also in other clubs, update their clubs list
     if (currentUser) {
@@ -50,7 +58,7 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({ club, currentUser }
         if (!prev) return prev;
         
         const updatedUserClubs = prev.clubs.map(userClub => {
-          if (userClub.id === club.id) {
+          if (userClub.id === currentClub.id) {
             return {
               ...userClub,
               members: updatedMembers
@@ -74,7 +82,7 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({ club, currentUser }
   
   const handleMakeAdmin = (memberId: string, memberName: string) => {
     // Create a new members array with the updated admin status
-    const updatedMembers = club.members.map(member => {
+    const updatedMembers = currentClub.members.map(member => {
       if (member.id === memberId) {
         return {
           ...member,
@@ -86,12 +94,13 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({ club, currentUser }
     
     // Update the club with the new members array
     const updatedClub = {
-      ...club,
+      ...currentClub,
       members: updatedMembers
     };
     
     // Update the selected club with the changes
     setSelectedClub(updatedClub);
+    setCurrentClub(updatedClub);
     
     // If the current user is also in other clubs, update their clubs list
     if (currentUser) {
@@ -99,7 +108,7 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({ club, currentUser }
         if (!prev) return prev;
         
         const updatedUserClubs = prev.clubs.map(userClub => {
-          if (userClub.id === club.id) {
+          if (userClub.id === currentClub.id) {
             return {
               ...userClub,
               members: updatedMembers
@@ -151,7 +160,7 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({ club, currentUser }
       <div className="mt-6">
         <h3 className="text-sm font-medium mb-2">Manage Members</h3>
         <div className="space-y-2">
-          {club.members.filter(member => !member.isAdmin).map(member => (
+          {currentClub.members.filter(member => !member.isAdmin).map(member => (
             <div key={member.id} className="flex items-center justify-between">
               <span className="text-sm">{member.name}</span>
               <div className="flex items-center gap-1">
@@ -201,13 +210,13 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({ club, currentUser }
       <EditClubDialog 
         open={editDialogOpen} 
         onOpenChange={setEditDialogOpen} 
-        club={club} 
+        club={currentClub} 
       />
 
       <JoinRequestsDialog 
         open={requestsDialogOpen} 
         onOpenChange={setRequestsDialogOpen} 
-        club={club} 
+        club={currentClub} 
       />
     </div>
   );

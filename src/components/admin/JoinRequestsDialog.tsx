@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { ShieldCheck, ShieldX, UserRound } from 'lucide-react';
 import UserAvatar from '../shared/UserAvatar';
+import { useApp } from '@/context/AppContext';
 
 interface JoinRequest {
   id: string;
@@ -33,8 +34,10 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
   onOpenChange, 
   club 
 }) => {
+  const { setSelectedClub, setCurrentUser } = useApp();
+  
   // Mock data for join requests
-  const joinRequests: JoinRequest[] = [
+  const [joinRequests, setJoinRequests] = React.useState<JoinRequest[]>([
     {
       id: 'req1',
       userId: 'u10',
@@ -56,10 +59,10 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
       avatar: '/placeholder.svg',
       requestDate: '2025-04-17T11:05:00.000Z',
     }
-  ];
+  ]);
 
   const handleApprove = (request: JoinRequest) => {
-    // In a real app, this would send the approval to the backend
+    // Check if club is full
     if (club.members.length >= 5) {
       toast({
         title: "Club is full",
@@ -68,7 +71,50 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
       });
       return;
     }
-
+    
+    // Create a new member object
+    const newMember = {
+      id: request.userId,
+      name: request.name,
+      avatar: request.avatar,
+      isAdmin: false
+    };
+    
+    // Add the new member to the club
+    const updatedMembers = [...club.members, newMember];
+    
+    // Update the club with the new members array
+    const updatedClub = {
+      ...club,
+      members: updatedMembers
+    };
+    
+    // Update the selected club with the changes
+    setSelectedClub(updatedClub);
+    
+    // Update the user's clubs list
+    setCurrentUser(prev => {
+      if (!prev) return prev;
+      
+      const updatedClubs = prev.clubs.map(userClub => {
+        if (userClub.id === club.id) {
+          return {
+            ...userClub,
+            members: updatedMembers
+          };
+        }
+        return userClub;
+      });
+      
+      return {
+        ...prev,
+        clubs: updatedClubs
+      };
+    });
+    
+    // Remove the request from the list
+    setJoinRequests(prev => prev.filter(r => r.id !== request.id));
+    
     toast({
       title: "Request Approved",
       description: `${request.name} has been added to the club.`,
@@ -76,7 +122,9 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
   };
 
   const handleDeny = (request: JoinRequest) => {
-    // In a real app, this would send the denial to the backend
+    // Remove the request from the list
+    setJoinRequests(prev => prev.filter(r => r.id !== request.id));
+    
     toast({
       title: "Request Denied",
       description: `${request.name}'s request has been denied.`,
