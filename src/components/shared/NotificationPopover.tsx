@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import Button from './Button';
 import UserAvatar from './UserAvatar';
 import { toast } from '@/hooks/use-toast';
+import { useApp } from '@/context/AppContext';
 
 interface Notification {
   id: string;
@@ -43,6 +44,7 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   onDeclineInvite
 }) => {
   const [open, setOpen] = useState(false);
+  const { setCurrentUser, currentUser } = useApp();
   
   const unreadCount = notifications.filter(n => !n.read).length;
   
@@ -63,10 +65,16 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
 
   const handleJoinClub = (clubId: string, clubName: string, notificationId: string) => {
     // Check if user is already a member of this specific club
-    const existingClubs = localStorage.getItem('userClubs');
-    const clubs = existingClubs ? JSON.parse(existingClubs) : [];
+    if (!currentUser) {
+      toast({
+        title: "Error",
+        description: "You need to be logged in to join a club.",
+        variant: "destructive"
+      });
+      return;
+    }
     
-    const isAlreadyMember = clubs.some((club: any) => club.id === clubId);
+    const isAlreadyMember = currentUser.clubs.some(club => club.id === clubId);
     
     if (isAlreadyMember) {
       toast({
@@ -74,7 +82,7 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
         description: `You are already a member of ${clubName}.`,
         variant: "destructive"
       });
-    } else if (clubs.length >= 3) {
+    } else if (currentUser.clubs.length >= 3) {
       toast({
         title: "Cannot Join Club",
         description: "You are already a member of 3 clubs, which is the maximum allowed.",
@@ -83,6 +91,44 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
     } else {
       if (onJoinClub) {
         onJoinClub(clubId, clubName);
+        
+        // Get club data from local storage to add to user's clubs
+        const allClubs = localStorage.getItem('clubs');
+        if (allClubs) {
+          const clubs = JSON.parse(allClubs);
+          const clubToJoin = clubs.find((club: any) => club.id === clubId);
+          
+          if (clubToJoin) {
+            // Add user as a member to the club
+            const updatedMember = {
+              id: currentUser.id,
+              name: currentUser.name,
+              avatar: currentUser.avatar,
+              isAdmin: false
+            };
+            
+            clubToJoin.members.push(updatedMember);
+            
+            // Update the clubs in localStorage
+            localStorage.setItem('clubs', JSON.stringify(clubs));
+            
+            // Update user's clubs in state
+            const updatedUser = {
+              ...currentUser,
+              clubs: [...currentUser.clubs, clubToJoin]
+            };
+            
+            setCurrentUser(updatedUser);
+            
+            // Update user data in localStorage
+            localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+            
+            toast({
+              title: "Club Joined",
+              description: `You have successfully joined ${clubName}!`
+            });
+          }
+        }
       } else {
         toast({
           title: "Club Joined",
@@ -124,13 +170,29 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   };
 
   const createTestInvitation = () => {
+    // Create a test invitation for a club the user is not already a member of
+    const clubIds = ['test-club-1', 'test-club-2', 'test-club-3'];
+    const clubNames = ['Road Runners', 'Sprint Masters', 'Cressay Running Club'];
+    
+    // Find a club the user is not already a member of
+    let clubIndex = 2; // Default to "Cressay Running Club"
+    
+    if (currentUser && currentUser.clubs.length > 0) {
+      const userClubIds = currentUser.clubs.map(club => club.id);
+      // Find the first club that the user is not a member of
+      const nonMemberClubIndex = clubIds.findIndex(id => !userClubIds.includes(id));
+      if (nonMemberClubIndex !== -1) {
+        clubIndex = nonMemberClubIndex;
+      }
+    }
+    
     const newNotification: Notification = {
       id: `invite-${Date.now()}`,
       userId: "admin1",
       userName: "Club Admin",
       userAvatar: "/placeholder.svg",
-      clubId: "test-club-1",
-      clubName: "Road Runners",
+      clubId: clubIds[clubIndex],
+      clubName: clubNames[clubIndex],
       distance: 0,
       timestamp: new Date().toISOString(),
       read: false,
@@ -145,7 +207,7 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
     
     toast({
       title: "Test Notification Created",
-      description: "A club invitation notification has been added."
+      description: `A club invitation notification has been added for ${clubNames[clubIndex]}.`
     });
     
     window.location.reload();
@@ -168,19 +230,20 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
+      <PopoverContent className="w-80 p-0 max-w-[90vw]" align="end">
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="font-medium">Notifications</h3>
           <div className="flex gap-2">
             {process.env.NODE_ENV !== 'production' && (
               <Button 
-                variant="link" 
+                variant="primary" 
                 size="sm" 
                 onClick={createTestInvitation}
                 className="p-0 h-auto text-xs text-green-500 hover:text-green-700"
               >
                 <span className="sr-only">Test Invite</span>
-                <span className="sm:hidden">+</span>
+                <span className="sm:inline-block hidden">+</span>
+                <span className="sm:hidden inline-block">+</span>
               </Button>
             )}
             {notifications.length > 0 && (
@@ -254,7 +317,7 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
                     <span className="text-xs text-gray-500">{formatTime(notification.timestamp)}</span>
                     
                     {notification.type === 'invitation' && (
-                      <div className="flex mt-2 gap-2">
+                      <div className="flex mt-2 gap-2 flex-wrap">
                         <Button
                           variant="primary"
                           size="sm"

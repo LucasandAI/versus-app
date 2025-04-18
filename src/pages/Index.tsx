@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { AppProvider, useApp } from '@/context/AppContext';
 import ConnectScreen from '@/components/ConnectScreen';
 import HomeView from '@/components/HomeView';
@@ -8,16 +8,33 @@ import Leaderboard from '@/components/Leaderboard';
 import UserProfile from '@/components/UserProfile';
 import Navigation from '@/components/Navigation';
 import SupportPopover from '@/components/shared/SupportPopover';
+import { Toaster } from '@/components/ui/toaster';
 
 const AppContent: React.FC = () => {
   const { currentView, currentUser } = useApp();
+  const [chatNotifications, setChatNotifications] = useState(0);
+
+  // Listen for support ticket created events
+  useEffect(() => {
+    const handleSupportTicketCreated = (event: CustomEvent) => {
+      if (event.detail && event.detail.count) {
+        setChatNotifications(prev => prev + event.detail.count);
+      }
+    };
+
+    window.addEventListener('supportTicketCreated', handleSupportTicketCreated as EventListener);
+    
+    return () => {
+      window.removeEventListener('supportTicketCreated', handleSupportTicketCreated as EventListener);
+    };
+  }, []);
 
   const renderView = () => {
     switch (currentView) {
       case 'connect':
         return <ConnectScreen />;
       case 'home':
-        return <HomeView />;
+        return <HomeView chatNotifications={chatNotifications} onChatOpen={() => setChatNotifications(0)} />;
       case 'clubDetail':
         return <ClubDetail />;
       case 'leaderboard':
@@ -29,11 +46,16 @@ const AppContent: React.FC = () => {
     }
   };
 
+  const handleCreateSupportChat = (ticketId: string, subject: string, message: string) => {
+    setChatNotifications(prev => prev + 1);
+  };
+
   return (
     <>
       {renderView()}
-      {currentUser?.stravaConnected && currentView !== 'connect' && <Navigation />}
-      {currentUser?.stravaConnected && <SupportPopover />}
+      {currentUser?.stravaConnected && currentView !== 'connect' && <Navigation chatNotifications={chatNotifications} />}
+      {currentUser?.stravaConnected && <SupportPopover onCreateSupportChat={handleCreateSupportChat} />}
+      <Toaster />
     </>
   );
 };

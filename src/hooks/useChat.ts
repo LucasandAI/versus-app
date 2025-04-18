@@ -44,6 +44,7 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
   useEffect(() => {
     if (open) {
       setRefreshKey(Date.now());
+      // Only reset notification count when the drawer is actually open
       if (onNewMessage) {
         onNewMessage(0);
       }
@@ -171,6 +172,16 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     setRefreshKey(Date.now());
   };
 
+  // New method to update unread messages and persist to localStorage
+  const markTicketAsRead = (ticketId: string) => {
+    setUnreadMessages(prev => {
+      const updated = { ...prev, [ticketId]: 0 };
+      // Save to localStorage immediately
+      localStorage.setItem('unreadMessages', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   return {
     messages,
     supportTickets,
@@ -178,7 +189,8 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     refreshKey,
     handleNewMessage,
     createSupportTicket,
-    setUnreadMessages
+    setUnreadMessages,
+    markTicketAsRead
   };
 };
 

@@ -37,7 +37,8 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
     unreadMessages, 
     refreshKey, 
     handleNewMessage,
-    setUnreadMessages
+    setUnreadMessages,
+    markTicketAsRead
   } = useChat(open, onNewMessage);
 
   // Update local tickets when external tickets change or when the drawer opens
@@ -59,15 +60,18 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
       ...prev,
       [club.id]: 0
     }));
+    
+    // Save the updated unread state to localStorage
+    const currentUnread = { ...unreadMessages, [club.id]: 0 };
+    localStorage.setItem('unreadMessages', JSON.stringify(currentUnread));
   };
 
   const handleSelectTicket = (ticket: SupportTicket) => {
     setSelectedTicket(ticket);
     setSelectedLocalClub(null);
-    setUnreadMessages(prev => ({
-      ...prev,
-      [ticket.id]: 0
-    }));
+    
+    // Mark the ticket as read and persist to localStorage
+    markTicketAsRead(ticket.id);
   };
 
   const handleSelectUser = (userId: string, userName: string, userAvatar: string = '/placeholder.svg') => {
