@@ -1,6 +1,8 @@
 
+import { Notification } from '@/types';
+
 export const simulateUnreadNotifications = () => {
-  const unreadNotifications = [
+  const unreadNotifications: Notification[] = [
     {
       id: 'team-activity-1',
       userId: '2',
@@ -50,4 +52,3 @@ export const simulateUnreadNotifications = () => {
 if (typeof window !== 'undefined') {
   simulateUnreadNotifications();
 }
-

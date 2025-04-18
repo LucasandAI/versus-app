@@ -24,7 +24,7 @@ export const useNotifications = ({ setNotifications }: UseNotificationsProps) =>
     };
 
     const initializeDefaultNotifications = () => {
-      const defaultNotifications = [
+      const defaultNotifications: Notification[] = [
         {
           id: 'team-activity-1',
           userId: '2',
