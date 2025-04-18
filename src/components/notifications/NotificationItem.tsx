@@ -26,7 +26,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   const { setCurrentView, setSelectedClub } = useApp();
 
   const handleClubClick = () => {
-    // Mark as read when club is clicked
+    // Mark as read when club is clicked - explicit user interaction
     if (!notification.read) {
       handleNotification(notification.id, 'read');
     }
@@ -49,7 +49,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   };
 
   const handleUserItemClick = () => {
-    // Mark as read when user is clicked
+    // Mark as read when user is clicked - explicit user interaction
     if (!notification.read) {
       handleNotification(notification.id, 'read');
     }
@@ -59,7 +59,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
 
   const handleJoinClub = () => {
     if (onJoinClub) {
-      // When joining club, completely remove the notification
+      // When joining club, completely remove the notification - explicit user interaction
       handleNotification(notification.id, 'delete');
       onJoinClub(notification.clubId, notification.clubName);
     }
@@ -67,7 +67,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
 
   const handleDeclineInvite = () => {
     if (onDeclineInvite) {
-      // When declining invitation, completely remove the notification
+      // When declining invitation, completely remove the notification - explicit user interaction
       handleNotification(notification.id, 'delete');
       onDeclineInvite(notification.id);
     }

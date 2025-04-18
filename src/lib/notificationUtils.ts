@@ -1,3 +1,4 @@
+
 import { Notification } from '@/types';
 
 export const simulateUnreadNotifications = () => {
@@ -105,6 +106,32 @@ export const getNotificationsFromStorage = (): Notification[] => {
     }
   }
   return [];
+};
+
+// Mark all notifications as read
+export const markAllNotificationsAsRead = () => {
+  const storedNotifications = localStorage.getItem('notifications');
+  if (!storedNotifications) return;
+  
+  try {
+    const notifications: Notification[] = JSON.parse(storedNotifications);
+    const updatedNotifications = notifications.map(notification => ({
+      ...notification,
+      read: true
+    }));
+    
+    // Save back to localStorage
+    localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+    
+    // Dispatch event to update UI
+    const event = new CustomEvent('notificationsUpdated');
+    window.dispatchEvent(event);
+    
+    return updatedNotifications;
+  } catch (error) {
+    console.error("Error marking all notifications as read:", error);
+    return null;
+  }
 };
 
 // Initialize notifications on first load if they don't exist yet

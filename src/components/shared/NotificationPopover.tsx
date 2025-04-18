@@ -29,18 +29,13 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   const [open, setOpen] = useState(false);
   const unreadCount = notifications.filter(n => !n.read).length;
   
-  // When the popover opens, mark all notifications as read
+  // When popover opens, display notifications but don't mark them as read
+  // Only track that they've been seen by the user
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
     
-    // Mark all as read when opening the popover
-    if (isOpen && unreadCount > 0) {
-      notifications.forEach(notification => {
-        if (!notification.read) {
-          onMarkAsRead(notification.id);
-        }
-      });
-    }
+    // No automatic marking as read when opening the popover
+    // Notifications will remain unread until user interaction
   };
 
   const formatTime = (timestamp: string) => {
@@ -74,17 +69,14 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
         <NotificationList
           notifications={notifications}
           onUserClick={(userId, userName) => {
-            // Mark notification as read when user clicks
-            notifications
-              .filter(n => n.userId === userId && !n.read)
-              .forEach(n => onMarkAsRead(n.id));
+            // Only mark specific notification as read when user clicks
+            // notifications
+            //   .filter(n => n.userId === userId && !n.read)
+            //   .forEach(n => onMarkAsRead(n.id));
             onUserClick(userId, userName);
           }}
           onJoinClub={(clubId, clubName) => {
-            // Mark related notification as read when user joins club
-            notifications
-              .filter(n => n.clubId === clubId && n.type === 'invitation' && !n.read)
-              .forEach(n => onMarkAsRead(n.id));
+            // Only mark as read when user explicitly handles notification
             if (onJoinClub) onJoinClub(clubId, clubName);
           }}
           onDeclineInvite={(id) => {
