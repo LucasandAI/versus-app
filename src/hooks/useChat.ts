@@ -117,7 +117,7 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
       [ticketId]: ticket
     }));
 
-    // Add unread count for support tickets
+    // Add unread count for support tickets (always add 1 for the auto-response)
     setUnreadMessages(prev => ({
       ...prev,
       [ticketId]: 1
@@ -135,6 +135,12 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     // Save as array for external components
     const ticketsArray = Object.values(updatedTickets);
     localStorage.setItem('supportTickets', JSON.stringify(ticketsArray));
+    
+    // Notify the chat icon about the new unread message
+    if (onNewMessage && !open) {
+      const totalUnread = Object.values({...unreadMessages, [ticketId]: 1}).reduce((sum, count) => sum + count, 0);
+      onNewMessage(totalUnread);
+    }
     
     // Force a refresh to ensure the new ticket appears in the list
     setRefreshKey(Date.now());

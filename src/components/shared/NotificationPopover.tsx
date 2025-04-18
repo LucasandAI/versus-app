@@ -9,6 +9,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import Button from './Button';
 import UserAvatar from './UserAvatar';
+import { toast } from '@/hooks/use-toast';
 
 interface Notification {
   id: string;
@@ -20,6 +21,8 @@ interface Notification {
   distance: number;
   timestamp: string;
   read: boolean;
+  type?: 'activity' | 'invitation';
+  message?: string;
 }
 
 interface NotificationPopoverProps {
@@ -27,13 +30,17 @@ interface NotificationPopoverProps {
   onMarkAsRead: (id: string) => void;
   onClearAll: () => void;
   onUserClick: (userId: string, userName: string) => void;
+  onJoinClub?: (clubId: string, clubName: string) => void;
+  onDeclineInvite?: (notificationId: string) => void;
 }
 
 const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   notifications,
   onMarkAsRead,
   onClearAll,
-  onUserClick
+  onUserClick,
+  onJoinClub,
+  onDeclineInvite
 }) => {
   const [open, setOpen] = useState(false);
   
@@ -57,6 +64,45 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
     }
   };
 
+  const handleJoinClub = (clubId: string, clubName: string, notificationId: string) => {
+    if (onJoinClub) {
+      onJoinClub(clubId, clubName);
+    } else {
+      // Check if user is already in 3 clubs
+      const existingClubs = localStorage.getItem('userClubs');
+      const clubs = existingClubs ? JSON.parse(existingClubs) : [];
+      
+      if (clubs.length >= 3) {
+        toast({
+          title: "Cannot Join Club",
+          description: "You are already a member of 3 clubs, which is the maximum allowed.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Club Joined",
+          description: `You have successfully joined ${clubName}!`
+        });
+      }
+    }
+    
+    // Remove this notification
+    if (onDeclineInvite) {
+      onDeclineInvite(notificationId);
+    }
+  };
+
+  const handleDeclineInvite = (notificationId: string) => {
+    if (onDeclineInvite) {
+      onDeclineInvite(notificationId);
+    } else {
+      toast({
+        title: "Invitation Declined",
+        description: "You have declined the club invitation."
+      });
+    }
+  };
+
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -70,6 +116,36 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
     if (diffHours < 24) return `${diffHours}h ago`;
     
     return date.toLocaleDateString();
+  };
+
+  // Function to create a test club invitation notification
+  const createTestInvitation = () => {
+    const newNotification: Notification = {
+      id: `invite-${Date.now()}`,
+      userId: "admin1",
+      userName: "Club Admin",
+      userAvatar: "/placeholder.svg",
+      clubId: "test-club-1",
+      clubName: "Road Runners",
+      distance: 0,
+      timestamp: new Date().toISOString(),
+      read: false,
+      type: 'invitation',
+      message: 'invited you to join their club'
+    };
+    
+    const existingNotifications = localStorage.getItem('notifications');
+    const notifications = existingNotifications ? JSON.parse(existingNotifications) : [];
+    notifications.push(newNotification);
+    localStorage.setItem('notifications', JSON.stringify(notifications));
+    
+    toast({
+      title: "Test Notification Created",
+      description: "A club invitation notification has been added."
+    });
+    
+    // Reload the page to show the notification
+    window.location.reload();
   };
 
   return (
@@ -87,16 +163,29 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
       <PopoverContent className="w-80 p-0" align="end">
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="font-medium">Notifications</h3>
-          {notifications.length > 0 && (
-            <Button 
-              variant="link" 
-              size="sm" 
-              onClick={onClearAll}
-              className="text-xs text-gray-500 hover:text-gray-900 p-0 h-auto"
-            >
-              Clear all
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {/* Test button - Only visible in development */}
+            {process.env.NODE_ENV !== 'production' && (
+              <Button 
+                variant="link" 
+                size="sm" 
+                onClick={createTestInvitation}
+                className="text-xs text-green-500 hover:text-green-700 p-0 h-auto"
+              >
+                Test Invite
+              </Button>
+            )}
+            {notifications.length > 0 && (
+              <Button 
+                variant="link" 
+                size="sm" 
+                onClick={onClearAll}
+                className="text-xs text-gray-500 hover:text-gray-900 p-0 h-auto"
+              >
+                Clear all
+              </Button>
+            )}
+          </div>
         </div>
         
         <div className="max-h-[300px] overflow-y-auto">
@@ -129,12 +218,55 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
                       >
                         {notification.userName}
                       </span>
-                      {' '}added{' '}
-                      <span className="font-medium">{notification.distance.toFixed(1)}km</span>
-                      {' '}to{' '}
-                      <span className="font-medium">{notification.clubName}</span>
+                      {' '}
+                      {notification.type === 'invitation' ? 
+                        <span>
+                          {notification.message || 'invited you to join'}{' '}
+                          <span 
+                            className="font-medium cursor-pointer hover:underline text-primary"
+                            onClick={() => {
+                              // Navigate to club details
+                              // For now just show a toast
+                              toast({
+                                title: "Club Details",
+                                description: `Viewing ${notification.clubName} details`
+                              });
+                            }}
+                          >
+                            {notification.clubName}
+                          </span>
+                        </span>
+                        : 
+                        <span>
+                          added{' '}
+                          <span className="font-medium">{notification.distance.toFixed(1)}km</span>
+                          {' '}to{' '}
+                          <span className="font-medium">{notification.clubName}</span>
+                        </span>
+                      }
                     </p>
                     <span className="text-xs text-gray-500">{formatTime(notification.timestamp)}</span>
+                    
+                    {notification.type === 'invitation' && (
+                      <div className="flex mt-2 gap-2">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="h-8 bg-green-500 hover:bg-green-600"
+                          onClick={() => handleJoinClub(notification.clubId, notification.clubName, notification.id)}
+                        >
+                          Join
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8"
+                          onClick={() => handleDeclineInvite(notification.id)}
+                        >
+                          Decline
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

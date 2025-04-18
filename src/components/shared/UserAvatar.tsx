@@ -32,9 +32,18 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
     if (!name || name.trim() === '') return 'NA';
     
     // For names with multiple words, take first letter of each word (up to 2)
-    const words = name.split(' ');
+    const words = name.split(' ').filter(word => word.length > 0);
+    
     if (words.length > 1) {
-      return (words[0][0] + words[1][0]).toUpperCase();
+      // Get first letter of first word and first letter of last word
+      return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+    }
+    
+    // For single word names or club names with spaces inside brackets
+    // like "Road Runners (RR)" - try to extract the initials inside brackets
+    const bracketMatch = name.match(/\(([A-Z]{2,})\)/);
+    if (bracketMatch && bracketMatch[1]) {
+      return bracketMatch[1].substring(0, 2);
     }
     
     // For single word names, take first two letters

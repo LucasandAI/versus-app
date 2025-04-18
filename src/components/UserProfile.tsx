@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -460,10 +461,12 @@ const UserProfile: React.FC = () => {
                   setCurrentView('clubDetail');
                 }}
               >
-                <img 
-                  src={club.logo} 
-                  alt={club.name} 
-                  className="w-12 h-12 rounded-full object-cover"
+                {/* Replace img tag with UserAvatar component */}
+                <UserAvatar 
+                  name={club.name} 
+                  image={club.logo} 
+                  size="sm"
+                  className="w-12 h-12"
                 />
                 <div>
                   <h4 className="font-medium">{club.name}</h4>
