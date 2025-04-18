@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -78,10 +77,41 @@ const UserProfile: React.FC = () => {
   const isCurrentUserProfile = currentUser?.id === selectedUser?.id;
   const showInviteButton = !isCurrentUserProfile && adminClubs.length > 0;
 
+  const getBestLeague = () => {
+    if (!selectedUser.clubs || selectedUser.clubs.length === 0) {
+      return { league: 'Bronze', tier: 5 };
+    }
+
+    const leagueRanking = {
+      'Elite': 0,
+      'Diamond': 1,
+      'Platinum': 2,
+      'Gold': 3,
+      'Silver': 4,
+      'Bronze': 5
+    };
+
+    return selectedUser.clubs.reduce((best, club) => {
+      const clubRank = leagueRanking[club.division];
+      const clubTier = club.tier || 5;
+      
+      if (clubRank < best.rank || (clubRank === best.rank && clubTier < best.tier)) {
+        return { 
+          league: club.division, 
+          tier: clubTier,
+          rank: clubRank
+        };
+      }
+      return best;
+    }, { league: 'Bronze', tier: 5, rank: 5 });
+  };
+
+  const bestLeague = getBestLeague();
+
   const profileStats = {
     weeklyDistance: 42.3,
-    bestLeague: 'Gold',
-    bestLeagueTier: 3,
+    bestLeague: bestLeague.league,
+    bestLeagueTier: bestLeague.tier,
     matchesWon: 3,
     matchesLost: 1
   };

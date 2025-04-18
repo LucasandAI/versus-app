@@ -5,6 +5,7 @@ import MatchProgressBar from './shared/MatchProgressBar';
 import UserAvatar from './shared/UserAvatar';
 import { ClubMember } from '@/types';
 import Button from './shared/Button';
+import { formatLeagueWithTier } from '@/lib/format';
 import { 
   Dialog, 
   DialogContent, 
@@ -369,7 +370,7 @@ const ClubDetail: React.FC = () => {
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-gray-50 p-3 rounded-md">
               <p className="text-xs text-gray-500">League</p>
-              <p className="font-medium">Gold 1</p>
+              <p className="font-medium">{formatLeagueWithTier(selectedClub.division, selectedClub.tier)}</p>
             </div>
             <div className="bg-gray-50 p-3 rounded-md">
               <p className="text-xs text-gray-500">Match Record</p>
