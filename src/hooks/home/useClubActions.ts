@@ -63,14 +63,16 @@ export const useClubActions = () => {
     const allClubs = localStorage.getItem('clubs') || '[]';
     const clubs = JSON.parse(allClubs);
     
-    // Find the club in existing clubs or create it if it doesn't exist
-    let clubToJoin = clubs.find((club: any) => club.id === clubId);
+    // Try to find the club in our available clubs list first
+    const mockClub = availableClubs.find(club => club.id === clubId);
+    let clubToJoin;
     
-    if (!clubToJoin) {
-      // Try to find the club in available clubs
-      const mockClub = availableClubs.find(club => club.id === clubId);
+    if (mockClub) {
+      // Check if this club already exists in the stored clubs
+      clubToJoin = clubs.find((club: any) => club.id === clubId);
       
-      if (mockClub) {
+      if (!clubToJoin) {
+        // Create a new club based on the mock club
         clubToJoin = {
           id: mockClub.id,
           name: mockClub.name,
@@ -83,8 +85,13 @@ export const useClubActions = () => {
         };
         
         clubs.push(clubToJoin);
-      } else {
-        // Create a new club if not found in available clubs
+      }
+    } else {
+      // If not found in available clubs, use the provided name
+      clubToJoin = clubs.find((club: any) => club.id === clubId);
+      
+      if (!clubToJoin) {
+        // Create a completely new club
         clubToJoin = {
           id: clubId,
           name: clubName,
@@ -100,58 +107,56 @@ export const useClubActions = () => {
       }
     }
     
-    // Now we have a club object, add the user as a member
-    if (clubToJoin) {
-      // Double check that user isn't already a member of this specific club
-      const userIsMember = clubToJoin.members.some((member: any) => 
-        member.id === currentUser.id
-      );
-      
-      if (!userIsMember) {
-        // Add user to club members
-        clubToJoin.members.push({
-          id: currentUser.id,
-          name: currentUser.name,
-          avatar: currentUser.avatar || '/placeholder.svg',
-          isAdmin: false
-        });
-        
-        // Save updated clubs to localStorage
-        localStorage.setItem('clubs', JSON.stringify(clubs));
-        
-        // Update user's club membership
-        const updatedUser = {
-          ...currentUser,
-          clubs: [...currentUser.clubs, clubToJoin]
-        };
-        
-        setCurrentUser(updatedUser);
-        localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-        
-        // Show success message
-        toast({
-          title: "Club Joined",
-          description: `You have successfully joined ${clubName}!`
-        });
-        
-        // Remove the invitation notification
-        const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
-        const updatedNotifications = notifications.filter(
-          (n: any) => !(n.type === 'invitation' && n.clubId === clubId)
-        );
-        localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
-        
-        // Dispatch event to update notifications
-        const event = new CustomEvent('notificationsUpdated');
-        window.dispatchEvent(event);
-      } else {
-        toast({
-          title: "Already a Member",
-          description: `You are already a member of ${clubName}.`,
-          variant: "destructive"
-        });
-      }
+    // Check if user is already a member of this specific club
+    if (clubToJoin.members && clubToJoin.members.some((member: any) => member.id === currentUser.id)) {
+      toast({
+        title: "Already a Member",
+        description: `You are already a member of ${clubToJoin.name}.`,
+        variant: "destructive"
+      });
+      return;
     }
+    
+    // Add user to club members
+    if (!clubToJoin.members) {
+      clubToJoin.members = [];
+    }
+    
+    clubToJoin.members.push({
+      id: currentUser.id,
+      name: currentUser.name,
+      avatar: currentUser.avatar || '/placeholder.svg',
+      isAdmin: false
+    });
+    
+    // Save updated clubs to localStorage
+    localStorage.setItem('clubs', JSON.stringify(clubs));
+    
+    // Update user's club membership
+    const updatedUser = {
+      ...currentUser,
+      clubs: [...currentUser.clubs, clubToJoin]
+    };
+    
+    setCurrentUser(updatedUser);
+    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+    
+    // Show success message
+    toast({
+      title: "Club Joined",
+      description: `You have successfully joined ${clubToJoin.name}!`
+    });
+    
+    // Remove the invitation notification
+    const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+    const updatedNotifications = notifications.filter(
+      (n: any) => !(n.type === 'invitation' && n.clubId === clubId)
+    );
+    localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+    
+    // Dispatch event to update notifications
+    const event = new CustomEvent('notificationsUpdated');
+    window.dispatchEvent(event);
   };
 
   return {

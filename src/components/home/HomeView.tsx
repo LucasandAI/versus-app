@@ -98,6 +98,19 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   const userClubs = currentUser?.clubs || [];
   const isAtClubCapacity = userClubs.length >= 3;
 
+  // Function to handle joining a club specifically from notifications
+  const handleJoinClubFromNotification = (clubId: string, clubName: string) => {
+    handleJoinClub(clubId, clubName);
+    
+    // Force refresh notifications after joining
+    setTimeout(() => {
+      const notificationsFromStorage = localStorage.getItem('notifications');
+      if (notificationsFromStorage) {
+        setNotifications(JSON.parse(notificationsFromStorage));
+      }
+    }, 100);
+  };
+
   return (
     <div className="pb-20 pt-6">
       <div className="container-mobile">
@@ -112,7 +125,7 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
           onMarkAsRead={handleMarkNotificationAsRead}
           onClearAll={handleClearAllNotifications}
           onUserClick={handleSelectUser}
-          onJoinClub={handleJoinClub}
+          onJoinClub={handleJoinClubFromNotification}
           onDeclineInvite={handleDeclineInvite}
           onOpenChat={handleOpenChat}
         />
