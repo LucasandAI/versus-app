@@ -72,3 +72,17 @@ export interface AppContextType {
   connectToStrava: () => void;
   createClub: (name: string, logo: string) => void;
 }
+
+export interface Notification {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  clubId: string;
+  clubName: string;
+  distance: number;
+  timestamp: string;
+  read: boolean;
+  type?: 'activity' | 'invitation';
+  message?: string;
+}
