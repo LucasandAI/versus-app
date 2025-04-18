@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Plus } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { 
   Popover, 
   PopoverContent, 
@@ -61,6 +61,9 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
       notifications.forEach(n => {
         if (!n.read) onMarkAsRead(n.id);
       });
+      
+      const event = new CustomEvent('notificationsUpdated');
+      window.dispatchEvent(event);
     }
   };
 
@@ -173,63 +176,6 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
     return date.toLocaleDateString();
   };
 
-  const createTestInvitation = () => {
-    const clubIds = ['test-club-1', 'test-club-2', 'cressay-running-club'];
-    const clubNames = ['Road Runners', 'Sprint Masters', 'Cressay Running Club'];
-    
-    let clubIndex = 2;
-    
-    if (currentUser && currentUser.clubs.length > 0) {
-      const userClubIds = currentUser.clubs.map(club => club.id);
-      
-      if (userClubIds.includes('cressay-running-club')) {
-        clubIndex = userClubIds.includes('test-club-1') ? 1 : 0;
-      }
-    }
-    
-    const existingNotifications = localStorage.getItem('notifications');
-    const notificationsArray = existingNotifications ? JSON.parse(existingNotifications) : [];
-    
-    const hasDuplicateInvite = notificationsArray.some((notification: Notification) => 
-      notification.clubId === clubIds[clubIndex] && 
-      notification.type === 'invitation' &&
-      !notification.read
-    );
-    
-    if (hasDuplicateInvite) {
-      toast({
-        title: "Duplicate Invitation",
-        description: `You already have a pending invitation for ${clubNames[clubIndex]}.`,
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    const newNotification: Notification = {
-      id: `invite-${Date.now()}`,
-      userId: "admin1",
-      userName: "Club Admin",
-      userAvatar: "/placeholder.svg",
-      clubId: clubIds[clubIndex],
-      clubName: clubNames[clubIndex],
-      distance: 0,
-      timestamp: new Date().toISOString(),
-      read: false,
-      type: 'invitation',
-      message: 'invited you to join their club'
-    };
-    
-    notificationsArray.push(newNotification);
-    localStorage.setItem('notifications', JSON.stringify(notificationsArray));
-    
-    toast({
-      title: "Test Notification Created",
-      description: `A club invitation notification has been added for ${clubNames[clubIndex]}.`
-    });
-    
-    window.location.reload();
-  };
-
   useEffect(() => {
     if (notifications.length > 0) {
       const clubInvites: Record<string, Notification[]> = {};
@@ -264,6 +210,23 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
         localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
       }
     }
+    
+    const handleFocus = () => {
+      const storedNotifications = localStorage.getItem('notifications');
+      if (storedNotifications) {
+        try {
+          const parsedNotifications = JSON.parse(storedNotifications);
+        } catch (error) {
+          console.error("Error parsing notifications:", error);
+        }
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [notifications]);
 
   const sortedNotifications = [...notifications].sort(
@@ -285,29 +248,16 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
       <PopoverContent className="w-80 p-0 max-w-[90vw]" align="end">
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="font-medium">Notifications</h3>
-          <div className="flex gap-2">
-            {process.env.NODE_ENV !== 'production' && (
-              <Button 
-                variant="primary" 
-                size="sm" 
-                onClick={createTestInvitation}
-                className="p-1 h-6 w-6 flex justify-center items-center text-green-500 hover:text-green-700"
-              >
-                <Plus className="h-4 w-4" />
-                <span className="sr-only">Add test invite</span>
-              </Button>
-            )}
-            {notifications.length > 0 && (
-              <Button 
-                variant="link" 
-                size="sm" 
-                onClick={onClearAll}
-                className="text-xs text-gray-500 hover:text-gray-900 p-0 h-auto"
-              >
-                Clear all
-              </Button>
-            )}
-          </div>
+          {notifications.length > 0 && (
+            <Button 
+              variant="link" 
+              size="sm" 
+              onClick={onClearAll}
+              className="text-xs text-gray-500 hover:text-gray-900 p-0 h-auto"
+            >
+              Clear all
+            </Button>
+          )}
         </div>
         
         <div className="max-h-[300px] overflow-y-auto">

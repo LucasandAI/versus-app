@@ -150,43 +150,77 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [createClubDialogOpen, setCreateClubDialogOpen] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(chatNotifications);
-  const [notifications, setNotifications] = useState([
-    {
-      id: '1',
-      userId: '2',
-      userName: 'Jane Sprinter',
-      userAvatar: '/placeholder.svg',
-      clubId: '1',
-      clubName: 'Weekend Warriors',
-      distance: 5.2,
-      timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-      read: false
-    },
-    {
-      id: '2',
-      userId: '3',
-      userName: 'Bob Marathon',
-      userAvatar: '/placeholder.svg',
-      clubId: '1',
-      clubName: 'Weekend Warriors',
-      distance: 10.7,
-      timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-      read: false
-    },
-    {
-      id: '3',
-      userId: '7',
-      userName: 'Alice Sprint',
-      userAvatar: '/placeholder.svg',
-      clubId: '2',
-      clubName: 'Road Runners',
-      distance: 8.3,
-      timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-      read: true
-    }
-  ]);
-  
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
+  
+  useEffect(() => {
+    const loadNotificationsFromStorage = () => {
+      const storedNotifications = localStorage.getItem('notifications');
+      if (storedNotifications) {
+        try {
+          const parsedNotifications = JSON.parse(storedNotifications);
+          setNotifications(parsedNotifications);
+        } catch (error) {
+          console.error("Error parsing notifications:", error);
+          initializeDefaultNotifications();
+        }
+      } else {
+        initializeDefaultNotifications();
+      }
+    };
+    
+    const initializeDefaultNotifications = () => {
+      const defaultNotifications = [
+        {
+          id: '1',
+          userId: '2',
+          userName: 'Jane Sprinter',
+          userAvatar: '/placeholder.svg',
+          clubId: '1',
+          clubName: 'Weekend Warriors',
+          distance: 5.2,
+          timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
+          read: false
+        },
+        {
+          id: '2',
+          userId: '3',
+          userName: 'Bob Marathon',
+          userAvatar: '/placeholder.svg',
+          clubId: '1',
+          clubName: 'Weekend Warriors',
+          distance: 10.7,
+          timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+          read: false
+        },
+        {
+          id: '3',
+          userId: '7',
+          userName: 'Alice Sprint',
+          userAvatar: '/placeholder.svg',
+          clubId: '2',
+          clubName: 'Road Runners',
+          distance: 8.3,
+          timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+          read: true
+        }
+      ];
+      setNotifications(defaultNotifications);
+      localStorage.setItem('notifications', JSON.stringify(defaultNotifications));
+    };
+    
+    loadNotificationsFromStorage();
+    
+    const handleFocus = () => {
+      loadNotificationsFromStorage();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
   
   useEffect(() => {
     setUnreadMessages(chatNotifications);
@@ -299,11 +333,17 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
       notification.id === id ? { ...notification, read: true } : notification
     );
     localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+    
+    const event = new CustomEvent('notificationsUpdated');
+    window.dispatchEvent(event);
   };
 
   const handleClearAllNotifications = () => {
     setNotifications([]);
     localStorage.setItem('notifications', JSON.stringify([]));
+    
+    const event = new CustomEvent('notificationsUpdated');
+    window.dispatchEvent(event);
   };
 
   const handleJoinClub = (clubId: string, clubName: string) => {
