@@ -1,3 +1,4 @@
+
 import React from 'react';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { Notification } from '@/types';
