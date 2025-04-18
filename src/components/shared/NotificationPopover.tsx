@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Bell } from 'lucide-react';
 import { 
@@ -32,6 +33,7 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
     setOpen(isOpen);
     
     if (isOpen && unreadCount > 0) {
+      // Mark all notifications as read when opening the popover
       const updatedNotifications = notifications.map(n => ({
         ...n,
         read: true

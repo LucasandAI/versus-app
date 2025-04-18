@@ -74,6 +74,19 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
     window.dispatchEvent(event);
   };
 
+  const handleDeclineInvite = (id: string) => {
+    // Remove the notification from the UI
+    setNotifications(prev => prev.filter(notification => notification.id !== id));
+    
+    // Update localStorage
+    const updatedNotifications = notifications.filter(notification => notification.id !== id);
+    localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+    
+    // Dispatch event to update notifications
+    const event = new CustomEvent('notificationsUpdated');
+    window.dispatchEvent(event);
+  };
+
   const handleClearAllNotifications = () => {
     setNotifications([]);
     localStorage.setItem('notifications', JSON.stringify([]));
@@ -100,7 +113,7 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
           onClearAll={handleClearAllNotifications}
           onUserClick={handleSelectUser}
           onJoinClub={handleJoinClub}
-          onDeclineInvite={(id) => handleMarkNotificationAsRead(id)}
+          onDeclineInvite={handleDeclineInvite}
           onOpenChat={handleOpenChat}
         />
 

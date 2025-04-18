@@ -33,6 +33,18 @@ export const useClubActions = () => {
   const handleJoinClub = (clubId: string, clubName: string) => {
     if (!currentUser) return;
     
+    // Check if user is already a member of this club
+    const isAlreadyMember = currentUser.clubs.some(club => club.id === clubId);
+    
+    if (isAlreadyMember) {
+      toast({
+        title: "Already a Member",
+        description: `You are already a member of ${clubName}.`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (currentUser.clubs.length >= MAX_CLUBS_PER_USER) {
       toast({
         title: "Club Limit Reached",
@@ -79,35 +91,40 @@ export const useClubActions = () => {
       }
     }
     
-    if (clubToJoin && !clubToJoin.members.some((member: any) => member.id === currentUser.id)) {
-      clubToJoin.members.push({
-        id: currentUser.id,
-        name: currentUser.name,
-        avatar: currentUser.avatar || '/placeholder.svg',
-        isAdmin: false
-      });
+    if (clubToJoin) {
+      // Check again if the user is already a member in the clubToJoin object
+      const userIsMember = clubToJoin.members.some((member: any) => member.id === currentUser.id);
       
-      localStorage.setItem('clubs', JSON.stringify(clubs));
-      
-      const updatedUser = {
-        ...currentUser,
-        clubs: [...currentUser.clubs, clubToJoin]
-      };
-      
-      setCurrentUser(updatedUser);
-      
-      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-      
-      toast({
-        title: "Club Joined",
-        description: `You have successfully joined ${clubName}!`
-      });
-    } else {
-      toast({
-        title: "Already a Member",
-        description: `You are already a member of ${clubName}.`,
-        variant: "destructive"
-      });
+      if (!userIsMember) {
+        clubToJoin.members.push({
+          id: currentUser.id,
+          name: currentUser.name,
+          avatar: currentUser.avatar || '/placeholder.svg',
+          isAdmin: false
+        });
+        
+        localStorage.setItem('clubs', JSON.stringify(clubs));
+        
+        const updatedUser = {
+          ...currentUser,
+          clubs: [...currentUser.clubs, clubToJoin]
+        };
+        
+        setCurrentUser(updatedUser);
+        
+        localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+        
+        toast({
+          title: "Club Joined",
+          description: `You have successfully joined ${clubName}!`
+        });
+      } else {
+        toast({
+          title: "Already a Member",
+          description: `You are already a member of ${clubName}.`,
+          variant: "destructive"
+        });
+      }
     }
   };
 
