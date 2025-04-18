@@ -36,7 +36,7 @@ const AppContent: React.FC = () => {
             0
           );
           // Explicitly set as a number to satisfy TypeScript
-          setChatNotifications(totalUnread);
+          setChatNotifications(Number(totalUnread));
         } catch (error) {
           console.error("Error parsing unread messages:", error);
         }

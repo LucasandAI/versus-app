@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { MessageCircle, Plus, Search, UserPlus, X, Bell } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from './shared/UserAvatar';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import ChatDrawer from './chat/ChatDrawer';
 import SupportPopover from './shared/SupportPopover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
@@ -145,7 +146,7 @@ const HomeView: React.FC = () => {
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [createClubDialogOpen, setCreateClubDialogOpen] = useState(false);
-  const [unreadMessages, setUnreadMessages] = useState(2);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const [notifications, setNotifications] = useState([
     {
       id: '1',
@@ -276,10 +277,127 @@ const HomeView: React.FC = () => {
         notification.id === id ? { ...notification, read: true } : notification
       )
     );
+    
+    // Update localStorage
+    const updatedNotifications = notifications.map(notification => 
+      notification.id === id ? { ...notification, read: true } : notification
+    );
+    localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
   };
 
   const handleClearAllNotifications = () => {
     setNotifications([]);
+    localStorage.setItem('notifications', JSON.stringify([]));
+  };
+
+  const handleJoinClub = (clubId: string, clubName: string) => {
+    if (!currentUser) return;
+    
+    if (currentUser.clubs.length >= MAX_CLUBS_PER_USER) {
+      toast({
+        title: "Club Limit Reached",
+        description: `You can join a maximum of ${MAX_CLUBS_PER_USER} clubs.`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Get club data from localStorage
+    const allClubs = localStorage.getItem('clubs') || '[]';
+    const clubs = JSON.parse(allClubs);
+    
+    // Find the club to join
+    let clubToJoin = clubs.find((club: any) => club.id === clubId);
+    
+    // If club not found in localStorage, create a mock club
+    if (!clubToJoin) {
+      // Find in available clubs
+      const mockClub = availableClubs.find(club => club.id === clubId);
+      
+      if (mockClub) {
+        clubToJoin = {
+          id: mockClub.id,
+          name: mockClub.name,
+          logo: '/placeholder.svg',
+          division: mockClub.division,
+          tier: mockClub.tier,
+          members: [],
+          currentMatch: null,
+          matchHistory: []
+        };
+        
+        // Add to local clubs
+        clubs.push(clubToJoin);
+      } else {
+        // Create a default club if not found
+        clubToJoin = {
+          id: clubId,
+          name: clubName,
+          logo: '/placeholder.svg',
+          division: 'Bronze',
+          tier: 3,
+          members: [],
+          currentMatch: null,
+          matchHistory: []
+        };
+        
+        // Add to local clubs
+        clubs.push(clubToJoin);
+      }
+    }
+    
+    // Add user as a member
+    if (clubToJoin && !clubToJoin.members.some((member: any) => member.id === currentUser.id)) {
+      clubToJoin.members.push({
+        id: currentUser.id,
+        name: currentUser.name,
+        avatar: currentUser.avatar || '/placeholder.svg',
+        isAdmin: false
+      });
+      
+      // Update clubs in localStorage
+      localStorage.setItem('clubs', JSON.stringify(clubs));
+      
+      // Update user's clubs in state and localStorage
+      const updatedUser = {
+        ...currentUser,
+        clubs: [...currentUser.clubs, clubToJoin]
+      };
+      
+      // Update the AppContext
+      setCurrentUser(updatedUser);
+      
+      // Also update in localStorage
+      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+      
+      toast({
+        title: "Club Joined",
+        description: `You have successfully joined ${clubName}!`
+      });
+    } else {
+      toast({
+        title: "Already a Member",
+        description: `You are already a member of ${clubName}.`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeclineInvite = (notificationId: string) => {
+    // Remove the notification from state
+    const updatedNotifications = notifications.filter(
+      notification => notification.id !== notificationId
+    );
+    
+    setNotifications(updatedNotifications);
+    
+    // Update localStorage
+    localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+    
+    toast({
+      title: "Invitation Declined",
+      description: "You have declined the club invitation."
+    });
   };
 
   const handleCreateSupportTicket = (ticketId: string, subject: string, message: string) => {

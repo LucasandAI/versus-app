@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Bell, Plus } from 'lucide-react';
 import { 
@@ -64,7 +63,6 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   };
 
   const handleJoinClub = (clubId: string, clubName: string, notificationId: string) => {
-    // Check if user is already a member of this specific club
     if (!currentUser) {
       toast({
         title: "Error",
@@ -82,7 +80,6 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
         description: `You are already a member of ${clubName}.`,
         variant: "destructive"
       });
-      // Remove the notification even if already a member
       if (onDeclineInvite) {
         onDeclineInvite(notificationId);
       }
@@ -92,7 +89,6 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
         description: "You are already a member of 3 clubs, which is the maximum allowed.",
         variant: "destructive"
       });
-      // Remove the notification if can't join
       if (onDeclineInvite) {
         onDeclineInvite(notificationId);
       }
@@ -100,14 +96,12 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
       if (onJoinClub) {
         onJoinClub(clubId, clubName);
         
-        // Get club data from local storage to add to user's clubs
         const allClubs = localStorage.getItem('clubs');
         if (allClubs) {
           const clubs = JSON.parse(allClubs);
           const clubToJoin = clubs.find((club: any) => club.id === clubId);
           
           if (clubToJoin) {
-            // Add user as a member to the club
             const updatedMember = {
               id: currentUser.id,
               name: currentUser.name,
@@ -117,31 +111,27 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
             
             clubToJoin.members.push(updatedMember);
             
-            // Update the clubs in localStorage
             localStorage.setItem('clubs', JSON.stringify(clubs));
             
-            // Update user's clubs in state
+            const updatedUserClubs = [...currentUser.clubs, clubToJoin];
             const updatedUser = {
               ...currentUser,
-              clubs: [...currentUser.clubs, clubToJoin]
+              clubs: updatedUserClubs
             };
             
             setCurrentUser(updatedUser);
-            
-            // Update user data in localStorage
             localStorage.setItem('currentUser', JSON.stringify(updatedUser));
             
             toast({
               title: "Club Joined",
               description: `You have successfully joined ${clubName}!`
             });
+            
+            if (onDeclineInvite) {
+              onDeclineInvite(notificationId);
+            }
           }
         }
-      }
-      
-      // Always remove the notification after handling
-      if (onDeclineInvite) {
-        onDeclineInvite(notificationId);
       }
     }
   };
@@ -150,7 +140,6 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
     if (onDeclineInvite) {
       onDeclineInvite(notificationId);
       
-      // Remove from localStorage
       const storedNotifications = localStorage.getItem('notifications');
       if (storedNotifications) {
         const parsedNotifications = JSON.parse(storedNotifications);
@@ -183,21 +172,35 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   };
 
   const createTestInvitation = () => {
-    // Create a test invitation for a club the user is not already a member of
     const clubIds = ['test-club-1', 'test-club-2', 'cressay-running-club'];
     const clubNames = ['Road Runners', 'Sprint Masters', 'Cressay Running Club'];
     
-    // Find a club the user is not already a member of
-    let clubIndex = 2; // Default to "Cressay Running Club"
+    let clubIndex = 2;
     
     if (currentUser && currentUser.clubs.length > 0) {
       const userClubIds = currentUser.clubs.map(club => club.id);
       
-      // Always use Cressay Running Club as it's the one we want to test
       if (userClubIds.includes('cressay-running-club')) {
-        // If user has Cressay, use another club
         clubIndex = userClubIds.includes('test-club-1') ? 1 : 0;
       }
+    }
+    
+    const existingNotifications = localStorage.getItem('notifications');
+    const notificationsArray = existingNotifications ? JSON.parse(existingNotifications) : [];
+    
+    const hasDuplicateInvite = notificationsArray.some((notification: Notification) => 
+      notification.clubId === clubIds[clubIndex] && 
+      notification.type === 'invitation' &&
+      !notification.read
+    );
+    
+    if (hasDuplicateInvite) {
+      toast({
+        title: "Duplicate Invitation",
+        description: `You already have a pending invitation for ${clubNames[clubIndex]}.`,
+        variant: "destructive"
+      });
+      return;
     }
     
     const newNotification: Notification = {
@@ -214,21 +217,53 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
       message: 'invited you to join their club'
     };
     
-    const existingNotifications = localStorage.getItem('notifications');
-    const notifications = existingNotifications ? JSON.parse(existingNotifications) : [];
-    notifications.push(newNotification);
-    localStorage.setItem('notifications', JSON.stringify(notifications));
+    notificationsArray.push(newNotification);
+    localStorage.setItem('notifications', JSON.stringify(notificationsArray));
     
     toast({
       title: "Test Notification Created",
       description: `A club invitation notification has been added for ${clubNames[clubIndex]}.`
     });
     
-    // Trigger a reload to see the new notification
     window.location.reload();
   };
 
-  // Sort notifications from most recent to oldest
+  useEffect(() => {
+    if (notifications.length > 0) {
+      const clubInvites: Record<string, Notification[]> = {};
+      
+      notifications.forEach(notification => {
+        if (notification.type === 'invitation') {
+          if (!clubInvites[notification.clubId]) {
+            clubInvites[notification.clubId] = [];
+          }
+          clubInvites[notification.clubId].push(notification);
+        }
+      });
+      
+      let hasDuplicates = false;
+      const uniqueInvites: Notification[] = [];
+      
+      Object.keys(clubInvites).forEach(clubId => {
+        if (clubInvites[clubId].length > 1) {
+          hasDuplicates = true;
+          const sorted = [...clubInvites[clubId]].sort(
+            (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          );
+          uniqueInvites.push(sorted[0]);
+        } else {
+          uniqueInvites.push(clubInvites[clubId][0]);
+        }
+      });
+      
+      if (hasDuplicates) {
+        const nonInvitations = notifications.filter(n => n.type !== 'invitation');
+        const updatedNotifications = [...nonInvitations, ...uniqueInvites];
+        localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+      }
+    }
+  }, [notifications]);
+
   const sortedNotifications = [...notifications].sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );

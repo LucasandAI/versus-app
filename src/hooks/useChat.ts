@@ -194,7 +194,7 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
           0
         );
         // Ensure we're passing a number to onNewMessage
-        onNewMessage(totalUnread);
+        onNewMessage(Number(totalUnread));
       }, 100);
     }
   };
