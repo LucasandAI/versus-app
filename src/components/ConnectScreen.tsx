@@ -72,7 +72,11 @@ const ConnectScreen: React.FC = () => {
             <img 
               src={StravaConnectLogo} 
               alt="Connect with Strava" 
-              className="w-full h-auto" 
+              className="w-full max-w-full h-auto object-contain" 
+              onError={(e) => {
+                console.error('Strava Connect Logo failed to load', e);
+                e.currentTarget.style.display = 'none';
+              }}
             />
           </Button>
           <p className="text-xs text-gray-500">
@@ -84,7 +88,11 @@ const ConnectScreen: React.FC = () => {
           <img 
             src={StravaPoweredByLogo} 
             alt="Powered by Strava" 
-            className="h-8 w-auto" 
+            className="h-8 w-auto object-contain" 
+            onError={(e) => {
+              console.error('Powered by Strava Logo failed to load', e);
+              e.currentTarget.style.display = 'none';
+            }}
           />
         </div>
       </div>
@@ -93,3 +101,4 @@ const ConnectScreen: React.FC = () => {
 };
 
 export default ConnectScreen;
+
