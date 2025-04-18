@@ -1,127 +1,46 @@
 
-import { Club, Division } from '@/types';
 import { useApp } from '@/context/AppContext';
+import { getClubToJoin, isUserClubMember } from '@/utils/clubUtils';
+import { useClubValidation } from './useClubValidation';
 import { toast } from "@/hooks/use-toast";
-import { availableClubs } from '@/data/availableClubs';
-
-const MAX_CLUBS_PER_USER = 3;
 
 export const useClubJoin = () => {
   const { currentUser, setCurrentUser } = useApp();
+  const { validateClubJoin, validateClubRequest, validateExistingMembership } = useClubValidation();
 
   const handleRequestToJoin = (clubId: string, clubName: string) => {
-    const userClubs = currentUser?.clubs || [];
-    const isAtClubCapacity = userClubs.length >= MAX_CLUBS_PER_USER;
-    
-    if (isAtClubCapacity) {
-      toast({
-        title: "Club Limit Reached",
-        description: `You can join a maximum of ${MAX_CLUBS_PER_USER} clubs.`,
-        variant: "destructive"
-      });
-      return;
+    if (validateClubJoin(currentUser, clubName)) {
+      validateClubRequest(clubName);
     }
-    
-    toast({
-      title: "Request Sent",
-      description: `Your request to join ${clubName} has been sent.`,
-    });
   };
 
   const handleJoinClub = (clubId: string, clubName: string) => {
-    if (!currentUser) return;
+    if (!currentUser || !validateClubJoin(currentUser, clubName)) return;
     
     // Debug logging
     console.log('Joining club:', clubId, clubName);
     console.log('Current user clubs:', currentUser.clubs);
     
-    // Check if user is already a member by comparing club IDs
-    const isAlreadyMember = currentUser.clubs.some(club => club.id === clubId);
-    console.log('Is already member:', isAlreadyMember);
-    
-    if (isAlreadyMember) {
-      toast({
-        title: "Already a Member",
-        description: `You are already a member of ${clubName}.`,
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (currentUser.clubs.length >= MAX_CLUBS_PER_USER) {
-      toast({
-        title: "Club Limit Reached",
-        description: `You can join a maximum of ${MAX_CLUBS_PER_USER} clubs.`,
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Try to find the club in available clubs first
-    const mockClub = availableClubs.find(club => club.id === clubId);
-    let clubToJoin;
-    
     // Get clubs from localStorage or initialize empty array
     let allClubs = [];
     try {
       const storedClubs = localStorage.getItem('clubs');
-      if (storedClubs) {
-        allClubs = JSON.parse(storedClubs);
-      }
+      allClubs = storedClubs ? JSON.parse(storedClubs) : [];
     } catch (error) {
       console.error('Error parsing clubs from localStorage:', error);
       allClubs = [];
     }
 
-    if (mockClub) {
-      // Check if this club already exists in the stored clubs
-      clubToJoin = allClubs.find((club: any) => club.id === clubId);
-      
-      if (!clubToJoin) {
-        // Create a new club based on the mock club
-        clubToJoin = {
-          id: mockClub.id,
-          name: mockClub.name,
-          logo: '/placeholder.svg',
-          division: mockClub.division as Division,
-          tier: mockClub.tier,
-          members: [],
-          currentMatch: null,
-          matchHistory: []
-        };
-        allClubs.push(clubToJoin);
-      }
-    } else {
-      clubToJoin = allClubs.find((club: any) => club.id === clubId);
-      
-      if (!clubToJoin) {
-        clubToJoin = {
-          id: clubId,
-          name: clubName,
-          logo: '/placeholder.svg',
-          division: 'Bronze' as Division,
-          tier: 3,
-          members: [],
-          currentMatch: null,
-          matchHistory: []
-        };
-        allClubs.push(clubToJoin);
-      }
-    }
-
+    const clubToJoin = getClubToJoin(clubId, clubName, allClubs);
+    
     if (!clubToJoin.members) {
       clubToJoin.members = [];
     }
     
-    const isInClubMembers = clubToJoin.members.some((member: any) => member.id === currentUser.id);
-    if (isInClubMembers) {
-      toast({
-        title: "Already a Member",
-        description: `You are already a member of ${clubToJoin.name}.`,
-        variant: "destructive"
-      });
-      return;
-    }
+    const isAlreadyMember = isUserClubMember(clubToJoin, currentUser.id);
+    console.log('Is already member:', isAlreadyMember);
+    
+    if (!validateExistingMembership(isAlreadyMember, clubToJoin.name)) return;
     
     // Add user to club members
     clubToJoin.members.push({
@@ -131,6 +50,10 @@ export const useClubJoin = () => {
       isAdmin: false
     });
     
+    // Update localStorage
+    if (!allClubs.find((club: any) => club.id === clubId)) {
+      allClubs.push(clubToJoin);
+    }
     localStorage.setItem('clubs', JSON.stringify(allClubs));
     
     const updatedUser = {
