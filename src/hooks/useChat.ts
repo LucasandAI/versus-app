@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { ChatMessage, ChatState, SupportTicket } from '@/types/chat';
 import { Club } from '@/types';
@@ -34,9 +33,20 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     };
     
     loadDataFromStorage();
+    
+    // Also set up an event listener to reload data when focus returns to the window
+    const handleFocus = () => {
+      loadDataFromStorage();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [refreshKey]); // Added refreshKey as a dependency to reload when it changes
 
-  // Save to localStorage whenever data changes
+  // Save to localStorage whenever messages change
   useEffect(() => {
     localStorage.setItem('chatMessages', JSON.stringify(messages));
   }, [messages]);
@@ -63,59 +73,38 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
   useEffect(() => {
     if (open) {
       setRefreshKey(Date.now());
+      
+      // When chat is opened, make sure we have the latest data
+      const savedUnread = localStorage.getItem('unreadMessages');
+      if (savedUnread) {
+        setUnreadMessages(JSON.parse(savedUnread));
+      }
     }
   }, [open]);
 
-  // Check for new support tickets on component mount and when they change
-  useEffect(() => {
-    const checkForNewSupportTickets = () => {
-      const savedTickets = localStorage.getItem('supportTickets');
-      if (!savedTickets) return;
-      
-      const tickets: SupportTicket[] = JSON.parse(savedTickets);
-      const currentTicketIds = Object.keys(supportTickets);
-      
-      tickets.forEach(ticket => {
-        // If this is a new ticket that we don't have in our state
-        if (!currentTicketIds.includes(ticket.id)) {
-          // Update unread messages for new tickets
-          setUnreadMessages(prev => ({
-            ...prev,
-            [ticket.id]: 1 // Set at least 1 unread message for the auto-response
-          }));
-        }
-      });
-    };
-    
-    checkForNewSupportTickets();
-  }, [supportTickets]);
-
+  // Handle new messages
   const handleNewMessage = (clubId: string, message: ChatMessage, isOpen: boolean) => {
-    setMessages(prev => ({
-      ...prev,
-      [clubId]: [...(prev[clubId] || []), message]
-    }));
-
-    if (!isOpen) {
-      setUnreadMessages(prev => ({
+    // Update messages state
+    setMessages(prev => {
+      const updatedMessages = {
         ...prev,
-        [clubId]: (prev[clubId] || 0) + 1
-      }));
+        [clubId]: [...(prev[clubId] || []), message]
+      };
+      
+      // Save to localStorage
+      localStorage.setItem('chatMessages', JSON.stringify(updatedMessages));
+      
+      return updatedMessages;
+    });
+
+    // If drawer is not open, increment unread count
+    if (!isOpen) {
+      setUnreadMessages(prev => {
+        const updated = { ...prev, [clubId]: (prev[clubId] || 0) + 1 };
+        localStorage.setItem('unreadMessages', JSON.stringify(updated));
+        return updated;
+      });
     }
-    
-    // Save to localStorage
-    const updatedMessages = {
-      ...messages,
-      [clubId]: [...(messages[clubId] || []), message]
-    };
-    localStorage.setItem('chatMessages', JSON.stringify(updatedMessages));
-    
-    // Also update the unread message count in localStorage
-    const updatedUnread = {
-      ...unreadMessages,
-      [clubId]: isOpen ? 0 : (unreadMessages[clubId] || 0) + 1
-    };
-    localStorage.setItem('unreadMessages', JSON.stringify(updatedUnread));
     
     // Dispatch event to notify about changes
     const event = new CustomEvent('unreadMessagesUpdated');

@@ -36,12 +36,12 @@ const AppContent: React.FC = () => {
       }
     };
     
-    // Load unread counts initially and on relevant events
+    // Load unread counts initially
     loadUnreadCounts();
     
-    const handleChatClosed = () => {
-      // Wait for a short timeout to ensure localStorage is updated
-      setTimeout(loadUnreadCounts, 100);
+    // Set up event listeners for tracking unread message counts
+    const handleUnreadMessagesUpdated = () => {
+      loadUnreadCounts();
     };
     
     const handleSupportTicketCreated = (event: CustomEvent) => {
@@ -50,16 +50,17 @@ const AppContent: React.FC = () => {
       }
     };
     
-    window.addEventListener('chatDrawerClosed', handleChatClosed);
-    window.addEventListener('unreadMessagesUpdated', loadUnreadCounts);
+    // Listen for events that should update the notification count
+    window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
     window.addEventListener('supportTicketCreated', handleSupportTicketCreated as EventListener);
-    window.addEventListener('focus', loadUnreadCounts);
+    window.addEventListener('chatDrawerClosed', handleUnreadMessagesUpdated);
+    window.addEventListener('focus', handleUnreadMessagesUpdated);
     
     return () => {
-      window.removeEventListener('chatDrawerClosed', handleChatClosed);
-      window.removeEventListener('unreadMessagesUpdated', loadUnreadCounts);
+      window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
       window.removeEventListener('supportTicketCreated', handleSupportTicketCreated as EventListener);
-      window.removeEventListener('focus', loadUnreadCounts);
+      window.removeEventListener('chatDrawerClosed', handleUnreadMessagesUpdated);
+      window.removeEventListener('focus', handleUnreadMessagesUpdated);
     };
   }, []);
 
@@ -81,7 +82,12 @@ const AppContent: React.FC = () => {
   };
 
   const handleCreateSupportChat = (ticketId: string, subject: string, message: string) => {
+    // Update local state immediately
     setChatNotifications(prev => prev + 1);
+    
+    // Dispatch event to notify other components
+    const event = new CustomEvent('unreadMessagesUpdated');
+    window.dispatchEvent(event);
   };
 
   return (

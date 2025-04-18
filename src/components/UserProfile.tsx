@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { Button } from "@/components/ui/button";
-import { UserPlus, Settings, Share2, ArrowRight, Award, LogOut, Facebook, Instagram, Twitter, Globe, Linkedin } from 'lucide-react';
+import { UserPlus, Settings, Share2, ArrowRight, Award, LogOut, Facebook, Instagram, Twitter, Globe, Linkedin, ChevronDown, ChevronUp } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import ClubInviteDialog from './admin/ClubInviteDialog';
 import EditProfileDialog from './profile/EditProfileDialog';
@@ -34,6 +33,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from "@/components/ui/alert-dialog";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger
+} from "@/components/ui/hover-card";
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const UserProfile: React.FC = () => {
@@ -120,9 +124,24 @@ const UserProfile: React.FC = () => {
   };
 
   const completedAchievements = [
-    { id: '1', name: 'First Victory', color: 'green' },
-    { id: '2', name: 'Team Player', color: 'green' },
-    { id: '3', name: 'Global Explorer', color: 'green' }
+    { 
+      id: '1', 
+      name: 'First Victory', 
+      color: 'green',
+      description: 'Win your first club match against another club' 
+    },
+    { 
+      id: '2', 
+      name: 'Team Player', 
+      color: 'green',
+      description: 'Contribute at least 20% of your club\'s total distance in a match'
+    },
+    { 
+      id: '3', 
+      name: 'Global Explorer', 
+      color: 'green',
+      description: 'Log activities in 5 different countries'
+    }
   ];
 
   const inProgressAchievements = [
@@ -135,6 +154,24 @@ const UserProfile: React.FC = () => {
       id: '5', 
       name: 'League Climber', 
       description: 'Promote to the next league'
+    }
+  ];
+
+  const moreInProgressAchievements = [
+    {
+      id: '6',
+      name: 'Distance King',
+      description: 'Be the top contributor in your club for 3 consecutive matches'
+    },
+    {
+      id: '7',
+      name: 'Club Founder',
+      description: 'Create a club and recruit at least 5 members'
+    },
+    {
+      id: '8',
+      name: 'Social Butterfly',
+      description: 'Connect all your social media accounts to your profile'
     }
   ];
 
@@ -461,7 +498,6 @@ const UserProfile: React.FC = () => {
                   setCurrentView('clubDetail');
                 }}
               >
-                {/* Replace img tag with UserAvatar component */}
                 <UserAvatar 
                   name={club.name} 
                   image={club.logo} 
@@ -497,13 +533,20 @@ const UserProfile: React.FC = () => {
                 </>
               ) : (
                 completedAchievements.map(achievement => (
-                  <div 
-                    key={achievement.id} 
-                    className="px-3 py-1 rounded-full bg-white text-green-600 text-xs flex items-center"
-                  >
-                    <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                    {achievement.name}
-                  </div>
+                  <HoverCard key={achievement.id}>
+                    <HoverCardTrigger asChild>
+                      <div 
+                        className="px-3 py-1 rounded-full bg-white text-green-600 text-xs flex items-center cursor-help"
+                      >
+                        <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                        {achievement.name}
+                      </div>
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-64 p-3">
+                      <h4 className="font-medium mb-1">{achievement.name}</h4>
+                      <p className="text-sm text-gray-600">{achievement.description}</p>
+                    </HoverCardContent>
+                  </HoverCard>
                 ))
               )}
             </div>
@@ -519,12 +562,23 @@ const UserProfile: React.FC = () => {
                 <Skeleton className="h-16 w-full" />
               </>
             ) : (
-              inProgressAchievements.map(achievement => (
-                <div key={achievement.id} className="mb-3">
-                  <p className="font-medium">{achievement.name}</p>
-                  <p className="text-gray-500 text-sm">{achievement.description}</p>
-                </div>
-              ))
+              <>
+                {inProgressAchievements.map(achievement => (
+                  <div key={achievement.id} className="mb-3">
+                    <p className="font-medium">{achievement.name}</p>
+                    <p className="text-gray-500 text-sm">{achievement.description}</p>
+                  </div>
+                ))}
+                
+                {showMoreAchievements && (
+                  moreInProgressAchievements.map(achievement => (
+                    <div key={achievement.id} className="mb-3">
+                      <p className="font-medium">{achievement.name}</p>
+                      <p className="text-gray-500 text-sm">{achievement.description}</p>
+                    </div>
+                  ))
+                )}
+              </>
             )}
           </div>
         </div>
@@ -535,7 +589,15 @@ const UserProfile: React.FC = () => {
             className="text-green-600 flex items-center justify-center w-full mt-4"
             onClick={() => setShowMoreAchievements(!showMoreAchievements)}
           >
-            View More Achievements <ArrowRight className="h-4 w-4 ml-1" />
+            {showMoreAchievements ? (
+              <>
+                Show Less <ChevronUp className="h-4 w-4 ml-1" />
+              </>
+            ) : (
+              <>
+                Show More Achievements <ChevronDown className="h-4 w-4 ml-1" />
+              </>
+            )}
           </Button>
         )}
       </Card>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
@@ -53,30 +52,44 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
     }
   }, [open, externalSupportTickets, refreshKey]);
 
-  // Notify when the drawer is closed
+  // Notify when the drawer is opened/closed
   useEffect(() => {
-    if (!open) {
-      // Dispatch event to notify that chat drawer was closed
-      const event = new CustomEvent('chatDrawerClosed');
-      window.dispatchEvent(event);
-      
-      // Also mark all tickets as read when drawer closes
+    if (open) {
+      // When drawer opens, mark messages as read for the selected conversation
+      if (selectedLocalClub) {
+        markClubMessagesAsRead(selectedLocalClub.id);
+      }
       if (selectedTicket) {
         markTicketAsRead(selectedTicket.id);
       }
+    } else {
+      // When drawer closes, dispatch event to notify other components
+      const event = new CustomEvent('chatDrawerClosed');
+      window.dispatchEvent(event);
+      
+      // Save read status to localStorage when drawer is closed
+      localStorage.setItem('unreadMessages', JSON.stringify(unreadMessages));
     }
-  }, [open, selectedTicket, markTicketAsRead]);
+  }, [open, selectedLocalClub, selectedTicket, markTicketAsRead, unreadMessages]);
+
+  const markClubMessagesAsRead = (clubId: string) => {
+    setUnreadMessages(prev => {
+      const updated = { ...prev, [clubId]: 0 };
+      localStorage.setItem('unreadMessages', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const handleSelectClub = (club: Club) => {
     setSelectedLocalClub(club);
     setSelectedTicket(null);
     
     // Mark the club messages as read
-    setUnreadMessages(prev => {
-      const updated = { ...prev, [club.id]: 0 };
-      localStorage.setItem('unreadMessages', JSON.stringify(updated));
-      return updated;
-    });
+    markClubMessagesAsRead(club.id);
+    
+    // Dispatch event to notify that unread counts may have changed
+    const event = new CustomEvent('unreadMessagesUpdated');
+    window.dispatchEvent(event);
   };
 
   const handleSelectTicket = (ticket: SupportTicket) => {
@@ -85,14 +98,11 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
     
     // Mark the ticket as read and persist to localStorage
     markTicketAsRead(ticket.id);
+    
+    // Dispatch event to notify that unread counts may have changed
+    const event = new CustomEvent('unreadMessagesUpdated');
+    window.dispatchEvent(event);
   };
-
-  // Mark the selected ticket as read whenever it changes
-  useEffect(() => {
-    if (selectedTicket && open) {
-      markTicketAsRead(selectedTicket.id);
-    }
-  }, [selectedTicket, markTicketAsRead, open]);
 
   const handleSelectUser = (userId: string, userName: string, userAvatar: string = '/placeholder.svg') => {
     setSelectedUser({

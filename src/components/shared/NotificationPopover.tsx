@@ -49,16 +49,18 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
+    
     if (isOpen && unreadCount > 0) {
-      notifications.forEach(n => {
-        if (!n.read) onMarkAsRead(n.id);
-      });
-      
       const updatedNotifications = notifications.map(n => ({
         ...n,
         read: true
       }));
+      
       localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+      
+      notifications.forEach(n => {
+        if (!n.read) onMarkAsRead(n.id);
+      });
     }
   };
 
