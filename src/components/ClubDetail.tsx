@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, User as UserIcon, Calendar, TrendingUp, TrendingDown, ArrowRight, X } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Calendar, TrendingUp, TrendingDown, ArrowRight, LogOut } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import MatchProgressBar from './shared/MatchProgressBar';
 import UserAvatar from './shared/UserAvatar';
@@ -24,12 +24,23 @@ import {
 } from "@/components/ui/table";
 import ClubAdminActions from './admin/ClubAdminActions';
 import InviteUserDialog from './club/InviteUserDialog';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const ClubDetail: React.FC = () => {
   const { selectedClub, setCurrentView, currentUser, setSelectedUser, setSelectedClub } = useApp();
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   
   if (!selectedClub) {
     return (
@@ -45,7 +56,9 @@ const ClubDetail: React.FC = () => {
     );
   }
 
-  const matchHistory = [
+  const isNewlyCreatedClub = selectedClub.id !== '1' && selectedClub.id !== '2';
+  
+  const matchHistory = isNewlyCreatedClub ? [] : [
     {
       id: 'mh1',
       date: 'April 10-17, 2025',
@@ -209,10 +222,21 @@ const ClubDetail: React.FC = () => {
     setCurrentView('clubDetail');
   };
 
+  const handleLeaveClub = () => {
+    toast({
+      title: "Left Club",
+      description: `You have successfully left ${selectedClub.name}.`,
+    });
+    setCurrentView('home');
+  };
+
   const currentMatch = selectedClub?.currentMatch;
   const visibleHistory = showAllHistory ? matchHistory : matchHistory.slice(0, 2);
   const isAlreadyMember = selectedClub?.members.some(member => 
     currentUser && member.id === currentUser.id
+  );
+  const isAdmin = currentUser && selectedClub?.members.some(member => 
+    member.id === currentUser.id && member.isAdmin
   );
   
   return (
@@ -349,99 +373,108 @@ const ClubDetail: React.FC = () => {
             </div>
             <div className="bg-gray-50 p-3 rounded-md">
               <p className="text-xs text-gray-500">Match Record</p>
-              <p className="font-medium">3W - 1L</p>
+              <p className="font-medium">{matchHistory.length > 0 ? `${matchHistory.filter(m => m.result === 'win').length}W - ${matchHistory.filter(m => m.result === 'loss').length}L` : 'No matches yet'}</p>
             </div>
             <div className="bg-gray-50 p-3 rounded-md">
               <p className="text-xs text-gray-500">Total Distance</p>
-              <p className="font-medium">243.7 km</p>
+              <p className="font-medium">{matchHistory.length > 0 ? '243.7 km' : '0 km'}</p>
             </div>
             <div className="bg-gray-50 p-3 rounded-md">
               <p className="text-xs text-gray-500">Avg. Per Member</p>
-              <p className="font-medium">81.2 km</p>
+              <p className="font-medium">{matchHistory.length > 0 ? '81.2 km' : '0 km'}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-          <div className="flex items-center mb-4">
-            <Calendar className="h-5 w-5 text-primary mr-2" />
-            <h2 className="font-bold">Match History</h2>
-          </div>
-          
-          <div className="space-y-4">
-            {visibleHistory.map((match) => (
-              <div key={match.id} className="border-b pb-4 last:border-0 last:pb-0">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-gray-600">{match.date}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    match.result === 'win' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {match.result === 'win' ? 'WIN' : 'LOSS'}
-                  </span>
-                </div>
-                
-                <div className="flex justify-between items-center mb-3 text-sm">
-                  <span className="font-medium">{match.homeClub.name}</span>
-                  <span className="text-xs text-gray-500">vs</span>
-                  <span className="font-medium">{match.awayClub.name}</span>
-                </div>
-                
-                <div className="flex justify-between items-center text-xs mb-2">
-                  <span>{match.homeClub.totalDistance.toFixed(1)} km</span>
-                  <span>{match.awayClub.totalDistance.toFixed(1)} km</span>
-                </div>
-                
-                <MatchProgressBar
-                  homeDistance={match.homeClub.totalDistance}
-                  awayDistance={match.awayClub.totalDistance}
-                  className="h-1.5"
-                />
-                
-                <div className="mt-3 p-2 bg-gray-50 rounded-md">
-                  <div className="flex items-center text-xs">
-                    <span className="font-medium mr-2">League Impact:</span>
-                    {match.leagueImpact.type === 'promotion' ? (
-                      <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
-                    ) : match.leagueImpact.type === 'relegation' ? (
-                      <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
-                    ) : (
-                      <ArrowRight className="h-3 w-3 text-gray-500 mr-1" />
-                    )}
-                    <span className={`${
-                      match.leagueImpact.type === 'promotion' 
-                        ? 'text-green-600' 
-                        : match.leagueImpact.type === 'relegation'
-                          ? 'text-red-600'
-                          : 'text-gray-600'
+        {matchHistory.length > 0 && (
+          <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+            <div className="flex items-center mb-4">
+              <Calendar className="h-5 w-5 text-primary mr-2" />
+              <h2 className="font-bold">Match History</h2>
+            </div>
+            
+            <div className="space-y-4">
+              {visibleHistory.map((match) => (
+                <div key={match.id} className="border-b pb-4 last:border-0 last:pb-0">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm text-gray-600">{match.date}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      match.result === 'win' 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
                     }`}>
-                      {match.leagueImpact.description}
+                      {match.result === 'win' ? 'WIN' : 'LOSS'}
                     </span>
                   </div>
-                </div>
+                  
+                  <div className="flex justify-between items-center mb-3 text-sm">
+                    <span className="font-medium">{match.homeClub.name}</span>
+                    <span className="text-xs text-gray-500">vs</span>
+                    <span className="font-medium">{match.awayClub.name}</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center text-xs mb-2">
+                    <span>{match.homeClub.totalDistance.toFixed(1)} km</span>
+                    <span>{match.awayClub.totalDistance.toFixed(1)} km</span>
+                  </div>
+                  
+                  <MatchProgressBar
+                    homeDistance={match.homeClub.totalDistance}
+                    awayDistance={match.awayClub.totalDistance}
+                    className="h-1.5"
+                  />
+                  
+                  <div className="mt-3 p-2 bg-gray-50 rounded-md">
+                    <div className="flex items-center text-xs">
+                      <span className="font-medium mr-2">League Impact:</span>
+                      {match.leagueImpact.type === 'promotion' ? (
+                        <span className="text-green-600 flex items-center">
+                          <TrendingUp className="h-3 w-3 mr-1" />
+                          {match.leagueImpact.description}
+                        </span>
+                      ) : (
+                        <span className="text-red-600 flex items-center">
+                          <TrendingDown className="h-3 w-3 mr-1" />
+                          {match.leagueImpact.description}
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="mt-3 w-full text-xs"
-                  onClick={() => handleViewMatchDetails(match)}
-                >
-                  View Complete Match Details
-                </Button>
-              </div>
-            ))}
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-3 w-full text-xs"
+                    onClick={() => handleViewMatchDetails(match)}
+                  >
+                    View Complete Match Details
+                  </Button>
+                </div>
+              ))}
+            </div>
+            
+            {matchHistory.length > 2 && (
+              <button 
+                className="w-full py-2 mt-3 text-sm text-primary flex items-center justify-center"
+                onClick={() => setShowAllHistory(!showAllHistory)}
+              >
+                {showAllHistory ? 'Show Less' : 'View All Match History'}
+              </button>
+            )}
           </div>
-          
-          {matchHistory.length > 2 && (
-            <button 
-              className="w-full py-2 mt-3 text-sm text-primary flex items-center justify-center"
-              onClick={() => setShowAllHistory(!showAllHistory)}
-            >
-              {showAllHistory ? 'Show Less' : 'View All Match History'}
-            </button>
-          )}
-        </div>
+        )}
+
+        {isAlreadyMember && !isAdmin && (
+          <Button 
+            variant="outline" 
+            size="md" 
+            fullWidth 
+            className="mb-6"
+            onClick={() => setShowLeaveDialog(true)}
+          >
+            <LogOut className="w-4 h-4 mr-2" /> Leave Club
+          </Button>
+        )}
 
         {selectedClub && currentUser && (
           <ClubAdminActions club={selectedClub} currentUser={currentUser} />
@@ -585,6 +618,23 @@ const ClubDetail: React.FC = () => {
           clubId={selectedClub.id}
         />
       )}
+      
+      <AlertDialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Leave Club</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to leave {selectedClub.name}? You can always request to join again in the future.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLeaveClub} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Leave Club
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
