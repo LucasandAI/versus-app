@@ -33,18 +33,21 @@ export const hasPendingInvite = (clubId: string): boolean => {
   
   try {
     const notifications: Notification[] = JSON.parse(storedNotifications);
-    console.log('All notifications:', notifications);
+    console.log('All notifications:', notifications.length);
     
     const pendingInvites = notifications.filter(notification => {
       const isInvitation = notification.type === 'invitation';
       const isForThisClub = notification.clubId === clubId;
       const isUnread = !notification.read;
       
-      console.log(`Checking notification: type=${notification.type}, clubId=${notification.clubId}, isUnread=${isUnread}`);
+      if (isInvitation && isForThisClub) {
+        console.log(`Found invitation for club ${clubId}, read status: ${notification.read}`);
+      }
+      
       return isInvitation && isForThisClub && isUnread;
     });
     
-    console.log('Pending invites for club:', pendingInvites);
+    console.log('Pending invites for club:', pendingInvites.length);
     return pendingInvites.length > 0;
   } catch (error) {
     console.error('Error checking pending invites:', error);

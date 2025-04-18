@@ -20,8 +20,12 @@ const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const { handleRequestToJoin, handleJoinClub } = useClubJoin();
+  
+  // Start with a definitive check for pending invites during initial render
   const [hasPending, setHasPending] = useState<boolean>(() => {
-    return hasPendingInvite(club.id);
+    const hasInvite = hasPendingInvite(club.id);
+    console.log(`Initial pending invite check for club ${club.id}:`, hasInvite);
+    return hasInvite;
   });
 
   const isActuallyMember = currentUser?.clubs.some(c => c.id === club.id) || false;
@@ -32,10 +36,19 @@ const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
   // Effect to check for pending invites when the component mounts or when club changes
   useEffect(() => {
     console.log('Club ID in DetailContent effect:', club.id);
+    
+    // Only check for pending invites if the user is not already a member
+    if (isActuallyMember) {
+      console.log('User is already a member, skipping invite check');
+      return;
+    }
+    
     const checkPendingInvite = () => {
-      const pending = hasPendingInvite(club.id);
-      console.log('Has pending invite (DetailContent effect):', pending);
-      setHasPending(pending);
+      if (!isActuallyMember) {
+        const pending = hasPendingInvite(club.id);
+        console.log('Has pending invite (DetailContent effect):', pending);
+        setHasPending(pending);
+      }
     };
     
     // Check immediately
@@ -51,7 +64,7 @@ const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
     return () => {
       window.removeEventListener('notificationsUpdated', handleNotificationUpdate);
     };
-  }, [club.id]);
+  }, [club.id, isActuallyMember]);
 
   const handleRequestToJoinClub = () => {
     handleRequestToJoin(club.id, club.name);
