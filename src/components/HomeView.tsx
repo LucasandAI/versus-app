@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MessageCircle, Plus, Search, UserPlus, X, Bell } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -141,7 +140,7 @@ const availableClubs = [
 const MAX_CLUBS_PER_USER = 3;
 
 const HomeView: React.FC = () => {
-  const { setCurrentView, setSelectedClub, setSelectedUser, currentUser } = useApp();
+  const { setCurrentView, setSelectedClub, setSelectedUser, currentUser, setCurrentUser } = useApp();
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -278,7 +277,6 @@ const HomeView: React.FC = () => {
       )
     );
     
-    // Update localStorage
     const updatedNotifications = notifications.map(notification => 
       notification.id === id ? { ...notification, read: true } : notification
     );
@@ -302,16 +300,12 @@ const HomeView: React.FC = () => {
       return;
     }
     
-    // Get club data from localStorage
     const allClubs = localStorage.getItem('clubs') || '[]';
     const clubs = JSON.parse(allClubs);
     
-    // Find the club to join
     let clubToJoin = clubs.find((club: any) => club.id === clubId);
     
-    // If club not found in localStorage, create a mock club
     if (!clubToJoin) {
-      // Find in available clubs
       const mockClub = availableClubs.find(club => club.id === clubId);
       
       if (mockClub) {
@@ -326,10 +320,8 @@ const HomeView: React.FC = () => {
           matchHistory: []
         };
         
-        // Add to local clubs
         clubs.push(clubToJoin);
       } else {
-        // Create a default club if not found
         clubToJoin = {
           id: clubId,
           name: clubName,
@@ -341,12 +333,10 @@ const HomeView: React.FC = () => {
           matchHistory: []
         };
         
-        // Add to local clubs
         clubs.push(clubToJoin);
       }
     }
     
-    // Add user as a member
     if (clubToJoin && !clubToJoin.members.some((member: any) => member.id === currentUser.id)) {
       clubToJoin.members.push({
         id: currentUser.id,
@@ -355,19 +345,15 @@ const HomeView: React.FC = () => {
         isAdmin: false
       });
       
-      // Update clubs in localStorage
       localStorage.setItem('clubs', JSON.stringify(clubs));
       
-      // Update user's clubs in state and localStorage
       const updatedUser = {
         ...currentUser,
         clubs: [...currentUser.clubs, clubToJoin]
       };
       
-      // Update the AppContext
       setCurrentUser(updatedUser);
       
-      // Also update in localStorage
       localStorage.setItem('currentUser', JSON.stringify(updatedUser));
       
       toast({
@@ -384,14 +370,12 @@ const HomeView: React.FC = () => {
   };
 
   const handleDeclineInvite = (notificationId: string) => {
-    // Remove the notification from state
     const updatedNotifications = notifications.filter(
       notification => notification.id !== notificationId
     );
     
     setNotifications(updatedNotifications);
     
-    // Update localStorage
     localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
     
     toast({
