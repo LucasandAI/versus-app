@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/use-toast";
+import { useApp } from '@/context/AppContext';
 
 interface SupportOption {
   id: string;
@@ -48,9 +49,11 @@ const supportOptions: SupportOption[] = [
 ];
 
 const SupportPopover: React.FC = () => {
+  const { currentUser } = useApp();
   const [open, setOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState<SupportOption | null>(null);
+  const [message, setMessage] = useState('');
 
   const handleOptionClick = (option: SupportOption) => {
     setSelectedOption(option);
@@ -59,11 +62,56 @@ const SupportPopover: React.FC = () => {
   };
 
   const handleSubmit = () => {
+    if (!message.trim()) {
+      toast({
+        title: "Message Required",
+        description: "Please provide details before submitting.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Create a support chat
+    createSupportChat(selectedOption!, message);
+    
     toast({
       title: "Support Request Sent",
-      description: `Your ${selectedOption?.label.toLowerCase()} has been submitted. We'll get back to you soon.`,
+      description: `Your ${selectedOption?.label.toLowerCase()} has been submitted. A support agent will get back to you soon.`,
     });
+    
     setDialogOpen(false);
+    setMessage('');
+  };
+
+  const createSupportChat = (option: SupportOption, messageContent: string) => {
+    // This would ideally connect to your backend to create a new support ticket
+    // and open a chat with support
+    
+    // For now, we'll just log the information and show a toast
+    console.log('Support request created:', {
+      type: option.id,
+      label: option.label,
+      message: messageContent,
+      user: currentUser?.id || 'guest',
+      timestamp: new Date().toISOString()
+    });
+    
+    // In a real implementation, this would trigger opening the chat drawer
+    // with a new support conversation
+    // For example: 
+    // openChatDrawer({
+    //   id: 'support-' + Date.now(),
+    //   name: 'Support: ' + option.label,
+    //   isSupport: true,
+    //   messages: [
+    //     {
+    //       id: Date.now().toString(),
+    //       sender: { id: currentUser?.id || 'guest', name: currentUser?.name || 'Guest' },
+    //       text: messageContent,
+    //       timestamp: new Date().toISOString()
+    //     }
+    //   ]
+    // });
   };
 
   return (
@@ -106,17 +154,19 @@ const SupportPopover: React.FC = () => {
             </AlertDialogTitle>
             <AlertDialogDescription>
               Please provide details about your {selectedOption?.label.toLowerCase()}.
-              Our team will review your submission and get back to you as soon as possible.
+              Our team will review your submission and open a support chat to assist you.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="grid gap-4 py-4">
             <textarea 
               className="w-full min-h-[100px] p-2 border rounded-md" 
               placeholder={`Describe your ${selectedOption?.label.toLowerCase()} in detail...`}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
             />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setMessage('')}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleSubmit}>Submit</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

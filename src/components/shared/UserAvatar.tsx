@@ -18,26 +18,13 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   className,
   onClick
 }) => {
-  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const [showFallback, setShowFallback] = useState(!image);
   
+  // Reset states when image prop changes
   useEffect(() => {
-    // Reset error state when image changes
+    setImageLoaded(false);
     setImageError(false);
-    
-    // Set fallback visibility based on image prop
-    setShowFallback(!image || image.trim() === '');
-    
-    // Only process valid images
-    if (image && image.trim() !== '') {
-      // Add cache-busting parameter for non-URL objects (blob URLs don't need cache busting)
-      const isObjectUrl = image.startsWith('blob:');
-      const url = isObjectUrl ? image : `${image}?t=${Date.now()}`;
-      setImageUrl(url);
-    } else {
-      setImageUrl(undefined);
-    }
   }, [image]);
 
   const getInitials = (name: string) => {
@@ -60,9 +47,14 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
 
   const handleImageError = () => {
     setImageError(true);
-    setShowFallback(true);
   };
 
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+  };
+
+  const shouldShowImage = image && !imageError && imageLoaded;
+  const shouldShowFallback = !image || imageError || !imageLoaded;
   const initials = getInitials(name);
 
   return (
@@ -70,16 +62,19 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
       className={cn(sizeClasses[size], className, onClick ? 'cursor-pointer' : '')}
       onClick={onClick}
     >
-      {!showFallback && !imageError && imageUrl ? (
+      {image && !imageError ? (
         <AvatarImage 
-          src={imageUrl} 
+          src={image} 
           alt={name} 
           className="object-cover" 
           onError={handleImageError}
+          onLoad={handleImageLoad}
         />
-      ) : (
+      ) : null}
+      
+      {shouldShowFallback && (
         <AvatarFallback 
-          className="bg-slate-300 text-slate-700 font-bold"
+          className="bg-primary/10 text-primary font-bold"
           delayMs={0}
         >
           {initials}
