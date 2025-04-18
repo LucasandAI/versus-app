@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, User as UserIcon, Calendar, TrendingUp, TrendingDown, ArrowRight, LogOut, Info, Users, ChevronDown } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -803,3 +804,25 @@ const ClubDetail: React.FC = () => {
           clubId={selectedClub.id}
         />
       )}
+
+      <AlertDialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Leave {selectedClub.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to leave this club? You will need to be invited again to rejoin.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLeaveClub} className="bg-red-500 hover:bg-red-600">
+              Leave Club
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
+export default ClubDetail;
