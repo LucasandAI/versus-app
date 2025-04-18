@@ -19,8 +19,12 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   onClick
 }) => {
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
+  const [imageError, setImageError] = useState(false);
   
   useEffect(() => {
+    // Reset error state when image changes
+    setImageError(false);
+    
     // Only process valid images
     if (image && image.trim() !== '') {
       // Add cache-busting parameter for non-URL objects (blob URLs don't need cache busting)
@@ -34,7 +38,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
 
   const getInitials = (name: string) => {
     // Handle empty or null names
-    if (!name) return 'NA';
+    if (!name || name.trim() === '') return 'NA';
     
     return name
       .split(' ')
@@ -50,14 +54,23 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
     lg: 'h-16 w-16 text-xl'
   };
 
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
   return (
     <Avatar 
       className={cn(sizeClasses[size], className, onClick ? 'cursor-pointer' : '')}
       onClick={onClick}
     >
-      {imageUrl && (
-        <AvatarImage src={imageUrl} alt={name} className="object-cover" />
-      )}
+      {imageUrl && !imageError ? (
+        <AvatarImage 
+          src={imageUrl} 
+          alt={name} 
+          className="object-cover" 
+          onError={handleImageError}
+        />
+      ) : null}
       <AvatarFallback className="bg-secondary text-secondary-foreground">
         {getInitials(name)}
       </AvatarFallback>
