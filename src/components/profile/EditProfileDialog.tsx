@@ -11,11 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Instagram, Linkedin, Globe, Twitter } from "lucide-react";
+import { Instagram, Linkedin, Globe, Twitter, Facebook } from "lucide-react";
 import UserAvatar from "@/components/shared/UserAvatar";
 import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { User } from "@/types";
+import { useApp } from "@/context/AppContext";
 
 interface EditProfileDialogProps {
   open: boolean;
@@ -24,11 +25,13 @@ interface EditProfileDialogProps {
 }
 
 const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps) => {
+  const { setCurrentUser } = useApp();
   const [name, setName] = useState(user?.name || "");
   const [bio, setBio] = useState(user?.bio || "Strava Athlete");
   const [instagram, setInstagram] = useState(user?.instagram || "");
   const [linkedin, setLinkedin] = useState(user?.linkedin || "");
   const [twitter, setTwitter] = useState(user?.twitter || "");
+  const [facebook, setFacebook] = useState(user?.facebook || "");
   const [website, setWebsite] = useState(user?.website || "");
   const isMobile = useIsMobile();
 
@@ -42,7 +45,29 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
       return;
     }
 
-    // Mock save functionality
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "No user found to update",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Update the current user with the new profile data
+    const updatedUser = {
+      ...user,
+      name,
+      bio,
+      instagram,
+      linkedin,
+      twitter,
+      facebook,
+      website
+    };
+    
+    setCurrentUser(updatedUser);
+
     toast({
       title: "Profile Updated",
       description: "Your profile has been updated successfully",
@@ -110,6 +135,15 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
                   placeholder="Twitter username" 
                   value={twitter}
                   onChange={(e) => setTwitter(e.target.value)}
+                />
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Facebook className="h-4 w-4" />
+                <Input 
+                  placeholder="Facebook username" 
+                  value={facebook}
+                  onChange={(e) => setFacebook(e.target.value)}
                 />
               </div>
               

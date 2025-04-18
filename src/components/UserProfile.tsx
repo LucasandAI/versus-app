@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -205,7 +204,8 @@ const UserProfile: React.FC = () => {
             <p className="text-gray-500">{loading ? <Skeleton className="h-4 w-24 mx-auto" /> : selectedUser.bio || 'Strava Athlete'}</p>
           </div>
 
-          <div className="flex flex-col space-y-2 md:space-y-0 md:space-x-2">
+          {/* Updated profile action buttons to be in one line */}
+          <div className="flex justify-center space-x-2">
             {isCurrentUserProfile ? (
               <>
                 <TooltipProvider>
@@ -214,7 +214,7 @@ const UserProfile: React.FC = () => {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className={`rounded-full ${isMobile ? 'w-full' : ''}`}
+                        className="rounded-full"
                         onClick={handleEditProfile}
                       >
                         <Settings className="h-5 w-5" />
@@ -234,7 +234,7 @@ const UserProfile: React.FC = () => {
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            className={`rounded-full ${isMobile ? 'w-full' : ''}`}
+                            className="rounded-full"
                           >
                             <Share2 className="h-5 w-5" />
                           </Button>
@@ -312,23 +312,23 @@ const UserProfile: React.FC = () => {
                 </TooltipProvider>
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>Connect with {selectedUser.name}</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={() => toast({ title: "Instagram", description: "Opening Instagram..." })}>
+                  <DropdownMenuItem onClick={() => handleSocialLink('instagram', selectedUser?.instagram || '')}>
                     <Instagram className="h-4 w-4 mr-2" />
                     Instagram
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toast({ title: "Twitter", description: "Opening Twitter..." })}>
+                  <DropdownMenuItem onClick={() => handleSocialLink('twitter', selectedUser?.twitter || '')}>
                     <Twitter className="h-4 w-4 mr-2" />
                     Twitter
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toast({ title: "Facebook", description: "Opening Facebook..." })}>
+                  <DropdownMenuItem onClick={() => handleSocialLink('facebook', selectedUser?.facebook || '')}>
                     <Facebook className="h-4 w-4 mr-2" />
                     Facebook
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toast({ title: "LinkedIn", description: "Opening LinkedIn..." })}>
+                  <DropdownMenuItem onClick={() => handleSocialLink('linkedin', selectedUser?.linkedin || '')}>
                     <Linkedin className="h-4 w-4 mr-2" />
                     LinkedIn
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toast({ title: "Website", description: "Opening Website..." })}>
+                  <DropdownMenuItem onClick={() => handleSocialLink('website', selectedUser?.website || '')}>
                     <Globe className="h-4 w-4 mr-2" />
                     Website
                   </DropdownMenuItem>
