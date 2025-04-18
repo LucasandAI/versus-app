@@ -1,14 +1,16 @@
+
 import React from 'react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from './shared/UserAvatar';
 import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useMediaQuery } from '@/hooks/use-media-query';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const UserProfile: React.FC = () => {
-  const { selectedUser, setCurrentView, setSelectedClub, loading } = useApp();
-  const isMobile = useMediaQuery('(max-width: 768px)');
+  const { selectedUser, setCurrentView, setSelectedClub } = useApp();
+  const isMobile = useIsMobile();
+  const [loading, setLoading] = React.useState(false);
 
   return (
     <div className="container mx-auto py-6 px-4">
