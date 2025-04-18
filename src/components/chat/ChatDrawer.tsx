@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Send, X, Users, ChevronDown, Trophy } from 'lucide-react';
 import { 
   Drawer, 
@@ -23,9 +23,19 @@ interface ChatDrawerProps {
 }
 
 const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) => {
-  const { setCurrentView, setSelectedUser, setSelectedClub } = useApp();
-  const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(clubs.length > 0 ? clubs[0] : null);
+  const { setCurrentView, setSelectedUser, setSelectedClub, currentUser } = useApp();
+  const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(null);
   const [messages, setMessages] = useState<Record<string, any[]>>({});
+  
+  // Always refresh club list when drawer opens or currentUser changes
+  useEffect(() => {
+    if (open && currentUser) {
+      // Set selected club to first club if none selected yet
+      if (!selectedLocalClub && currentUser.clubs.length > 0) {
+        setSelectedLocalClub(currentUser.clubs[0]);
+      }
+    }
+  }, [open, currentUser, selectedLocalClub]);
 
   const handleSelectClub = (club: Club) => {
     setSelectedLocalClub(club);
@@ -65,7 +75,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) =>
       sender: {
         id: 'currentUser',
         name: 'You',
-        avatar: '/placeholder.svg',
+        avatar: currentUser?.avatar || '/placeholder.svg',
       },
       timestamp: new Date().toISOString(),
     };
@@ -101,6 +111,9 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) =>
 
   const currentMatch = getCurrentMatch();
 
+  // Use the actual currentUser clubs for display
+  const userClubs = currentUser?.clubs || [];
+
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="h-[80vh] rounded-t-xl p-0">
@@ -115,7 +128,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onOpenChange, clubs }) =>
         
         <div className="flex h-full">
           <ChatSidebar 
-            clubs={clubs} 
+            clubs={userClubs} 
             selectedClub={selectedLocalClub} 
             onSelectClub={handleSelectClub} 
           />

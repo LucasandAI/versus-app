@@ -138,7 +138,6 @@ const MAX_CLUBS_PER_USER = 3;
 
 const HomeView: React.FC = () => {
   const { setCurrentView, setSelectedClub, setSelectedUser, currentUser } = useApp();
-  const [clubs] = React.useState<Club[]>(mockClubs);
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -302,7 +301,7 @@ const HomeView: React.FC = () => {
       <ChatDrawer 
         open={chatDrawerOpen} 
         onOpenChange={setChatDrawerOpen} 
-        clubs={clubs} 
+        clubs={userClubs} 
       />
 
       <Dialog open={searchDialogOpen} onOpenChange={setSearchDialogOpen}>

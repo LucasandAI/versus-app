@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { AppContextType, AppView, Club, User } from '../types';
 
 // Mock data for development purposes
@@ -121,6 +121,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
+  // Update selected club when currentUser changes
+  useEffect(() => {
+    if (selectedClub && currentUser) {
+      // Find the updated club in the currentUser's clubs
+      const updatedClub = currentUser.clubs.find(club => club.id === selectedClub.id);
+      if (updatedClub) {
+        setSelectedClub(updatedClub);
+      }
+    }
+  }, [currentUser, selectedClub]);
+
   const connectToStrava = () => {
     // In a real app, this would redirect to Strava OAuth
     // For now, we'll just simulate a successful connection
@@ -139,6 +150,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         logo,
         division: 'Bronze',
         tier: 5,
+        bio: `Welcome to ${name}! We're a group of passionate runners looking to challenge ourselves and improve together.`,
         members: [
           {
             id: currentUser.id,
@@ -164,12 +176,81 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  // Helper function to update user info in all clubs
+  const updateUserInfo = (user: User) => {
+    if (!user) return user;
+    
+    // Create a copy of all clubs and update the current user's info in each club
+    const updatedClubs = user.clubs.map(club => {
+      // Update members list
+      const updatedMembers = club.members.map(member => {
+        if (member.id === user.id) {
+          return {
+            ...member,
+            name: user.name,
+            avatar: user.avatar
+          };
+        }
+        return member;
+      });
+      
+      // Update currentMatch info if it exists
+      let updatedCurrentMatch = club.currentMatch;
+      if (updatedCurrentMatch) {
+        // Update home club members
+        if (updatedCurrentMatch.homeClub.id === club.id) {
+          const updatedHomeMembers = updatedCurrentMatch.homeClub.members.map(member => {
+            if (member.id === user.id) {
+              return {
+                ...member,
+                name: user.name,
+                avatar: user.avatar
+              };
+            }
+            return member;
+          });
+          
+          updatedCurrentMatch = {
+            ...updatedCurrentMatch,
+            homeClub: {
+              ...updatedCurrentMatch.homeClub,
+              members: updatedHomeMembers
+            }
+          };
+        }
+      }
+      
+      return {
+        ...club,
+        members: updatedMembers,
+        currentMatch: updatedCurrentMatch
+      };
+    });
+    
+    return {
+      ...user,
+      clubs: updatedClubs
+    };
+  };
+
+  // Override setCurrentUser to update all references to the user
+  const setCurrentUserWithUpdates = (userOrFunction: User | null | ((prev: User | null) => User | null)) => {
+    if (typeof userOrFunction === 'function') {
+      setCurrentUser(prev => {
+        const newUser = userOrFunction(prev);
+        return newUser ? updateUserInfo(newUser) : newUser;
+      });
+    } else {
+      setCurrentUser(userOrFunction ? updateUserInfo(userOrFunction) : userOrFunction);
+    }
+  };
+
   const value = {
     currentUser,
     currentView,
     selectedClub,
     selectedUser,
-    setCurrentUser,
+    setCurrentUser: setCurrentUserWithUpdates,
     setCurrentView,
     setSelectedClub,
     setSelectedUser,

@@ -22,7 +22,7 @@ interface ChatMessagesProps {
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, clubMembers }) => {
-  const { setCurrentView, setSelectedUser } = useApp();
+  const { setCurrentView, setSelectedUser, currentUser } = useApp();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -61,6 +61,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, clubMembers }) =>
       setCurrentView('profile');
     }
   };
+
+  // Get current user's avatar
+  const currentUserAvatar = currentUser?.avatar || '/placeholder.svg';
 
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -109,8 +112,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, clubMembers }) =>
             
             {isCurrentUser(message.sender.id) && (
               <UserAvatar 
-                name={message.sender.name} 
-                image={message.sender.avatar} 
+                name={currentUser?.name || "You"} 
+                image={currentUserAvatar} 
                 size="sm" 
                 className="ml-2 flex-shrink-0"
               />

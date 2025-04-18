@@ -34,7 +34,10 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   };
 
   // Use default placeholder if image is empty string or undefined
-  const imageSrc = image && image.trim() !== '' ? image : undefined;
+  // Add cache-busting parameter to ensure avatar image refreshes
+  const imageSrc = image && image.trim() !== '' 
+    ? `${image}?t=${Date.now()}` 
+    : undefined;
 
   return (
     <Avatar 

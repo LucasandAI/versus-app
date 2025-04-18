@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   name: string;
@@ -19,6 +20,7 @@ export interface Club {
   logo: string;
   division: Division;
   tier?: number;
+  bio?: string;
   members: ClubMember[];
   currentMatch?: Match;
   matchHistory: Match[];
