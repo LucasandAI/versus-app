@@ -3,7 +3,8 @@ import React from 'react';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
 import { useApp } from '@/context/AppContext';
-import { useChat } from '@/hooks/useChat';
+import { useChatInteractions } from '@/hooks/chat/useChatInteractions';
+import { useChatMessages } from '@/hooks/chat/useChatMessages';
 import ChatSidebar from '../ChatSidebar';
 import ChatClubContent from '../ChatClubContent';
 import ChatTicketContent from '../ChatTicketContent';
@@ -38,82 +39,14 @@ const ChatDrawerContent = ({
   handleNewMessage,
   markTicketAsRead,
 }: ChatDrawerContentProps) => {
-  const { setCurrentView, setSelectedClub, setSelectedUser, currentUser } = useApp();
-
-  const handleMatchClick = () => {
-    if (!selectedLocalClub || !selectedLocalClub.currentMatch) return;
-    setSelectedClub(selectedLocalClub);
-    setCurrentView('clubDetail');
-  };
-
-  const handleSelectUser = (userId: string, userName: string, userAvatar: string = '/placeholder.svg') => {
-    setSelectedUser({
-      id: userId,
-      name: userName,
-      avatar: userAvatar,
-      stravaConnected: true,
-      clubs: []
-    });
-    setCurrentView('profile');
-  };
-
-  const handleSendMessage = (message: string) => {
-    if (selectedLocalClub && message.trim()) {
-      const newMessage = {
-        id: Date.now().toString(),
-        text: message,
-        sender: {
-          id: currentUser?.id || 'anonymous',
-          name: currentUser?.name || 'Anonymous',
-          avatar: currentUser?.avatar || '/placeholder.svg',
-        },
-        timestamp: new Date().toISOString(),
-      };
-      
-      handleNewMessage(selectedLocalClub.id, newMessage, true);
-    } 
-    else if (selectedTicket && message.trim()) {
-      const newMessage = {
-        id: Date.now().toString(),
-        text: message,
-        sender: {
-          id: currentUser?.id || 'anonymous',
-          name: currentUser?.name || 'Anonymous',
-          avatar: currentUser?.avatar || '/placeholder.svg',
-        },
-        timestamp: new Date().toISOString(),
-        isSupport: false
-      };
-      
-      const updatedTicket = {
-        ...selectedTicket,
-        messages: [...selectedTicket.messages, newMessage]
-      };
-      
-      onSelectTicket(updatedTicket);
-      
-      setTimeout(() => {
-        const supportResponse = {
-          id: 'support-' + Date.now() + '-response',
-          text: "We've received your message. Our support team will get back to you as soon as possible.",
-          sender: {
-            id: 'support',
-            name: 'Support Team',
-            avatar: '/placeholder.svg'
-          },
-          timestamp: new Date().toISOString(),
-          isSupport: true
-        };
-        
-        const ticketWithResponse = {
-          ...updatedTicket,
-          messages: [...updatedTicket.messages, supportResponse]
-        };
-        
-        onSelectTicket(ticketWithResponse);
-      }, 1000);
-    }
-  };
+  const { currentUser } = useApp();
+  const { handleMatchClick, handleSelectUser } = useChatInteractions();
+  const { handleSendMessage } = useChatMessages(
+    selectedTicket,
+    onSelectTicket,
+    handleNewMessage,
+    currentUser
+  );
 
   return (
     <div className="flex h-full" key={refreshKey}>
@@ -126,15 +59,16 @@ const ChatDrawerContent = ({
         onSelectTicket={onSelectTicket}
         onDeleteChat={deleteChat}
         unreadCounts={unreadMessages}
+        onSelectUser={handleSelectUser}
       />
       
       {selectedLocalClub && (
         <ChatClubContent 
           club={selectedLocalClub}
           messages={messages[selectedLocalClub.id] || []}
-          onMatchClick={handleMatchClick}
+          onMatchClick={() => handleMatchClick(selectedLocalClub)}
           onSelectUser={handleSelectUser}
-          onSendMessage={handleSendMessage}
+          onSendMessage={(message) => handleSendMessage(message, selectedLocalClub.id)}
         />
       )}
 
