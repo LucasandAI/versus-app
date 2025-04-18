@@ -15,20 +15,21 @@ import { Instagram, Linkedin, Globe, Twitter } from "lucide-react";
 import UserAvatar from "@/components/shared/UserAvatar";
 import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { User } from "@/types";
 
 interface EditProfileDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  user: any;
+  user: User | null;
 }
 
 const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps) => {
   const [name, setName] = useState(user?.name || "");
-  const [bio, setBio] = useState("Strava Athlete");
-  const [instagram, setInstagram] = useState("");
-  const [linkedin, setLinkedin] = useState("");
-  const [twitter, setTwitter] = useState("");
-  const [website, setWebsite] = useState("");
+  const [bio, setBio] = useState(user?.bio || "Strava Athlete");
+  const [instagram, setInstagram] = useState(user?.instagram || "");
+  const [linkedin, setLinkedin] = useState(user?.linkedin || "");
+  const [twitter, setTwitter] = useState(user?.twitter || "");
+  const [website, setWebsite] = useState(user?.website || "");
   const isMobile = useIsMobile();
 
   const handleSaveChanges = () => {
@@ -58,7 +59,7 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
         <div className="space-y-6 py-4">
           <div className="flex items-center gap-4">
             <UserAvatar 
-              name={user?.name} 
+              name={user?.name || ""} 
               image={user?.avatar}
               size="lg"
             />

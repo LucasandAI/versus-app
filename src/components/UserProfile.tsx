@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -33,10 +34,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from "@/components/ui/alert-dialog";
-import { useIsMobile } from '@/hooks/use-is-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const UserProfile: React.FC = () => {
-  const { selectedUser, setCurrentView, currentUser, setSelectedUser, setSelectedClub, currentView } = useApp();
+  const { selectedUser, setCurrentView, currentUser, setSelectedUser, setSelectedClub, currentView, setCurrentUser } = useApp();
   const [loading, setLoading] = useState(true);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [showMoreAchievements, setShowMoreAchievements] = useState(false);
@@ -157,7 +158,7 @@ const UserProfile: React.FC = () => {
       return;
     }
 
-    const urls = {
+    const urls: Record<string, string> = {
       instagram: `https://instagram.com/${username}`,
       twitter: `https://twitter.com/${username}`,
       linkedin: `https://linkedin.com/in/${username}`,
@@ -165,7 +166,17 @@ const UserProfile: React.FC = () => {
       website: username // Direct URL for website
     };
 
-    window.open(urls[platform as keyof typeof urls], '_blank', 'noopener,noreferrer');
+    window.open(urls[platform], '_blank', 'noopener,noreferrer');
+  };
+
+  const handleEditProfile = () => {
+    setEditProfileOpen(true);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setCurrentView('connect');
+    setLogoutDialogOpen(false);
   };
 
   return (
@@ -191,7 +202,7 @@ const UserProfile: React.FC = () => {
 
           <div className="text-center">
             <h2 className="text-xl font-bold">{loading ? <Skeleton className="h-6 w-32 mx-auto" /> : selectedUser.name}</h2>
-            <p className="text-gray-500">{loading ? <Skeleton className="h-4 w-24 mx-auto" /> : 'Strava Athlete'}</p>
+            <p className="text-gray-500">{loading ? <Skeleton className="h-4 w-24 mx-auto" /> : selectedUser.bio || 'Strava Athlete'}</p>
           </div>
 
           <div className="flex flex-col space-y-2 md:space-y-0 md:space-x-2">

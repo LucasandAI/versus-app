@@ -1,10 +1,15 @@
-
 export interface User {
   id: string;
   name: string;
   avatar: string;
   stravaConnected: boolean;
   clubs: Club[];
+  bio?: string;
+  instagram?: string;
+  twitter?: string;
+  facebook?: string;
+  linkedin?: string;
+  website?: string;
 }
 
 export interface Club {
