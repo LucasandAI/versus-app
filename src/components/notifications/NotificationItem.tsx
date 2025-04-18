@@ -3,7 +3,7 @@ import React from 'react';
 import { toast } from '@/hooks/use-toast';
 import Button from '@/components/shared/Button';
 import UserAvatar from '@/components/shared/UserAvatar';
-import { Notification } from '@/types';
+import { Notification, Club } from '@/types';
 import { useApp } from '@/context/AppContext';
 
 interface NotificationItemProps {
@@ -55,7 +55,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
             division: 'Silver',
             tier: 3,
             logo: '/placeholder.svg',
-            members: []
+            members: [],
+            matchHistory: [] // Add required property from Club type
           },
           {
             id: 'ac2',
@@ -63,7 +64,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
             division: 'Gold',
             tier: 2,
             logo: '/placeholder.svg',
-            members: []
+            members: [],
+            matchHistory: [] // Add required property from Club type
           },
           {
             id: 'ac3',
@@ -71,13 +73,24 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
             division: 'Bronze',
             tier: 5,
             logo: '/placeholder.svg',
-            members: []
+            members: [],
+            matchHistory: [] // Add required property from Club type
           }
         ];
         
         const mockClub = mockClubs.find(c => c.id === notification.clubId);
         if (mockClub) {
-          setSelectedClub(mockClub);
+          // Create a complete Club object that matches the required type
+          const completeClub: Club = {
+            id: mockClub.id,
+            name: mockClub.name,
+            division: mockClub.division,
+            tier: mockClub.tier,
+            logo: mockClub.logo,
+            members: mockClub.members,
+            matchHistory: [] // Ensure required property is included
+          };
+          setSelectedClub(completeClub);
           setCurrentView('clubDetail');
         } else {
           toast({
