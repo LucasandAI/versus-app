@@ -1,4 +1,3 @@
-
 import React from 'react';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { Notification } from '@/types';
@@ -7,6 +6,7 @@ import { findClubFromStorage, getMockClub, handleClubError } from '@/utils/notif
 import { ActivityNotification } from './ActivityNotification';
 import { InvitationNotification } from './InvitationNotification';
 import { handleNotification } from '@/lib/notificationUtils';
+import { cn } from '@/lib/utils';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -69,13 +69,18 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     }
   };
 
-  // Notification should be highlighted only if it's still marked as unread in storage
-  // But all should be read once the popover is opened
-  const isUnread = !notification.read;
-  const bgClass = isUnread ? "bg-blue-50" : "";
+  // Determine if the notification is new (unread and not yet displayed)
+  const isNewNotification = !notification.read;
+  const isUnseenNotification = !notification.previouslyDisplayed;
+
+  const backgroundClass = cn(
+    "p-3 border-b hover:bg-gray-50 transition-colors",
+    isNewNotification && "bg-blue-50",
+    isUnseenNotification && "bg-[#F2FCE2]" // Light green background for new notifications
+  );
 
   return (
-    <div className={`p-3 border-b hover:bg-gray-50 transition-colors ${bgClass}`}>
+    <div className={backgroundClass}>
       <div className="flex items-start gap-3">
         <UserAvatar 
           name={notification.userName} 
@@ -96,7 +101,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
               message={notification.message || ''}
               timestamp={notification.timestamp}
               formatTime={formatTime}
-              isUnread={isUnread}
+              isUnread={isNewNotification}
               onJoinClub={handleJoinClub}
               onDeclineInvite={handleDeclineInvite}
             />
@@ -110,7 +115,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
               onClubClick={handleClubClick}
               timestamp={notification.timestamp}
               formatTime={formatTime}
-              isUnread={isUnread}
+              isUnread={isNewNotification}
             />
           )}
         </div>

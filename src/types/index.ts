@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -85,4 +84,5 @@ export interface Notification {
   read: boolean;
   type?: 'activity' | 'invitation';
   message?: string;
+  previouslyDisplayed?: boolean;
 }
