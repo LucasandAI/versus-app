@@ -21,7 +21,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   onDeclineInvite,
   formatTime,
 }) => {
-  const { setCurrentView, setSelectedClub } = useApp();
+  const { setCurrentView, setSelectedClub, currentUser } = useApp();
 
   const handleJoinClub = () => {
     if (onJoinClub) {
@@ -87,7 +87,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
             division: mockClub.division,
             tier: mockClub.tier,
             logo: mockClub.logo,
-            members: mockClub.members,
+            members: [], // Important: Don't add current user here, they haven't joined yet
             matchHistory: [] // Ensure required property is included
           };
           setSelectedClub(completeClub);

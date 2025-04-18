@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Club } from '@/types';
+import { Club, Division } from '@/types';
 import { useApp } from '@/context/AppContext';
 import { toast } from "@/hooks/use-toast";
 
@@ -85,7 +85,7 @@ export const useClubActions = () => {
           id: mockClub.id,
           name: mockClub.name,
           logo: '/placeholder.svg',
-          division: mockClub.division,
+          division: mockClub.division as Division,
           tier: mockClub.tier,
           members: [],
           currentMatch: null,
@@ -104,7 +104,7 @@ export const useClubActions = () => {
           id: clubId,
           name: clubName,
           logo: '/placeholder.svg',
-          division: 'Bronze',
+          division: 'Bronze' as Division,
           tier: 3,
           members: [],
           currentMatch: null,
@@ -167,6 +167,10 @@ export const useClubActions = () => {
     // Dispatch event to update notifications
     const event = new CustomEvent('notificationsUpdated');
     window.dispatchEvent(event);
+    
+    // Dispatch an event to let all components know user data has been updated
+    const userEvent = new CustomEvent('userDataUpdated');
+    window.dispatchEvent(userEvent);
   };
 
   return {

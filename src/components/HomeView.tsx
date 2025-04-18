@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
@@ -35,6 +35,20 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   } = useClubActions();
 
   const { supportTickets, handleCreateSupportTicket } = useSupportActions();
+
+  // Add effect to refresh when user data is updated
+  useEffect(() => {
+    const handleUserDataUpdate = () => {
+      // This will cause the component to re-render with latest user data
+      console.log('User data updated, refreshing HomeView');
+    };
+    
+    window.addEventListener('userDataUpdated', handleUserDataUpdate);
+    
+    return () => {
+      window.removeEventListener('userDataUpdated', handleUserDataUpdate);
+    };
+  }, []);
 
   const handleSelectClub = (club: Club) => {
     setSelectedClub(club);

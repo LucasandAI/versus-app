@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, User as UserIcon, Calendar, TrendingUp, TrendingDown, ArrowRight, LogOut, Info, Users, ChevronDown } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import MatchProgressBar from './shared/MatchProgressBar';
@@ -67,6 +66,15 @@ const ClubDetail: React.FC = () => {
       </div>
     );
   }
+
+  // Check if user is actually a member by verifying they exist in currentUser's clubs
+  const isActuallyMember = currentUser?.clubs.some(club => club.id === selectedClub.id) || false;
+  
+  // Only use the member check from the selected club if the user is actually a member
+  // according to their currentUser record
+  const isAlreadyMember = isActuallyMember && selectedClub?.members.some(member => 
+    currentUser && member.id === currentUser.id
+  );
 
   const isNewlyCreatedClub = selectedClub.id !== '1' && selectedClub.id !== '2';
   const hasEnoughMembers = selectedClub.members.length >= 5;
@@ -219,7 +227,7 @@ const ClubDetail: React.FC = () => {
       id: club.id,
       name: club.name,
       logo: club.logo || '/placeholder.svg',
-      division: 'Gold', // Default division
+      division: 'Gold' as Division, // Default division, using type assertion
       members: club.members.map((member: any) => ({
         id: member.id,
         name: member.name,
@@ -236,11 +244,28 @@ const ClubDetail: React.FC = () => {
   };
 
   const handleLeaveClub = () => {
+    if (!currentUser || !isActuallyMember) return;
+    
+    // Update currentUser by removing this club
+    const updatedClubs = currentUser.clubs.filter(club => club.id !== selectedClub.id);
+    const updatedUser = {
+      ...currentUser,
+      clubs: updatedClubs
+    };
+    
+    // Save to localStorage
+    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+    
+    // Update app state
     toast({
       title: "Left Club",
       description: `You have successfully left ${selectedClub.name}.`,
     });
     setCurrentView('home');
+    
+    // Dispatch an event to force UI updates
+    const event = new CustomEvent('userDataUpdated');
+    window.dispatchEvent(event);
   };
 
   const currentMatch = !isNewlyCreatedClub || (isNewlyCreatedClub && hasEnoughMembers) 
@@ -248,10 +273,8 @@ const ClubDetail: React.FC = () => {
     : null;
   
   const visibleHistory = showAllHistory ? matchHistory : matchHistory.slice(0, 2);
-  const isAlreadyMember = selectedClub?.members.some(member => 
-    currentUser && member.id === currentUser.id
-  );
-  const isAdmin = currentUser && selectedClub?.members.some(member => 
+  
+  const isAdmin = isActuallyMember && currentUser && selectedClub?.members.some(member => 
     member.id === currentUser.id && member.isAdmin
   );
   
@@ -333,7 +356,7 @@ const ClubDetail: React.FC = () => {
                 </div>
               )}
               <div className="flex space-x-2">
-                {selectedClub?.members.length < 5 && currentUser && selectedClub.members.some(m => m.id === currentUser.id && m.isAdmin) && (
+                {selectedClub?.members.length < 5 && isActuallyMember && currentUser && selectedClub.members.some(m => m.id === currentUser.id && m.isAdmin) && (
                   <Button 
                     variant="primary" 
                     size="sm"
@@ -343,7 +366,7 @@ const ClubDetail: React.FC = () => {
                   </Button>
                 )}
                 
-                {selectedClub?.members.length < 5 && !isAlreadyMember && (
+                {selectedClub?.members.length < 5 && !isActuallyMember && (
                   <Button 
                     variant="primary" 
                     size="sm"
@@ -353,7 +376,7 @@ const ClubDetail: React.FC = () => {
                   </Button>
                 )}
                 
-                {isAlreadyMember && !isAdmin && (
+                {isActuallyMember && !isAdmin && (
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -626,7 +649,7 @@ const ClubDetail: React.FC = () => {
           )}
         </Tabs>
 
-        {isAlreadyMember && !isAdmin && (
+        {isActuallyMember && !isAdmin && (
           <Button 
             variant="outline" 
             size="md" 
@@ -638,7 +661,7 @@ const ClubDetail: React.FC = () => {
           </Button>
         )}
 
-        {selectedClub && currentUser && (
+        {selectedClub && currentUser && isActuallyMember && (
           <ClubAdminActions club={selectedClub} currentUser={currentUser} />
         )}
       </div>
@@ -780,25 +803,3 @@ const ClubDetail: React.FC = () => {
           clubId={selectedClub.id}
         />
       )}
-      
-      <AlertDialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Leave Club</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to leave {selectedClub.name}? You can always request to join again in the future.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleLeaveClub} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Leave Club
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  );
-};
-
-export default ClubDetail;

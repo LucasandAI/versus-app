@@ -45,6 +45,22 @@ const UserProfile: React.FC = () => {
     }
   }, [currentView, currentUser, selectedUser, setSelectedUser]);
 
+  // Add listener for user data updates
+  useEffect(() => {
+    const handleUserDataUpdate = () => {
+      // If we're viewing the current user's profile, update the selected user
+      if (selectedUser && currentUser && selectedUser.id === currentUser.id) {
+        setSelectedUser(currentUser);
+      }
+    };
+    
+    window.addEventListener('userDataUpdated', handleUserDataUpdate);
+    
+    return () => {
+      window.removeEventListener('userDataUpdated', handleUserDataUpdate);
+    };
+  }, [currentUser, selectedUser, setSelectedUser]);
+
   if (!selectedUser) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
