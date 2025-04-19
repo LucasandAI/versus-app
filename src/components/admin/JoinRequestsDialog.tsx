@@ -7,21 +7,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogClose
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/use-toast";
-import { ShieldCheck, ShieldX, UserRound } from 'lucide-react';
-import UserAvatar from '../shared/UserAvatar';
-import { useApp } from '@/context/AppContext';
-
-interface JoinRequest {
-  id: string;
-  userId: string;
-  name: string;
-  avatar: string;
-  requestDate: string;
-}
+import JoinRequestItem from './join-requests/JoinRequestItem';
+import EmptyRequests from './join-requests/EmptyRequests';
+import { useJoinRequests } from '@/hooks/admin/useJoinRequests';
 
 interface JoinRequestsDialogProps {
   open: boolean;
@@ -34,104 +23,12 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
   onOpenChange, 
   club 
 }) => {
-  const { setSelectedClub, setCurrentUser } = useApp();
-  
-  // Mock data for join requests
-  const [joinRequests, setJoinRequests] = React.useState<JoinRequest[]>([
-    {
-      id: 'req1',
-      userId: 'u10',
-      name: 'Alex Runner',
-      avatar: '/placeholder.svg',
-      requestDate: '2025-04-15T14:48:00.000Z',
-    },
-    {
-      id: 'req2',
-      userId: 'u11',
-      name: 'Sam Speed',
-      avatar: '/placeholder.svg',
-      requestDate: '2025-04-16T09:23:00.000Z',
-    },
-    {
-      id: 'req3',
-      userId: 'u12',
-      name: 'Jamie Jogger',
-      avatar: '/placeholder.svg',
-      requestDate: '2025-04-17T11:05:00.000Z',
-    }
-  ]);
-
-  const handleApprove = (request: JoinRequest) => {
-    // Check if club is full
-    if (club.members.length >= 5) {
-      toast({
-        title: "Club is full",
-        description: "The club has reached the maximum number of members.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Create a new member object
-    const newMember = {
-      id: request.userId,
-      name: request.name,
-      avatar: request.avatar,
-      isAdmin: false
-    };
-    
-    // Add the new member to the club
-    const updatedMembers = [...club.members, newMember];
-    
-    // Update the club with the new members array
-    const updatedClub = {
-      ...club,
-      members: updatedMembers
-    };
-    
-    // Update the selected club with the changes
-    setSelectedClub(updatedClub);
-    
-    // Update the user's clubs list
-    setCurrentUser(prev => {
-      if (!prev) return prev;
-      
-      const updatedClubs = prev.clubs.map(userClub => {
-        if (userClub.id === club.id) {
-          return {
-            ...userClub,
-            members: updatedMembers
-          };
-        }
-        return userClub;
-      });
-      
-      return {
-        ...prev,
-        clubs: updatedClubs
-      };
-    });
-    
-    // Remove the request from the list
-    setJoinRequests(prev => prev.filter(r => r.id !== request.id));
-    
-    toast({
-      title: "Request Approved",
-      description: `${request.name} has been added to the club.`,
-    });
-  };
-
-  const handleDeny = (request: JoinRequest) => {
-    // Remove the request from the list
-    setJoinRequests(prev => prev.filter(r => r.id !== request.id));
-    
-    toast({
-      title: "Request Denied",
-      description: `${request.name}'s request has been denied.`,
-    });
-  };
-
-  const isClubFull = club.members.length >= 5;
+  const {
+    joinRequests,
+    isClubFull,
+    handleApprove,
+    handleDeny
+  } = useJoinRequests(club);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -155,44 +52,17 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
           {joinRequests.length > 0 ? (
             <div className="space-y-4">
               {joinRequests.map(request => (
-                <div key={request.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                  <div className="flex items-center gap-3">
-                    <UserAvatar name={request.name} image={request.avatar} size="sm" />
-                    <div>
-                      <p className="font-medium">{request.name}</p>
-                      <p className="text-xs text-gray-500">
-                        Requested {new Date(request.requestDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      className="h-8"
-                      onClick={() => handleDeny(request)}
-                    >
-                      <ShieldX className="h-4 w-4 mr-1" />
-                      Deny
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      className="h-8"
-                      onClick={() => handleApprove(request)}
-                      disabled={isClubFull}
-                    >
-                      <ShieldCheck className="h-4 w-4 mr-1" />
-                      Approve
-                    </Button>
-                  </div>
-                </div>
+                <JoinRequestItem
+                  key={request.id}
+                  request={request}
+                  onApprove={handleApprove}
+                  onDeny={handleDeny}
+                  isClubFull={isClubFull}
+                />
               ))}
             </div>
           ) : (
-            <div className="text-center p-4">
-              <UserRound className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-              <p className="text-gray-500">No pending join requests</p>
-            </div>
+            <EmptyRequests />
           )}
         </div>
       </DialogContent>
