@@ -1,12 +1,14 @@
 
 import React from 'react';
 import { Club, User } from '@/types';
+import { Calendar } from "lucide-react";
 import ClubStats from './ClubStats';
 import ClubCurrentMatch from './ClubCurrentMatch';
 import ClubMembersList from './ClubMembersList';
 import ClubAdminActions from '../../admin/ClubAdminActions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useApp } from '@/context/AppContext';
+import { Button } from "@/components/ui/button";
 import { formatLeagueWithTier } from '@/lib/format';
 
 interface ClubDetailTabsProps {
@@ -63,63 +65,90 @@ const ClubDetailTabs: React.FC<ClubDetailTabsProps> = ({
       </TabsContent>
       
       <TabsContent value="history">
-        <div className="bg-white rounded-lg shadow p-4">
-          {club.matchHistory && club.matchHistory.length > 0 ? (
-            <div>
-              <h3 className="text-lg font-medium mb-3">Match History</h3>
-              <ul className="space-y-6">
-                {club.matchHistory.map((match) => {
-                  const isHomeTeam = match.homeClub.id === club.id;
-                  const ourTeam = isHomeTeam ? match.homeClub : match.awayClub;
-                  const theirTeam = isHomeTeam ? match.awayClub : match.homeClub;
-                  const weWon = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
-                  
-                  // Calculate total distances
-                  const ourDistance = ourTeam.members.reduce((sum, m) => sum + (m.distanceContribution || 0), 0);
-                  const theirDistance = theirTeam.members.reduce((sum, m) => sum + (m.distanceContribution || 0), 0);
-                  
-                  // Determine promotion/relegation text
-                  const matchOutcome = weWon 
-                    ? `Promotion to ${club.division === 'Silver' ? 'Gold' : 'Elite'} ${club.division === 'Silver' ? '3' : ''}`
-                    : `Relegation to ${club.division === 'Gold' ? 'Silver' : 'Bronze'} ${club.division === 'Gold' ? '1' : '2'}`;
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <Calendar className="text-primary h-6 w-6" />
+            <h2 className="text-2xl font-semibold">Match History</h2>
+          </div>
 
-                  return (
-                    <li key={match.id} className="border rounded-lg p-4 bg-gray-50">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <p className="font-medium">
-                            vs {theirTeam.name}
-                            <span className={`ml-2 px-2 py-0.5 rounded text-sm ${weWon ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                              {weWon ? 'V' : 'D'}
-                            </span>
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {new Date(match.startDate).toLocaleDateString()} - {new Date(match.endDate).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <p className="font-medium text-lg">
-                          {ourDistance.toFixed(1)}–{theirDistance.toFixed(1)} km
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium">Our Team Contributions:</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          {ourTeam.members.map((member) => (
-                            <div key={member.id} className="text-sm">
-                              {member.name}: {member.distanceContribution?.toFixed(1) || 0} km
-                            </div>
-                          ))}
+          {club.matchHistory && club.matchHistory.length > 0 ? (
+            <div className="space-y-8">
+              {club.matchHistory.map((match) => {
+                const isHomeTeam = match.homeClub.id === club.id;
+                const ourTeam = isHomeTeam ? match.homeClub : match.awayClub;
+                const theirTeam = isHomeTeam ? match.awayClub : match.homeClub;
+                const weWon = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
+                
+                // Calculate total distances
+                const ourDistance = ourTeam.members.reduce((sum, m) => sum + (m.distanceContribution || 0), 0);
+                const theirDistance = theirTeam.members.reduce((sum, m) => sum + (m.distanceContribution || 0), 0);
+                
+                const matchDate = new Date(match.startDate);
+                const endDate = new Date(match.endDate);
+                const dateRange = `${matchDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}–${endDate.getDate()}, ${endDate.getFullYear()}`;
+
+                return (
+                  <div key={match.id} className="space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-lg text-gray-600">{dateRange}</p>
+                        <div className="flex items-center gap-4 mt-2">
+                          <h3 className="text-xl font-semibold">{ourTeam.name}</h3>
+                          <span className="text-gray-500">vs</span>
+                          <h3 className="text-xl font-semibold">{theirTeam.name}</h3>
                         </div>
                       </div>
-                      
-                      <p className={`mt-3 text-sm ${weWon ? 'text-green-600' : 'text-red-600'}`}>
-                        {matchOutcome}
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        weWon ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {weWon ? 'WIN' : 'LOSS'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-lg">
+                      <span>{ourDistance.toFixed(1)} km</span>
+                      <span>{theirDistance.toFixed(1)} km</span>
+                    </div>
+
+                    <div className="h-2 w-full rounded-full overflow-hidden bg-gray-200">
+                      <div
+                        className={`h-full ${weWon ? 'bg-primary' : 'bg-secondary'}`}
+                        style={{
+                          width: `${(ourDistance / (ourDistance + theirDistance)) * 100}%`
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <p className="flex items-center gap-2 font-medium">
+                        League Impact: 
+                        <span className={weWon ? 'text-green-600' : 'text-red-600'}>
+                          {weWon 
+                            ? `Promoted to ${club.division === 'Silver' ? 'Gold 1' : 'Elite'}`
+                            : `Relegated to ${club.division === 'Gold' ? 'Silver 1' : 'Bronze 2'}`
+                          }
+                        </span>
                       </p>
-                    </li>
-                  );
-                })}
-              </ul>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => console.log('View match details:', match.id)}
+                    >
+                      View Complete Match Details
+                    </Button>
+                  </div>
+                );
+              })}
+
+              <Button
+                variant="link"
+                className="w-full text-primary hover:text-primary/80"
+                onClick={() => console.log('View all history')}
+              >
+                View All Match History
+              </Button>
             </div>
           ) : (
             <div className="text-center py-8">
