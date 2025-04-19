@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import ClubDetailContent from './club/detail/ClubDetailContent';
 import GoBackHome from './shared/GoBackHome';
-import { syncClubDivisionWithMatchHistory, ensureClubHasProperMatchHistory } from '@/utils/clubUtils';
+import { syncClubDivisionWithMatchHistory, ensureClubHasProperMatchHistory } from '@/utils/club/matchHistoryUtils';
 
 const ClubDetail: React.FC = () => {
   const { selectedClub, setSelectedClub } = useApp();

@@ -1,5 +1,5 @@
 
-import { Club, ClubMember } from '@/types';
+import { Club, ClubMember, Division } from '@/types';
 import { availableClubs } from '@/data/availableClubs';
 
 export const MAX_CLUBS_PER_USER = 3;
@@ -13,7 +13,7 @@ export const createNewClub = (clubId: string, clubName: string): Club => {
     id: clubId,
     name: clubName,
     logo: '/placeholder.svg',
-    division: 'Bronze',
+    division: 'Bronze' as Division,
     tier: 3,
     members: [],
     currentMatch: null,
@@ -31,7 +31,7 @@ export const getClubToJoin = (clubId: string, clubName: string, allClubs: Club[]
 
   if (!clubToJoin) {
     clubToJoin = mockClub ? 
-      { ...createNewClub(mockClub.id, mockClub.name), division: mockClub.division, tier: mockClub.tier } :
+      { ...createNewClub(mockClub.id, mockClub.name), division: mockClub.division as Division, tier: mockClub.tier } :
       createNewClub(clubId, clubName);
   }
 

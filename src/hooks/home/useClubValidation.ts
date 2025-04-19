@@ -1,7 +1,7 @@
 
 import { toast } from "@/hooks/use-toast";
 import { User } from '@/types';
-import { MAX_CLUBS_PER_USER } from '@/utils/clubUtils';
+import { MAX_CLUBS_PER_USER } from '@/utils/club/clubManagement';
 
 export const useClubValidation = () => {
   const validateClubJoin = (currentUser: User | null, clubName: string) => {

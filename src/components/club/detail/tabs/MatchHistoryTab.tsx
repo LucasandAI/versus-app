@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Club } from '@/types';
 import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import MatchProgressBar from '@/components/shared/MatchProgressBar';
-import { calculateNewDivisionAndTier } from '@/utils/clubUtils';
+import { calculateNewDivisionAndTier } from '@/utils/club/leagueUtils';
 
 interface MatchHistoryTabProps {
   club: Club;

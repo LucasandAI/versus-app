@@ -1,6 +1,6 @@
 
 import { useApp } from '@/context/AppContext';
-import { getClubToJoin } from '@/utils/clubUtils';
+import { getClubToJoin } from '@/utils/club/clubManagement';
 import { useClubValidation } from './useClubValidation';
 import { toast } from "@/hooks/use-toast";
 import { handleNotification } from '@/utils/notificationUtils';
