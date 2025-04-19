@@ -7,13 +7,18 @@ export const syncClubDivisionWithMatchHistory = (club: Club): Club => {
     return club;
   }
 
+  // Log match history for debugging
+  console.log("Syncing club division. Match history:", club.matchHistory);
+  
   const sortedHistory = [...club.matchHistory].sort((a, b) => 
     new Date(b.endDate).getTime() - new Date(a.endDate).getTime()
   );
 
   const latestMatch = sortedHistory[0];
+  console.log("Latest match:", latestMatch);
   
   if (latestMatch.leagueAfterMatch) {
+    console.log("Using leagueAfterMatch from latest match:", latestMatch.leagueAfterMatch);
     return {
       ...club,
       division: latestMatch.leagueAfterMatch.division,
@@ -25,6 +30,7 @@ export const syncClubDivisionWithMatchHistory = (club: Club): Club => {
   const weWon = (isHomeTeam && latestMatch.winner === 'home') || (!isHomeTeam && latestMatch.winner === 'away');
   
   const newDivisionAndTier = calculateNewDivisionAndTier(club.division, club.tier, weWon);
+  console.log("Calculated new division and tier:", newDivisionAndTier);
   
   return {
     ...club,
