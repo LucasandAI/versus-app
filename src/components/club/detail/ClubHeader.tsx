@@ -45,16 +45,18 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
     // If user is a member, show appropriate member actions
     if (isActuallyMember) {
       // If admin and club has room, show invite button and leave button
-      if (isAdmin && club.members.length < 5) {
+      if (isAdmin) {
         return (
           <div className="flex space-x-2">
-            <Button 
-              variant="primary" 
-              size="sm"
-              onClick={onInvite}
-            >
-              Invite Runner
-            </Button>
+            {club.members.length < 5 && (
+              <Button 
+                variant="primary" 
+                size="sm"
+                onClick={onInvite}
+              >
+                Invite Runner
+              </Button>
+            )}
             <Button 
               variant="outline" 
               size="sm"
@@ -67,19 +69,15 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
       }
       
       // If not admin, show leave button
-      if (!isAdmin) {
-        return (
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={onLeaveClub}
-          >
-            Leave Club
-          </Button>
-        );
-      }
-      
-      return null; // Admin with full club
+      return (
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={onLeaveClub}
+        >
+          Leave Club
+        </Button>
+      );
     }
     
     // User is not a member - check for pending invite first
