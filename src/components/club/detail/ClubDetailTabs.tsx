@@ -117,7 +117,8 @@ const ClubDetailTabs: React.FC<ClubDetailTabsProps> = ({
                         {matchOutcome}
                       </p>
                     </li>
-                  ))}
+                  );
+                })}
               </ul>
             </div>
           ) : (
