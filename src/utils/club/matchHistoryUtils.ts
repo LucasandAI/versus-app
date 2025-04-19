@@ -56,10 +56,14 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
   }
 
   const divisionOrder: Division[] = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Elite'];
-  const currentDivisionIndex = divisionOrder.indexOf(club.division);
-  const currentTier = club.tier;
   
-  // Start from Bronze 5
+  // Target state that we're building history up to
+  const targetState = {
+    division: club.division,
+    tier: club.tier
+  };
+  
+  // Always start from Bronze 5
   let divisionIndex = 0;
   let tier = 5;
   
@@ -74,11 +78,20 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
   };
   
   let matchIndex = 0;
-  // Generate matches until we reach the current division and tier
-  while (!(divisionIndex === currentDivisionIndex && tier === currentTier)) {
-    // For match generation, we'll assume wins to progress through divisions
-    const isWin = true;
+  
+  // Generate matches until we reach the target division and tier
+  while (
+    divisionOrder[divisionIndex] !== targetState.division || 
+    tier !== targetState.tier
+  ) {
+    // For normal progression, we'll use mostly wins (80% chance)
+    const isWin = Math.random() < 0.8;
     const nextState = calculateNewDivisionAndTier(divisionOrder[divisionIndex], tier, isWin);
+    
+    // If we lose and would go backwards, sometimes skip this match to ensure progression
+    if (!isWin && (nextState.division !== divisionOrder[divisionIndex] || nextState.tier > tier)) {
+      if (Math.random() < 0.5) continue; // 50% chance to retry for a win instead
+    }
     
     const opponentName = opponents[Math.floor(Math.random() * opponents.length)];
     const homeDistance = parseFloat((Math.random() * 100 + 150).toFixed(1));
@@ -88,7 +101,13 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
     
     const isHomeTeam = matchIndex % 2 === 0;
     
-    const endDate = generatePastDate(7 * (matchIndex + 1));
+    // Calculate date - earliest matches are further in the past
+    // More days in the past for earlier divisions
+    const divisionFactor = (5 - divisionIndex) * 30; // Each division is about a month
+    const tierFactor = tier * 7; // Each tier is about a week
+    const daysAgo = divisionFactor + tierFactor + matchIndex * 3; // 2-3 matches per week
+    
+    const endDate = generatePastDate(daysAgo);
     const startDate = new Date(endDate);
     startDate.setDate(endDate.getDate() - 7);
     
@@ -130,32 +149,62 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
       }
     };
     
-    // Generate opponent members
+    // Generate opponent members with better distribution (1 star, some mid-range, 1 low performer)
     const opponentClub = isHomeTeam ? match.awayClub : match.homeClub;
-    const opponentMemberCount = Math.floor(Math.random() * 3) + 2;
+    const opponentMemberCount = Math.floor(Math.random() * 3) + 3; // 3-5 members
     const opponentDistance = opponentClub.totalDistance;
-    opponentClub.members = Array.from({ length: opponentMemberCount }).map((_, i) => {
-      const memberDistance = i === opponentMemberCount - 1 ? 
-        opponentDistance / opponentMemberCount : 
-        parseFloat((Math.random() * (opponentDistance / opponentMemberCount * 1.5)).toFixed(1));
-      return {
-        id: `opponent-${matchIndex}-member-${i}`,
-        name: `Opponent Member ${i + 1}`,
-        avatar: '/placeholder.svg',
-        isAdmin: i === 0,
-        distanceContribution: memberDistance
-      };
+    
+    // Create more realistic opponent members
+    const opponentMembers: ClubMember[] = [];
+    let remainingDistance = opponentDistance;
+    
+    // First add a star performer (30-40% of total)
+    const starPerformerPercent = 0.3 + Math.random() * 0.1;
+    const starDistance = parseFloat((opponentDistance * starPerformerPercent).toFixed(1));
+    remainingDistance -= starDistance;
+    
+    opponentMembers.push({
+      id: `opponent-${matchIndex}-star`,
+      name: `${opponentName} Captain`,
+      avatar: '/placeholder.svg',
+      isAdmin: true,
+      distanceContribution: starDistance
     });
     
+    // Then add middle performers
+    for (let i = 0; i < opponentMemberCount - 2; i++) {
+      const midPerformerPercent = (0.15 + Math.random() * 0.1) * (opponentMemberCount - 2);
+      const midDistance = parseFloat((remainingDistance / midPerformerPercent).toFixed(1));
+      remainingDistance -= midDistance;
+      
+      opponentMembers.push({
+        id: `opponent-${matchIndex}-mid-${i}`,
+        name: `${opponentName} Runner ${i + 1}`,
+        avatar: '/placeholder.svg',
+        isAdmin: false,
+        distanceContribution: midDistance
+      });
+    }
+    
+    // Finally add one low performer with remaining distance
+    opponentMembers.push({
+      id: `opponent-${matchIndex}-low`,
+      name: `${opponentName} Newcomer`,
+      avatar: '/placeholder.svg',
+      isAdmin: false,
+      distanceContribution: parseFloat(remainingDistance.toFixed(1))
+    });
+    
+    opponentClub.members = opponentMembers;
     generatedHistory.push(match);
     
-    // Update our current position in the league progression
+    // Update our position for the next iteration
     divisionIndex = divisionOrder.indexOf(nextState.division);
     tier = nextState.tier;
     matchIndex++;
     
     // Safety check to prevent infinite loops
-    if (matchIndex >= 20) break;
+    if (matchIndex >= 30) break;
   }
   
   // Sort by date, most recent first
@@ -167,10 +216,13 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
 export const ensureClubHasProperMatchHistory = (club: Club): Club => {
   if (!club.matchHistory || club.matchHistory.length === 0) {
     const history = generateMatchHistoryFromDivision(club);
-    return {
+    const clubWithHistory = {
       ...club,
       matchHistory: history
     };
+    
+    // Sync division with the history we just generated
+    return syncClubDivisionWithMatchHistory(clubWithHistory);
   }
   
   // Check if the latest match's division and tier match the club's current division and tier
@@ -181,10 +233,15 @@ export const ensureClubHasProperMatchHistory = (club: Club): Club => {
   if (!latestMatch.leagueAfterMatch || 
       latestMatch.leagueAfterMatch.division !== club.division || 
       latestMatch.leagueAfterMatch.tier !== club.tier) {
-    return {
+    
+    const regeneratedHistory = generateMatchHistoryFromDivision(club);
+    const clubWithRegeneratedHistory = {
       ...club,
-      matchHistory: generateMatchHistoryFromDivision(club)
+      matchHistory: regeneratedHistory
     };
+    
+    // After regenerating history, make sure to sync the club's division
+    return syncClubDivisionWithMatchHistory(clubWithRegeneratedHistory);
   }
   
   return club;

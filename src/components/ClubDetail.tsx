@@ -17,21 +17,14 @@ const ClubDetail: React.FC = () => {
       // First ensure the club has proper match history
       const clubWithHistory = ensureClubHasProperMatchHistory(selectedClub);
       
-      // Then sync the division based on that history
-      const syncedClub = syncClubDivisionWithMatchHistory(clubWithHistory);
-      
-      // Only update if something changed
-      if (
-        syncedClub.division !== selectedClub.division || 
-        syncedClub.tier !== selectedClub.tier ||
-        syncedClub.matchHistory.length !== selectedClub.matchHistory.length
-      ) {
-        console.log('Syncing club data from', 
+      // Update if there are any changes
+      if (clubWithHistory !== selectedClub) {
+        console.log('Syncing club data:', 
           `${selectedClub.division} ${selectedClub.tier}`, 'to', 
-          `${syncedClub.division} ${syncedClub.tier}`,
-          'with match history count:', syncedClub.matchHistory.length
+          `${clubWithHistory.division} ${clubWithHistory.tier}`,
+          'with match history count:', clubWithHistory.matchHistory.length
         );
-        setSelectedClub(syncedClub);
+        setSelectedClub(clubWithHistory);
       }
     }
   }, [selectedClub?.id]);
