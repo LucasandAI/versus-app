@@ -1,3 +1,4 @@
+
 import { Club, Match, Division, ClubMember } from '@/types';
 import { generateMemberDistances, generateOpponentMembers } from './memberDistanceUtils';
 import { calculateNewDivisionAndTier } from './leagueUtils';
@@ -19,7 +20,8 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
   const divisionOrder: Division[] = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Elite'];
   
   // Start from Bronze 5 and work up to the club's current division
-  let startingDivision: Division = 'Bronze';
+  // Make sure to explicitly type these as needed for TypeScript
+  const startingDivision: Division = 'Bronze';
   let startingTier = 5;
   let startingElitePoints = 0;
   
@@ -28,7 +30,8 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
   
   // Create a path to the current division and tier
   const neededMatches = [];
-  let currentDivision = startingDivision;
+  // Initialize with the explicit starting values
+  let currentDivision: Division = startingDivision;
   let currentTier = startingTier;
   let elitePoints = startingElitePoints;
   
