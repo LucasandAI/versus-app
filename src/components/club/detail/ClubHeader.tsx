@@ -44,16 +44,25 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
   const renderActionButtons = () => {
     // If user is a member, show appropriate member actions
     if (isActuallyMember) {
-      // If admin and club has room, show invite button
+      // If admin and club has room, show invite button and leave button
       if (isAdmin && club.members.length < 5) {
         return (
-          <Button 
-            variant="primary" 
-            size="sm"
-            onClick={onInvite}
-          >
-            Invite Runner
-          </Button>
+          <div className="flex space-x-2">
+            <Button 
+              variant="primary" 
+              size="sm"
+              onClick={onInvite}
+            >
+              Invite Runner
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={onLeaveClub}
+            >
+              Leave Club
+            </Button>
+          </div>
         );
       }
       
