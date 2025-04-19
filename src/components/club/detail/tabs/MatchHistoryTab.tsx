@@ -22,24 +22,14 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
 
   // Helper function to get correct promotion/relegation text based on match result
   const getLeagueImpactText = (match: any, clubId: string) => {
-    // If the match has a leagueAfterMatch property, use it directly
     if (match.leagueAfterMatch) {
-      return `${getResultVerb(match, clubId)} to ${match.leagueAfterMatch.division} ${match.leagueAfterMatch.tier}`;
+      const isHomeTeam = match.homeClub.id === clubId;
+      const weWon = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
+      const result = weWon ? 'Promoted' : 'Relegated';
+      return `${result} to ${match.leagueAfterMatch.division} ${match.leagueAfterMatch.tier}`;
     }
-    
-    // Otherwise, calculate it (for backward compatibility)
-    const isHomeTeam = match.homeClub.id === clubId;
-    const weWon = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
 
-    const { division, tier } = calculateNewDivisionAndTier(club.division, club.tier, weWon);
-    return `${getResultVerb(match, clubId)} to ${division} ${tier}`;
-  };
-
-  // Helper to get the result verb (Promoted/Relegated)
-  const getResultVerb = (match: any, clubId: string) => {
-    const isHomeTeam = match.homeClub.id === clubId;
-    const weWon = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
-    return weWon ? 'Promoted' : 'Relegated';
+    return 'No impact';
   };
 
   // Format date in a readable way
