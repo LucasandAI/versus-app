@@ -40,6 +40,28 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
   console.log('Club Header rendering with hasPendingInvite:', hasPendingInvite);
   const isClubFull = club.members.length >= 5;
 
+  // Calculate current win streak
+  const calculateWinStreak = (matches: Match[]) => {
+    if (!matches || matches.length === 0) return 0;
+    
+    let streak = 0;
+    // Matches should be sorted with most recent first
+    for (const match of matches) {
+      const isHomeTeam = match.homeClub.id === club.id;
+      const isWin = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
+      
+      if (isWin) {
+        streak++;
+      } else {
+        break; // Stop counting after first loss
+      }
+    }
+    
+    return streak;
+  };
+
+  const winStreak = calculateWinStreak(club.matchHistory);
+
   // Cleaned up button rendering logic according to priority
   const renderActionButtons = () => {
     // If user is a member, show appropriate member actions
@@ -134,7 +156,15 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
             <button onClick={onBack} className="mr-2">
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <h1 className="text-xl font-bold">{club.name}</h1>
+            <h1 className="text-xl font-bold flex items-center gap-2">
+              {club.name}
+              {winStreak > 1 && (
+                <span className="inline-flex items-center gap-1 bg-orange-600/80 text-white px-2 py-0.5 rounded-full text-xs">
+                  <Flame className="h-3 w-3" />
+                  {winStreak}
+                </span>
+              )}
+            </h1>
           </div>
         </div>
       </div>

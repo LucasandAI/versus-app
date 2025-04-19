@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Club } from '@/types';
-import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar, ChevronDown, ChevronUp, Flame } from "lucide-react";
 import MatchProgressBar from '@/components/shared/MatchProgressBar';
 
 interface MatchHistoryTabProps {
@@ -46,8 +46,8 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
 
       {club.matchHistory && club.matchHistory.length > 0 ? (
         <div className="space-y-4">
-          {/* Show maximum of 5 matches by default unless showAllMatches is true */}
-          {club.matchHistory.slice(0, showAllMatches ? undefined : 5).map((match) => {
+          {/* Show maximum of 3 matches by default unless showAllMatches is true */}
+          {club.matchHistory.slice(0, showAllMatches ? undefined : 3).map((match) => {
             const isHomeTeam = match.homeClub.id === club.id;
             const ourTeam = isHomeTeam ? match.homeClub : match.awayClub;
             const theirTeam = isHomeTeam ? match.awayClub : match.homeClub;
@@ -142,7 +142,7 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
             );
           })}
 
-          {club.matchHistory.length > 5 && (
+          {club.matchHistory.length > 3 && (
             <button
               className="w-full text-primary hover:text-primary/80 text-xs py-1 flex items-center justify-center gap-1"
               onClick={handleViewAllHistory}
@@ -155,7 +155,7 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
               ) : (
                 <>
                   <ChevronDown className="h-3 w-3" />
-                  View All Match History ({club.matchHistory.length - 5} more)
+                  View All Match History ({club.matchHistory.length - 3} more)
                 </>
               )}
             </button>
