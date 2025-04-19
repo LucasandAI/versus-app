@@ -1,9 +1,8 @@
 
 import React, { useState } from 'react';
-import { Club, Match } from '@/types';
+import { Club } from '@/types';
 import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
-import MatchProgressBar from '@/components/shared/MatchProgressBar';
-import { formatLeague, getDivisionEmoji } from '@/utils/club/leagueUtils';
+import MatchCard from './match-history/MatchCard';
 
 interface MatchHistoryTabProps {
   club: Club;
@@ -21,50 +20,6 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
     setShowAllMatches(!showAllMatches);
   };
 
-  // Helper function to get correct promotion/relegation text based on match result
-  const getLeagueImpactText = (match: Match, clubId: string) => {
-    // Debug the league impact data
-    console.log(`League impact for match ${match.id}:`, {
-      leagueAfterMatch: match.leagueAfterMatch,
-      winner: match.winner,
-      homeId: match.homeClub.id,
-      clubId: clubId
-    });
-    
-    if (!match.leagueAfterMatch) return 'No impact';
-    
-    const isHomeTeam = match.homeClub.id === clubId;
-    const weWon = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
-    
-    // Get emoji for the division
-    const emoji = getDivisionEmoji(match.leagueAfterMatch.division);
-    
-    // Format league display
-    const formattedLeague = formatLeague(match.leagueAfterMatch.division, match.leagueAfterMatch.tier);
-    
-    // Add points info for Elite division
-    const pointsInfo = match.leagueAfterMatch.division === 'Elite' && match.leagueAfterMatch.elitePoints !== undefined
-      ? ` (${match.leagueAfterMatch.elitePoints} points)`
-      : '';
-      
-    // The result might not always be promotion or relegation, could be maintaining the same tier
-    let actionText = 'Stayed in';
-    if (weWon) {
-      actionText = 'Promoted to';
-    } else {
-      actionText = 'Relegated to';
-    }
-    
-    return `${actionText} ${emoji} ${formattedLeague}${pointsInfo}`;
-  };
-
-  // Format date in a readable way
-  const formatDateRange = (startDate: string, endDate: string) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    return `${start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}–${end.getDate()}, ${end.getFullYear()}`;
-  };
-
   // Debug matches
   console.log("Rendering match history:", club.matchHistory?.length || 0, "matches");
   if (club.matchHistory?.length > 0) {
@@ -80,112 +35,15 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
 
       {club.matchHistory && club.matchHistory.length > 0 ? (
         <div className="space-y-4">
-          {/* Show maximum of 3 matches by default unless showAllMatches is true */}
-          {club.matchHistory.slice(0, showAllMatches ? undefined : 3).map((match) => {
-            const isHomeTeam = match.homeClub.id === club.id;
-            const ourTeam = isHomeTeam ? match.homeClub : match.awayClub;
-            const theirTeam = isHomeTeam ? match.awayClub : match.homeClub;
-            const weWon = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
-            
-            // Debug each match
-            console.log(`Match ${match.id}:`, {
-              isWin: weWon,
-              leagueAfter: match.leagueAfterMatch,
-              homeTeam: match.homeClub.name,
-              awayTeam: match.awayClub.name,
-              homeId: match.homeClub.id,
-              clubId: club.id,
-              isHomeTeam
-            });
-            
-            // Calculate total distances
-            const ourDistance = ourTeam.totalDistance || 
-              ourTeam.members.reduce((sum, m) => sum + (m.distanceContribution || 0), 0);
-            const theirDistance = theirTeam.totalDistance || 
-              theirTeam.members.reduce((sum, m) => sum + (m.distanceContribution || 0), 0);
-            
-            const dateRange = formatDateRange(match.startDate, match.endDate);
-
-            return (
-              <div key={match.id} className="space-y-2 pb-3 border-b border-gray-100 last:border-0">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-xs text-gray-600">{dateRange}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <h3 className="text-sm font-medium">{ourTeam.name}</h3>
-                      <span className="text-gray-500 text-xs">vs</span>
-                      <h3 className="text-sm font-medium">{theirTeam.name}</h3>
-                    </div>
-                  </div>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                    weWon ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {weWon ? 'WIN' : 'LOSS'}
-                  </span>
-                </div>
-
-                <MatchProgressBar 
-                  homeDistance={ourDistance} 
-                  awayDistance={theirDistance}
-                  className="h-3 text-xs"
-                />
-
-                <div>
-                  <p className="flex items-center gap-1 text-xs font-medium">
-                    League Impact: 
-                    <span className={weWon ? 'text-green-600' : 'text-red-600'}>
-                      {getLeagueImpactText(match, club.id)}
-                    </span>
-                  </p>
-                </div>
-
-                <button
-                  className="w-full px-4 py-1 text-xs border rounded hover:bg-gray-50 transition-colors flex items-center justify-center gap-1"
-                  onClick={() => handleViewMatchDetails(match.id)}
-                >
-                  {expandedMatchId === match.id ? (
-                    <>
-                      <ChevronUp className="h-3 w-3" />
-                      Hide Match Details
-                    </>
-                  ) : (
-                    <>
-                      <ChevronDown className="h-3 w-3" />
-                      View Match Details
-                    </>
-                  )}
-                </button>
-
-                {expandedMatchId === match.id && (
-                  <div className="mt-3 bg-gray-50 p-3 rounded-md space-y-3">
-                    <div>
-                      <h4 className="text-xs font-semibold mb-2">{ourTeam.name} Members</h4>
-                      <div className="space-y-1">
-                        {ourTeam.members.map((member) => (
-                          <div key={member.id} className="flex justify-between text-xs">
-                            <span>{member.name}</span>
-                            <span className="font-medium">{member.distanceContribution?.toFixed(1)} km</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h4 className="text-xs font-semibold mb-2">{theirTeam.name} Members</h4>
-                      <div className="space-y-1">
-                        {theirTeam.members.map((member) => (
-                          <div key={member.id} className="flex justify-between text-xs">
-                            <span>{member.name}</span>
-                            <span className="font-medium">{member.distanceContribution?.toFixed(1)} km</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {club.matchHistory.slice(0, showAllMatches ? undefined : 3).map((match) => (
+            <MatchCard
+              key={match.id}
+              match={match}
+              clubId={club.id}
+              expandedMatchId={expandedMatchId}
+              onExpandToggle={handleViewMatchDetails}
+            />
+          ))}
 
           {club.matchHistory.length > 3 && (
             <button
