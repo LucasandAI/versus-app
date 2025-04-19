@@ -50,6 +50,12 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
     return `${start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}–${end.getDate()}, ${end.getFullYear()}`;
   };
 
+  // Debug matches
+  console.log("Rendering match history:", club.matchHistory?.length || 0, "matches");
+  if (club.matchHistory?.length > 0) {
+    console.log("First match:", club.matchHistory[0]);
+  }
+
   return (
     <div className="bg-white rounded-lg shadow p-3 sm:p-4">
       <div className="flex items-center gap-2 mb-3">
@@ -65,6 +71,12 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
             const ourTeam = isHomeTeam ? match.homeClub : match.awayClub;
             const theirTeam = isHomeTeam ? match.awayClub : match.homeClub;
             const weWon = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
+            
+            // Debug each match
+            console.log(`Match ${match.id}:`, {
+              isWin: weWon,
+              leagueAfter: match.leagueAfterMatch
+            });
             
             // Calculate total distances
             const ourDistance = ourTeam.totalDistance || 

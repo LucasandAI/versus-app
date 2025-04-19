@@ -1,4 +1,3 @@
-
 import { Club, Match, Division, ClubMember } from '@/types';
 import { generateMemberDistances, generateOpponentMembers } from './memberDistanceUtils';
 import { calculateNewDivisionAndTier } from './leagueUtils';
@@ -19,116 +18,89 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
 
   const divisionOrder: Division[] = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Elite'];
   
-  // Start with the lowest division (Bronze 5)
-  let currentDivision: Division = 'Bronze';
-  let currentTier = 5;
-  let elitePoints = 0;
-
-  const generatedHistory: Match[] = [];
-  const maxMatches = 10; // Generate up to 10 matches
-
-  // Generate matches to reach the club's current division and tier
-  let remainingMatches = maxMatches;
-  const matchResults: boolean[] = [];
+  // Start from Bronze 5 and work up to the club's current division
+  let startingDivision: Division = 'Bronze';
+  let startingTier = 5;
+  let startingElitePoints = 0;
   
-  // First, determine match results needed to progress to current division/tier
-  while (remainingMatches > 0) {
-    // Favor wins to progress toward target division, with some losses for realism
-    const shouldWin = remainingMatches > 3 ? 
-      Math.random() > 0.3 || 
-      (currentDivision !== club.division || currentTier > club.tier) : 
-      (currentDivision !== club.division || currentTier > club.tier);
+  const generatedHistory: Match[] = [];
+  const matchCount = 7; // Generate a defined number of matches
+  
+  // Create a path to the current division and tier
+  const neededMatches = [];
+  let currentDivision = startingDivision;
+  let currentTier = startingTier;
+  let elitePoints = startingElitePoints;
+  
+  console.log(`Generating match history from ${currentDivision} ${currentTier} to ${club.division} ${club.tier}`);
+  
+  // Keep track of division/tier for each match
+  let divisionPath = [{division: currentDivision, tier: currentTier, elitePoints}];
+  
+  // Build a path of wins that leads to the current division
+  while (currentDivision !== club.division || currentTier !== club.tier) {
+    // Determine if we need to win to progress toward target
+    const needToWin = divisionOrder.indexOf(currentDivision) < divisionOrder.indexOf(club.division) || 
+                     (currentDivision === club.division && currentTier > club.tier);
     
-    // Calculate new division & tier after this match
-    const nextState = calculateNewDivisionAndTier(
-      currentDivision, 
-      currentTier, 
-      shouldWin,
-      elitePoints
-    );
+    // Add this match result to the path
+    neededMatches.push(needToWin);
     
-    // Record result
-    matchResults.push(shouldWin);
+    // Calculate new division and tier after this match
+    const result = calculateNewDivisionAndTier(currentDivision, currentTier, needToWin, elitePoints);
     
-    // Check if we've reached or exceeded the target division
-    if (nextState.division === club.division && nextState.tier === club.tier) {
-      // We've reached the exact target
-      currentDivision = nextState.division;
-      currentTier = nextState.tier;
-      if (nextState.elitePoints !== undefined) elitePoints = nextState.elitePoints;
-      break;
-    } else if (
-      divisionOrder.indexOf(nextState.division) > divisionOrder.indexOf(club.division) || 
-      (nextState.division === club.division && nextState.tier < club.tier)
-    ) {
-      // We've overshot the target, change this match to a loss
-      matchResults[matchResults.length - 1] = false;
-      
-      // Recalculate with a loss
-      const revisedState = calculateNewDivisionAndTier(
-        currentDivision, 
-        currentTier, 
-        false,
-        elitePoints
-      );
-      
-      currentDivision = revisedState.division;
-      currentTier = revisedState.tier;
-      if (revisedState.elitePoints !== undefined) elitePoints = revisedState.elitePoints;
-    } else {
-      // Update state and continue
-      currentDivision = nextState.division;
-      currentTier = nextState.tier;
-      if (nextState.elitePoints !== undefined) elitePoints = nextState.elitePoints;
-    }
+    // Update current state
+    currentDivision = result.division;
+    currentTier = result.tier;
+    if (result.elitePoints !== undefined) elitePoints = result.elitePoints;
     
-    remainingMatches--;
+    // Add to the path
+    divisionPath.push({division: currentDivision, tier: currentTier, elitePoints});
     
-    // If we've generated enough matches or can't progress further, stop
-    if (remainingMatches <= 0 || (currentDivision === 'Bronze' && currentTier === 5 && !shouldWin)) {
+    // Safety check to avoid infinite loops
+    if (neededMatches.length > 25) {
+      console.log("Safety break - too many matches needed");
       break;
     }
   }
 
-  // Reset to starting state to generate actual matches
-  currentDivision = 'Bronze';
-  currentTier = 5;
-  elitePoints = 0;
+  // Log the generated path
+  console.log("Division path:", divisionPath);
   
-  // Generate the actual match objects based on the determined results
-  for (let i = 0; i < matchResults.length; i++) {
-    const isWin = matchResults[i];
+  // Limit to the desired number of matches, but ensure we have at least one
+  const matchesToGenerate = Math.min(Math.max(neededMatches.length, 1), matchCount);
+  
+  // Generate the final matches based on the path
+  for (let i = 0; i < matchesToGenerate; i++) {
+    // Determine if this match was a win
+    const isWin = i < neededMatches.length ? neededMatches[i] : Math.random() > 0.4;
     
-    // Calculate the result of this match
-    const matchOutcome = calculateNewDivisionAndTier(
-      currentDivision, 
-      currentTier, 
-      isWin,
-      elitePoints
-    );
+    // Get division information before and after the match
+    const beforeState = divisionPath[i];
+    const afterState = divisionPath[i + 1] || beforeState;
     
+    // Generate match details
     const opponentName = OPPONENTS[Math.floor(Math.random() * OPPONENTS.length)];
-    
-    // Generate higher distances for wins, lower for losses
-    const baseDistance = 150 + Math.random() * 50;
-    const homeDistance = isWin 
-      ? baseDistance * (1.1 + Math.random() * 0.2) 
-      : baseDistance * (0.8 + Math.random() * 0.1);
-    
-    const awayDistance = isWin 
-      ? homeDistance * (0.85 + Math.random() * 0.1) 
-      : homeDistance * (1.15 + Math.random() * 0.1);
-    
     const isHomeTeam = i % 2 === 0; // Alternate home/away
     
-    const daysAgo = (matchResults.length - i) * 7; // Spread matches 7 days apart
+    // Calculate days ago for this match
+    const daysAgo = (matchesToGenerate - i) * 7; // One match per week
     const endDate = generatePastDate(daysAgo);
     const startDate = new Date(endDate);
     startDate.setDate(endDate.getDate() - 7);
     
-    const memberCount = club.members?.length || 3;
+    // Generate distances - winners have higher distances
+    const baseDistance = 150 + Math.random() * 50;
+    const homeDistance = isWin === isHomeTeam 
+      ? baseDistance * (1.05 + Math.random() * 0.15) 
+      : baseDistance * (0.85 + Math.random() * 0.10);
     
-    // Generate member distances for home and away teams
+    const awayDistance = isWin !== isHomeTeam 
+      ? baseDistance * (1.05 + Math.random() * 0.15) 
+      : baseDistance * (0.85 + Math.random() * 0.10);
+    
+    // Generate members
+    const memberCount = club.members?.length || 3;
     const homeMemberDistances = isHomeTeam 
       ? generateMemberDistances(memberCount, homeDistance)
       : generateOpponentMembers(Math.floor(Math.random() * 2) + 3, homeDistance, opponentName);
@@ -137,8 +109,9 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
       ? generateMemberDistances(memberCount, awayDistance)
       : generateOpponentMembers(Math.floor(Math.random() * 2) + 3, awayDistance, opponentName);
     
+    // Create the match object
     const match: Match = {
-      id: `history-${club.id}-${i}`,
+      id: `match-${club.id}-${i}`,
       homeClub: {
         id: isHomeTeam ? club.id : `opponent-${i}`,
         name: isHomeTeam ? club.name : opponentName,
@@ -158,21 +131,17 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
       status: 'completed',
       winner: isWin ? (isHomeTeam ? 'home' : 'away') : (isHomeTeam ? 'away' : 'home'),
       leagueAfterMatch: {
-        division: matchOutcome.division,
-        tier: matchOutcome.tier,
-        elitePoints: matchOutcome.elitePoints
+        division: afterState.division,
+        tier: afterState.tier,
+        elitePoints: afterState.elitePoints
       }
     };
     
+    // Add to our list of matches
     generatedHistory.push(match);
-    
-    // Update for next match
-    currentDivision = matchOutcome.division;
-    currentTier = matchOutcome.tier;
-    if (matchOutcome.elitePoints !== undefined) elitePoints = matchOutcome.elitePoints;
   }
   
-  // Sort match history with most recent first
+  // Sort matches by end date (most recent first)
   return generatedHistory.sort((a, b) => 
     new Date(b.endDate).getTime() - new Date(a.endDate).getTime()
   );
