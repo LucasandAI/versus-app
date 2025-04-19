@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { Club } from '@/types';
 import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import MatchProgressBar from '@/components/shared/MatchProgressBar';
+import { calculateNewDivisionAndTier } from '@/utils/clubUtils';
 
 interface MatchHistoryTabProps {
   club: Club;
@@ -20,42 +20,29 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
     setShowAllMatches(!showAllMatches);
   };
 
-  // Helper function to get correct promotion/relegation text based on division and result
-  const getLeagueImpactText = (division: string, tier: number | undefined, isWin: boolean) => {
-    // Default to tier 1 if undefined
-    const currentTier = tier || 1;
-    
-    if (isWin) {
-      // Promotion logic
-      if (division === 'Bronze') {
-        return 'Promoted to Silver ' + currentTier;
-      } else if (division === 'Silver') {
-        return 'Promoted to Gold ' + currentTier;
-      } else if (division === 'Gold') {
-        return 'Promoted to Platinum ' + currentTier;
-      } else if (division === 'Platinum') {
-        return 'Promoted to Diamond ' + currentTier;
-      } else if (division === 'Diamond') {
-        return 'Promoted to Elite';
-      } else {
-        return 'Maintained Elite status';
-      }
-    } else {
-      // Relegation logic
-      if (division === 'Elite') {
-        return 'Relegated to Diamond 1';
-      } else if (division === 'Diamond') {
-        return 'Relegated to Platinum ' + currentTier;
-      } else if (division === 'Platinum') {
-        return 'Relegated to Gold ' + currentTier;
-      } else if (division === 'Gold') {
-        return 'Relegated to Silver ' + currentTier;
-      } else if (division === 'Silver') {
-        return 'Relegated to Bronze ' + currentTier;
-      } else {
-        return 'Remained in Bronze ' + currentTier;
-      }
+  // Helper function to get correct promotion/relegation text based on match result
+  const getLeagueImpactText = (match: any, clubId: string) => {
+    // If the match has a leagueAfterMatch property, use it
+    if (match.leagueAfterMatch) {
+      const { division, tier } = match.leagueAfterMatch;
+      return `${getResultVerb(match, clubId)} to ${division} ${tier}`;
     }
+    
+    // Otherwise, calculate it
+    const isHomeTeam = match.homeClub.id === clubId;
+    const weWon = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
+
+    // For old matches without the leagueAfterMatch property, use club's current division as reference
+    // This is not accurate but maintains backward compatibility
+    const { division, tier } = calculateNewDivisionAndTier(club.division, club.tier, weWon);
+    return `${getResultVerb(match, clubId)} to ${division} ${tier}`;
+  };
+
+  // Helper to get the result verb (Promoted/Relegated)
+  const getResultVerb = (match: any, clubId: string) => {
+    const isHomeTeam = match.homeClub.id === clubId;
+    const weWon = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
+    return weWon ? 'Promoted' : 'Relegated';
   };
 
   return (
@@ -110,7 +97,7 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
                   <p className="flex items-center gap-1 text-xs font-medium">
                     League Impact: 
                     <span className={weWon ? 'text-green-600' : 'text-red-600'}>
-                      {getLeagueImpactText(club.division, club.tier, weWon)}
+                      {getLeagueImpactText(match, club.id)}
                     </span>
                   </p>
                 </div>

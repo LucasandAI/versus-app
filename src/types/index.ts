@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   name: string;
@@ -53,6 +54,10 @@ export interface Match {
   endDate: string;
   status: 'upcoming' | 'active' | 'completed';
   winner?: 'home' | 'away';
+  leagueAfterMatch?: {
+    division: Division;
+    tier?: number;
+  };
 }
 
 export type Division = 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Diamond' | 'Elite';
