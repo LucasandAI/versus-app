@@ -28,28 +28,25 @@ const ClubLeaveDialog: React.FC<ClubLeaveDialogProps> = ({
   const otherMembers = members.filter(member => member.id !== currentUserId);
 
   const handleConfirm = () => {
-    if (isAdmin) {
-      if (otherMembers.length === 0) {
-        toast({
-          title: "Cannot Leave Club",
-          description: "You are the only member. You cannot leave without assigning a new admin.",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      if (!selectedAdminId) {
-        toast({
-          title: "Select New Admin",
-          description: "Please select a new admin before leaving the club.",
-          variant: "destructive"
-        });
-        return;
-      }
-      onConfirm(selectedAdminId);
-    } else {
-      onConfirm();
+    if (isAdmin && otherMembers.length > 0 && !selectedAdminId) {
+      toast({
+        title: "Select New Admin",
+        description: "Please select a new admin before leaving the club.",
+        variant: "destructive"
+      });
+      return;
     }
+    
+    if (isAdmin && otherMembers.length === 0) {
+      toast({
+        title: "Cannot Leave Club",
+        description: "You are the only member. You cannot leave without assigning a new admin.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    onConfirm(selectedAdminId);
     onOpenChange(false);
   };
 
