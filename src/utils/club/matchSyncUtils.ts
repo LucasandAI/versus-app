@@ -8,7 +8,7 @@ export const syncClubDivisionWithMatchHistory = (club: Club): Club => {
   }
 
   // Log match history for debugging
-  console.log("Syncing club division. Match history:", club.matchHistory);
+  console.log("Syncing club division. Match history count:", club.matchHistory.length);
   
   const sortedHistory = [...club.matchHistory].sort((a, b) => 
     new Date(b.endDate).getTime() - new Date(a.endDate).getTime()
@@ -22,10 +22,17 @@ export const syncClubDivisionWithMatchHistory = (club: Club): Club => {
     return {
       ...club,
       division: latestMatch.leagueAfterMatch.division,
-      tier: latestMatch.leagueAfterMatch.tier
+      tier: latestMatch.leagueAfterMatch.tier,
+      // Include elite points if available
+      ...(latestMatch.leagueAfterMatch.elitePoints !== undefined && {
+        elitePoints: latestMatch.leagueAfterMatch.elitePoints
+      })
     };
   }
 
+  // Fallback to calculating if leagueAfterMatch is missing
+  console.log("No leagueAfterMatch data found, calculating...");
+  
   const isHomeTeam = latestMatch.homeClub.id === club.id;
   const weWon = (isHomeTeam && latestMatch.winner === 'home') || (!isHomeTeam && latestMatch.winner === 'away');
   
@@ -35,6 +42,10 @@ export const syncClubDivisionWithMatchHistory = (club: Club): Club => {
   return {
     ...club,
     division: newDivisionAndTier.division,
-    tier: newDivisionAndTier.tier
+    tier: newDivisionAndTier.tier,
+    // Include elite points if available
+    ...(newDivisionAndTier.elitePoints !== undefined && {
+      elitePoints: newDivisionAndTier.elitePoints
+    })
   };
 };

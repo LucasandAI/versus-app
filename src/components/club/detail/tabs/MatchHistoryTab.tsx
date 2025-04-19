@@ -23,6 +23,14 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
 
   // Helper function to get correct promotion/relegation text based on match result
   const getLeagueImpactText = (match: Match, clubId: string) => {
+    // Debug the league impact data
+    console.log(`League impact for match ${match.id}:`, {
+      leagueAfterMatch: match.leagueAfterMatch,
+      winner: match.winner,
+      homeId: match.homeClub.id,
+      clubId: clubId
+    });
+    
     if (!match.leagueAfterMatch) return 'No impact';
     
     const isHomeTeam = match.homeClub.id === clubId;

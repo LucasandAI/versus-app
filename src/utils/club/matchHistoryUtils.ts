@@ -1,3 +1,4 @@
+
 export { syncClubDivisionWithMatchHistory } from './matchSyncUtils';
 export { generateMatchHistoryFromDivision } from './matchGenerationUtils';
 export { generateMemberDistances } from './memberDistanceUtils';
@@ -18,7 +19,8 @@ export const ensureClubHasProperMatchHistory = (club: Club): Club => {
   // Generate match history based on the club's current division and tier
   console.log(`Generating match history for ${club.name} (${club.division} ${club.tier})`);
   const matchHistory = generateMatchHistoryFromDivision(club);
-  console.log(`Generated ${matchHistory.length} matches`);
+  console.log(`Generated ${matchHistory.length} matches with league impact:`, 
+    matchHistory.length > 0 ? matchHistory[0].leagueAfterMatch : 'none');
   
   // Return updated club with match history
   return {

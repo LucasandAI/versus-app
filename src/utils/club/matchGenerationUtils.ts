@@ -18,6 +18,8 @@ const OPPONENTS = [
 export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
   if (!club.division || !club.tier) return [];
 
+  console.log(`Starting match generation for ${club.name} (${club.division} ${club.tier})`);
+
   const divisionOrder: Division[] = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Elite'];
   
   // Define starting point for match history
@@ -29,7 +31,7 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
   const matchCount = 19; // Increased number of matches for more history
   
   const neededMatches = [];
-  let currentDivision: Division = startingDivision;
+  let currentDivision = startingDivision;
   let currentTier = startingTier;
   let elitePoints = startingElitePoints;
   
@@ -77,6 +79,7 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
   console.log("Division path:", divisionPath);
   
   const matchesToGenerate = Math.min(Math.max(neededMatches.length, 1), matchCount);
+  console.log(`Generating ${matchesToGenerate} matches`);
   
   // Generate each match
   for (let i = 0; i < matchesToGenerate; i++) {
@@ -144,6 +147,7 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
       }
     };
     
+    console.log(`Generated match ${i+1}/${matchesToGenerate} with league impact:`, match.leagueAfterMatch);
     generatedHistory.push(match);
   }
   

@@ -16,12 +16,17 @@ const ClubDetail: React.FC = () => {
     if (selectedClub) {
       console.log("Processing club match history in ClubDetail...");
       
-      // Force regeneration of match history every time for debugging
-      const clubWithHistory = ensureClubHasProperMatchHistory({
-        ...selectedClub,
-        // Clear existing match history to force regeneration
-        matchHistory: []
-      });
+      // Check if we need to generate match history
+      const needsHistory = !selectedClub.matchHistory || selectedClub.matchHistory.length < 10;
+      
+      // Only regenerate if needed
+      const clubWithHistory = needsHistory 
+        ? ensureClubHasProperMatchHistory({
+            ...selectedClub,
+            // Only clear existing match history if it needs regeneration
+            matchHistory: []
+          })
+        : selectedClub;
       
       // Then sync the club's division with match history if needed
       const syncedClub = clubWithHistory.matchHistory?.length > 0 
