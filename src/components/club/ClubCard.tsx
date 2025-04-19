@@ -28,22 +28,6 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser })
     setExpanded(!expanded);
   };
 
-  // Simulate selecting an opponent club
-  const handleSelectOpponentClub = (e: React.MouseEvent, id: string, name: string) => {
-    e.stopPropagation();
-    // Mock opponent club with minimal data to navigate to
-    const opponentClub: Club = {
-      id,
-      name,
-      logo: '/placeholder.svg',
-      division: 'Silver',
-      tier: 3,
-      members: [],
-      matchHistory: []
-    };
-    onSelectClub(opponentClub);
-  };
-
   return (
     <div 
       className="bg-white rounded-lg shadow-md p-4 cursor-pointer"
@@ -59,7 +43,7 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser })
           />
         </div>
         <div>
-          <h3 className="font-medium hover:text-primary">{club.name}</h3>
+          <h3 className="font-medium">{club.name}</h3>
           <div className="flex items-center gap-1">
             <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
               {formatLeagueWithTier(club.division, club.tier)}
@@ -81,41 +65,11 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser })
           </div>
           
           <div className="flex justify-between items-center mb-3 text-sm">
-            <span 
-              className="font-medium cursor-pointer hover:text-primary"
-              onClick={(e) => {
-                e.stopPropagation();
-                const isOurClub = club.currentMatch?.homeClub.id === club.id;
-                if (isOurClub) {
-                  onSelectClub(club);
-                } else {
-                  handleSelectOpponentClub(
-                    e, 
-                    club.currentMatch?.homeClub.id || '',
-                    club.currentMatch?.homeClub.name
-                  );
-                }
-              }}
-            >
+            <span className="font-medium cursor-pointer hover:text-primary">
               {club.currentMatch.homeClub.name}
             </span>
             <span className="text-xs text-gray-500">vs</span>
-            <span 
-              className="font-medium cursor-pointer hover:text-primary"
-              onClick={(e) => {
-                e.stopPropagation();
-                const isOurClub = club.currentMatch?.awayClub.id === club.id;
-                if (isOurClub) {
-                  onSelectClub(club);
-                } else {
-                  handleSelectOpponentClub(
-                    e, 
-                    club.currentMatch?.awayClub.id || '',
-                    club.currentMatch?.awayClub.name
-                  );
-                }
-              }}
-            >
+            <span className="font-medium cursor-pointer hover:text-primary">
               {club.currentMatch.awayClub.name}
             </span>
           </div>
