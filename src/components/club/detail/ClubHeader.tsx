@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { ArrowLeft, Users } from 'lucide-react';
-import { Club } from '@/types';
+import { ArrowLeft, Users, Flame } from 'lucide-react'; // Added Flame icon import
+import { Club, Match } from '@/types'; // Added Match import from types
 import UserAvatar from '@/components/shared/UserAvatar';
 import Button from '@/components/shared/Button';
 import { formatLeagueWithTier } from '@/lib/format';

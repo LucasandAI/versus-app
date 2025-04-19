@@ -4,11 +4,11 @@ import { Club } from '@/types';
 import UserAvatar from '../shared/UserAvatar';
 
 interface FindClubsSectionProps {
-  clubs: Club[];
+  clubs: Partial<Club>[];  // Changed from Club[] to Partial<Club>[] to match the available data structure
   onRequestJoin: (clubId: string, clubName: string) => void;
   onSearchClick: () => void;
   onCreateClick: () => void;
-  onSelectClub?: (club: Club) => void;
+  onSelectClub?: (club: Partial<Club>) => void;  // Updated parameter type
 }
 
 const FindClubsSection: React.FC<FindClubsSectionProps> = ({ 
@@ -37,8 +37,8 @@ const FindClubsSection: React.FC<FindClubsSectionProps> = ({
           <div key={club.id} className="bg-white rounded-lg shadow p-3 flex items-center justify-between">
             <div className="flex items-center gap-3 flex-1">
               <UserAvatar 
-                name={club.name} 
-                image={club.logo} 
+                name={club.name || ''} 
+                image={club.logo || ''} 
                 size="sm" 
                 className="h-10 w-10" 
               />
@@ -49,12 +49,18 @@ const FindClubsSection: React.FC<FindClubsSectionProps> = ({
                 >
                   {club.name}
                 </h3>
-                <p className="text-xs text-gray-500">{club.members.length} members</p>
+                <p className="text-xs text-gray-500">
+                  {typeof club.members === 'number' 
+                    ? `${club.members} members` 
+                    : club.members?.length 
+                      ? `${club.members.length} members`
+                      : '0 members'}
+                </p>
               </div>
             </div>
             <button 
               className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full font-medium hover:bg-primary/20 transition-colors"
-              onClick={() => onRequestJoin(club.id, club.name)}
+              onClick={() => onRequestJoin(club.id || '', club.name || '')}
             >
               Request to Join
             </button>
