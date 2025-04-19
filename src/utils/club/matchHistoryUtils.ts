@@ -10,7 +10,7 @@ export const ensureClubHasProperMatchHistory = (club: Club): Club => {
   console.log("Ensuring club has proper match history. Current history:", club.matchHistory?.length || 0);
   
   // If the club already has enough match history, return it unchanged
-  if (club.matchHistory && club.matchHistory.length >= 5) {
+  if (club.matchHistory && club.matchHistory.length >= 10) {
     console.log("Club already has enough match history");
     return club;
   }

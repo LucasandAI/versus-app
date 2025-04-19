@@ -39,8 +39,15 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
       ? ` (${match.leagueAfterMatch.elitePoints} points)`
       : '';
       
-    const result = weWon ? 'Promoted to' : 'Relegated to';
-    return `${result} ${emoji} ${formattedLeague}${pointsInfo}`;
+    // The result might not always be promotion or relegation, could be maintaining the same tier
+    let actionText = 'Stayed in';
+    if (weWon) {
+      actionText = 'Promoted to';
+    } else {
+      actionText = 'Relegated to';
+    }
+    
+    return `${actionText} ${emoji} ${formattedLeague}${pointsInfo}`;
   };
 
   // Format date in a readable way
@@ -75,7 +82,12 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
             // Debug each match
             console.log(`Match ${match.id}:`, {
               isWin: weWon,
-              leagueAfter: match.leagueAfterMatch
+              leagueAfter: match.leagueAfterMatch,
+              homeTeam: match.homeClub.name,
+              awayTeam: match.awayClub.name,
+              homeId: match.homeClub.id,
+              clubId: club.id,
+              isHomeTeam
             });
             
             // Calculate total distances
