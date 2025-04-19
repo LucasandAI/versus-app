@@ -4,6 +4,7 @@ import { Match } from '@/types';
 import { ChevronDown, ChevronUp } from "lucide-react";
 import MatchProgressBar from '@/components/shared/MatchProgressBar';
 import { formatLeague, getDivisionEmoji } from '@/utils/club/leagueUtils';
+import MatchDetails from './MatchDetails';
 
 interface MatchCardProps {
   match: Match;
