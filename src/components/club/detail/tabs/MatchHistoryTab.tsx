@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Club } from '@/types';
+import { Club, Match } from '@/types';
 import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import MatchProgressBar from '@/components/shared/MatchProgressBar';
 import { formatLeague, getDivisionEmoji } from '@/utils/club/leagueUtils';
@@ -22,7 +22,7 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
   };
 
   // Helper function to get correct promotion/relegation text based on match result
-  const getLeagueImpactText = (match: any, clubId: string) => {
+  const getLeagueImpactText = (match: Match, clubId: string) => {
     if (!match.leagueAfterMatch) return 'No impact';
     
     const isHomeTeam = match.homeClub.id === clubId;

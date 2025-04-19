@@ -1,3 +1,4 @@
+
 export { syncClubDivisionWithMatchHistory } from './matchSyncUtils';
 export { generateMatchHistoryFromDivision } from './matchGenerationUtils';
 export { generateMemberDistances } from './memberDistanceUtils';
@@ -18,6 +19,6 @@ export const ensureClubHasProperMatchHistory = (club: Club): Club => {
   // Return updated club with match history
   return {
     ...club,
-    matchHistory
+    matchHistory: matchHistory
   };
 };

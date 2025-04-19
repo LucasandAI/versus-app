@@ -22,7 +22,7 @@ const ClubDetail: React.FC = () => {
         console.log('Syncing club data:', 
           `${selectedClub.division} ${selectedClub.tier}`, 'to', 
           `${clubWithHistory.division} ${clubWithHistory.tier}`,
-          'with match history count:', clubWithHistory.matchHistory.length
+          'with match history count:', clubWithHistory.matchHistory?.length
         );
         setSelectedClub(clubWithHistory);
       }

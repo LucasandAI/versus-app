@@ -1,5 +1,5 @@
 
-import { Club, Match, Division } from '@/types';
+import { Club, Match, Division, ClubMember } from '@/types';
 import { generateMemberDistances, generateOpponentMembers } from './memberDistanceUtils';
 import { calculateNewDivisionAndTier } from './leagueUtils';
 
@@ -128,33 +128,30 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
     
     const memberCount = club.members?.length || 3;
     
+    // Generate member distances for home and away teams
+    const homeMemberDistances = isHomeTeam 
+      ? generateMemberDistances(memberCount, homeDistance)
+      : generateOpponentMembers(Math.floor(Math.random() * 2) + 3, homeDistance, opponentName);
+    
+    const awayMemberDistances = !isHomeTeam 
+      ? generateMemberDistances(memberCount, awayDistance)
+      : generateOpponentMembers(Math.floor(Math.random() * 2) + 3, awayDistance, opponentName);
+    
     const match: Match = {
       id: `history-${club.id}-${i}`,
-      homeClub: isHomeTeam ? {
-        id: club.id,
-        name: club.name,
-        logo: club.logo || '/placeholder.svg',
+      homeClub: {
+        id: isHomeTeam ? club.id : `opponent-${i}`,
+        name: isHomeTeam ? club.name : opponentName,
+        logo: isHomeTeam ? (club.logo || '/placeholder.svg') : '/placeholder.svg',
         totalDistance: parseFloat(homeDistance.toFixed(1)),
-        members: generateMemberDistances(memberCount, homeDistance)
-      } : {
-        id: `opponent-${i}`,
-        name: opponentName,
-        logo: '/placeholder.svg',
-        totalDistance: parseFloat(awayDistance.toFixed(1)),
-        members: generateOpponentMembers(Math.floor(Math.random() * 2) + 3, awayDistance, opponentName)
+        members: homeMemberDistances
       },
-      awayClub: !isHomeTeam ? {
-        id: club.id,
-        name: club.name,
-        logo: club.logo || '/placeholder.svg',
+      awayClub: {
+        id: !isHomeTeam ? club.id : `opponent-${i}`,
+        name: !isHomeTeam ? club.name : opponentName,
+        logo: !isHomeTeam ? (club.logo || '/placeholder.svg') : '/placeholder.svg',
         totalDistance: parseFloat(awayDistance.toFixed(1)),
-        members: generateMemberDistances(memberCount, awayDistance)
-      } : {
-        id: `opponent-${i}`,
-        name: opponentName,
-        logo: '/placeholder.svg',
-        totalDistance: parseFloat(homeDistance.toFixed(1)),
-        members: generateOpponentMembers(Math.floor(Math.random() * 2) + 3, homeDistance, opponentName)
+        members: awayMemberDistances
       },
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
