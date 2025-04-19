@@ -44,10 +44,13 @@ const MatchCard: React.FC<MatchCardProps> = ({
       ? ` (${match.leagueAfterMatch.elitePoints} points)`
       : '';
       
-    let actionText = 'Stayed in';
-    if (weWon) {
+    // Determine league impact text based on win/loss
+    let actionText = 'Maintained';
+    
+    // Only suggest promotion/relegation if there's evidence of division change
+    if (weWon && match.leagueAfterMatch) {
       actionText = 'Promoted to';
-    } else {
+    } else if (!weWon && match.leagueAfterMatch) {
       actionText = 'Relegated to';
     }
     
@@ -108,8 +111,8 @@ const MatchCard: React.FC<MatchCardProps> = ({
 
       {expandedMatchId === match.id && (
         <MatchDetails
-          homeTeam={ourTeam}
-          awayTeam={theirTeam}
+          homeTeam={match.homeClub}
+          awayTeam={match.awayClub}
         />
       )}
     </div>

@@ -20,11 +20,8 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
     setShowAllMatches(!showAllMatches);
   };
 
-  // Debug matches
-  console.log("Rendering match history:", club.matchHistory?.length || 0, "matches");
-  if (club.matchHistory?.length > 0) {
-    console.log("First match:", club.matchHistory[0]);
-  }
+  // Safely access match history
+  const matchHistory = club.matchHistory || [];
 
   return (
     <div className="bg-white rounded-lg shadow p-3 sm:p-4">
@@ -33,9 +30,9 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
         <h2 className="text-lg font-semibold">Match History</h2>
       </div>
 
-      {club.matchHistory && club.matchHistory.length > 0 ? (
+      {matchHistory.length > 0 ? (
         <div className="space-y-4">
-          {club.matchHistory.slice(0, showAllMatches ? undefined : 3).map((match) => (
+          {matchHistory.slice(0, showAllMatches ? undefined : 3).map((match) => (
             <MatchCard
               key={match.id}
               match={match}
@@ -45,7 +42,7 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
             />
           ))}
 
-          {club.matchHistory.length > 3 && (
+          {matchHistory.length > 3 && (
             <button
               className="w-full text-primary hover:text-primary/80 text-xs py-1 flex items-center justify-center gap-1"
               onClick={handleViewAllHistory}
@@ -58,7 +55,7 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
               ) : (
                 <>
                   <ChevronDown className="h-3 w-3" />
-                  View All Match History ({club.matchHistory.length - 3} more)
+                  View All Match History ({matchHistory.length - 3} more)
                 </>
               )}
             </button>
