@@ -126,6 +126,8 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
     const startDate = new Date(endDate);
     startDate.setDate(endDate.getDate() - 7);
     
+    const memberCount = club.members?.length || 3;
+    
     const match: Match = {
       id: `history-${club.id}-${i}`,
       homeClub: isHomeTeam ? {
@@ -133,26 +135,26 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
         name: club.name,
         logo: club.logo || '/placeholder.svg',
         totalDistance: parseFloat(homeDistance.toFixed(1)),
-        members: generateMemberDistances(club.members?.length || 3, homeDistance)
+        members: generateMemberDistances(memberCount, homeDistance)
       } : {
         id: `opponent-${i}`,
         name: opponentName,
         logo: '/placeholder.svg',
         totalDistance: parseFloat(awayDistance.toFixed(1)),
-        members: generateOpponentMembers(Math.floor(Math.random() * 2) + 3, awayDistance)
+        members: generateOpponentMembers(Math.floor(Math.random() * 2) + 3, awayDistance, opponentName)
       },
       awayClub: !isHomeTeam ? {
         id: club.id,
         name: club.name,
         logo: club.logo || '/placeholder.svg',
         totalDistance: parseFloat(awayDistance.toFixed(1)),
-        members: generateMemberDistances(club.members?.length || 3, awayDistance)
+        members: generateMemberDistances(memberCount, awayDistance)
       } : {
         id: `opponent-${i}`,
         name: opponentName,
         logo: '/placeholder.svg',
         totalDistance: parseFloat(homeDistance.toFixed(1)),
-        members: generateOpponentMembers(Math.floor(Math.random() * 2) + 3, homeDistance)
+        members: generateOpponentMembers(Math.floor(Math.random() * 2) + 3, homeDistance, opponentName)
       },
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
