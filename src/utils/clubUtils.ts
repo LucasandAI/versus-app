@@ -1,3 +1,4 @@
+
 import { Club, Division, Match, ClubMember } from '@/types';
 import { availableClubs } from '@/data/availableClubs';
 
@@ -38,7 +39,7 @@ export const getClubToJoin = (clubId: string, clubName: string, allClubs: Club[]
   return clubToJoin;
 };
 
-// New function to sync club division with match history
+// Sync club division with match history
 export const syncClubDivisionWithMatchHistory = (club: Club): Club => {
   if (!club.matchHistory || club.matchHistory.length === 0) {
     // No match history, keep the current division
@@ -75,7 +76,7 @@ export const syncClubDivisionWithMatchHistory = (club: Club): Club => {
   };
 };
 
-// Helper function to calculate new division and tier based on match outcome
+// Calculate new division and tier based on match outcome
 export const calculateNewDivisionAndTier = (
   currentDivision: Division, 
   currentTier: number = 1, 
@@ -128,7 +129,7 @@ export const calculateNewDivisionAndTier = (
   }
 };
 
-// New function to generate match history based on current division
+// Generate match history based on current division
 export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
   if (!club.division || !club.tier) {
     return [];
@@ -274,7 +275,7 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
   );
 };
 
-// Utility to ensure a club has proper match history
+// Ensure a club has proper match history
 export const ensureClubHasProperMatchHistory = (club: Club): Club => {
   if (!club.matchHistory || club.matchHistory.length === 0) {
     // Generate match history based on current division
