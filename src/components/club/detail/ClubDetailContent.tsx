@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
@@ -70,9 +69,23 @@ const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
     handleRequestToJoin(club.id, club.name);
   };
 
-  const handleLeaveClub = () => {
+  const handleLeaveClub = (newAdminId?: string) => {
     if (!currentUser || !isActuallyMember) return;
     
+    // Update the club members list
+    const updatedClub = { ...club };
+    if (newAdminId) {
+      // Update admin status
+      updatedClub.members = club.members.map(member => ({
+        ...member,
+        isAdmin: member.id === newAdminId
+      }));
+    }
+    
+    // Remove current user from the club
+    updatedClub.members = updatedClub.members.filter(member => member.id !== currentUser.id);
+    
+    // Update user's clubs list
     const updatedClubs = currentUser.clubs.filter(c => c.id !== club.id);
     const updatedUser = {
       ...currentUser,
@@ -83,7 +96,7 @@ const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
     
     toast({
       title: "Left Club",
-      description: `You have successfully left ${club.name}.`,
+      description: `You have successfully left ${club.name}.`
     });
     setCurrentView('home');
     
@@ -163,6 +176,9 @@ const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
         onOpenChange={setShowLeaveDialog}
         clubName={club.name}
         onConfirm={handleLeaveClub}
+        isAdmin={isAdmin}
+        members={club.members}
+        currentUserId={currentUser?.id || ''}
       />
 
       {club && (

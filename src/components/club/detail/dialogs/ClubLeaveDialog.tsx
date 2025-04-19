@@ -1,41 +1,101 @@
 
-import React from 'react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import React, { useState } from 'react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ClubMember } from '@/types';
+import { toast } from "@/hooks/use-toast";
 
 interface ClubLeaveDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   clubName: string;
-  onConfirm: () => void;
+  onConfirm: (newAdminId?: string) => void;
+  isAdmin: boolean;
+  members: ClubMember[];
+  currentUserId: string;
 }
 
 const ClubLeaveDialog: React.FC<ClubLeaveDialogProps> = ({
   open,
   onOpenChange,
   clubName,
-  onConfirm
+  onConfirm,
+  isAdmin,
+  members,
+  currentUserId
 }) => {
+  const [selectedAdminId, setSelectedAdminId] = useState<string>('');
+  const otherMembers = members.filter(member => member.id !== currentUserId);
+
+  const handleConfirm = () => {
+    if (isAdmin) {
+      if (otherMembers.length === 0) {
+        toast({
+          title: "Cannot Leave Club",
+          description: "You are the only member. You cannot leave without assigning a new admin.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (!selectedAdminId) {
+        toast({
+          title: "Select New Admin",
+          description: "Please select a new admin before leaving the club.",
+          variant: "destructive"
+        });
+        return;
+      }
+      onConfirm(selectedAdminId);
+    } else {
+      onConfirm();
+    }
+    onOpenChange(false);
+  };
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Leave {clubName}?</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to leave this club? You will need to be invited again to rejoin.
+            {isAdmin ? (
+              otherMembers.length > 0 ? 
+                "As an admin, you must select a new admin before leaving the club." :
+                "You are the only member in this club. You cannot leave without assigning a new admin."
+            ) : (
+              "Are you sure you want to leave this club? You will need to be invited again to rejoin."
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
+
+        {isAdmin && otherMembers.length > 0 && (
+          <div className="mb-4">
+            <Select
+              value={selectedAdminId}
+              onValueChange={setSelectedAdminId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select new admin" />
+              </SelectTrigger>
+              <SelectContent>
+                {otherMembers.map((member) => (
+                  <SelectItem key={member.id} value={member.id}>
+                    {member.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} className="bg-red-500 hover:bg-red-600">
+          <AlertDialogAction
+            onClick={handleConfirm}
+            className="bg-red-500 hover:bg-red-600"
+            disabled={isAdmin && (otherMembers.length === 0 || !selectedAdminId)}
+          >
             Leave Club
           </AlertDialogAction>
         </AlertDialogFooter>
