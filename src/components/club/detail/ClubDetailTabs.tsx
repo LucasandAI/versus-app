@@ -7,6 +7,7 @@ import ClubMembersList from './ClubMembersList';
 import ClubAdminActions from '../../admin/ClubAdminActions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useApp } from '@/context/AppContext';
+import { formatLeagueWithTier } from '@/lib/format';
 
 interface ClubDetailTabsProps {
   club: Club;
@@ -65,20 +66,58 @@ const ClubDetailTabs: React.FC<ClubDetailTabsProps> = ({
         <div className="bg-white rounded-lg shadow p-4">
           {club.matchHistory && club.matchHistory.length > 0 ? (
             <div>
-              {/* Match history content would go here */}
               <h3 className="text-lg font-medium mb-3">Match History</h3>
-              <ul className="space-y-4">
-                {club.matchHistory.map((match) => (
-                  <li key={match.id} className="border-b pb-3">
-                    <p className="font-medium">{match.homeClub.name} vs {match.awayClub.name}</p>
-                    <p className="text-sm text-gray-500">
-                      {new Date(match.startDate).toLocaleDateString()} - {new Date(match.endDate).toLocaleDateString()}
-                    </p>
-                    <p className="text-sm">
-                      Result: {match.winner === 'home' ? match.homeClub.name : match.awayClub.name} won
-                    </p>
-                  </li>
-                ))}
+              <ul className="space-y-6">
+                {club.matchHistory.map((match) => {
+                  const isHomeTeam = match.homeClub.id === club.id;
+                  const ourTeam = isHomeTeam ? match.homeClub : match.awayClub;
+                  const theirTeam = isHomeTeam ? match.awayClub : match.homeClub;
+                  const weWon = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
+                  
+                  // Calculate total distances
+                  const ourDistance = ourTeam.members.reduce((sum, m) => sum + (m.distanceContribution || 0), 0);
+                  const theirDistance = theirTeam.members.reduce((sum, m) => sum + (m.distanceContribution || 0), 0);
+                  
+                  // Determine promotion/relegation text
+                  const matchOutcome = weWon 
+                    ? `Promotion to ${club.division === 'Silver' ? 'Gold' : 'Elite'} ${club.division === 'Silver' ? '3' : ''}`
+                    : `Relegation to ${club.division === 'Gold' ? 'Silver' : 'Bronze'} ${club.division === 'Gold' ? '1' : '2'}`;
+
+                  return (
+                    <li key={match.id} className="border rounded-lg p-4 bg-gray-50">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <p className="font-medium">
+                            vs {theirTeam.name}
+                            <span className={`ml-2 px-2 py-0.5 rounded text-sm ${weWon ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                              {weWon ? 'V' : 'D'}
+                            </span>
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {new Date(match.startDate).toLocaleDateString()} - {new Date(match.endDate).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <p className="font-medium text-lg">
+                          {ourDistance.toFixed(1)}–{theirDistance.toFixed(1)} km
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">Our Team Contributions:</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {ourTeam.members.map((member) => (
+                            <div key={member.id} className="text-sm">
+                              {member.name}: {member.distanceContribution?.toFixed(1) || 0} km
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <p className={`mt-3 text-sm ${weWon ? 'text-green-600' : 'text-red-600'}`}>
+                        {matchOutcome}
+                      </p>
+                    </li>
+                  ))}
               </ul>
             </div>
           ) : (

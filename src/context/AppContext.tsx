@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { AppContextType, AppView, Club, User } from '../types';
 
@@ -54,7 +53,41 @@ const mockUser: User = {
         endDate: new Date(new Date().getTime() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         status: 'active'
       },
-      matchHistory: []
+      matchHistory: [
+        {
+          id: 'mh1',
+          homeClub: {
+            id: '1',
+            name: 'Weekend Warriors',
+            logo: '/placeholder.svg',
+            totalDistance: 75.8,
+            members: [
+              { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true, distanceContribution: 18.2 },
+              { id: '2', name: 'Jane Sprinter', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 15.4 },
+              { id: '3', name: 'Bob Marathon', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 16.8 },
+              { id: '4', name: 'Emma Jogger', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 13.2 },
+              { id: '5', name: 'Tom Walker', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 12.2 },
+            ]
+          },
+          awayClub: {
+            id: '5',
+            name: 'Sprint Squad',
+            logo: '/placeholder.svg',
+            totalDistance: 68.3,
+            members: [
+              { id: '20', name: 'Alex Fast', avatar: '/placeholder.svg', isAdmin: true, distanceContribution: 15.2 },
+              { id: '21', name: 'Maria Quick', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 14.8 },
+              { id: '22', name: 'Steve Bolt', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 13.5 },
+              { id: '23', name: 'Anna Dash', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 12.8 },
+              { id: '24', name: 'Pete Flash', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 12.0 },
+            ]
+          },
+          startDate: new Date(new Date().getTime() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+          endDate: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          status: 'completed',
+          winner: 'home'
+        }
+      ]
     },
     {
       id: '2',
@@ -101,7 +134,41 @@ const mockUser: User = {
         endDate: new Date(new Date().getTime() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         status: 'active'
       },
-      matchHistory: []
+      matchHistory: [
+        {
+          id: 'mh2',
+          homeClub: {
+            id: '6',
+            name: 'Elite Striders',
+            logo: '/placeholder.svg',
+            totalDistance: 92.4,
+            members: [
+              { id: '30', name: 'Chris Elite', avatar: '/placeholder.svg', isAdmin: true, distanceContribution: 20.5 },
+              { id: '31', name: 'Sarah Speed', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 19.8 },
+              { id: '32', name: 'Mike Power', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 18.5 },
+              { id: '33', name: 'Lucy Swift', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 17.8 },
+              { id: '34', name: 'Dan Dash', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 15.8 },
+            ]
+          },
+          awayClub: {
+            id: '2',
+            name: 'Road Runners',
+            logo: '/placeholder.svg',
+            totalDistance: 85.6,
+            members: [
+              { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true, distanceContribution: 19.2 },
+              { id: '7', name: 'Alice Sprint', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 17.8 },
+              { id: '8', name: 'Charlie Run', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 16.9 },
+              { id: '11', name: 'Olivia Pace', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 16.2 },
+              { id: '12', name: 'Paul Path', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 15.5 },
+            ]
+          },
+          startDate: new Date(new Date().getTime() - 21 * 24 * 60 * 60 * 1000).toISOString(),
+          endDate: new Date(new Date().getTime() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+          status: 'completed',
+          winner: 'away'
+        }
+      ]
     }
   ],
   bio: '',
