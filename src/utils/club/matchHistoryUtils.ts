@@ -59,6 +59,7 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
   const currentDivisionIndex = divisionOrder.indexOf(club.division);
   const currentTier = club.tier;
   
+  // Start from Bronze 5
   let divisionIndex = 0;
   let tier = 5;
   
@@ -73,7 +74,9 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
   };
   
   let matchIndex = 0;
+  // Generate matches until we reach the current division and tier
   while (!(divisionIndex === currentDivisionIndex && tier === currentTier)) {
+    // For match generation, we'll assume wins to progress through divisions
     const isWin = true;
     const nextState = calculateNewDivisionAndTier(divisionOrder[divisionIndex], tier, isWin);
     
@@ -127,6 +130,7 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
       }
     };
     
+    // Generate opponent members
     const opponentClub = isHomeTeam ? match.awayClub : match.homeClub;
     const opponentMemberCount = Math.floor(Math.random() * 3) + 2;
     const opponentDistance = opponentClub.totalDistance;
@@ -145,13 +149,16 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
     
     generatedHistory.push(match);
     
+    // Update our current position in the league progression
     divisionIndex = divisionOrder.indexOf(nextState.division);
     tier = nextState.tier;
     matchIndex++;
     
+    // Safety check to prevent infinite loops
     if (matchIndex >= 20) break;
   }
   
+  // Sort by date, most recent first
   return generatedHistory.sort((a, b) => 
     new Date(b.endDate).getTime() - new Date(a.endDate).getTime()
   );
@@ -166,6 +173,7 @@ export const ensureClubHasProperMatchHistory = (club: Club): Club => {
     };
   }
   
+  // Check if the latest match's division and tier match the club's current division and tier
   const latestMatch = [...club.matchHistory].sort((a, b) => 
     new Date(b.endDate).getTime() - new Date(a.endDate).getTime()
   )[0];
