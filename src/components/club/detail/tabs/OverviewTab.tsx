@@ -3,7 +3,7 @@ import React from 'react';
 import { Club, User } from '@/types';
 import ClubStats from '../ClubStats';
 import ClubCurrentMatch from '../ClubCurrentMatch';
-import ClubAdminActions from '../../admin/ClubAdminActions';
+import ClubAdminActions from '@/components/admin/ClubAdminActions';
 
 interface OverviewTabProps {
   club: Club;
