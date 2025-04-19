@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Club } from '@/types';
 import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
@@ -23,18 +22,15 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
 
   // Helper function to get correct promotion/relegation text based on match result
   const getLeagueImpactText = (match: any, clubId: string) => {
-    // If the match has a leagueAfterMatch property, use it
+    // If the match has a leagueAfterMatch property, use it directly
     if (match.leagueAfterMatch) {
-      const { division, tier } = match.leagueAfterMatch;
-      return `${getResultVerb(match, clubId)} to ${division} ${tier}`;
+      return `${getResultVerb(match, clubId)} to ${match.leagueAfterMatch.division} ${match.leagueAfterMatch.tier}`;
     }
     
-    // Otherwise, calculate it
+    // Otherwise, calculate it (for backward compatibility)
     const isHomeTeam = match.homeClub.id === clubId;
     const weWon = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
 
-    // For old matches without the leagueAfterMatch property, use club's current division as reference
-    // This is not accurate but maintains backward compatibility
     const { division, tier } = calculateNewDivisionAndTier(club.division, club.tier, weWon);
     return `${getResultVerb(match, clubId)} to ${division} ${tier}`;
   };
