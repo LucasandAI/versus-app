@@ -37,9 +37,7 @@ const ClubDetailTabs: React.FC<ClubDetailTabsProps> = ({
       <TabsList className="grid grid-cols-3 mb-2">
         <TabsTrigger value="overview">Overview</TabsTrigger>
         <TabsTrigger value="members">Members</TabsTrigger>
-        {club.matchHistory.length > 0 && (
-          <TabsTrigger value="history">History</TabsTrigger>
-        )}
+        <TabsTrigger value="history">History</TabsTrigger>
       </TabsList>
       
       <TabsContent value="overview">
@@ -61,6 +59,35 @@ const ClubDetailTabs: React.FC<ClubDetailTabsProps> = ({
           currentMatch={club.currentMatch}
           onSelectMember={handleSelectUser}
         />
+      </TabsContent>
+      
+      <TabsContent value="history">
+        <div className="bg-white rounded-lg shadow p-4">
+          {club.matchHistory && club.matchHistory.length > 0 ? (
+            <div>
+              {/* Match history content would go here */}
+              <h3 className="text-lg font-medium mb-3">Match History</h3>
+              <ul className="space-y-4">
+                {club.matchHistory.map((match) => (
+                  <li key={match.id} className="border-b pb-3">
+                    <p className="font-medium">{match.homeClub.name} vs {match.awayClub.name}</p>
+                    <p className="text-sm text-gray-500">
+                      {new Date(match.startDate).toLocaleDateString()} - {new Date(match.endDate).toLocaleDateString()}
+                    </p>
+                    <p className="text-sm">
+                      Result: {match.winner === 'home' ? match.homeClub.name : match.awayClub.name} won
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No match history yet.</p>
+              <p className="text-sm text-gray-400">Completed matches will appear here.</p>
+            </div>
+          )}
+        </div>
       </TabsContent>
     </Tabs>
   );
