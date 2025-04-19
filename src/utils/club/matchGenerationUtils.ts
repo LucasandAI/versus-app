@@ -85,14 +85,15 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
       }
     };
 
-    // Generate opponent members
+    // Generate opponent members with correct distances
     const opponentClub = isHomeTeam ? match.awayClub : match.homeClub;
+    const opponentTotalDistance = opponentClub.totalDistance;
     opponentClub.members = Array.from({ length: 4 }).map((_, i) => ({
       id: `opponent-${matchIndex}-member-${i}`,
       name: `${opponentName} Runner ${i + 1}`,
       avatar: '/placeholder.svg',
       isAdmin: i === 0,
-      distanceContribution: parseFloat((opponentClub.totalDistance / 4).toFixed(1))
+      distanceContribution: parseFloat((opponentTotalDistance / 4).toFixed(1))
     }));
 
     generatedHistory.push(match);
@@ -102,8 +103,9 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
     divisionIndex = divisionOrder.indexOf(nextState.division);
     tier = nextState.tier;
     matchIndex++;
-    if (matchIndex >= 30) break;
+    if (matchIndex >= 30) break; // Safety limit
   }
 
+  // Make sure the history is sorted with most recent matches first
   return generatedHistory.sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime());
 };
