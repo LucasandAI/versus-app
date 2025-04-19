@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Club } from '@/types';
 import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
@@ -45,6 +46,13 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
     return weWon ? 'Promoted' : 'Relegated';
   };
 
+  // Format date in a readable way
+  const formatDateRange = (startDate: string, endDate: string) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    return `${start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}–${end.getDate()}, ${end.getFullYear()}`;
+  };
+
   return (
     <div className="bg-white rounded-lg shadow p-3 sm:p-4">
       <div className="flex items-center gap-2 mb-3">
@@ -54,20 +62,20 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
 
       {club.matchHistory && club.matchHistory.length > 0 ? (
         <div className="space-y-4">
-          {/* Show maximum of 2 matches by default unless showAllMatches is true */}
-          {club.matchHistory.slice(0, showAllMatches ? undefined : 2).map((match) => {
+          {/* Show maximum of 5 matches by default unless showAllMatches is true */}
+          {club.matchHistory.slice(0, showAllMatches ? undefined : 5).map((match) => {
             const isHomeTeam = match.homeClub.id === club.id;
             const ourTeam = isHomeTeam ? match.homeClub : match.awayClub;
             const theirTeam = isHomeTeam ? match.awayClub : match.homeClub;
             const weWon = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
             
             // Calculate total distances
-            const ourDistance = ourTeam.members.reduce((sum, m) => sum + (m.distanceContribution || 0), 0);
-            const theirDistance = theirTeam.members.reduce((sum, m) => sum + (m.distanceContribution || 0), 0);
+            const ourDistance = ourTeam.totalDistance || 
+              ourTeam.members.reduce((sum, m) => sum + (m.distanceContribution || 0), 0);
+            const theirDistance = theirTeam.totalDistance || 
+              theirTeam.members.reduce((sum, m) => sum + (m.distanceContribution || 0), 0);
             
-            const matchDate = new Date(match.startDate);
-            const endDate = new Date(match.endDate);
-            const dateRange = `${matchDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}–${endDate.getDate()}, ${endDate.getFullYear()}`;
+            const dateRange = formatDateRange(match.startDate, match.endDate);
 
             return (
               <div key={match.id} className="space-y-2 pb-3 border-b border-gray-100 last:border-0">
@@ -150,7 +158,7 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
             );
           })}
 
-          {club.matchHistory.length > 2 && (
+          {club.matchHistory.length > 5 && (
             <button
               className="w-full text-primary hover:text-primary/80 text-xs py-1 flex items-center justify-center gap-1"
               onClick={handleViewAllHistory}
@@ -163,7 +171,7 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
               ) : (
                 <>
                   <ChevronDown className="h-3 w-3" />
-                  View All Match History ({club.matchHistory.length - 2} more)
+                  View All Match History ({club.matchHistory.length - 5} more)
                 </>
               )}
             </button>
