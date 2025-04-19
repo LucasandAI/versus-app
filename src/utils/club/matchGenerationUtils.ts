@@ -27,21 +27,17 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
   const generatedHistory: Match[] = [];
   const maxMatches = 10; // Generate up to 10 matches
 
-  // Generate a realistic mix of wins and losses - more wins than losses
-  // to ensure progression to the current division
+  // Generate matches to reach the club's current division and tier
+  let remainingMatches = maxMatches;
   const matchResults: boolean[] = [];
   
-  // Generate matches to progress to current division and tier
-  let matchIndex = 0;
-  
-  while (matchIndex < maxMatches) {
-    // For realistic progression, have some losses mixed in
-    // but ensure we'll reach the target division eventually
-    const shouldWin = Math.random() > 0.3 || 
-      (currentDivision === club.division && currentTier > club.tier) || 
-      (divisionOrder.indexOf(currentDivision) < divisionOrder.indexOf(club.division));
-    
-    matchResults.push(shouldWin);
+  // First, determine match results needed to progress to current division/tier
+  while (remainingMatches > 0) {
+    // Favor wins to progress toward target division, with some losses for realism
+    const shouldWin = remainingMatches > 3 ? 
+      Math.random() > 0.3 || 
+      (currentDivision !== club.division || currentTier > club.tier) : 
+      (currentDivision !== club.division || currentTier > club.tier);
     
     // Calculate new division & tier after this match
     const nextState = calculateNewDivisionAndTier(
@@ -51,56 +47,60 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
       elitePoints
     );
     
+    // Record result
+    matchResults.push(shouldWin);
+    
     // Check if we've reached or exceeded the target division
-    if (
-      (nextState.division === club.division && nextState.tier <= club.tier) ||
-      (divisionOrder.indexOf(nextState.division) > divisionOrder.indexOf(club.division))
+    if (nextState.division === club.division && nextState.tier === club.tier) {
+      // We've reached the exact target
+      currentDivision = nextState.division;
+      currentTier = nextState.tier;
+      if (nextState.elitePoints !== undefined) elitePoints = nextState.elitePoints;
+      break;
+    } else if (
+      divisionOrder.indexOf(nextState.division) > divisionOrder.indexOf(club.division) || 
+      (nextState.division === club.division && nextState.tier < club.tier)
     ) {
-      // We've reached or exceeded our target, start adding some losses
-      // to get back to exactly the target division/tier
-      if (nextState.division !== club.division || nextState.tier !== club.tier) {
-        matchResults[matchIndex] = false; // Change this match to a loss
-        const newState = calculateNewDivisionAndTier(
-          currentDivision, 
-          currentTier, 
-          false,
-          elitePoints
-        );
-        currentDivision = newState.division;
-        currentTier = newState.tier;
-        if (newState.elitePoints !== undefined) elitePoints = newState.elitePoints;
-      } else {
-        // Exactly at target
-        currentDivision = nextState.division;
-        currentTier = nextState.tier;
-        if (nextState.elitePoints !== undefined) elitePoints = nextState.elitePoints;
-        // Stop when we have exactly reached our target
-        if (matchIndex >= 2) break; // Ensure we have at least 3 matches
-      }
+      // We've overshot the target, change this match to a loss
+      matchResults[matchResults.length - 1] = false;
+      
+      // Recalculate with a loss
+      const revisedState = calculateNewDivisionAndTier(
+        currentDivision, 
+        currentTier, 
+        false,
+        elitePoints
+      );
+      
+      currentDivision = revisedState.division;
+      currentTier = revisedState.tier;
+      if (revisedState.elitePoints !== undefined) elitePoints = revisedState.elitePoints;
     } else {
-      // Not yet at target, continue progression
+      // Update state and continue
       currentDivision = nextState.division;
       currentTier = nextState.tier;
       if (nextState.elitePoints !== undefined) elitePoints = nextState.elitePoints;
     }
     
-    matchIndex++;
+    remainingMatches--;
     
-    // Safety check to prevent infinite loops
-    if (matchIndex >= maxMatches) break;
+    // If we've generated enough matches or can't progress further, stop
+    if (remainingMatches <= 0 || (currentDivision === 'Bronze' && currentTier === 5 && !shouldWin)) {
+      break;
+    }
   }
 
-  // Reset to starting state
+  // Reset to starting state to generate actual matches
   currentDivision = 'Bronze';
   currentTier = 5;
   elitePoints = 0;
   
-  // Now generate the actual matches based on our determined results sequence
+  // Generate the actual match objects based on the determined results
   for (let i = 0; i < matchResults.length; i++) {
     const isWin = matchResults[i];
     
-    // Calculate the new state after this match
-    const nextState = calculateNewDivisionAndTier(
+    // Calculate the result of this match
+    const matchOutcome = calculateNewDivisionAndTier(
       currentDivision, 
       currentTier, 
       isWin,
@@ -161,18 +161,18 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
       status: 'completed',
       winner: isWin ? (isHomeTeam ? 'home' : 'away') : (isHomeTeam ? 'away' : 'home'),
       leagueAfterMatch: {
-        division: nextState.division,
-        tier: nextState.tier,
-        elitePoints: nextState.elitePoints
+        division: matchOutcome.division,
+        tier: matchOutcome.tier,
+        elitePoints: matchOutcome.elitePoints
       }
     };
     
     generatedHistory.push(match);
     
-    // Update for next iteration
-    currentDivision = nextState.division;
-    currentTier = nextState.tier;
-    if (nextState.elitePoints !== undefined) elitePoints = nextState.elitePoints;
+    // Update for next match
+    currentDivision = matchOutcome.division;
+    currentTier = matchOutcome.tier;
+    if (matchOutcome.elitePoints !== undefined) elitePoints = matchOutcome.elitePoints;
   }
   
   // Sort match history with most recent first

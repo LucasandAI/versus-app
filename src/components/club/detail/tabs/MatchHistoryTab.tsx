@@ -39,8 +39,8 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
       ? ` (${match.leagueAfterMatch.elitePoints} points)`
       : '';
       
-    const result = weWon ? 'Promoted' : 'Relegated';
-    return `${result} to ${emoji} ${formattedLeague}${pointsInfo}`;
+    const result = weWon ? 'Promoted to' : 'Relegated to';
+    return `${result} ${emoji} ${formattedLeague}${pointsInfo}`;
   };
 
   // Format date in a readable way
