@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Club } from '@/types';
 import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import MatchProgressBar from '@/components/shared/MatchProgressBar';
+import { formatLeague, getDivisionEmoji } from '@/utils/club/leagueUtils';
 
 interface MatchHistoryTabProps {
   club: Club;
@@ -26,8 +27,20 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
     
     const isHomeTeam = match.homeClub.id === clubId;
     const weWon = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
+    
+    // Get emoji for the division
+    const emoji = getDivisionEmoji(match.leagueAfterMatch.division);
+    
+    // Format league display
+    const formattedLeague = formatLeague(match.leagueAfterMatch.division, match.leagueAfterMatch.tier);
+    
+    // Add points info for Elite division
+    const pointsInfo = match.leagueAfterMatch.division === 'Elite' && match.leagueAfterMatch.elitePoints !== undefined
+      ? ` (${match.leagueAfterMatch.elitePoints} points)`
+      : '';
+      
     const result = weWon ? 'Promoted' : 'Relegated';
-    return `${result} to ${match.leagueAfterMatch.division} ${match.leagueAfterMatch.tier}`;
+    return `${result} to ${emoji} ${formattedLeague}${pointsInfo}`;
   };
 
   // Format date in a readable way
@@ -46,8 +59,8 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
 
       {club.matchHistory && club.matchHistory.length > 0 ? (
         <div className="space-y-4">
-          {/* Show maximum of 5 matches by default unless showAllMatches is true */}
-          {club.matchHistory.slice(0, showAllMatches ? undefined : 5).map((match) => {
+          {/* Show maximum of 3 matches by default unless showAllMatches is true */}
+          {club.matchHistory.slice(0, showAllMatches ? undefined : 3).map((match) => {
             const isHomeTeam = match.homeClub.id === club.id;
             const ourTeam = isHomeTeam ? match.homeClub : match.awayClub;
             const theirTeam = isHomeTeam ? match.awayClub : match.homeClub;
@@ -142,7 +155,7 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
             );
           })}
 
-          {club.matchHistory.length > 5 && (
+          {club.matchHistory.length > 3 && (
             <button
               className="w-full text-primary hover:text-primary/80 text-xs py-1 flex items-center justify-center gap-1"
               onClick={handleViewAllHistory}
@@ -155,7 +168,7 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
               ) : (
                 <>
                   <ChevronDown className="h-3 w-3" />
-                  View All Match History ({club.matchHistory.length - 5} more)
+                  View All Match History ({club.matchHistory.length - 3} more)
                 </>
               )}
             </button>

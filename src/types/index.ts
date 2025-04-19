@@ -57,6 +57,7 @@ export interface Match {
   leagueAfterMatch?: {
     division: Division;
     tier?: number;
+    elitePoints?: number;
   };
 }
 
