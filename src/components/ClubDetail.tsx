@@ -18,7 +18,7 @@ const ClubDetail: React.FC = () => {
       const clubWithHistory = ensureClubHasProperMatchHistory(selectedClub);
       
       // Update if there are any changes
-      if (clubWithHistory !== selectedClub) {
+      if (JSON.stringify(clubWithHistory) !== JSON.stringify(selectedClub)) {
         console.log('Syncing club data:', 
           `${selectedClub.division} ${selectedClub.tier}`, 'to', 
           `${clubWithHistory.division} ${clubWithHistory.tier}`,

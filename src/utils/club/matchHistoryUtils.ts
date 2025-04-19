@@ -64,8 +64,8 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
   };
   
   // Always start from Bronze 5
-  let divisionIndex = 0;
-  let tier = 5;
+  let currentDivisionIndex = 0;
+  let currentTier = 5;
   
   const generatedHistory: Match[] = [];
   const opponents = ['Weekend Warriors', 'Road Runners', 'Sprint Squad', 'Hill Climbers', 
@@ -78,19 +78,58 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
   };
   
   let matchIndex = 0;
+  let consecutiveWins = 0;
+  let consecutiveLosses = 0;
   
   // Generate matches until we reach the target division and tier
   while (
-    divisionOrder[divisionIndex] !== targetState.division || 
-    tier !== targetState.tier
+    (divisionOrder[currentDivisionIndex] !== targetState.division || 
+    currentTier !== targetState.tier) || 
+    // Ensure we have at least 5 matches even if we're already at the target
+    (generatedHistory.length < 5)
   ) {
-    // For normal progression, we'll use mostly wins (80% chance)
-    const isWin = Math.random() < 0.8;
-    const nextState = calculateNewDivisionAndTier(divisionOrder[divisionIndex], tier, isWin);
+    // Calculate if this would be the final match to reach target state
+    const isFinalMatch = divisionOrder[currentDivisionIndex] === targetState.division && 
+                        ((currentTier === targetState.tier + 1 && currentTier > 1) ||
+                         (currentTier === 5 && divisionOrder[currentDivisionIndex - 1] === targetState.division));
     
-    // If we lose and would go backwards, sometimes skip this match to ensure progression
-    if (!isWin && (nextState.division !== divisionOrder[divisionIndex] || nextState.tier > tier)) {
-      if (Math.random() < 0.5) continue; // 50% chance to retry for a win instead
+    // For normal progression, use mostly wins (70-80% chance)
+    // But occasionally have losses to make history more realistic
+    // Adjust win probability based on consecutive results
+    let winProbability = 0.75;
+    if (consecutiveWins > 2) winProbability = 0.6; // Less likely to win after winning streak
+    if (consecutiveLosses > 1) winProbability = 0.9; // More likely to win after losing streak
+    
+    // Force a win for the final match that reaches target state
+    const isWin = isFinalMatch ? true : Math.random() < winProbability;
+    
+    // Calculate the next division/tier state after this match
+    const nextState = calculateNewDivisionAndTier(
+      divisionOrder[currentDivisionIndex], 
+      currentTier, 
+      isWin
+    );
+    
+    // If we'd go beyond our target with this win, adjust to end exactly at target
+    let actualNextState = { ...nextState };
+    if (isWin && isFinalMatch) {
+      actualNextState.division = targetState.division;
+      actualNextState.tier = targetState.tier;
+    }
+    
+    // If a loss would set us too far back, sometimes skip to maintain progression
+    if (!isWin && matchIndex > 5 && Math.random() < 0.3) {
+      consecutiveLosses++;
+      continue;
+    }
+    
+    // Update consecutive win/loss tracking
+    if (isWin) {
+      consecutiveWins++;
+      consecutiveLosses = 0;
+    } else {
+      consecutiveLosses++;
+      consecutiveWins = 0;
     }
     
     const opponentName = opponents[Math.floor(Math.random() * opponents.length)];
@@ -103,9 +142,9 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
     
     // Calculate date - earliest matches are further in the past
     // More days in the past for earlier divisions
-    const divisionFactor = (5 - divisionIndex) * 30; // Each division is about a month
-    const tierFactor = tier * 7; // Each tier is about a week
-    const daysAgo = divisionFactor + tierFactor + matchIndex * 3; // 2-3 matches per week
+    const divisionFactor = (5 - currentDivisionIndex) * 30; // Each division is about a month
+    const tierFactor = currentTier * 7; // Each tier is about a week
+    const daysAgo = divisionFactor + tierFactor - matchIndex; // Most recent matches are closer to today
     
     const endDate = generatePastDate(daysAgo);
     const startDate = new Date(endDate);
@@ -143,13 +182,10 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
       endDate: endDate.toISOString(),
       status: 'completed',
       winner: isWin ? (isHomeTeam ? 'home' : 'away') : (isHomeTeam ? 'away' : 'home'),
-      leagueAfterMatch: {
-        division: nextState.division,
-        tier: nextState.tier
-      }
+      leagueAfterMatch: actualNextState
     };
     
-    // Generate opponent members with better distribution (1 star, some mid-range, 1 low performer)
+    // Generate opponent members with better distribution
     const opponentClub = isHomeTeam ? match.awayClub : match.homeClub;
     const opponentMemberCount = Math.floor(Math.random() * 3) + 3; // 3-5 members
     const opponentDistance = opponentClub.totalDistance;
@@ -173,8 +209,8 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
     
     // Then add middle performers
     for (let i = 0; i < opponentMemberCount - 2; i++) {
-      const midPerformerPercent = (0.15 + Math.random() * 0.1) * (opponentMemberCount - 2);
-      const midDistance = parseFloat((remainingDistance / midPerformerPercent).toFixed(1));
+      const midPerformerPercent = (0.15 + Math.random() * 0.1);
+      const midDistance = parseFloat((remainingDistance * midPerformerPercent).toFixed(1));
       remainingDistance -= midDistance;
       
       opponentMembers.push({
@@ -199,12 +235,32 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
     generatedHistory.push(match);
     
     // Update our position for the next iteration
-    divisionIndex = divisionOrder.indexOf(nextState.division);
-    tier = nextState.tier;
+    currentDivisionIndex = divisionOrder.indexOf(actualNextState.division);
+    currentTier = actualNextState.tier;
     matchIndex++;
     
     // Safety check to prevent infinite loops
     if (matchIndex >= 30) break;
+    
+    // If we've reached our target and have at least 5 matches, stop
+    if (currentDivisionIndex === divisionOrder.indexOf(targetState.division) && 
+        currentTier === targetState.tier &&
+        generatedHistory.length >= 5) {
+      break;
+    }
+  }
+  
+  // Ensure the last match correctly promotes to the club's current division/tier
+  if (generatedHistory.length > 0) {
+    const lastMatch = generatedHistory[generatedHistory.length - 1];
+    lastMatch.leagueAfterMatch = {
+      division: targetState.division,
+      tier: targetState.tier
+    };
+    
+    // Make sure the last match is a win
+    const isHomeTeam = lastMatch.homeClub.id === club.id;
+    lastMatch.winner = isHomeTeam ? 'home' : 'away';
   }
   
   // Sort by date, most recent first
