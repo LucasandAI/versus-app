@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
@@ -8,8 +7,7 @@ import SupportPopover from './shared/SupportPopover';
 import CreateClubDialog from './club/CreateClubDialog';
 import SearchClubDialog from './club/SearchClubDialog';
 import HomeHeader from './home/HomeHeader';
-import ClubList from './home/ClubList';
-import FindClubsSection from './home/FindClubsSection';
+import HomeClubsSection from './home/HomeClubsSection';
 import HomeNotifications from './home/HomeNotifications';
 import { useClubActions } from '@/hooks/home/useClubActions';
 import { useSupportActions } from '@/hooks/home/useSupportActions';
@@ -36,11 +34,11 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
 
   const { supportTickets, handleCreateSupportTicket } = useSupportActions();
 
-  // Add effect to refresh when user data is updated
   useEffect(() => {
     const handleUserDataUpdate = () => {
-      // This will cause the component to re-render with latest user data
       console.log('User data updated, refreshing HomeView');
+      
+      setNotifications(prev => [...prev]);
     };
     
     window.addEventListener('userDataUpdated', handleUserDataUpdate);
@@ -71,14 +69,12 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   };
 
   const handleMarkNotificationAsRead = (id: string) => {
-    // Update the UI state
     setNotifications(prev => 
       prev.map(notification => 
         notification.id === id ? { ...notification, read: true } : notification
       )
     );
     
-    // Update localStorage
     const updatedNotifications = notifications.map(notification => 
       notification.id === id ? { ...notification, read: true } : notification
     );
@@ -89,14 +85,11 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   };
 
   const handleDeclineInvite = (id: string) => {
-    // Remove the notification from the UI
     setNotifications(prev => prev.filter(notification => notification.id !== id));
     
-    // Update localStorage
     const updatedNotifications = notifications.filter(notification => notification.id !== id);
     localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
     
-    // Dispatch event to update notifications
     const event = new CustomEvent('notificationsUpdated');
     window.dispatchEvent(event);
   };
@@ -111,6 +104,8 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
 
   const userClubs = currentUser?.clubs || [];
   const isAtClubCapacity = userClubs.length >= 3;
+
+  console.log('HomeView rendering with clubs:', userClubs.map(c => c.name));
 
   return (
     <div className="pb-20 pt-6">
@@ -131,30 +126,15 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
           onOpenChat={handleOpenChat}
         />
 
-        <ClubList 
+        <HomeClubsSection 
           userClubs={userClubs}
+          availableClubs={availableClubs}
           onSelectClub={handleSelectClub}
           onSelectUser={handleSelectUser}
           onCreateClub={() => setCreateClubDialogOpen(true)}
+          onRequestJoin={handleRequestToJoin}
+          onSearchClick={() => setSearchDialogOpen(true)}
         />
-
-        {!isAtClubCapacity && (
-          <FindClubsSection 
-            clubs={availableClubs}
-            onRequestJoin={handleRequestToJoin}
-            onSearchClick={() => setSearchDialogOpen(true)}
-            onCreateClick={() => setCreateClubDialogOpen(true)}
-          />
-        )}
-
-        {isAtClubCapacity && (
-          <div className="mt-10 bg-white rounded-lg shadow-md p-6 text-center">
-            <h3 className="font-medium mb-2">Club Limit Reached</h3>
-            <p className="text-gray-500 text-sm mb-4">
-              You have reached the maximum of 3 clubs.
-            </p>
-          </div>
-        )}
       </div>
 
       <ChatDrawer 

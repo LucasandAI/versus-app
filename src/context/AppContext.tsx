@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { AppContextType, AppView, Club, User } from '../types';
 
@@ -195,9 +196,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const updatedClub = currentUser.clubs.find(club => club.id === selectedClub.id);
       if (updatedClub) {
         setSelectedClub(updatedClub);
+      } else {
+        // If the club is no longer in the user's clubs (e.g., after leaving it), clear it
+        setSelectedClub(null);
       }
     }
   }, [currentUser, selectedClub]);
+
+  // Update selected user when current user changes
+  useEffect(() => {
+    if (selectedUser && currentUser && selectedUser.id === currentUser.id) {
+      // If the selected user is the current user, update it to reflect changes
+      setSelectedUser(currentUser);
+    }
+  }, [currentUser, selectedUser]);
 
   const connectToStrava = () => {
     // In a real app, this would redirect to Strava OAuth

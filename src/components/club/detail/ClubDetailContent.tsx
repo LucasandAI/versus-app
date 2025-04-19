@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
@@ -15,7 +16,7 @@ interface ClubDetailContentProps {
 }
 
 const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
-  const { currentUser, setCurrentView } = useApp();
+  const { currentUser, setCurrentView, setCurrentUser, setSelectedClub } = useApp();
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const { handleRequestToJoin, handleJoinClub } = useClubJoin();
@@ -91,15 +92,39 @@ const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
       ...currentUser,
       clubs: updatedClubs
     };
+
+    // Update localStorage clubs
+    let allClubs = [];
+    try {
+      const storedClubs = localStorage.getItem('clubs');
+      allClubs = storedClubs ? JSON.parse(storedClubs) : [];
+      
+      // Update the club in localStorage
+      const clubIndex = allClubs.findIndex((c: any) => c.id === club.id);
+      if (clubIndex !== -1) {
+        allClubs[clubIndex] = updatedClub;
+        localStorage.setItem('clubs', JSON.stringify(allClubs));
+      }
+    } catch (error) {
+      console.error('Error updating clubs in localStorage:', error);
+    }
     
+    // Update currentUser in context and localStorage
+    setCurrentUser(updatedUser);
     localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+    
+    // Clear selected club to prevent stale data
+    setSelectedClub(null);
     
     toast({
       title: "Left Club",
       description: `You have successfully left ${club.name}.`
     });
+    
+    // Redirect to home after leaving
     setCurrentView('home');
     
+    // Notify the app about the user data change
     window.dispatchEvent(new CustomEvent('userDataUpdated'));
   };
 
