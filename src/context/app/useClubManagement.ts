@@ -2,7 +2,10 @@
 import { useState } from 'react';
 import { Club, User } from './types';
 
-export const useClubManagement = (currentUser: User | null, setCurrentUser: (user: User | null) => void) => {
+export const useClubManagement = (
+  currentUser: User | null, 
+  setCurrentUser: (user: User | null | ((prev: User | null) => User | null)) => void
+) => {
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
 
   const createClub = (name: string, logo: string) => {
