@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Match } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -6,6 +5,7 @@ import Button from '@/components/shared/Button';
 import MatchProgressBar from '@/components/shared/MatchProgressBar';
 import { ChevronDown } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
+import { useClubNavigation } from '@/hooks/useClubNavigation';
 
 interface ClubCurrentMatchProps {
   match: Match;
@@ -14,24 +14,43 @@ interface ClubCurrentMatchProps {
 
 const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfile }) => {
   const [showMatchDetails, setShowMatchDetails] = useState(false);
+  const { navigateToClub } = useClubNavigation();
 
   const handleMemberClick = (member: any) => {
     onViewProfile(member.id, member.name, member.avatar);
+  };
+
+  const handleClubClick = (club: any) => {
+    navigateToClub({
+      id: club.id,
+      name: club.name,
+      logo: club.logo,
+      members: club.members,
+      matchHistory: []
+    });
   };
 
   return (
     <div className="mt-6">
       <h3 className="font-bold text-md mb-4">Current Match</h3>
       <div className="flex justify-between items-center mb-3">
-        <div className="text-center">
+        <div 
+          className="text-center cursor-pointer"
+          onClick={() => handleClubClick(match.homeClub)}
+        >
           <UserAvatar 
             name={match.homeClub.name} 
             image={match.homeClub.logo} 
             size="md"
             className="h-14 w-14 mx-auto cursor-pointer" 
+            onClick={() => handleClubClick(match.homeClub)}
           />
-          <h3 className="mt-1 font-medium text-sm cursor-pointer hover:text-primary">{match.homeClub.name}</h3>
-          <p className="font-bold text-lg">{match.homeClub.totalDistance.toFixed(1)} km</p>
+          <h3 className="mt-1 font-medium text-sm hover:text-primary">
+            {match.homeClub.name}
+          </h3>
+          <p className="font-bold text-lg">
+            {match.homeClub.totalDistance.toFixed(1)} km
+          </p>
         </div>
 
         <div className="text-center px-2">
@@ -41,15 +60,23 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfil
           </span>
         </div>
 
-        <div className="text-center">
+        <div 
+          className="text-center cursor-pointer"
+          onClick={() => handleClubClick(match.awayClub)}
+        >
           <UserAvatar 
             name={match.awayClub.name} 
             image={match.awayClub.logo} 
             size="md"
             className="h-14 w-14 mx-auto cursor-pointer" 
+            onClick={() => handleClubClick(match.awayClub)}
           />
-          <h3 className="mt-1 font-medium text-sm cursor-pointer hover:text-primary">{match.awayClub.name}</h3>
-          <p className="font-bold text-lg">{match.awayClub.totalDistance.toFixed(1)} km</p>
+          <h3 className="mt-1 font-medium text-sm hover:text-primary">
+            {match.awayClub.name}
+          </h3>
+          <p className="font-bold text-lg">
+            {match.awayClub.totalDistance.toFixed(1)} km
+          </p>
         </div>
       </div>
 

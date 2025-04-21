@@ -1,27 +1,22 @@
-
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { Club } from '@/types';
 import UserAvatar from '../shared/UserAvatar';
 import MatchProgressBar from '../shared/MatchProgressBar';
 import { formatLeagueWithTier } from '@/lib/format';
+import { useClubNavigation } from '@/hooks/useClubNavigation';
 
 interface ClubCardProps {
   club: Club;
-  onSelectClub: (club: Club) => void;
   onSelectUser: (userId: string, name: string, avatar?: string) => void;
 }
 
-const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser }) => {
+const ClubCard: React.FC<ClubCardProps> = ({ 
+  club, 
+  onSelectUser 
+}) => {
   const [expanded, setExpanded] = useState(false);
-
-  const getDaysRemaining = (endDate: string) => {
-    const end = new Date(endDate);
-    const now = new Date();
-    const diffTime = end.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
+  const { navigateToClub } = useClubNavigation();
 
   const toggleExpanded = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -29,23 +24,20 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser })
   };
 
   const handleClubClick = () => {
-    onSelectClub(club);
+    navigateToClub(club);
   };
 
-  const handleClubNameClick = (e: React.MouseEvent, clubName: string) => {
+  const handleClubNameClick = (e: React.MouseEvent, clubData: Partial<Club>) => {
     e.stopPropagation();
-    // Only navigate to club if it's the home club (current club)
-    if (clubName === club.name) {
-      onSelectClub(club);
-    } else if (club.currentMatch) {
-      // For away club, find it in match data and navigate to it
-      const isHomeClub = club.currentMatch.homeClub.name === clubName;
-      const targetClub = isHomeClub ? club.currentMatch.homeClub : club.currentMatch.awayClub;
-      
-      // We need to find the full club object in the user's clubs
-      // For now, just navigate to current club as this is a placeholder
-      onSelectClub(club);
-    }
+    navigateToClub(clubData);
+  };
+
+  const getDaysRemaining = (endDate: string) => {
+    const end = new Date(endDate);
+    const now = new Date();
+    const diffTime = end.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
   };
 
   return (
@@ -88,14 +80,14 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser })
           <div className="flex justify-between items-center mb-3 text-sm">
             <span 
               className="font-medium cursor-pointer hover:text-primary"
-              onClick={(e) => handleClubNameClick(e, club.currentMatch.homeClub.name)}
+              onClick={(e) => handleClubNameClick(e, club.currentMatch!.homeClub)}
             >
               {club.currentMatch.homeClub.name}
             </span>
             <span className="text-xs text-gray-500">vs</span>
             <span 
               className="font-medium cursor-pointer hover:text-primary"
-              onClick={(e) => handleClubNameClick(e, club.currentMatch.awayClub.name)}
+              onClick={(e) => handleClubNameClick(e, club.currentMatch!.awayClub)}
             >
               {club.currentMatch.awayClub.name}
             </span>

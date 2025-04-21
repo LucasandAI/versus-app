@@ -11,6 +11,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useClubNavigation } from '@/hooks/useClubNavigation';
 
 interface LeaderboardClub {
   id: string;
@@ -102,6 +103,7 @@ const divisions: Division[] = ['Elite', 'Diamond', 'Platinum', 'Gold', 'Silver',
 
 const Leaderboard: React.FC = () => {
   const { setCurrentView, setSelectedClub, currentUser } = useApp();
+  const { navigateToClub } = useClubNavigation();
   const [selectedDivision, setSelectedDivision] = React.useState<Division | 'All'>('All');
   const [activeTab, setActiveTab] = React.useState<'global' | 'myClubs'>('global');
 
@@ -141,13 +143,15 @@ const Leaderboard: React.FC = () => {
   const userClubIds = currentUser?.clubs.map(club => club.id) || [];
   const userClubsInLeaderboard = leaderboardData.filter(club => userClubIds.includes(club.id));
   
-  const handleSelectClub = (clubId: string) => {
-    // Find club in currentUser's clubs
-    const club = currentUser?.clubs.find(c => c.id === clubId);
-    if (club) {
-      setSelectedClub(club);
-      setCurrentView('clubDetail');
-    }
+  const handleSelectClub = (clubData: LeaderboardClub) => {
+    navigateToClub({
+      id: clubData.id,
+      name: clubData.name,
+      division: clubData.division,
+      tier: clubData.tier,
+      members: [],
+      matchHistory: []
+    });
   };
 
   const getChangeIcon = (change: 'up' | 'down' | 'same') => {
@@ -257,7 +261,7 @@ const Leaderboard: React.FC = () => {
                     <tr 
                       key={club.id} 
                       className="hover:bg-gray-50 cursor-pointer"
-                      onClick={() => handleSelectClub(club.id)}
+                      onClick={() => handleSelectClub(club)}
                     >
                       <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {club.rank}
@@ -344,7 +348,7 @@ const Leaderboard: React.FC = () => {
                     <tr 
                       key={club.id} 
                       className="hover:bg-gray-50 cursor-pointer"
-                      onClick={() => handleSelectClub(club.id)}
+                      onClick={() => handleSelectClub(club)}
                     >
                       <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {club.rank}
