@@ -1,5 +1,6 @@
+
 import React, { useEffect, useState } from 'react';
-import { AppProvider, useApp } from '@/context/AppContext';
+import { useApp } from '@/context/AppContext';
 import ConnectScreen from '@/components/ConnectScreen';
 import HomeView from '@/components/HomeView';
 import Leaderboard from '@/components/Leaderboard';
@@ -10,7 +11,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { slugifyClubName } from '@/utils/slugify';
 
-const AppContent: React.FC = () => {
+const Index: React.FC = () => {
   const { currentView, currentUser, selectedClub } = useApp();
   const [chatNotifications, setChatNotifications] = useState(0);
   const location = useLocation();
@@ -127,22 +128,12 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <>
+    <div className="min-h-screen bg-gray-50">
       {renderView()}
       {currentUser?.stravaConnected && currentView !== 'connect' && <Navigation />}
       {currentUser?.stravaConnected && <SupportPopover onCreateSupportChat={handleCreateSupportTicket} />}
       <Toaster />
-    </>
-  );
-};
-
-const Index: React.FC = () => {
-  return (
-    <AppProvider>
-      <div className="min-h-screen bg-gray-50">
-        <AppContent />
-      </div>
-    </AppProvider>
+    </div>
   );
 };
 
