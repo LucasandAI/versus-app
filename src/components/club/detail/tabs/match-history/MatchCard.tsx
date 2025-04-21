@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Match } from '@/types';
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -10,13 +11,15 @@ interface MatchCardProps {
   clubId: string;
   expandedMatchId: string | null;
   onExpandToggle: (matchId: string) => void;
+  onSelectUser?: (userId: string, name: string, avatar?: string) => void;
 }
 
 const MatchCard: React.FC<MatchCardProps> = ({ 
   match, 
   clubId, 
   expandedMatchId, 
-  onExpandToggle 
+  onExpandToggle,
+  onSelectUser
 }) => {
   const isHomeTeam = match.homeClub.id === clubId;
   const ourTeam = isHomeTeam ? match.homeClub : match.awayClub;
@@ -142,6 +145,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
         <MatchDetails
           homeTeam={match.homeClub}
           awayTeam={match.awayClub}
+          onSelectUser={onSelectUser}
         />
       )}
     </div>
