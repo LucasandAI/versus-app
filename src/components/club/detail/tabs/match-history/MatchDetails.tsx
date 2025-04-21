@@ -20,16 +20,17 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({
   awayTeam,
   onSelectUser 
 }) => {
-  // Ensure each team has exactly 5 members
   const ensureTeamSize = (members: ClubMember[], teamName: string): ClubMember[] => {
     const result = [...members];
     
     // If we have fewer than 5 members, add placeholder members
     if (result.length < 5) {
-      for (let i = result.length; i < 5; i++) {
+      const existingMemberCount = result.length;
+      for (let i = existingMemberCount; i < 5; i++) {
+        const memberNumber = i + 1;
         result.push({
-          id: `${teamName}-member-${i}`,
-          name: `${teamName} Member ${i + 1}`,
+          id: `${teamName.toLowerCase()}-placeholder-${i}`,
+          name: `Inactive Member ${memberNumber}`,
           avatar: '/placeholder.svg',
           isAdmin: false,
           distanceContribution: 0
@@ -44,60 +45,45 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({
   const awayMembers = ensureTeamSize(awayTeam.members || [], awayTeam.name);
 
   const handleUserClick = (member: ClubMember) => {
-    if (onSelectUser) {
+    // Only allow clicking on real members, not placeholders
+    if (!member.id.includes('placeholder') && onSelectUser) {
       onSelectUser(member.id, member.name, member.avatar);
     }
   };
+
+  const renderMemberRow = (member: ClubMember) => (
+    <div 
+      key={member.id} 
+      className="flex justify-between text-xs items-center"
+    >
+      <div 
+        className={`flex items-center gap-2 ${!member.id.includes('placeholder') ? 'cursor-pointer hover:text-primary' : 'text-gray-400'}`}
+        onClick={() => handleUserClick(member)}
+      >
+        <UserAvatar name={member.name} image={member.avatar} size="sm" />
+        <span>{member.name}</span>
+      </div>
+      <span className="font-medium">
+        {member.distanceContribution !== undefined 
+          ? `${member.distanceContribution.toFixed(1)} km` 
+          : '0.0 km'}
+      </span>
+    </div>
+  );
 
   return (
     <div className="mt-3 bg-gray-50 p-3 rounded-md space-y-3">
       <div>
         <h4 className="text-xs font-semibold mb-2">{homeTeam.name} Members</h4>
         <div className="space-y-1">
-          {homeMembers.map((member) => (
-            <div 
-              key={member.id} 
-              className="flex justify-between text-xs items-center"
-            >
-              <div 
-                className="flex items-center gap-2 cursor-pointer hover:text-primary"
-                onClick={() => handleUserClick(member)}
-              >
-                <UserAvatar name={member.name} image={member.avatar} size="sm" />
-                <span>{member.name}</span>
-              </div>
-              <span className="font-medium">
-                {member.distanceContribution !== undefined 
-                  ? `${member.distanceContribution.toFixed(1)} km` 
-                  : '0.0 km'}
-              </span>
-            </div>
-          ))}
+          {homeMembers.map(renderMemberRow)}
         </div>
       </div>
       
       <div>
         <h4 className="text-xs font-semibold mb-2">{awayTeam.name} Members</h4>
         <div className="space-y-1">
-          {awayMembers.map((member) => (
-            <div 
-              key={member.id} 
-              className="flex justify-between text-xs items-center"
-            >
-              <div 
-                className="flex items-center gap-2 cursor-pointer hover:text-primary"
-                onClick={() => handleUserClick(member)}
-              >
-                <UserAvatar name={member.name} image={member.avatar} size="sm" />
-                <span>{member.name}</span>
-              </div>
-              <span className="font-medium">
-                {member.distanceContribution !== undefined 
-                  ? `${member.distanceContribution.toFixed(1)} km` 
-                  : '0.0 km'}
-              </span>
-            </div>
-          ))}
+          {awayMembers.map(renderMemberRow)}
         </div>
       </div>
     </div>
