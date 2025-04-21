@@ -9,18 +9,18 @@ export const calculateNewDivisionAndTier = (
   const divisionOrder: Division[] = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Elite'];
   const currentDivisionIndex = divisionOrder.indexOf(currentDivision);
   
+  // If it's a tie, maintain the current division and tier
+  if (!isWin) {
+    return { 
+      division: currentDivision, 
+      tier: currentTier,
+      ...(currentDivision === 'Elite' && { elitePoints })
+    };
+  }
+  
   // Handle Elite division specially (point-based system)
   if (currentDivision === 'Elite') {
-    const newPoints = isWin ? elitePoints + 1 : elitePoints - 1;
-    
-    // Drop to Diamond 1 if points go below 0
-    if (newPoints < 0) {
-      return { 
-        division: 'Diamond', 
-        tier: 1,
-        elitePoints: 0
-      };
-    }
+    const newPoints = elitePoints + 1;
     
     return { 
       division: 'Elite', 
@@ -29,57 +29,26 @@ export const calculateNewDivisionAndTier = (
     };
   }
   
-  // Normal division progression
-  if (isWin) {
-    // If at tier 1, promote to next division's tier 5 (or Elite)
-    if (currentTier === 1) {
-      const nextDivisionIndex = currentDivisionIndex + 1;
-      // Check if we can promote to next division
-      if (nextDivisionIndex < divisionOrder.length) {
-        const nextDivision = divisionOrder[nextDivisionIndex];
-        return { 
-          division: nextDivision, 
-          tier: nextDivision === 'Elite' ? 1 : 5,
-          elitePoints: nextDivision === 'Elite' ? 0 : undefined
-        };
-      } else {
-        // Stay at current division/tier if already at max
-        return { division: currentDivision, tier: currentTier };
-      }
-    } else {
-      // Otherwise move up a tier in the same division
+  // Normal division progression for wins
+  if (currentTier === 1) {
+    const nextDivisionIndex = currentDivisionIndex + 1;
+    if (nextDivisionIndex < divisionOrder.length) {
+      const nextDivision = divisionOrder[nextDivisionIndex];
       return { 
-        division: currentDivision, 
-        tier: currentTier - 1 
+        division: nextDivision, 
+        tier: nextDivision === 'Elite' ? 1 : 5,
+        elitePoints: nextDivision === 'Elite' ? 0 : undefined
       };
+    } else {
+      // Stay at current division/tier if already at max
+      return { division: currentDivision, tier: currentTier };
     }
   } else {
-    // Handle relegation for loss
-    // At Bronze 5, can't go lower
-    if (currentDivision === 'Bronze' && currentTier === 5) {
-      return { division: 'Bronze', tier: 5 };
-    }
-    
-    // If at tier 5, relegate to previous division's tier 1
-    if (currentTier === 5) {
-      const prevDivisionIndex = currentDivisionIndex - 1;
-      if (prevDivisionIndex >= 0) {
-        const prevDivision = divisionOrder[prevDivisionIndex];
-        return { 
-          division: prevDivision, 
-          tier: 1 
-        };
-      } else {
-        // Stay at current division/tier if already at min
-        return { division: currentDivision, tier: currentTier };
-      }
-    } else {
-      // Otherwise move down a tier in the same division
-      return { 
-        division: currentDivision, 
-        tier: currentTier + 1 
-      };
-    }
+    // Move up a tier in the same division
+    return { 
+      division: currentDivision, 
+      tier: currentTier - 1 
+    };
   }
 };
 
