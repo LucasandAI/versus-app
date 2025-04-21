@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Club } from '@/types';
 import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import MatchCard from './match-history/MatchCard';
+import { useApp } from '@/context/AppContext';
 
 interface MatchHistoryTabProps {
   club: Club;
@@ -11,6 +12,7 @@ interface MatchHistoryTabProps {
 const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
   const [showAllMatches, setShowAllMatches] = useState(false);
+  const { setSelectedUser, setCurrentView } = useApp();
 
   const handleViewMatchDetails = (matchId: string) => {
     setExpandedMatchId(expandedMatchId === matchId ? null : matchId);
@@ -20,7 +22,18 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
     setShowAllMatches(!showAllMatches);
   };
 
-  // Safely access match history and sort by date (newest first)
+  const handleSelectUser = (userId: string, name: string, avatar?: string) => {
+    setSelectedUser({
+      id: userId,
+      name: name,
+      avatar: avatar || '/placeholder.svg',
+      stravaConnected: true,
+      clubs: []
+    });
+    setCurrentView('profile');
+  };
+
+  // Sort match history by date (newest first)
   const matchHistory = club.matchHistory 
     ? [...club.matchHistory].sort((a, b) => 
         new Date(b.endDate).getTime() - new Date(a.endDate).getTime())
@@ -47,6 +60,7 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
               clubId={club.id}
               expandedMatchId={expandedMatchId}
               onExpandToggle={handleViewMatchDetails}
+              onSelectUser={handleSelectUser}
             />
           ))}
 

@@ -1,31 +1,36 @@
 
 import { useApp } from '@/context/AppContext';
-import { Club } from '@/types';
+import { Club, Division } from '@/types';
+import { generateMatchHistoryFromDivision } from '@/utils/club/matchGenerationUtils';
 
 export const useClubNavigation = () => {
   const { setCurrentView, setSelectedClub, currentUser } = useApp();
 
-  const navigateToClub = (club: Club | Partial<Club>) => {
-    // If it's one of the user's clubs, we have full data
+  const navigateToClub = (club: Partial<Club>) => {
+    // Check if it's one of the user's clubs first
     const userClub = currentUser?.clubs.find(c => c.id === club.id);
+    
     if (userClub) {
       setSelectedClub(userClub);
       setCurrentView('clubDetail');
       return;
     }
 
-    // For other clubs, create a minimal club object
-    const minimalClub: Club = {
+    // For non-member clubs, create a complete club object with generated match history
+    const completeClub: Club = {
       id: club.id || '',
       name: club.name || '',
       logo: club.logo || '/placeholder.svg',
-      division: club.division || 'Bronze',
+      division: club.division as Division || 'Bronze',
       tier: club.tier || 5,
       members: club.members || [],
       matchHistory: []
     };
 
-    setSelectedClub(minimalClub);
+    // Generate match history for the club
+    completeClub.matchHistory = generateMatchHistoryFromDivision(completeClub);
+
+    setSelectedClub(completeClub);
     setCurrentView('clubDetail');
   };
 
