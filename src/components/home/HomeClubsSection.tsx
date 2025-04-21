@@ -8,7 +8,7 @@ interface HomeClubsSectionProps {
   userClubs: Club[];
   availableClubs: any[];
   onSelectClub: (club: Club) => void;
-  onSelectUser: (userId: string, name: string) => void;
+  onSelectUser: (userId: string, name: string, avatar?: string) => void;
   onCreateClub: () => void;
   onRequestJoin: (clubId: string, clubName: string) => void;
   onSearchClick: () => void;
@@ -17,7 +17,6 @@ interface HomeClubsSectionProps {
 const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
   userClubs,
   availableClubs,
-  onSelectClub,
   onSelectUser,
   onCreateClub,
   onRequestJoin,
@@ -29,7 +28,6 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
     <>
       <ClubList 
         userClubs={userClubs}
-        onSelectClub={onSelectClub}
         onSelectUser={onSelectUser}
         onCreateClub={onCreateClub}
       />

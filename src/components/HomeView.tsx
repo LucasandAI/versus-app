@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
@@ -53,11 +54,11 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
     setCurrentView('clubDetail');
   };
 
-  const handleSelectUser = (userId: string, name: string) => {
+  const handleSelectUser = (userId: string, name: string, avatar?: string) => {
     setSelectedUser({
       id: userId,
       name: name,
-      avatar: '/placeholder.svg',
+      avatar: avatar || '/placeholder.svg',
       stravaConnected: true,
       clubs: []
     });

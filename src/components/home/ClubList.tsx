@@ -6,14 +6,12 @@ import Button from '../shared/Button';
 
 interface ClubListProps {
   userClubs: Club[];
-  onSelectClub: (club: Club) => void;
-  onSelectUser: (userId: string, name: string) => void;
+  onSelectUser: (userId: string, name: string, avatar?: string) => void;
   onCreateClub: () => void;
 }
 
 const ClubList: React.FC<ClubListProps> = ({
   userClubs,
-  onSelectClub,
   onSelectUser,
   onCreateClub,
 }) => {
@@ -41,7 +39,6 @@ const ClubList: React.FC<ClubListProps> = ({
         <ClubCard
           key={club.id}
           club={club}
-          onSelectClub={onSelectClub}
           onSelectUser={onSelectUser}
         />
       ))}
