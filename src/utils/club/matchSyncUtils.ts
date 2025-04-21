@@ -51,9 +51,6 @@ export const syncClubDivisionWithMatchHistory = (club: Club): Club => {
     ...club,
     division: newDivisionAndTier.division,
     tier: newDivisionAndTier.tier,
-    // Include elite points if available
-    ...(newDivisionAndTier.elitePoints !== undefined && {
-      elitePoints: newDivisionAndTier.elitePoints
-    })
+    elitePoints: newDivisionAndTier.elitePoints || club.elitePoints
   };
 };

@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -55,6 +54,11 @@ export interface Match {
   endDate: string;
   status: 'upcoming' | 'active' | 'completed';
   winner?: 'home' | 'away';
+  leagueBeforeMatch?: {
+    division: Division;
+    tier?: number;
+    elitePoints?: number;
+  };
   leagueAfterMatch?: {
     division: Division;
     tier?: number;

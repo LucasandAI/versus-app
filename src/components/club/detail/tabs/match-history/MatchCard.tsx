@@ -32,34 +32,56 @@ const MatchCard: React.FC<MatchCardProps> = ({
   };
 
   const getLeagueImpactText = (match: Match, clubId: string) => {
-    if (!match.leagueAfterMatch) return 'No impact';
+    // If no leagueAfterMatch data, return "No impact"
+    if (!match.leagueAfterMatch || !match.leagueBeforeMatch) return 'No impact';
     
     const isHomeTeam = match.homeClub.id === clubId;
     const weWon = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
     
-    const emoji = getDivisionEmoji(match.leagueAfterMatch.division);
-    const formattedLeague = formatLeague(match.leagueAfterMatch.division, match.leagueAfterMatch.tier);
+    const beforeEmoji = getDivisionEmoji(match.leagueBeforeMatch.division);
+    const afterEmoji = getDivisionEmoji(match.leagueAfterMatch.division);
     
-    // For Elite League, show points information
+    const beforeLeague = formatLeague(match.leagueBeforeMatch.division, match.leagueBeforeMatch.tier);
+    const afterLeague = formatLeague(match.leagueAfterMatch.division, match.leagueAfterMatch.tier);
+    
+    // Check if division or tier changed
+    const isDivisionChange = match.leagueBeforeMatch.division !== match.leagueAfterMatch.division;
+    const isTierChange = match.leagueBeforeMatch.tier !== match.leagueAfterMatch.tier;
+    
+    // For Elite Division, show points information
     if (match.leagueAfterMatch.division === 'Elite') {
-      const pointChange = weWon ? "+1" : "-1";
-      const pointsText = match.leagueAfterMatch.elitePoints !== undefined 
-        ? `(${pointChange} point, total: ${match.leagueAfterMatch.elitePoints})`
-        : '';
+      const beforePoints = match.leagueBeforeMatch.elitePoints || 0;
+      const afterPoints = match.leagueAfterMatch.elitePoints || 0;
+      const pointChange = afterPoints - beforePoints;
+      const pointsText = `(${pointChange >= 0 ? '+' : ''}${pointChange} points, total: ${afterPoints})`;
       
-      return `${weWon ? 'Maintained' : 'Relegated to'} ${emoji} ${formattedLeague} ${pointsText}`;
+      if (match.leagueBeforeMatch.division !== 'Elite') {
+        return `Promoted to ${afterEmoji} ${afterLeague} ${pointsText}`;
+      } else {
+        return `${weWon ? 'Maintained' : 'Maintained'} ${afterEmoji} ${afterLeague} ${pointsText}`;
+      }
     }
     
     // For normal divisions, determine if it was a promotion, relegation, or maintenance
-    let actionText = 'Maintained';
-    
-    if (weWon) {
-      actionText = 'Promoted to';
+    if (isDivisionChange) {
+      const divisionOrderChange = 
+        ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Elite'].indexOf(match.leagueAfterMatch.division) >
+        ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Elite'].indexOf(match.leagueBeforeMatch.division);
+      
+      if (divisionOrderChange) {
+        return `Promoted to ${afterEmoji} ${afterLeague}`;
+      } else {
+        return `Relegated to ${afterEmoji} ${afterLeague}`;
+      }
+    } else if (isTierChange) {
+      if ((match.leagueBeforeMatch.tier || 0) > (match.leagueAfterMatch.tier || 0)) {
+        return `Promoted to ${afterEmoji} ${afterLeague}`;
+      } else {
+        return `Relegated to ${afterEmoji} ${afterLeague}`;
+      }
     } else {
-      actionText = 'Relegated to';
+      return `Maintained ${afterEmoji} ${afterLeague}`;
     }
-    
-    return `${actionText} ${emoji} ${formattedLeague}`;
   };
 
   const dateRange = formatDateRange(match.startDate, match.endDate);
