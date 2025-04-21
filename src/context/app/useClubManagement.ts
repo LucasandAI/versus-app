@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { Club, User } from './types';
+import { slugifyClubName } from '@/utils/slugify';
 
 export const useClubManagement = (
   currentUser: User | null, 
@@ -10,12 +11,15 @@ export const useClubManagement = (
 
   const createClub = (name: string, logo: string) => {
     if (currentUser) {
+      const clubSlug = slugifyClubName(name);
+      
       const newClub: Club = {
         id: Math.random().toString(36).substr(2, 9),
         name,
         logo,
         division: 'Bronze',
         tier: 5,
+        slug: clubSlug,
         bio: `Welcome to ${name}! We're a group of passionate runners looking to challenge ourselves and improve together.`,
         members: [
           {

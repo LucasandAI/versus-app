@@ -6,6 +6,8 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from "@/components/ui/skeleton";
 import UserAvatar from '@/components/shared/UserAvatar';
 import { formatLeagueWithTier } from '@/lib/format';
+import { useNavigate } from 'react-router-dom';
+import { slugifyClubName } from '@/utils/slugify';
 
 interface UserClubsProps {
   user: User;
@@ -14,6 +16,15 @@ interface UserClubsProps {
 }
 
 const UserClubs: React.FC<UserClubsProps> = ({ user, loading, onClubClick }) => {
+  const navigate = useNavigate();
+
+  const handleClubClick = (club: Club) => {
+    // Ensure club has a slug
+    const slug = club.slug || slugifyClubName(club.name);
+    navigate(`/clubs/${slug}`);
+    onClubClick(club);
+  };
+
   return (
     <Card className="w-full max-w-md mx-auto mt-4 p-6 rounded-lg">
       <div className="flex items-center mb-4">
@@ -32,7 +43,7 @@ const UserClubs: React.FC<UserClubsProps> = ({ user, loading, onClubClick }) => 
             <div 
               key={club.id} 
               className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-              onClick={() => onClubClick(club)}
+              onClick={() => handleClubClick(club)}
             >
               <UserAvatar 
                 name={club.name} 

@@ -2,16 +2,30 @@ import React, { useEffect, useState } from 'react';
 import { AppProvider, useApp } from '@/context/AppContext';
 import ConnectScreen from '@/components/ConnectScreen';
 import HomeView from '@/components/HomeView';
-import ClubDetail from '@/components/ClubDetail';
 import Leaderboard from '@/components/Leaderboard';
 import UserProfile from '@/components/UserProfile';
 import Navigation from '@/components/Navigation';
 import SupportPopover from '@/components/shared/SupportPopover';
 import { Toaster } from '@/components/ui/toaster';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { slugifyClubName } from '@/utils/slugify';
 
 const AppContent: React.FC = () => {
-  const { currentView, currentUser } = useApp();
+  const { currentView, currentUser, selectedClub } = useApp();
   const [chatNotifications, setChatNotifications] = useState(0);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Update URL when current view changes
+  useEffect(() => {
+    if (currentView === 'clubDetail' && selectedClub) {
+      const slug = selectedClub.slug || slugifyClubName(selectedClub.name);
+      // Only navigate if we're not already on this club page
+      if (!location.pathname.includes(`/clubs/${slug}`)) {
+        navigate(`/clubs/${slug}`);
+      }
+    }
+  }, [currentView, selectedClub, navigate, location]);
 
   // Load unread counts from localStorage on mount and when updated
   useEffect(() => {
@@ -78,8 +92,6 @@ const AppContent: React.FC = () => {
         return <ConnectScreen />;
       case 'home':
         return <HomeView chatNotifications={chatNotifications} />;
-      case 'clubDetail':
-        return <ClubDetail />;
       case 'leaderboard':
         return <Leaderboard />;
       case 'profile':
@@ -89,7 +101,7 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const handleCreateSupportChat = (ticketId: string, subject: string, message: string) => {
+  const handleCreateSupportTicket = (ticketId: string, subject: string, message: string) => {
     // Update local state immediately 
     setChatNotifications(prev => prev + 1);
     
@@ -118,7 +130,7 @@ const AppContent: React.FC = () => {
     <>
       {renderView()}
       {currentUser?.stravaConnected && currentView !== 'connect' && <Navigation />}
-      {currentUser?.stravaConnected && <SupportPopover onCreateSupportChat={handleCreateSupportChat} />}
+      {currentUser?.stravaConnected && <SupportPopover onCreateSupportChat={handleCreateSupportTicket} />}
       <Toaster />
     </>
   );
