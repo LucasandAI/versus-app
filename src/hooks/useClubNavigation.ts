@@ -1,7 +1,8 @@
 
 import { useApp } from '@/context/AppContext';
 import { Club, Division } from '@/types';
-import { generateMatchHistoryFromDivision } from '@/utils/club/matchGenerationUtils';
+import { generateMatchHistoryFromDivision } from '@/utils/club/matchHistoryUtils';
+import { getClubToJoin } from '@/utils/club';
 
 export const useClubNavigation = () => {
   const { setCurrentView, setSelectedClub, currentUser } = useApp();
@@ -16,21 +17,20 @@ export const useClubNavigation = () => {
       return;
     }
 
-    // For non-member clubs, create a complete club object with generated match history
-    const completeClub: Club = {
-      id: club.id || '',
-      name: club.name || '',
-      logo: club.logo || '/placeholder.svg',
-      division: club.division as Division || 'Bronze',
-      tier: club.tier || 5,
-      members: club.members || [],
-      matchHistory: []
-    };
+    // For non-member clubs, get or create a complete club object
+    const clubToJoin = getClubToJoin(
+      club.id || '', 
+      club.name || '', 
+      currentUser?.clubs || []
+    );
 
-    // Generate match history for the club
-    completeClub.matchHistory = generateMatchHistoryFromDivision(completeClub);
+    // Ensure the club has match history
+    if (!clubToJoin.matchHistory || clubToJoin.matchHistory.length === 0) {
+      clubToJoin.matchHistory = generateMatchHistoryFromDivision(clubToJoin);
+    }
 
-    setSelectedClub(completeClub);
+    console.log("Navigating to non-member club:", clubToJoin);
+    setSelectedClub(clubToJoin);
     setCurrentView('clubDetail');
   };
 

@@ -26,13 +26,26 @@ export const isUserClubMember = (club: Club, userId: string): boolean => {
 };
 
 export const getClubToJoin = (clubId: string, clubName: string, allClubs: Club[]): Club => {
+  // Try to find the club in the available clubs (mock data)
   const mockClub = availableClubs.find(club => club.id === clubId);
+  
+  // Try to find the club in the user's clubs
   let clubToJoin = findClubById(clubId, allClubs);
 
+  // If club wasn't found, create it based on mock or as a new club
   if (!clubToJoin) {
-    clubToJoin = mockClub ? 
-      { ...createNewClub(mockClub.id, mockClub.name), division: mockClub.division as Division, tier: mockClub.tier } :
-      createNewClub(clubId, clubName);
+    if (mockClub) {
+      // Create from mock data
+      clubToJoin = { 
+        ...createNewClub(mockClub.id, mockClub.name),
+        division: mockClub.division as Division, 
+        tier: mockClub.tier,
+        logo: mockClub.logo || '/placeholder.svg'
+      };
+    } else {
+      // Create a completely new club
+      clubToJoin = createNewClub(clubId, clubName);
+    }
   }
 
   return clubToJoin;

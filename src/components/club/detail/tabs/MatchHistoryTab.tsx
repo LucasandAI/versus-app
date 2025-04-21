@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Club } from '@/types';
 import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
@@ -34,8 +35,13 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
     setCurrentView('profile');
   };
 
-  const handleSelectClub = (clubId: string, name: string) => {
-    navigateToClub({ id: clubId, name });
+  const handleSelectClub = (clubId: string, name: string, logo?: string) => {
+    console.log("Selecting club from match history:", clubId, name);
+    navigateToClub({ 
+      id: clubId, 
+      name,
+      logo: logo || '/placeholder.svg'
+    });
   };
 
   const matchHistory = club.matchHistory 
