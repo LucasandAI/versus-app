@@ -15,6 +15,10 @@ interface ClubCurrentMatchProps {
 const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfile }) => {
   const [showMatchDetails, setShowMatchDetails] = useState(false);
 
+  const handleMemberClick = (member: any) => {
+    onViewProfile(member.id, member.name, member.avatar);
+  };
+
   return (
     <div className="mt-6">
       <h3 className="font-bold text-md mb-4">Current Match</h3>
@@ -24,9 +28,9 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfil
             name={match.homeClub.name} 
             image={match.homeClub.logo} 
             size="md"
-            className="h-14 w-14 mx-auto" 
+            className="h-14 w-14 mx-auto cursor-pointer" 
           />
-          <h3 className="mt-1 font-medium text-sm">{match.homeClub.name}</h3>
+          <h3 className="mt-1 font-medium text-sm cursor-pointer hover:text-primary">{match.homeClub.name}</h3>
           <p className="font-bold text-lg">{match.homeClub.totalDistance.toFixed(1)} km</p>
         </div>
 
@@ -42,9 +46,9 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfil
             name={match.awayClub.name} 
             image={match.awayClub.logo} 
             size="md"
-            className="h-14 w-14 mx-auto" 
+            className="h-14 w-14 mx-auto cursor-pointer" 
           />
-          <h3 className="mt-1 font-medium text-sm">{match.awayClub.name}</h3>
+          <h3 className="mt-1 font-medium text-sm cursor-pointer hover:text-primary">{match.awayClub.name}</h3>
           <p className="font-bold text-lg">{match.awayClub.totalDistance.toFixed(1)} km</p>
         </div>
       </div>
@@ -74,11 +78,20 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfil
                 <div 
                   key={member.id} 
                   className="flex items-center justify-between cursor-pointer hover:bg-gray-100 rounded p-1"
-                  onClick={() => onViewProfile(member.id, member.name, member.avatar)}
+                  onClick={() => handleMemberClick(member)}
                 >
                   <div className="flex items-center gap-2">
-                    <UserAvatar name={member.name} image={member.avatar} size="sm" />
-                    <span className="text-sm">{member.name}</span>
+                    <UserAvatar 
+                      name={member.name} 
+                      image={member.avatar} 
+                      size="sm" 
+                      className="cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMemberClick(member);
+                      }}
+                    />
+                    <span className="text-sm hover:text-primary">{member.name}</span>
                   </div>
                   <span className="text-sm font-medium">{member.distanceContribution?.toFixed(1)} km</span>
                 </div>
@@ -92,11 +105,20 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfil
                 <div 
                   key={member.id} 
                   className="flex items-center justify-between cursor-pointer hover:bg-gray-100 rounded p-1"
-                  onClick={() => onViewProfile(member.id, member.name, member.avatar)}
+                  onClick={() => handleMemberClick(member)}
                 >
                   <div className="flex items-center gap-2">
-                    <UserAvatar name={member.name} image={member.avatar} size="sm" />
-                    <span className="text-sm">{member.name}</span>
+                    <UserAvatar 
+                      name={member.name} 
+                      image={member.avatar} 
+                      size="sm" 
+                      className="cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMemberClick(member);
+                      }}
+                    />
+                    <span className="text-sm hover:text-primary">{member.name}</span>
                   </div>
                   <span className="text-sm font-medium">{member.distanceContribution?.toFixed(1)} km</span>
                 </div>

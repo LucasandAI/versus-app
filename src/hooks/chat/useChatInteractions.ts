@@ -1,9 +1,11 @@
 
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
+import { useNavigation } from '@/hooks/useNavigation';
 
 export const useChatInteractions = () => {
-  const { setCurrentView, setSelectedClub, setSelectedUser } = useApp();
+  const { setCurrentView, setSelectedClub } = useApp();
+  const { navigateToUserProfile } = useNavigation();
 
   const handleMatchClick = (selectedClub: Club | null) => {
     if (!selectedClub || !selectedClub.currentMatch) return;
@@ -12,14 +14,7 @@ export const useChatInteractions = () => {
   };
 
   const handleSelectUser = (userId: string, userName: string, userAvatar: string = '/placeholder.svg') => {
-    setSelectedUser({
-      id: userId,
-      name: userName,
-      avatar: userAvatar,
-      stravaConnected: true,
-      clubs: []
-    });
-    setCurrentView('profile');
+    navigateToUserProfile(userId, userName, userAvatar);
   };
 
   return {

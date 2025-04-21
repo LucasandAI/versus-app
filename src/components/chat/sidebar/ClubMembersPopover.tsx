@@ -14,6 +14,10 @@ const ClubMembersPopover: React.FC<ClubMembersPopoverProps> = ({
   club,
   onSelectUser,
 }) => {
+  const handleUserClick = (member: any) => {
+    onSelectUser(member.id, member.name, member.avatar);
+  };
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -29,18 +33,21 @@ const ClubMembersPopover: React.FC<ClubMembersPopoverProps> = ({
           {club.members.map(member => (
             <div
               key={member.id}
-              className="w-full flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-md"
+              className="w-full flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-md cursor-pointer"
+              onClick={() => handleUserClick(member)}
             >
               <UserAvatar 
                 name={member.name} 
                 image={member.avatar} 
                 size="sm" 
                 className="cursor-pointer"
-                onClick={() => onSelectUser(member.id, member.name, member.avatar)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleUserClick(member);
+                }}
               />
               <span 
                 className="text-sm truncate cursor-pointer hover:text-primary"
-                onClick={() => onSelectUser(member.id, member.name, member.avatar)}
               >
                 {member.name}
               </span>

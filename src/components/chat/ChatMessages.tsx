@@ -3,6 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import UserAvatar from '../shared/UserAvatar';
 import { useApp } from '@/context/AppContext';
 import { ChatMessage } from '@/types/chat';
+import { useNavigation } from '@/hooks/useNavigation';
 
 interface ChatMessagesProps {
   messages: ChatMessage[];
@@ -15,7 +16,8 @@ interface ChatMessagesProps {
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, clubMembers, isSupport = false }) => {
-  const { setCurrentView, setSelectedUser, currentUser } = useApp();
+  const { currentUser } = useApp();
+  const { navigateToUserProfile } = useNavigation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -46,14 +48,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, clubMembers, isSu
     
     const member = clubMembers.find(m => m.id === senderId);
     if (member) {
-      setSelectedUser({
-        id: member.id,
-        name: member.name,
-        avatar: member.avatar || '/placeholder.svg',
-        stravaConnected: true,
-        clubs: []
-      });
-      setCurrentView('profile');
+      navigateToUserProfile(member.id, member.name, member.avatar || '/placeholder.svg');
     }
   };
 

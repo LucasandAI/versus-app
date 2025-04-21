@@ -28,10 +28,30 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser })
     setExpanded(!expanded);
   };
 
+  const handleClubClick = () => {
+    onSelectClub(club);
+  };
+
+  const handleClubNameClick = (e: React.MouseEvent, clubName: string) => {
+    e.stopPropagation();
+    // Only navigate to club if it's the home club (current club)
+    if (clubName === club.name) {
+      onSelectClub(club);
+    } else if (club.currentMatch) {
+      // For away club, find it in match data and navigate to it
+      const isHomeClub = club.currentMatch.homeClub.name === clubName;
+      const targetClub = isHomeClub ? club.currentMatch.homeClub : club.currentMatch.awayClub;
+      
+      // We need to find the full club object in the user's clubs
+      // For now, just navigate to current club as this is a placeholder
+      onSelectClub(club);
+    }
+  };
+
   return (
     <div 
       className="bg-white rounded-lg shadow-md p-4 cursor-pointer"
-      onClick={() => onSelectClub(club)}
+      onClick={handleClubClick}
     >
       <div className="flex items-center gap-3 mb-4">
         <div className="flex-shrink-0">
@@ -39,11 +59,12 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser })
             name={club.name} 
             image={club.logo} 
             size="md"
-            className="h-12 w-12"
+            className="h-12 w-12 cursor-pointer"
+            onClick={handleClubClick}
           />
         </div>
         <div>
-          <h3 className="font-medium">{club.name}</h3>
+          <h3 className="font-medium cursor-pointer hover:text-primary" onClick={handleClubClick}>{club.name}</h3>
           <div className="flex items-center gap-1">
             <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
               {formatLeagueWithTier(club.division, club.tier)}
@@ -65,11 +86,17 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser })
           </div>
           
           <div className="flex justify-between items-center mb-3 text-sm">
-            <span className="font-medium cursor-pointer hover:text-primary">
+            <span 
+              className="font-medium cursor-pointer hover:text-primary"
+              onClick={(e) => handleClubNameClick(e, club.currentMatch.homeClub.name)}
+            >
               {club.currentMatch.homeClub.name}
             </span>
             <span className="text-xs text-gray-500">vs</span>
-            <span className="font-medium cursor-pointer hover:text-primary">
+            <span 
+              className="font-medium cursor-pointer hover:text-primary"
+              onClick={(e) => handleClubNameClick(e, club.currentMatch.awayClub.name)}
+            >
               {club.currentMatch.awayClub.name}
             </span>
           </div>

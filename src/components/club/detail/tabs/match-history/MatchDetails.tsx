@@ -50,29 +50,38 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({
     }
   };
 
-  const renderMemberRow = (member: ClubMember) => (
-    <div 
-      key={member.id} 
-      className="flex justify-between text-xs items-center"
-    >
-      <div className="flex items-center gap-2">
-        <UserAvatar name={member.name} image={member.avatar} size="sm" />
-        <span 
-          className={!member.id.includes('placeholder') 
-            ? 'cursor-pointer hover:text-primary' 
-            : 'text-gray-400'}
-          onClick={() => handleUserClick(member)}
-        >
-          {member.name}
+  const renderMemberRow = (member: ClubMember) => {
+    const isRealMember = !member.id.includes('placeholder');
+    const clickableClass = isRealMember ? 'cursor-pointer hover:text-primary' : 'text-gray-400';
+    
+    return (
+      <div 
+        key={member.id} 
+        className="flex justify-between text-xs items-center"
+      >
+        <div className="flex items-center gap-2">
+          <UserAvatar 
+            name={member.name} 
+            image={member.avatar} 
+            size="sm" 
+            className={isRealMember ? 'cursor-pointer' : ''}
+            onClick={isRealMember ? () => handleUserClick(member) : undefined}
+          />
+          <span 
+            className={clickableClass}
+            onClick={() => handleUserClick(member)}
+          >
+            {member.name}
+          </span>
+        </div>
+        <span className="font-medium">
+          {member.distanceContribution !== undefined 
+            ? `${member.distanceContribution.toFixed(1)} km` 
+            : '0.0 km'}
         </span>
       </div>
-      <span className="font-medium">
-        {member.distanceContribution !== undefined 
-          ? `${member.distanceContribution.toFixed(1)} km` 
-          : '0.0 km'}
-      </span>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="mt-3 bg-gray-50 p-3 rounded-md space-y-3">
@@ -94,4 +103,3 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({
 };
 
 export default MatchDetails;
-

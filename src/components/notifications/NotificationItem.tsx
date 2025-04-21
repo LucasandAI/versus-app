@@ -8,6 +8,7 @@ import { ActivityNotification } from './ActivityNotification';
 import { InvitationNotification } from './InvitationNotification';
 import { handleNotification } from '@/lib/notificationUtils';
 import { cn } from '@/lib/utils';
+import { useNavigation } from '@/hooks/useNavigation';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -24,7 +25,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   onDeclineInvite,
   formatTime,
 }) => {
-  const { setCurrentView, setSelectedClub } = useApp();
+  const { setSelectedClub, setCurrentView } = useApp();
+  const { navigateToUserProfile } = useNavigation();
 
   const handleClubClick = () => {
     // The notification should already be marked as read by opening the popover
@@ -50,8 +52,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   const handleUserItemClick = () => {
     // The notification should already be marked as read by opening the popover
     // No need to mark it as read again when clicking on user
-    
-    onUserClick(notification.userId, notification.userName);
+    navigateToUserProfile(notification.userId, notification.userName, notification.userAvatar);
   };
 
   const handleJoinClub = () => {
@@ -109,7 +110,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
           ) : (
             <ActivityNotification
               userName={notification.userName}
-              onUserClick={onUserClick}
+              onUserClick={handleUserItemClick}
               userId={notification.userId}
               distance={notification.distance}
               clubName={notification.clubName}

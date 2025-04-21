@@ -27,6 +27,10 @@ const ClubMembersList: React.FC<ClubMembersListProps> = ({
   // Convert back to array
   const deduplicatedMembers = Array.from(uniqueMembers.values());
 
+  const handleMemberClick = (member: ClubMember) => {
+    onSelectMember(member.id, member.name, member.avatar);
+  };
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -45,12 +49,22 @@ const ClubMembersList: React.FC<ClubMembersListProps> = ({
           {deduplicatedMembers.map((member) => (
             <div 
               key={member.id} 
-              className="flex items-center justify-between cursor-pointer"
-              onClick={() => onSelectMember(member.id, member.name, member.avatar)}
+              className="flex items-center justify-between"
             >
               <div className="flex items-center gap-3">
-                <UserAvatar name={member.name} image={member.avatar} size="sm" />
-                <span className="hover:text-primary">{member.name}</span>
+                <UserAvatar 
+                  name={member.name} 
+                  image={member.avatar} 
+                  size="sm" 
+                  className="cursor-pointer"
+                  onClick={() => handleMemberClick(member)}
+                />
+                <span 
+                  className="hover:text-primary cursor-pointer"
+                  onClick={() => handleMemberClick(member)}
+                >
+                  {member.name}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 {member.isAdmin && (
