@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import ConnectScreen from '@/components/ConnectScreen';
@@ -19,13 +18,12 @@ const Index: React.FC = () => {
 
   // Update URL when current view changes - only when authenticated
   useEffect(() => {
-    if (
-      currentView === 'clubDetail' && 
-      selectedClub && 
-      currentUser?.stravaConnected === true
-    ) {
+    const isReady = currentUser?.stravaConnected && 
+                   currentView === 'clubDetail' && 
+                   selectedClub;
+                   
+    if (isReady) {
       const slug = selectedClub.slug || slugifyClubName(selectedClub.name);
-      // Only navigate if we're not already on this club page
       if (!location.pathname.includes(`/clubs/${slug}`)) {
         navigate(`/clubs/${slug}`);
       }
