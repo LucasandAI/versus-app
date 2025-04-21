@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import ClubDetailContent from './club/detail/ClubDetailContent';
@@ -11,28 +11,37 @@ import { buildMinimalClub } from '@/utils/club/clubBuilder';
 const ClubDetail: React.FC = () => {
   const { selectedClub, setSelectedClub, currentUser, setCurrentUser } = useApp();
   const location = useLocation();
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    // Extract clubId from URL path
-    const clubId = location.pathname.split('/clubs/')[1];
-    
-    if (clubId && !selectedClub) {
-      console.log("No selected club, building minimal club for:", clubId);
+    const setupClub = async () => {
+      setIsLoading(true);
       
-      // First check if it's one of the user's clubs
-      const userClub = currentUser?.clubs.find(c => c.id === clubId);
+      // Extract clubId from URL path
+      const clubId = location.pathname.split('/clubs/')[1];
       
-      if (userClub) {
-        console.log("Found club in user's clubs");
-        setSelectedClub(userClub);
-      } else {
-        console.log("Building minimal club");
-        // Create a minimal club if we don't have it
-        const minimalClub = buildMinimalClub(clubId);
-        setSelectedClub(minimalClub);
+      if (clubId && !selectedClub) {
+        console.log("No selected club, building minimal club for:", clubId);
+        
+        // First check if it's one of the user's clubs
+        const userClub = currentUser?.clubs.find(c => c.id === clubId);
+        
+        if (userClub) {
+          console.log("Found club in user's clubs");
+          setSelectedClub(userClub);
+        } else {
+          console.log("Building minimal club");
+          // Create a minimal club if we don't have it
+          const minimalClub = buildMinimalClub(clubId);
+          setSelectedClub(minimalClub);
+        }
       }
-    }
-  }, [location.pathname, selectedClub]);
+      
+      setIsLoading(false);
+    };
+    
+    setupClub();
+  }, [location.pathname, selectedClub, currentUser]);
   
   useEffect(() => {
     if (selectedClub && (!selectedClub.matchHistory || selectedClub.matchHistory.length === 0)) {
@@ -72,6 +81,15 @@ const ClubDetail: React.FC = () => {
   const clubId = location.pathname.split('/clubs/')[1];
   if (!clubId) {
     return <GoBackHome />;
+  }
+
+  // Show loading indicator while setting up the club
+  if (isLoading) {
+    return (
+      <div className="container-mobile py-8 text-center">
+        <p className="text-lg text-gray-600">Loading club details...</p>
+      </div>
+    );
   }
 
   return <ClubDetailContent club={selectedClub} />;
