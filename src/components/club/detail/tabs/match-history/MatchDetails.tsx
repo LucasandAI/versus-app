@@ -2,6 +2,7 @@
 import React from 'react';
 import { ClubMember } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
+import { useApp } from '@/context/AppContext';
 
 interface MatchDetailsProps {
   homeTeam: {
@@ -13,13 +14,17 @@ interface MatchDetailsProps {
     members: ClubMember[];
   };
   onSelectUser?: (userId: string, name: string, avatar?: string) => void;
+  onSelectClub?: (clubId: string, clubName: string) => void;
 }
 
 const MatchDetails: React.FC<MatchDetailsProps> = ({ 
   homeTeam, 
   awayTeam,
-  onSelectUser 
+  onSelectUser,
+  onSelectClub 
 }) => {
+  const { setCurrentView, setSelectedClub } = useApp();
+
   const ensureTeamSize = (members: ClubMember[], teamName: string): ClubMember[] => {
     const result = [...members];
     
@@ -51,6 +56,12 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({
     }
   };
 
+  const handleClubClick = (clubName: string) => {
+    if (onSelectClub) {
+      onSelectClub(clubName.toLowerCase(), clubName);
+    }
+  };
+
   const renderMemberRow = (member: ClubMember) => (
     <div 
       key={member.id} 
@@ -74,14 +85,24 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({
   return (
     <div className="mt-3 bg-gray-50 p-3 rounded-md space-y-3">
       <div>
-        <h4 className="text-xs font-semibold mb-2">{homeTeam.name} Members</h4>
+        <h4 
+          className="text-xs font-semibold mb-2 cursor-pointer hover:text-primary"
+          onClick={() => handleClubClick(homeTeam.name)}
+        >
+          {homeTeam.name} Members
+        </h4>
         <div className="space-y-1">
           {homeMembers.map(renderMemberRow)}
         </div>
       </div>
       
       <div>
-        <h4 className="text-xs font-semibold mb-2">{awayTeam.name} Members</h4>
+        <h4 
+          className="text-xs font-semibold mb-2 cursor-pointer hover:text-primary"
+          onClick={() => handleClubClick(awayTeam.name)}
+        >
+          {awayTeam.name} Members
+        </h4>
         <div className="space-y-1">
           {awayMembers.map(renderMemberRow)}
         </div>

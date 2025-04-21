@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { Match } from '@/types';
 import { ChevronDown, ChevronUp } from "lucide-react";
 import MatchProgressBar from '@/components/shared/MatchProgressBar';
 import { formatLeague, getDivisionEmoji } from '@/utils/club/leagueUtils';
 import MatchDetails from './MatchDetails';
+import { useApp } from '@/context/AppContext';
 
 interface MatchCardProps {
   match: Match;
@@ -21,6 +21,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
   onExpandToggle,
   onSelectUser
 }) => {
+  const { setCurrentView, setSelectedClub } = useApp();
   const isHomeTeam = match.homeClub.id === clubId;
   const ourTeam = isHomeTeam ? match.homeClub : match.awayClub;
   const theirTeam = isHomeTeam ? match.awayClub : match.homeClub;
@@ -89,6 +90,21 @@ const MatchCard: React.FC<MatchCardProps> = ({
     }
   };
 
+  const handleSelectClub = (clubId: string, clubName: string) => {
+    const opponentClub = {
+      id: clubId,
+      name: clubName,
+      logo: '/placeholder.svg',
+      division: 'Gold' as const,
+      tier: 3,
+      members: theirTeam.members,
+      matchHistory: []
+    };
+    
+    setSelectedClub(opponentClub);
+    setCurrentView('clubDetail');
+  };
+
   const dateRange = formatDateRange(match.startDate, match.endDate);
 
   return (
@@ -97,9 +113,19 @@ const MatchCard: React.FC<MatchCardProps> = ({
         <div>
           <p className="text-xs text-gray-600">{dateRange}</p>
           <div className="flex items-center gap-2 mt-1">
-            <h3 className="text-sm font-medium">{ourTeam.name}</h3>
+            <h3 
+              className="text-sm font-medium cursor-pointer hover:text-primary"
+              onClick={() => isHomeTeam ? null : handleSelectClub(ourTeam.id, ourTeam.name)}
+            >
+              {ourTeam.name}
+            </h3>
             <span className="text-gray-500 text-xs">vs</span>
-            <h3 className="text-sm font-medium">{theirTeam.name}</h3>
+            <h3 
+              className="text-sm font-medium cursor-pointer hover:text-primary"
+              onClick={() => isHomeTeam ? handleSelectClub(theirTeam.id, theirTeam.name) : null}
+            >
+              {theirTeam.name}
+            </h3>
           </div>
         </div>
         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -146,6 +172,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
           homeTeam={match.homeClub}
           awayTeam={match.awayClub}
           onSelectUser={onSelectUser}
+          onSelectClub={handleSelectClub}
         />
       )}
     </div>
