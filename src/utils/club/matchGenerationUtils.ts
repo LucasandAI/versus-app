@@ -105,8 +105,8 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
     const ourDistance = isHomeTeam ? winnerDistance : loserDistance;
     const theirDistance = !isHomeTeam ? winnerDistance : loserDistance;
     
-    // Generate member contributions
-    const ourMembers = generateMemberDistances(club.members?.length || 5, ourDistance);
+    // Use actual club members with generated distances
+    const ourMembers = generateMemberDistances(club.members || [], ourDistance);
     const theirMembers = generateOpponentMembers(
       Math.floor(Math.random() * 3) + 3,
       theirDistance,
