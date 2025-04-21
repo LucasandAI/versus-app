@@ -17,16 +17,20 @@ const Index: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Update URL when current view changes
+  // Update URL when current view changes - only when authenticated
   useEffect(() => {
-    if (currentView === 'clubDetail' && selectedClub) {
+    if (
+      currentView === 'clubDetail' && 
+      selectedClub && 
+      currentUser?.stravaConnected === true
+    ) {
       const slug = selectedClub.slug || slugifyClubName(selectedClub.name);
       // Only navigate if we're not already on this club page
       if (!location.pathname.includes(`/clubs/${slug}`)) {
         navigate(`/clubs/${slug}`);
       }
     }
-  }, [currentView, selectedClub, navigate, location]);
+  }, [currentView, selectedClub, navigate, location, currentUser?.stravaConnected]);
 
   // Load unread counts from localStorage on mount and when updated
   useEffect(() => {
