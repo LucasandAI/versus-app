@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Match } from '@/types';
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -12,6 +11,7 @@ interface MatchCardProps {
   expandedMatchId: string | null;
   onExpandToggle: (matchId: string) => void;
   onSelectUser?: (userId: string, name: string, avatar?: string) => void;
+  onSelectClub?: (clubId: string, name: string) => void;
 }
 
 const MatchCard: React.FC<MatchCardProps> = ({ 
@@ -19,7 +19,8 @@ const MatchCard: React.FC<MatchCardProps> = ({
   clubId, 
   expandedMatchId, 
   onExpandToggle,
-  onSelectUser
+  onSelectUser,
+  onSelectClub
 }) => {
   const isHomeTeam = match.homeClub.id === clubId;
   const ourTeam = isHomeTeam ? match.homeClub : match.awayClub;
@@ -97,9 +98,19 @@ const MatchCard: React.FC<MatchCardProps> = ({
         <div>
           <p className="text-xs text-gray-600">{dateRange}</p>
           <div className="flex items-center gap-2 mt-1">
-            <h3 className="text-sm font-medium">{ourTeam.name}</h3>
+            <h3 
+              className="text-sm font-medium cursor-pointer hover:text-primary transition-colors"
+              onClick={() => onSelectClub?.(ourTeam.id, ourTeam.name)}
+            >
+              {ourTeam.name}
+            </h3>
             <span className="text-gray-500 text-xs">vs</span>
-            <h3 className="text-sm font-medium">{theirTeam.name}</h3>
+            <h3 
+              className="text-sm font-medium cursor-pointer hover:text-primary transition-colors"
+              onClick={() => onSelectClub?.(theirTeam.id, theirTeam.name)}
+            >
+              {theirTeam.name}
+            </h3>
           </div>
         </div>
         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${

@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
 import { Club } from '@/types';
 import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import MatchCard from './match-history/MatchCard';
 import { useApp } from '@/context/AppContext';
+import { useClubNavigation } from '@/hooks/useClubNavigation';
 
 interface MatchHistoryTabProps {
   club: Club;
@@ -13,6 +13,7 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
   const [showAllMatches, setShowAllMatches] = useState(false);
   const { setSelectedUser, setCurrentView } = useApp();
+  const { navigateToClub } = useClubNavigation();
 
   const handleViewMatchDetails = (matchId: string) => {
     setExpandedMatchId(expandedMatchId === matchId ? null : matchId);
@@ -33,13 +34,15 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
     setCurrentView('profile');
   };
 
-  // Sort match history by date (newest first)
+  const handleSelectClub = (clubId: string, name: string) => {
+    navigateToClub({ id: clubId, name });
+  };
+
   const matchHistory = club.matchHistory 
     ? [...club.matchHistory].sort((a, b) => 
         new Date(b.endDate).getTime() - new Date(a.endDate).getTime())
     : [];
 
-  // Determine how many matches to display
   const displayedMatches = showAllMatches 
     ? matchHistory 
     : matchHistory.slice(0, 3);
@@ -61,6 +64,7 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
               expandedMatchId={expandedMatchId}
               onExpandToggle={handleViewMatchDetails}
               onSelectUser={handleSelectUser}
+              onSelectClub={handleSelectClub}
             />
           ))}
 
