@@ -27,6 +27,11 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
         .slice(0, 10) // Limit to 10 matches total
     : [];
 
+  // Determine how many matches to display
+  const displayedMatches = showAllMatches 
+    ? matchHistory 
+    : matchHistory.slice(0, 3);
+
   return (
     <div className="bg-white rounded-lg shadow p-3 sm:p-4">
       <div className="flex items-center gap-2 mb-3">
@@ -36,7 +41,7 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
 
       {matchHistory.length > 0 ? (
         <div className="space-y-4">
-          {matchHistory.slice(0, showAllMatches ? undefined : 3).map((match) => (
+          {displayedMatches.map((match) => (
             <MatchCard
               key={match.id}
               match={match}

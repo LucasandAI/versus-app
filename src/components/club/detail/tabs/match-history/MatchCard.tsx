@@ -41,13 +41,18 @@ const MatchCard: React.FC<MatchCardProps> = ({
     const formattedLeague = formatLeague(match.leagueAfterMatch.division, match.leagueAfterMatch.tier);
     
     // For Elite League, show points information
-    if (match.leagueAfterMatch.division === 'Elite' && match.leagueAfterMatch.elitePoints !== undefined) {
-      const pointsChange = weWon ? "+1 point" : "-1 point";
-      return `${emoji} ${formattedLeague} (${pointsChange}, total: ${match.leagueAfterMatch.elitePoints})`;
+    if (match.leagueAfterMatch.division === 'Elite') {
+      const pointChange = weWon ? "+1" : "-1";
+      const pointsText = match.leagueAfterMatch.elitePoints !== undefined 
+        ? `(${pointChange} point, total: ${match.leagueAfterMatch.elitePoints})`
+        : '';
+      
+      return `${weWon ? 'Maintained' : 'Relegated to'} ${emoji} ${formattedLeague} ${pointsText}`;
     }
     
-    // For normal divisions, show promotion/relegation status
+    // For normal divisions, determine if it was a promotion, relegation, or maintenance
     let actionText = 'Maintained';
+    
     if (weWon) {
       actionText = 'Promoted to';
     } else {

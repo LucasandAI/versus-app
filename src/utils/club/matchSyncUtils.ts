@@ -38,7 +38,13 @@ export const syncClubDivisionWithMatchHistory = (club: Club): Club => {
   const isHomeTeam = latestMatch.homeClub.id === club.id;
   const weWon = (isHomeTeam && latestMatch.winner === 'home') || (!isHomeTeam && latestMatch.winner === 'away');
   
-  const newDivisionAndTier = calculateNewDivisionAndTier(club.division, club.tier, weWon);
+  const newDivisionAndTier = calculateNewDivisionAndTier(
+    club.division, 
+    club.tier || 1, 
+    weWon,
+    club.elitePoints || 0
+  );
+  
   console.log("Calculated new division and tier:", newDivisionAndTier);
   
   return {

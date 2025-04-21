@@ -3,7 +3,8 @@ import React, { useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import ClubDetailContent from './club/detail/ClubDetailContent';
 import GoBackHome from './shared/GoBackHome';
-import { syncClubDivisionWithMatchHistory, ensureClubHasProperMatchHistory } from '@/utils/club/matchHistoryUtils';
+import { syncClubDivisionWithMatchHistory } from '@/utils/club/matchSyncUtils';
+import { generateMatchHistoryFromDivision } from '@/utils/club/matchGenerationUtils';
 
 const ClubDetail: React.FC = () => {
   const { selectedClub, setSelectedClub } = useApp();
@@ -21,11 +22,10 @@ const ClubDetail: React.FC = () => {
       
       // Only regenerate if needed
       const clubWithHistory = needsHistory 
-        ? ensureClubHasProperMatchHistory({
+        ? {
             ...selectedClub,
-            // Only clear existing match history if it needs regeneration
-            matchHistory: []
-          })
+            matchHistory: generateMatchHistoryFromDivision(selectedClub)
+          }
         : selectedClub;
       
       // Then sync the club's division with match history if needed
