@@ -87,7 +87,7 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfil
                       size="sm" 
                       className="cursor-pointer"
                       onClick={(e) => {
-                        e.stopPropagation();
+                        e && e.stopPropagation();
                         handleMemberClick(member);
                       }}
                     />
@@ -114,7 +114,7 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfil
                       size="sm" 
                       className="cursor-pointer"
                       onClick={(e) => {
-                        e.stopPropagation();
+                        e && e.stopPropagation();
                         handleMemberClick(member);
                       }}
                     />

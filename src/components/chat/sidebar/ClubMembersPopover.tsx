@@ -42,7 +42,7 @@ const ClubMembersPopover: React.FC<ClubMembersPopoverProps> = ({
                 size="sm" 
                 className="cursor-pointer"
                 onClick={(e) => {
-                  e.stopPropagation();
+                  e && e.stopPropagation();
                   handleUserClick(member);
                 }}
               />

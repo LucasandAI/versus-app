@@ -8,7 +8,7 @@ interface UserAvatarProps {
   image?: string | null;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
-  onClick?: () => void;
+  onClick?: (e?: React.MouseEvent) => void;
 }
 
 const UserAvatar: React.FC<UserAvatarProps> = ({
