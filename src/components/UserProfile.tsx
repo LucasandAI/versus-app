@@ -1,28 +1,17 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
-import { Button } from "@/components/ui/button";
-import { UserPlus } from 'lucide-react';
 import { Card } from './ui/card';
-import ClubInviteDialog from './admin/ClubInviteDialog';
 import EditProfileDialog from './profile/EditProfileDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from "@/components/ui/alert-dialog";
 
-// Import new components
+// Import components
 import UserHeader from './profile/UserHeader';
-import UserClubs from './profile/UserClubs';
 import UserStats from './profile/UserStats';
+import UserClubs from './profile/UserClubs';
 import UserAchievements from './profile/UserAchievements';
+import EmptyProfile from './profile/EmptyProfile';
+import InviteButton from './profile/InviteButton';
+import LogoutDialog from './profile/LogoutDialog';
 
 const UserProfile: React.FC = () => {
   const { selectedUser, setCurrentView, currentUser, setSelectedUser, setSelectedClub, currentView, setCurrentUser } = useApp();
@@ -45,10 +34,8 @@ const UserProfile: React.FC = () => {
     }
   }, [currentView, currentUser, selectedUser, setSelectedUser]);
 
-  // Add listener for user data updates
   useEffect(() => {
     const handleUserDataUpdate = () => {
-      // If we're viewing the current user's profile, update the selected user
       if (selectedUser && currentUser && selectedUser.id === currentUser.id) {
         setSelectedUser(currentUser);
       }
@@ -62,17 +49,7 @@ const UserProfile: React.FC = () => {
   }, [currentUser, selectedUser, setSelectedUser]);
 
   if (!selectedUser) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <p>No user selected</p>
-        <button
-          onClick={() => setCurrentView('home')}
-          className="mt-4 text-primary hover:underline"
-        >
-          Go back home
-        </button>
-      </div>
-    );
+    return <EmptyProfile onGoBack={() => setCurrentView('home')} />;
   }
 
   const adminClubs = currentUser?.clubs.filter(club => 
@@ -197,26 +174,13 @@ const UserProfile: React.FC = () => {
           bestLeagueTier={bestLeague.tier}
         />
 
-        {showInviteButton && (
-          <>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex items-center gap-1 mt-2"
-              onClick={() => setInviteDialogOpen(true)}
-            >
-              <UserPlus className="h-4 w-4" />
-              Invite to Club
-            </Button>
-            
-            <ClubInviteDialog 
-              open={inviteDialogOpen}
-              onOpenChange={setInviteDialogOpen}
-              user={selectedUser}
-              adminClubs={adminClubs}
-            />
-          </>
-        )}
+        <InviteButton
+          showInviteButton={showInviteButton}
+          inviteDialogOpen={inviteDialogOpen}
+          setInviteDialogOpen={setInviteDialogOpen}
+          selectedUser={selectedUser}
+          adminClubs={adminClubs}
+        />
       </Card>
 
       <UserClubs
@@ -244,20 +208,11 @@ const UserProfile: React.FC = () => {
         user={currentUser}
       />
 
-      <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
-            <AlertDialogDescription>
-              You'll need to log in again to access your account.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleLogout}>Log Out</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <LogoutDialog
+        open={logoutDialogOpen}
+        onOpenChange={setLogoutDialogOpen}
+        onConfirm={handleLogout}
+      />
     </div>
   );
 };
