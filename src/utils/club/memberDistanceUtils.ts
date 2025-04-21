@@ -1,6 +1,18 @@
 
 import { ClubMember } from '@/types';
 
+const RUNNER_FIRST_NAMES = [
+  'John', 'Alice', 'Charlie', 'Olivia', 'Paul', 
+  'Emma', 'David', 'Sarah', 'Mike', 'Rachel',
+  'Tom', 'Lisa', 'Chris', 'Anna', 'Mark'
+];
+
+const RUNNER_LAST_NAMES = [
+  'Runner', 'Sprint', 'Run', 'Pace', 'Path',
+  'Swift', 'Miles', 'Track', 'Dash', 'Stride',
+  'Marathon', 'Race', 'Speed', 'Distance', 'Endure'
+];
+
 export const generateMemberDistances = (memberCount: number | ClubMember[], totalDistance: number): ClubMember[] => {
   // Handle case when memberCount is an array of ClubMembers
   if (Array.isArray(memberCount)) {
@@ -21,9 +33,12 @@ export const generateMemberDistances = (memberCount: number | ClubMember[], tota
   const members: ClubMember[] = [];
   
   for (let i = 0; i < count; i++) {
+    const firstName = RUNNER_FIRST_NAMES[Math.floor(Math.random() * RUNNER_FIRST_NAMES.length)];
+    const lastName = RUNNER_LAST_NAMES[Math.floor(Math.random() * RUNNER_LAST_NAMES.length)];
+    
     members.push({
       id: `generated-member-${i}`,
-      name: `Member ${i + 1}`,
+      name: `${firstName} ${lastName}`,
       avatar: '/placeholder.svg',
       isAdmin: i === 0, // First member is admin
     });
@@ -55,9 +70,12 @@ export const generateOpponentMembers = (
   const starDistance = parseFloat((totalDistance * starPerformerPercent).toFixed(1));
   remainingDistance -= starDistance;
 
+  const starFirstName = RUNNER_FIRST_NAMES[Math.floor(Math.random() * RUNNER_FIRST_NAMES.length)];
+  const starLastName = RUNNER_LAST_NAMES[Math.floor(Math.random() * RUNNER_LAST_NAMES.length)];
+
   opponentMembers.push({
     id: `opponent-star-${Date.now()}`,
-    name: `${opponentName} Captain`,
+    name: `${starFirstName} ${starLastName}`,
     avatar: '/placeholder.svg',
     isAdmin: true,
     distanceContribution: starDistance
@@ -70,9 +88,12 @@ export const generateOpponentMembers = (
     const midDistance = parseFloat((remainingDistance * midPerformerPercent).toFixed(1));
     remainingDistance -= midDistance;
 
+    const midFirstName = RUNNER_FIRST_NAMES[Math.floor(Math.random() * RUNNER_FIRST_NAMES.length)];
+    const midLastName = RUNNER_LAST_NAMES[Math.floor(Math.random() * RUNNER_LAST_NAMES.length)];
+
     opponentMembers.push({
       id: `opponent-mid-${Date.now()}-${i}`,
-      name: `${opponentName} Runner ${i + 1}`,
+      name: `${midFirstName} ${midLastName}`,
       avatar: '/placeholder.svg',
       isAdmin: false,
       distanceContribution: midDistance
@@ -80,9 +101,12 @@ export const generateOpponentMembers = (
   }
 
   // Add one low performer with remaining distance
+  const lowFirstName = RUNNER_FIRST_NAMES[Math.floor(Math.random() * RUNNER_FIRST_NAMES.length)];
+  const lowLastName = RUNNER_LAST_NAMES[Math.floor(Math.random() * RUNNER_LAST_NAMES.length)];
+
   opponentMembers.push({
     id: `opponent-low-${Date.now()}`,
-    name: `${opponentName} Newcomer`,
+    name: `${lowFirstName} ${lowLastName}`,
     avatar: '/placeholder.svg',
     isAdmin: false,
     distanceContribution: parseFloat(remainingDistance.toFixed(1))
