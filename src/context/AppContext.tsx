@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { AppContextType, AppView, Club, User } from '../types';
 
@@ -195,13 +194,27 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       // Find the updated club in the currentUser's clubs
       const updatedClub = currentUser.clubs.find(club => club.id === selectedClub.id);
       if (updatedClub) {
-        setSelectedClub(updatedClub);
+        // Merge the selected club's match history with the updated club
+        const mergedClub = {
+          ...updatedClub,
+          matchHistory: selectedClub.matchHistory || updatedClub.matchHistory || []
+        };
+        setSelectedClub(mergedClub);
+        
+        // Also update the club in currentUser's clubs
+        const updatedUserClubs = currentUser.clubs.map(club => 
+          club.id === mergedClub.id ? mergedClub : club
+        );
+        
+        setCurrentUser(prev => prev ? {
+          ...prev,
+          clubs: updatedUserClubs
+        } : prev);
       } else {
-        // If the club is no longer in the user's clubs (e.g., after leaving it), clear it
         setSelectedClub(null);
       }
     }
-  }, [currentUser, selectedClub]);
+  }, [currentUser, selectedClub?.id]);
 
   // Update selected user when current user changes
   useEffect(() => {

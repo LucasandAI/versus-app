@@ -7,11 +7,10 @@ import { generateMatchHistoryFromDivision } from '@/utils/club/matchGenerationUt
 import { syncClubDivisionWithMatchHistory } from '@/utils/club/matchSyncUtils';
 
 const ClubDetail: React.FC = () => {
-  const { selectedClub, setSelectedClub } = useApp();
+  const { selectedClub, setSelectedClub, currentUser, setCurrentUser } = useApp();
   
   useEffect(() => {
     if (selectedClub) {
-      // Always regenerate the match history for consistent experience
       console.log("Rebuilding match history for club...");
       
       // Generate a completely new match history
@@ -27,18 +26,29 @@ const ClubDetail: React.FC = () => {
       // Ensure the club's division is in sync with the match history
       const syncedClub = syncClubDivisionWithMatchHistory(clubWithHistory);
       
-      // Calculate win/loss record
+      // Calculate win/loss record for logging
       const wins = syncedClub.matchHistory?.filter(match => {
         const isHome = match.homeClub.id === syncedClub.id;
         return (isHome && match.winner === 'home') || (!isHome && match.winner === 'away');
       }).length || 0;
       
       const losses = (syncedClub.matchHistory?.length || 0) - wins;
-      
       console.log(`Win/Loss record: ${wins}W - ${losses}L`);
-      console.log('Updating club with regenerated match history');
       
+      // Update both selectedClub and currentUser
       setSelectedClub(syncedClub);
+      
+      // Update the club in currentUser's clubs array
+      if (currentUser) {
+        const updatedClubs = currentUser.clubs.map(club => 
+          club.id === syncedClub.id ? syncedClub : club
+        );
+        
+        setCurrentUser(prev => prev ? {
+          ...prev,
+          clubs: updatedClubs
+        } : prev);
+      }
     }
   }, [selectedClub?.id]); // Only run when the club ID changes
 

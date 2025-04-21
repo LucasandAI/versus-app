@@ -1,3 +1,4 @@
+
 import { Club, Match, Division, ClubMember } from '@/types';
 import { generateMemberDistances, generateOpponentMembers } from './memberDistanceUtils';
 
@@ -14,7 +15,7 @@ const OPPONENTS = [
 ];
 
 export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
-  console.log(`REBUILT: Generating match history for ${club.name} (${club.division} ${club.tier || 1})`);
+  console.log(`Generating match history for ${club.name} (${club.division} ${club.tier || 1})`);
 
   // Define division progression path
   const divisionOrder: Division[] = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Elite'];
@@ -38,12 +39,11 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
   
   console.log(`Building path from ${currentDivision} ${currentTier} to ${club.division} ${club.tier || 1}`);
   
-  // Generate the division/tier path that the club would have taken
+  // Generate the path of matches needed
   while (currentDivision !== club.division || currentTier !== (club.tier || 1)) {
     // For progression, we always need to win
     const needToWin = true;
     
-    // Add current state to the path
     matchPath.push({
       needToWin,
       division: currentDivision,
@@ -53,7 +53,7 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
     
     // Calculate next state based on a win
     if (currentTier === 1) {
-      // If at tier 1, move to next division at tier 5 (or Elite tier 1)
+      // Move to next division at tier 5 (or Elite tier 1)
       const currentDivIndex = divisionOrder.indexOf(currentDivision);
       if (currentDivIndex < divisionOrder.length - 1) {
         currentDivision = divisionOrder[currentDivIndex + 1];
@@ -61,18 +61,15 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
         if (currentDivision === 'Elite') elitePoints = 0;
       }
     } else {
-      // Otherwise move up one tier in same division
+      // Move up one tier in same division
       currentTier--;
     }
     
-    // Safety break to prevent infinite loop
-    if (matchPath.length > 30) {
-      console.log("Safety break - too many matches in path");
-      break;
-    }
+    // Safety break
+    if (matchPath.length > 30) break;
   }
   
-  // Add the final state to complete the path
+  // Add final state
   matchPath.push({
     needToWin: true,
     division: club.division,
@@ -80,20 +77,20 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
     elitePoints: club.division === 'Elite' ? (club.elitePoints || 0) : undefined
   });
   
-  console.log(`Generated path with ${matchPath.length} states from Bronze 5 to ${club.division} ${club.tier || 1}`);
+  console.log(`Generated path with ${matchPath.length} matches`);
   
-  // Now generate actual matches based on the path
-  const generatedHistory: Match[] = [];
+  // Generate matches based on the path
+  const matches: Match[] = [];
   
   for (let i = 0; i < matchPath.length - 1; i++) {
     const beforeState = matchPath[i];
     const afterState = matchPath[i + 1];
     
-    // Opponent details
+    // Generate match details
     const opponentName = OPPONENTS[Math.floor(Math.random() * OPPONENTS.length)];
     const isHomeTeam = i % 2 === 0;
     
-    // Generate date ranges - older matches first
+    // Generate date for the match
     const totalMatches = matchPath.length - 1;
     const daysAgo = Math.floor((totalMatches - i) * (7 + Math.random() * 3));
     const endDate = generatePastDate(daysAgo);
@@ -102,43 +99,41 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
     
     // Generate distances ensuring winner has more distance
     const baseDistance = 150 + Math.random() * 150;
-    const winnerMultiplier = 1.15 + Math.random() * 0.3;
-    const loserMultiplier = 0.7 + Math.random() * 0.2;
+    const winnerDistance = baseDistance * (1.15 + Math.random() * 0.3);
+    const loserDistance = baseDistance * (0.7 + Math.random() * 0.2);
     
-    const homeDistance = isHomeTeam ? baseDistance * winnerMultiplier : baseDistance * loserMultiplier;
-    const awayDistance = !isHomeTeam ? baseDistance * winnerMultiplier : baseDistance * loserMultiplier;
+    const ourDistance = isHomeTeam ? winnerDistance : loserDistance;
+    const theirDistance = !isHomeTeam ? winnerDistance : loserDistance;
     
-    // Generate member distances
-    const memberCount = club.members?.length || 5;
-    const homeMemberDistances = isHomeTeam 
-      ? generateMemberDistances(memberCount, homeDistance)
-      : generateOpponentMembers(Math.floor(Math.random() * 3) + 3, homeDistance, opponentName);
+    // Generate member contributions
+    const ourMembers = generateMemberDistances(club.members?.length || 5, ourDistance);
+    const theirMembers = generateOpponentMembers(
+      Math.floor(Math.random() * 3) + 3,
+      theirDistance,
+      opponentName
+    );
     
-    const awayMemberDistances = !isHomeTeam 
-      ? generateMemberDistances(memberCount, awayDistance)
-      : generateOpponentMembers(Math.floor(Math.random() * 3) + 3, awayDistance, opponentName);
-    
-    // Create match with both leagueBeforeMatch and leagueAfterMatch
+    // Create the match object
     const match: Match = {
       id: `match-${club.id}-${i}`,
       homeClub: {
         id: isHomeTeam ? club.id : `opponent-${i}`,
         name: isHomeTeam ? club.name : opponentName,
         logo: isHomeTeam ? (club.logo || '/placeholder.svg') : '/placeholder.svg',
-        totalDistance: parseFloat(homeDistance.toFixed(1)),
-        members: homeMemberDistances
+        totalDistance: parseFloat(ourDistance.toFixed(1)),
+        members: isHomeTeam ? ourMembers : theirMembers
       },
       awayClub: {
         id: !isHomeTeam ? club.id : `opponent-${i}`,
         name: !isHomeTeam ? club.name : opponentName,
         logo: !isHomeTeam ? (club.logo || '/placeholder.svg') : '/placeholder.svg',
-        totalDistance: parseFloat(awayDistance.toFixed(1)),
-        members: awayMemberDistances
+        totalDistance: parseFloat(theirDistance.toFixed(1)),
+        members: !isHomeTeam ? ourMembers : theirMembers
       },
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
       status: 'completed',
-      winner: isHomeTeam ? 'home' : 'away', // Club always wins since we're building a progression
+      winner: isHomeTeam ? 'home' : 'away',
       leagueBeforeMatch: {
         division: beforeState.division,
         tier: beforeState.tier,
@@ -151,14 +146,10 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
       }
     };
     
-    console.log(`Generated match ${i+1}/${matchPath.length-1} with league impact:`, 
-      `${beforeState.division} ${beforeState.tier} → ${afterState.division} ${afterState.tier}`);
-    
-    generatedHistory.push(match);
+    matches.push(match);
   }
   
-  // Sort by date (newest first)
-  return generatedHistory.sort((a, b) => 
+  return matches.sort((a, b) => 
     new Date(b.endDate).getTime() - new Date(a.endDate).getTime()
   );
 };
