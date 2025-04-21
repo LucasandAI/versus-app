@@ -10,8 +10,8 @@ const ClubDetail: React.FC = () => {
   const { selectedClub, setSelectedClub, currentUser, setCurrentUser } = useApp();
   
   useEffect(() => {
-    if (selectedClub) {
-      console.log("Rebuilding match history for club...");
+    if (selectedClub && (!selectedClub.matchHistory || selectedClub.matchHistory.length === 0)) {
+      console.log("Generating new match history for club...");
       
       // Generate a completely new match history
       const newMatchHistory = generateMatchHistoryFromDivision(selectedClub);
@@ -25,15 +25,6 @@ const ClubDetail: React.FC = () => {
       
       // Ensure the club's division is in sync with the match history
       const syncedClub = syncClubDivisionWithMatchHistory(clubWithHistory);
-      
-      // Calculate win/loss record for logging
-      const wins = syncedClub.matchHistory?.filter(match => {
-        const isHome = match.homeClub.id === syncedClub.id;
-        return (isHome && match.winner === 'home') || (!isHome && match.winner === 'away');
-      }).length || 0;
-      
-      const losses = (syncedClub.matchHistory?.length || 0) - wins;
-      console.log(`Win/Loss record: ${wins}W - ${losses}L`);
       
       // Update both selectedClub and currentUser
       setSelectedClub(syncedClub);
@@ -50,7 +41,7 @@ const ClubDetail: React.FC = () => {
         } : prev);
       }
     }
-  }, [selectedClub?.id]); // Only run when the club ID changes
+  }, [selectedClub?.id]);
 
   if (!selectedClub) {
     return <GoBackHome />;

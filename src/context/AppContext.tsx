@@ -16,25 +16,31 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Update selected club when currentUser changes
   useEffect(() => {
     if (selectedClub && currentUser) {
-      // Find the updated club in the currentUser's clubs
-      const updatedClub = currentUser.clubs.find(club => club.id === selectedClub.id);
-      if (updatedClub) {
-        // Merge the selected club's match history with the updated club
-        const mergedClub = {
-          ...updatedClub,
-          matchHistory: selectedClub.matchHistory || updatedClub.matchHistory || []
-        };
-        setSelectedClub(mergedClub);
-        
-        // Also update the club in currentUser's clubs
-        const updatedUserClubs = currentUser.clubs.map(club => 
-          club.id === mergedClub.id ? mergedClub : club
-        );
-        
-        setCurrentUser(prev => prev ? {
-          ...prev,
-          clubs: updatedUserClubs
-        } : prev);
+      // Find the club in currentUser's clubs
+      const userClub = currentUser.clubs.find(club => club.id === selectedClub.id);
+      
+      if (userClub) {
+        // Only update if the selected club has no match history or if the user's club has more recent matches
+        const shouldUpdateFromUser = !selectedClub.matchHistory?.length || 
+          (userClub.matchHistory?.length && 
+           new Date(userClub.matchHistory[0]?.endDate || 0) > 
+           new Date(selectedClub.matchHistory[0]?.endDate || 0));
+
+        if (shouldUpdateFromUser) {
+          console.log('Updating selected club from user clubs');
+          setSelectedClub(userClub);
+        } else {
+          console.log('Preserving selected club match history');
+          // Update the club in currentUser's clubs to match selectedClub
+          const updatedClubs = currentUser.clubs.map(club => 
+            club.id === selectedClub.id ? selectedClub : club
+          );
+          
+          setCurrentUser(prev => prev ? {
+            ...prev,
+            clubs: updatedClubs
+          } : prev);
+        }
       } else {
         setSelectedClub(null);
       }
@@ -49,8 +55,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [currentUser, selectedUser]);
 
   const connectToStrava = () => {
-    setCurrentUser({
+    // Remove match history from mock data to prevent conflicts
+    const cleanedMockUser = {
       ...mockUser,
+      clubs: mockUser.clubs.map(club => ({
+        ...club,
+        matchHistory: [] // Clear mock match history
+      }))
+    };
+
+    setCurrentUser({
+      ...cleanedMockUser,
       stravaConnected: true
     });
     setCurrentView('home');
