@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { AppProvider, useApp } from '@/context/AppContext';
+import { useApp } from '@/context/AppContext';
+import { useParams } from 'react-router-dom';
 import ConnectScreen from '@/components/ConnectScreen';
 import HomeView from '@/components/HomeView';
 import ClubDetail from '@/components/ClubDetail';
@@ -10,17 +11,22 @@ import SupportPopover from '@/components/shared/SupportPopover';
 import { Toaster } from '@/components/ui/toaster';
 
 const AppContent: React.FC = () => {
-  const { currentView, currentUser } = useApp();
+  const { currentView, currentUser, setCurrentView } = useApp();
   const [chatNotifications, setChatNotifications] = useState(0);
+  const { id: clubIdFromRoute } = useParams<{ id: string }>();
 
-  // Load unread counts from localStorage on mount and when updated
+  useEffect(() => {
+    if (clubIdFromRoute) {
+      setCurrentView('clubDetail');
+    }
+  }, [clubIdFromRoute, setCurrentView]);
+
   useEffect(() => {
     const loadUnreadCounts = () => {
       const unreadMessages = localStorage.getItem('unreadMessages');
       if (unreadMessages) {
         try {
           const unreadMap = JSON.parse(unreadMessages);
-          // Calculate total unread count
           const totalUnread = Object.values(unreadMap).reduce(
             (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 
             0
@@ -35,10 +41,8 @@ const AppContent: React.FC = () => {
       }
     };
     
-    // Load unread counts initially
     loadUnreadCounts();
     
-    // Set up event listeners for tracking unread message counts
     const handleUnreadMessagesUpdated = () => {
       loadUnreadCounts();
     };
@@ -47,19 +51,16 @@ const AppContent: React.FC = () => {
       if (event.detail && event.detail.count) {
         setChatNotifications(prev => prev + event.detail.count);
       } else {
-        // If no count is provided, reload from localStorage
         loadUnreadCounts();
       }
     };
     
-    // Listen for events that should update the notification count
     window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
     window.addEventListener('supportTicketCreated', handleSupportTicketCreated as EventListener);
     window.addEventListener('chatDrawerClosed', handleUnreadMessagesUpdated);
     window.addEventListener('focus', handleUnreadMessagesUpdated);
     window.addEventListener('notificationsUpdated', handleUnreadMessagesUpdated);
     
-    // Make sure to check for notification changes frequently for better UX
     const checkInterval = setInterval(handleUnreadMessagesUpdated, 1000);
     
     return () => {
@@ -73,6 +74,10 @@ const AppContent: React.FC = () => {
   }, []);
 
   const renderView = () => {
+    if (clubIdFromRoute) {
+      return <ClubDetail />;
+    }
+    
     switch (currentView) {
       case 'connect':
         return <ConnectScreen />;
@@ -90,15 +95,12 @@ const AppContent: React.FC = () => {
   };
 
   const handleCreateSupportChat = (ticketId: string, subject: string, message: string) => {
-    // Update local state immediately 
     setChatNotifications(prev => prev + 1);
     
-    // Force a reload of unread counts from localStorage
     const unreadMessages = localStorage.getItem('unreadMessages');
     if (unreadMessages) {
       try {
         const unreadMap = JSON.parse(unreadMessages);
-        // Calculate total unread count
         const totalUnread = Object.values(unreadMap).reduce(
           (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 
           0
@@ -109,7 +111,6 @@ const AppContent: React.FC = () => {
       }
     }
     
-    // Dispatch event to notify other components
     const event = new CustomEvent('unreadMessagesUpdated');
     window.dispatchEvent(event);
   };
@@ -126,11 +127,9 @@ const AppContent: React.FC = () => {
 
 const Index: React.FC = () => {
   return (
-    <AppProvider>
-      <div className="min-h-screen bg-gray-50">
-        <AppContent />
-      </div>
-    </AppProvider>
+    <div className="min-h-screen bg-gray-50">
+      <AppContent />
+    </div>
   );
 };
 
