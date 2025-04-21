@@ -10,6 +10,7 @@ export const syncClubDivisionWithMatchHistory = (club: Club): Club => {
   // Log match history for debugging
   console.log("Syncing club division. Match history count:", club.matchHistory.length);
   
+  // Sort matches by date (newest first)
   const sortedHistory = [...club.matchHistory].sort((a, b) => 
     new Date(b.endDate).getTime() - new Date(a.endDate).getTime()
   );
@@ -17,6 +18,7 @@ export const syncClubDivisionWithMatchHistory = (club: Club): Club => {
   const latestMatch = sortedHistory[0];
   console.log("Latest match:", latestMatch);
   
+  // If the latest match has league data, use it to update the club's division/tier
   if (latestMatch.leagueAfterMatch) {
     console.log("Using leagueAfterMatch from latest match:", latestMatch.leagueAfterMatch);
     return {

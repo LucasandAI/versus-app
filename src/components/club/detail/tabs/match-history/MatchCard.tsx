@@ -40,21 +40,21 @@ const MatchCard: React.FC<MatchCardProps> = ({
     const emoji = getDivisionEmoji(match.leagueAfterMatch.division);
     const formattedLeague = formatLeague(match.leagueAfterMatch.division, match.leagueAfterMatch.tier);
     
-    const pointsInfo = match.leagueAfterMatch.division === 'Elite' && match.leagueAfterMatch.elitePoints !== undefined
-      ? ` (${match.leagueAfterMatch.elitePoints} points)`
-      : '';
-      
-    // Determine league impact text based on win/loss
-    let actionText = 'Maintained';
+    // For Elite League, show points information
+    if (match.leagueAfterMatch.division === 'Elite' && match.leagueAfterMatch.elitePoints !== undefined) {
+      const pointsChange = weWon ? "+1 point" : "-1 point";
+      return `${emoji} ${formattedLeague} (${pointsChange}, total: ${match.leagueAfterMatch.elitePoints})`;
+    }
     
-    // Only suggest promotion/relegation if there's evidence of division change
-    if (weWon && match.leagueAfterMatch) {
+    // For normal divisions, show promotion/relegation status
+    let actionText = 'Maintained';
+    if (weWon) {
       actionText = 'Promoted to';
-    } else if (!weWon && match.leagueAfterMatch) {
+    } else {
       actionText = 'Relegated to';
     }
     
-    return `${actionText} ${emoji} ${formattedLeague}${pointsInfo}`;
+    return `${actionText} ${emoji} ${formattedLeague}`;
   };
 
   const dateRange = formatDateRange(match.startDate, match.endDate);

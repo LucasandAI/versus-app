@@ -20,8 +20,12 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
     setShowAllMatches(!showAllMatches);
   };
 
-  // Safely access match history
-  const matchHistory = club.matchHistory || [];
+  // Safely access match history and sort by date (newest first)
+  const matchHistory = club.matchHistory 
+    ? [...club.matchHistory]
+        .sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime())
+        .slice(0, 10) // Limit to 10 matches total
+    : [];
 
   return (
     <div className="bg-white rounded-lg shadow p-3 sm:p-4">

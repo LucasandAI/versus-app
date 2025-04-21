@@ -33,12 +33,19 @@ export const calculateNewDivisionAndTier = (
   if (isWin) {
     // If at tier 1, promote to next division's tier 5 (or Elite)
     if (currentTier === 1) {
-      const nextDivision = divisionOrder[currentDivisionIndex + 1];
-      return { 
-        division: nextDivision, 
-        tier: nextDivision === 'Elite' ? 1 : 5,
-        elitePoints: nextDivision === 'Elite' ? 0 : undefined
-      };
+      const nextDivisionIndex = currentDivisionIndex + 1;
+      // Check if we can promote to next division
+      if (nextDivisionIndex < divisionOrder.length) {
+        const nextDivision = divisionOrder[nextDivisionIndex];
+        return { 
+          division: nextDivision, 
+          tier: nextDivision === 'Elite' ? 1 : 5,
+          elitePoints: nextDivision === 'Elite' ? 0 : undefined
+        };
+      } else {
+        // Stay at current division/tier if already at max
+        return { division: currentDivision, tier: currentTier };
+      }
     } else {
       // Otherwise move up a tier in the same division
       return { 
@@ -55,11 +62,17 @@ export const calculateNewDivisionAndTier = (
     
     // If at tier 5, relegate to previous division's tier 1
     if (currentTier === 5) {
-      const prevDivision = divisionOrder[currentDivisionIndex - 1];
-      return { 
-        division: prevDivision, 
-        tier: 1 
-      };
+      const prevDivisionIndex = currentDivisionIndex - 1;
+      if (prevDivisionIndex >= 0) {
+        const prevDivision = divisionOrder[prevDivisionIndex];
+        return { 
+          division: prevDivision, 
+          tier: 1 
+        };
+      } else {
+        // Stay at current division/tier if already at min
+        return { division: currentDivision, tier: currentTier };
+      }
     } else {
       // Otherwise move down a tier in the same division
       return { 
