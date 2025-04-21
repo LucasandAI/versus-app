@@ -1,4 +1,3 @@
-
 import { Club } from '@/types';
 import { calculateNewDivisionAndTier } from './leagueUtils';
 

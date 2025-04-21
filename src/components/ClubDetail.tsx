@@ -3,20 +3,16 @@ import React, { useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import ClubDetailContent from './club/detail/ClubDetailContent';
 import GoBackHome from './shared/GoBackHome';
-import { syncClubDivisionWithMatchHistory } from '@/utils/club/matchSyncUtils';
 import { generateMatchHistoryFromDivision } from '@/utils/club/matchGenerationUtils';
+import { syncClubDivisionWithMatchHistory } from '@/utils/club/matchSyncUtils';
 
 const ClubDetail: React.FC = () => {
   const { selectedClub, setSelectedClub } = useApp();
   
-  console.log('Selected club in ClubDetail:', selectedClub);
-
   useEffect(() => {
     if (selectedClub) {
-      console.log("Processing club match history in ClubDetail...");
-
-      // Force regeneration of match history for every club to ensure coherence
-      console.log("Forcing match history regeneration to ensure coherency");
+      // Always regenerate the match history for consistent experience
+      console.log("Rebuilding match history for club...");
       
       // Generate a completely new match history
       const newMatchHistory = generateMatchHistoryFromDivision(selectedClub);
@@ -40,16 +36,11 @@ const ClubDetail: React.FC = () => {
       const losses = (syncedClub.matchHistory?.length || 0) - wins;
       
       console.log(`Win/Loss record: ${wins}W - ${losses}L`);
+      console.log('Updating club with regenerated match history');
       
-      // Always update with new match history
-      console.log('Updating club with regenerated match history:', 
-        `${selectedClub.division} ${selectedClub.tier}`, 'to', 
-        `${syncedClub.division} ${syncedClub.tier}`,
-        'with match count:', syncedClub.matchHistory?.length
-      );
       setSelectedClub(syncedClub);
     }
-  }, [selectedClub?.id]);
+  }, [selectedClub?.id]); // Only run when the club ID changes
 
   if (!selectedClub) {
     return <GoBackHome />;

@@ -32,55 +32,56 @@ const MatchCard: React.FC<MatchCardProps> = ({
   };
 
   const getLeagueImpactText = (match: Match, clubId: string) => {
-    // If no leagueAfterMatch or leagueBeforeMatch data, return "No impact"
+    // If no league data, return "No impact"
     if (!match.leagueAfterMatch || !match.leagueBeforeMatch) {
-      console.log("Missing league data for match:", match.id);
-      return 'No impact';
+      return 'No league data';
     }
     
-    const isHomeTeam = match.homeClub.id === clubId;
-    const weWon = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
+    const beforeDivision = match.leagueBeforeMatch.division;
+    const beforeTier = match.leagueBeforeMatch.tier || 1;
+    const afterDivision = match.leagueAfterMatch.division;
+    const afterTier = match.leagueAfterMatch.tier || 1;
     
-    const beforeEmoji = getDivisionEmoji(match.leagueBeforeMatch.division);
-    const afterEmoji = getDivisionEmoji(match.leagueAfterMatch.division);
+    const beforeEmoji = getDivisionEmoji(beforeDivision);
+    const afterEmoji = getDivisionEmoji(afterDivision);
     
-    const beforeLeague = formatLeague(match.leagueBeforeMatch.division, match.leagueBeforeMatch.tier);
-    const afterLeague = formatLeague(match.leagueAfterMatch.division, match.leagueAfterMatch.tier);
+    const beforeLeague = formatLeague(beforeDivision, beforeTier);
+    const afterLeague = formatLeague(afterDivision, afterTier);
     
     // Check if division or tier changed
-    const isDivisionChange = match.leagueBeforeMatch.division !== match.leagueAfterMatch.division;
-    const isTierChange = match.leagueBeforeMatch.tier !== match.leagueAfterMatch.tier;
+    const isDivisionChange = beforeDivision !== afterDivision;
+    const isTierChange = beforeTier !== afterTier;
     
     // For Elite Division, show points information
-    if (match.leagueAfterMatch.division === 'Elite') {
+    if (afterDivision === 'Elite') {
       const beforePoints = match.leagueBeforeMatch.elitePoints || 0;
       const afterPoints = match.leagueAfterMatch.elitePoints || 0;
       const pointChange = afterPoints - beforePoints;
       const pointsText = `(${pointChange >= 0 ? '+' : ''}${pointChange} points, total: ${afterPoints})`;
       
-      if (match.leagueBeforeMatch.division !== 'Elite') {
+      if (beforeDivision !== 'Elite') {
         return `Promoted to ${afterEmoji} ${afterLeague} ${pointsText}`;
       } else {
-        return `${weWon ? 'Maintained' : 'Maintained'} ${afterEmoji} ${afterLeague} ${pointsText}`;
+        return `${weWon ? 'Gained' : 'Lost'} points in ${afterEmoji} ${afterLeague} ${pointsText}`;
       }
     }
     
     // For normal divisions, determine if it was a promotion, relegation, or maintenance
     if (isDivisionChange) {
       const divisionOrderChange = 
-        ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Elite'].indexOf(match.leagueAfterMatch.division) >
-        ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Elite'].indexOf(match.leagueBeforeMatch.division);
+        ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Elite'].indexOf(afterDivision) >
+        ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Elite'].indexOf(beforeDivision);
       
       if (divisionOrderChange) {
-        return `Promoted to ${afterEmoji} ${afterLeague}`;
+        return `Promoted from ${beforeEmoji} ${beforeLeague} to ${afterEmoji} ${afterLeague}`;
       } else {
-        return `Relegated to ${afterEmoji} ${afterLeague}`;
+        return `Relegated from ${beforeEmoji} ${beforeLeague} to ${afterEmoji} ${afterLeague}`;
       }
     } else if (isTierChange) {
-      if ((match.leagueBeforeMatch.tier || 0) > (match.leagueAfterMatch.tier || 0)) {
-        return `Promoted to ${afterEmoji} ${afterLeague}`;
+      if (beforeTier > afterTier) {
+        return `Promoted from ${beforeEmoji} ${beforeLeague} to ${afterEmoji} ${afterLeague}`;
       } else {
-        return `Relegated to ${afterEmoji} ${afterLeague}`;
+        return `Relegated from ${beforeEmoji} ${beforeLeague} to ${afterEmoji} ${afterLeague}`;
       }
     } else {
       return `Maintained ${afterEmoji} ${afterLeague}`;

@@ -22,9 +22,8 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
 
   // Safely access match history and sort by date (newest first)
   const matchHistory = club.matchHistory 
-    ? [...club.matchHistory]
-        .sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime())
-        .slice(0, 10) // Limit to 10 matches total
+    ? [...club.matchHistory].sort((a, b) => 
+        new Date(b.endDate).getTime() - new Date(a.endDate).getTime())
     : [];
 
   // Determine how many matches to display
