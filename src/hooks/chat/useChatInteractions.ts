@@ -22,8 +22,24 @@ export const useChatInteractions = () => {
     setCurrentView('profile');
   };
 
+  const handleSelectClub = (clubId: string, clubName: string, clubMembers: any[] = []) => {
+    const club = {
+      id: clubId,
+      name: clubName,
+      logo: '/placeholder.svg',
+      division: 'Gold' as const,
+      tier: 3,
+      members: clubMembers,
+      matchHistory: []
+    };
+    
+    setSelectedClub(club);
+    setCurrentView('clubDetail');
+  };
+
   return {
     handleMatchClick,
-    handleSelectUser
+    handleSelectUser,
+    handleSelectClub
   };
 };

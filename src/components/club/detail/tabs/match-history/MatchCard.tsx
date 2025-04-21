@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Match } from '@/types';
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -91,13 +92,14 @@ const MatchCard: React.FC<MatchCardProps> = ({
   };
 
   const handleSelectClub = (clubId: string, clubName: string) => {
+    // Create a proper club object with the necessary properties
     const opponentClub = {
       id: clubId,
       name: clubName,
       logo: '/placeholder.svg',
       division: 'Gold' as const,
       tier: 3,
-      members: theirTeam.members,
+      members: isHomeTeam ? theirTeam.members : ourTeam.members,
       matchHistory: []
     };
     
@@ -115,14 +117,14 @@ const MatchCard: React.FC<MatchCardProps> = ({
           <div className="flex items-center gap-2 mt-1">
             <h3 
               className="text-sm font-medium cursor-pointer hover:text-primary"
-              onClick={() => isHomeTeam ? null : handleSelectClub(ourTeam.id, ourTeam.name)}
+              onClick={() => handleSelectClub(ourTeam.id, ourTeam.name)}
             >
               {ourTeam.name}
             </h3>
             <span className="text-gray-500 text-xs">vs</span>
             <h3 
               className="text-sm font-medium cursor-pointer hover:text-primary"
-              onClick={() => isHomeTeam ? handleSelectClub(theirTeam.id, theirTeam.name) : null}
+              onClick={() => handleSelectClub(theirTeam.id, theirTeam.name)}
             >
               {theirTeam.name}
             </h3>

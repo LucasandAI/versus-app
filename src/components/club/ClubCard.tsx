@@ -33,19 +33,24 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser })
   const handleOpponentClick = (e: React.MouseEvent, opponentName: string, opponentMembers: any) => {
     e.stopPropagation();
     
-    // For opponents, create a basic club object
+    // Create a complete club object
     const opponentClub = {
       id: `opponent-${opponentName.toLowerCase().replace(/\s+/g, '-')}`,
       name: opponentName,
       logo: '/placeholder.svg',
       division: 'Gold' as const,
       tier: 3,
-      members: opponentMembers,
+      members: opponentMembers || [],
       matchHistory: []
     };
     
     setSelectedClub(opponentClub);
     setCurrentView('clubDetail');
+  };
+
+  const handleUserClick = (e: React.MouseEvent, userId: string, name: string, avatar?: string) => {
+    e.stopPropagation();
+    onSelectUser(userId, name, avatar);
   };
 
   return (
@@ -148,10 +153,7 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser })
                     <div 
                       key={member.id} 
                       className="flex items-center gap-2 mb-1 cursor-pointer"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectUser(member.id, member.name, member.avatar);
-                      }}
+                      onClick={(e) => handleUserClick(e, member.id, member.name, member.avatar)}
                     >
                       <UserAvatar name={member.name} image={member.avatar} size="sm" />
                       <div>
@@ -179,10 +181,7 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser })
                     <div 
                       key={member.id} 
                       className="flex items-center gap-2 mb-1 cursor-pointer"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectUser(member.id, member.name, member.avatar);
-                      }}
+                      onClick={(e) => handleUserClick(e, member.id, member.name, member.avatar)}
                     >
                       <UserAvatar name={member.name} image={member.avatar} size="sm" />
                       <div>

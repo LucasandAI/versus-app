@@ -56,9 +56,9 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({
     }
   };
 
-  const handleClubClick = (clubName: string) => {
+  const handleClubClick = (clubId: string, clubName: string) => {
     if (onSelectClub) {
-      onSelectClub(clubName.toLowerCase(), clubName);
+      onSelectClub(clubId, clubName);
     }
   };
 
@@ -87,7 +87,7 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({
       <div>
         <h4 
           className="text-xs font-semibold mb-2 cursor-pointer hover:text-primary"
-          onClick={() => handleClubClick(homeTeam.name)}
+          onClick={() => handleClubClick(homeTeam.name.toLowerCase(), homeTeam.name)}
         >
           {homeTeam.name} Members
         </h4>
@@ -99,7 +99,7 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({
       <div>
         <h4 
           className="text-xs font-semibold mb-2 cursor-pointer hover:text-primary"
-          onClick={() => handleClubClick(awayTeam.name)}
+          onClick={() => handleClubClick(awayTeam.name.toLowerCase(), awayTeam.name)}
         >
           {awayTeam.name} Members
         </h4>

@@ -56,7 +56,10 @@ const ClubDetailTabs: React.FC<ClubDetailTabsProps> = ({
       </TabsContent>
       
       <TabsContent value="history">
-        <MatchHistoryTab club={club} />
+        <MatchHistoryTab 
+          club={club} 
+          onSelectUser={handleSelectUser}
+        />
       </TabsContent>
     </Tabs>
   );

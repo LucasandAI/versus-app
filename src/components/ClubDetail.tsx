@@ -29,16 +29,20 @@ const ClubDetail: React.FC = () => {
       // Update both selectedClub and currentUser
       setSelectedClub(syncedClub);
       
-      // Update the club in currentUser's clubs array
-      if (currentUser) {
-        const updatedClubs = currentUser.clubs.map(club => 
-          club.id === syncedClub.id ? syncedClub : club
-        );
+      // Update the club in currentUser's clubs array if it's one of the user's clubs
+      if (currentUser && currentUser.clubs) {
+        const userHasClub = currentUser.clubs.some(club => club.id === syncedClub.id);
         
-        setCurrentUser(prev => prev ? {
-          ...prev,
-          clubs: updatedClubs
-        } : prev);
+        if (userHasClub) {
+          const updatedClubs = currentUser.clubs.map(club => 
+            club.id === syncedClub.id ? syncedClub : club
+          );
+          
+          setCurrentUser(prev => prev ? {
+            ...prev,
+            clubs: updatedClubs
+          } : prev);
+        }
       }
     }
   }, [selectedClub?.id]);
