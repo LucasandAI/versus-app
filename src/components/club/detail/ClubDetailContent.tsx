@@ -11,21 +11,12 @@ import { useClubMembership } from '@/hooks/club/useClubMembership';
 import { useClubActions } from '@/hooks/club/useClubActions';
 
 interface ClubDetailContentProps {
-  club: Club | null;
+  club: Club;
 }
 
 const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
   const { currentUser, setCurrentView } = useApp();
   const { handleRequestToJoin } = useClubJoin();
-  
-  // If club is null, show loading or error state
-  if (!club) {
-    return (
-      <div className="container-mobile py-8 text-center">
-        <p className="text-lg text-gray-600">Loading club details...</p>
-      </div>
-    );
-  }
   
   const {
     isActuallyMember,
