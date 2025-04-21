@@ -26,7 +26,15 @@ const MatchCard: React.FC<MatchCardProps> = ({
   const formatDateRange = (startDate: string, endDate: string) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
-    return `${start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}–${end.getDate()}, ${end.getFullYear()}`;
+    
+    const startMonth = start.toLocaleDateString('en-US', { month: 'long' });
+    const endMonth = end.toLocaleDateString('en-US', { month: 'long' });
+    
+    if (startMonth === endMonth) {
+      return `${startMonth} ${start.getDate()}–${end.getDate()}, ${end.getFullYear()}`;
+    } else {
+      return `${startMonth} ${start.getDate()}–${endMonth} ${end.getDate()}, ${end.getFullYear()}`;
+    }
   };
 
   const getLeagueImpactText = (match: Match, clubId: string) => {
@@ -74,7 +82,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
         return `Relegated to ${afterEmoji} ${afterLeague}`;
       }
     } else {
-      return `Maintained ${afterEmoji} ${afterLeague}`;
+      return `Maintained in ${afterEmoji} ${afterLeague}`;
     }
   };
 
