@@ -6,10 +6,9 @@ import MatchCard from './match-history/MatchCard';
 
 interface MatchHistoryTabProps {
   club: Club;
-  onSelectUser?: (userId: string, name: string, avatar?: string) => void;
 }
 
-const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club, onSelectUser }) => {
+const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
   const [showAllMatches, setShowAllMatches] = useState(false);
 
@@ -48,7 +47,6 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club, onSelectUser })
               clubId={club.id}
               expandedMatchId={expandedMatchId}
               onExpandToggle={handleViewMatchDetails}
-              onSelectUser={onSelectUser}
             />
           ))}
 

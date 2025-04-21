@@ -5,7 +5,6 @@ import { Club } from '@/types';
 import UserAvatar from '../shared/UserAvatar';
 import MatchProgressBar from '../shared/MatchProgressBar';
 import { formatLeagueWithTier } from '@/lib/format';
-import { useApp } from '@/context/AppContext';
 
 interface ClubCardProps {
   club: Club;
@@ -15,7 +14,6 @@ interface ClubCardProps {
 
 const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser }) => {
   const [expanded, setExpanded] = useState(false);
-  const { setCurrentView, setSelectedClub } = useApp();
 
   const getDaysRemaining = (endDate: string) => {
     const end = new Date(endDate);
@@ -28,29 +26,6 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser })
   const toggleExpanded = (e: React.MouseEvent) => {
     e.stopPropagation();
     setExpanded(!expanded);
-  };
-
-  const handleOpponentClick = (e: React.MouseEvent, opponentName: string, opponentMembers: any) => {
-    e.stopPropagation();
-    
-    // Create a complete club object
-    const opponentClub = {
-      id: `opponent-${opponentName.toLowerCase().replace(/\s+/g, '-')}`,
-      name: opponentName,
-      logo: '/placeholder.svg',
-      division: 'Gold' as const,
-      tier: 3,
-      members: opponentMembers || [],
-      matchHistory: []
-    };
-    
-    setSelectedClub(opponentClub);
-    setCurrentView('clubDetail');
-  };
-
-  const handleUserClick = (e: React.MouseEvent, userId: string, name: string, avatar?: string) => {
-    e.stopPropagation();
-    onSelectUser(userId, name, avatar);
   };
 
   return (
@@ -90,31 +65,11 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser })
           </div>
           
           <div className="flex justify-between items-center mb-3 text-sm">
-            <span 
-              className="font-medium cursor-pointer hover:text-primary"
-              onClick={(e) => {
-                e.stopPropagation();
-                const isHome = club.currentMatch?.homeClub.id === club.id;
-                if (!isHome) {
-                  // If we're not home, then homeClub is the opponent
-                  handleOpponentClick(e, club.currentMatch!.homeClub.name, club.currentMatch!.homeClub.members);
-                }
-              }}
-            >
+            <span className="font-medium cursor-pointer hover:text-primary">
               {club.currentMatch.homeClub.name}
             </span>
             <span className="text-xs text-gray-500">vs</span>
-            <span 
-              className="font-medium cursor-pointer hover:text-primary"
-              onClick={(e) => {
-                e.stopPropagation();
-                const isHome = club.currentMatch?.homeClub.id === club.id;
-                if (isHome) {
-                  // If we're home, then awayClub is the opponent
-                  handleOpponentClick(e, club.currentMatch!.awayClub.name, club.currentMatch!.awayClub.members);
-                }
-              }}
-            >
+            <span className="font-medium cursor-pointer hover:text-primary">
               {club.currentMatch.awayClub.name}
             </span>
           </div>
@@ -136,24 +91,15 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser })
             {expanded && (
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <div>
-                  <p 
-                    className="text-xs font-medium mb-2 cursor-pointer hover:text-primary"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const isHome = club.currentMatch?.homeClub.id === club.id;
-                      if (!isHome) {
-                        // If we're not home, then homeClub is the opponent
-                        handleOpponentClick(e, club.currentMatch!.homeClub.name, club.currentMatch!.homeClub.members);
-                      }
-                    }}
-                  >
-                    Home Club Members
-                  </p>
+                  <p className="text-xs font-medium mb-2">Home Club Members</p>
                   {club.currentMatch.homeClub.members.map(member => (
                     <div 
                       key={member.id} 
                       className="flex items-center gap-2 mb-1 cursor-pointer"
-                      onClick={(e) => handleUserClick(e, member.id, member.name, member.avatar)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectUser(member.id, member.name, member.avatar);
+                      }}
                     >
                       <UserAvatar name={member.name} image={member.avatar} size="sm" />
                       <div>
@@ -164,24 +110,15 @@ const ClubCard: React.FC<ClubCardProps> = ({ club, onSelectClub, onSelectUser })
                   ))}
                 </div>
                 <div>
-                  <p 
-                    className="text-xs font-medium mb-2 cursor-pointer hover:text-primary"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const isHome = club.currentMatch?.homeClub.id === club.id;
-                      if (isHome) {
-                        // If we're home, then awayClub is the opponent
-                        handleOpponentClick(e, club.currentMatch!.awayClub.name, club.currentMatch!.awayClub.members);
-                      }
-                    }}
-                  >
-                    Away Club Members
-                  </p>
+                  <p className="text-xs font-medium mb-2">Away Club Members</p>
                   {club.currentMatch.awayClub.members.map(member => (
                     <div 
                       key={member.id} 
                       className="flex items-center gap-2 mb-1 cursor-pointer"
-                      onClick={(e) => handleUserClick(e, member.id, member.name, member.avatar)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectUser(member.id, member.name, member.avatar);
+                      }}
                     >
                       <UserAvatar name={member.name} image={member.avatar} size="sm" />
                       <div>

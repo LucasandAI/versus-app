@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 interface UserAvatarProps {
   name: string;
   image?: string | null;
-  size?: 'xs' | 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg';
   className?: string;
   onClick?: () => void;
 }
@@ -51,7 +51,6 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   };
 
   const sizeClasses = {
-    xs: 'h-6 w-6 text-xs',
     sm: 'h-8 w-8 text-xs',
     md: 'h-10 w-10 text-sm',
     lg: 'h-16 w-16 text-xl'
