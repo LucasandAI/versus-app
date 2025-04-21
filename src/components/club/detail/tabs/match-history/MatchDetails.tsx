@@ -1,111 +1,98 @@
-
 import React from 'react';
-import { ClubMember } from '@/types';
+import { Match } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
-import { useApp } from '@/context/AppContext';
 
 interface MatchDetailsProps {
-  homeTeam: {
-    name: string;
-    members: ClubMember[];
-  };
-  awayTeam: {
-    name: string;
-    members: ClubMember[];
-  };
+  match: Match;
+  clubId: string;
   onSelectUser?: (userId: string, name: string, avatar?: string) => void;
-  onSelectClub?: (clubId: string, clubName: string) => void;
 }
 
-const MatchDetails: React.FC<MatchDetailsProps> = ({ 
-  homeTeam, 
-  awayTeam,
-  onSelectUser,
-  onSelectClub 
-}) => {
-  const { setCurrentView, setSelectedClub } = useApp();
-
-  const ensureTeamSize = (members: ClubMember[], teamName: string): ClubMember[] => {
-    const result = [...members];
-    
-    // If we have fewer than 5 members, add placeholder members
-    if (result.length < 5) {
-      const existingMemberCount = result.length;
-      for (let i = existingMemberCount; i < 5; i++) {
-        const memberNumber = i + 1;
-        result.push({
-          id: `${teamName.toLowerCase()}-placeholder-${i}`,
-          name: `Inactive Member ${memberNumber}`,
-          avatar: '/placeholder.svg',
-          isAdmin: false,
-          distanceContribution: 0
-        });
-      }
-    }
-    
-    return result;
-  };
-
-  const homeMembers = ensureTeamSize(homeTeam.members || [], homeTeam.name);
-  const awayMembers = ensureTeamSize(awayTeam.members || [], awayTeam.name);
-
-  const handleUserClick = (member: ClubMember) => {
-    // Only allow clicking on real members, not placeholders
-    if (!member.id.includes('placeholder') && onSelectUser) {
-      onSelectUser(member.id, member.name, member.avatar);
-    }
-  };
-
-  const handleClubClick = (clubId: string, clubName: string) => {
-    if (onSelectClub) {
-      onSelectClub(clubId, clubName);
-    }
-  };
-
-  const renderMemberRow = (member: ClubMember) => (
-    <div 
-      key={member.id} 
-      className="flex justify-between text-xs items-center"
-    >
-      <div 
-        className={`flex items-center gap-2 ${!member.id.includes('placeholder') ? 'cursor-pointer hover:text-primary' : 'text-gray-400'}`}
-        onClick={() => handleUserClick(member)}
-      >
-        <UserAvatar name={member.name} image={member.avatar} size="sm" />
-        <span>{member.name}</span>
-      </div>
-      <span className="font-medium">
-        {member.distanceContribution !== undefined 
-          ? `${member.distanceContribution.toFixed(1)} km` 
-          : '0.0 km'}
-      </span>
-    </div>
-  );
+const MatchDetails: React.FC<MatchDetailsProps> = ({ match, clubId, onSelectUser }) => {
+  const homeClubWon = match.winner === 'home';
 
   return (
-    <div className="mt-3 bg-gray-50 p-3 rounded-md space-y-3">
-      <div>
-        <h4 
-          className="text-xs font-semibold mb-2 cursor-pointer hover:text-primary"
-          onClick={() => handleClubClick(homeTeam.name.toLowerCase(), homeTeam.name)}
-        >
-          {homeTeam.name} Members
-        </h4>
-        <div className="space-y-1">
-          {homeMembers.map(renderMemberRow)}
+    <div className="px-4 py-3 bg-gray-50">
+      <h4 className="font-semibold mb-2">Match Summary</h4>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <h5 className="text-sm font-medium mb-1">Home Club</h5>
+          <div className="flex items-center gap-2">
+            <UserAvatar name={match.homeClub.name} image={match.homeClub.logo} size="sm" />
+            <div>
+              <p className="text-xs font-medium">{match.homeClub.name}</p>
+              <p className="text-xs text-gray-500">
+                Total Distance: {match.homeClub.totalDistance.toFixed(1)} km
+              </p>
+            </div>
+          </div>
+          <div className="mt-2">
+            <p className="text-xs font-medium mb-1">Top Performers:</p>
+            {match.homeClub.members
+              .sort((a, b) => (b.distanceContribution || 0) - (a.distanceContribution || 0))
+              .slice(0, 3)
+              .map((member) => (
+                <div
+                  key={member.id}
+                  className="flex items-center gap-2 mb-1 cursor-pointer"
+                  onClick={() => onSelectUser && onSelectUser(member.id, member.name, member.avatar)}
+                >
+                  <UserAvatar name={member.name} image={member.avatar} size="xs" />
+                  <div>
+                    <p className="text-xxs font-medium hover:text-primary">{member.name}</p>
+                    <p className="text-xxs text-gray-500">
+                      {member.distanceContribution?.toFixed(1)} km
+                    </p>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+
+        <div>
+          <h5 className="text-sm font-medium mb-1">Away Club</h5>
+          <div className="flex items-center gap-2">
+            <UserAvatar name={match.awayClub.name} image={match.awayClub.logo} size="sm" />
+            <div>
+              <p className="text-xs font-medium">{match.awayClub.name}</p>
+              <p className="text-xs text-gray-500">
+                Total Distance: {match.awayClub.totalDistance.toFixed(1)} km
+              </p>
+            </div>
+          </div>
+          <div className="mt-2">
+            <p className="text-xs font-medium mb-1">Top Performers:</p>
+            {match.awayClub.members
+              .sort((a, b) => (b.distanceContribution || 0) - (a.distanceContribution || 0))
+              .slice(0, 3)
+              .map((member) => (
+                <div
+                  key={member.id}
+                  className="flex items-center gap-2 mb-1 cursor-pointer"
+                  onClick={() => onSelectUser && onSelectUser(member.id, member.name, member.avatar)}
+                >
+                  <UserAvatar name={member.name} image={member.avatar} size="xs" />
+                  <div>
+                    <p className="text-xxs font-medium hover:text-primary">{member.name}</p>
+                    <p className="text-xxs text-gray-500">
+                      {member.distanceContribution?.toFixed(1)} km
+                    </p>
+                  </div>
+                </div>
+              ))}
+          </div>
         </div>
       </div>
-      
-      <div>
-        <h4 
-          className="text-xs font-semibold mb-2 cursor-pointer hover:text-primary"
-          onClick={() => handleClubClick(awayTeam.name.toLowerCase(), awayTeam.name)}
-        >
-          {awayTeam.name} Members
-        </h4>
-        <div className="space-y-1">
-          {awayMembers.map(renderMemberRow)}
-        </div>
+
+      <div className="mt-4">
+        <h5 className="text-sm font-medium mb-1">Match Result</h5>
+        {match.winner ? (
+          <p className="text-xs">
+            {homeClubWon ? match.homeClub.name : match.awayClub.name} won the match!
+          </p>
+        ) : (
+          <p className="text-xs">Match ended in a draw.</p>
+        )}
       </div>
     </div>
   );
