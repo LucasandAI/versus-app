@@ -32,8 +32,11 @@ const MatchCard: React.FC<MatchCardProps> = ({
   };
 
   const getLeagueImpactText = (match: Match, clubId: string) => {
-    // If no leagueAfterMatch data, return "No impact"
-    if (!match.leagueAfterMatch || !match.leagueBeforeMatch) return 'No impact';
+    // If no leagueAfterMatch or leagueBeforeMatch data, return "No impact"
+    if (!match.leagueAfterMatch || !match.leagueBeforeMatch) {
+      console.log("Missing league data for match:", match.id);
+      return 'No impact';
+    }
     
     const isHomeTeam = match.homeClub.id === clubId;
     const weWon = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');

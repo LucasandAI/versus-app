@@ -17,21 +17,24 @@ const ClubDetail: React.FC = () => {
     if (selectedClub) {
       console.log("Processing club match history in ClubDetail...");
       
-      // Check if we need to generate match history
-      // Regenerate if there are fewer than needed matches or if last match doesn't have proper league data
+      // Check if match history is valid (contains the required league transitions)
       const hasValidHistory = selectedClub.matchHistory && 
                              selectedClub.matchHistory.length > 0 &&
                              selectedClub.matchHistory.some(m => 
                                 m.leagueAfterMatch?.division === selectedClub.division && 
                                 m.leagueAfterMatch?.tier === selectedClub.tier);
       
-      // Only regenerate if needed
+      console.log("Has valid history:", hasValidHistory);
+      
+      // Generate match history if needed
       const clubWithHistory = !hasValidHistory 
         ? {
             ...selectedClub,
             matchHistory: generateMatchHistoryFromDivision(selectedClub)
           }
         : selectedClub;
+      
+      console.log("Match history count after check:", clubWithHistory.matchHistory?.length);
       
       // Then sync the club's division with match history if needed
       const syncedClub = clubWithHistory.matchHistory?.length > 0 

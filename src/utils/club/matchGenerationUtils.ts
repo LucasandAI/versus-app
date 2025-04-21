@@ -44,10 +44,10 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
   console.log(`Generating match history from ${currentDivision} ${currentTier} to ${club.division} ${club.tier}`);
   
   // Generate all necessary matches to reach current division/tier
-  while (currentDivision !== club.division || currentTier !== club.tier) {
+  while (currentDivision !== club.division || currentTier !== (club.tier || 1)) {
     // Determine if we need to win to progress
     const needToWin = divisionOrder.indexOf(currentDivision) < divisionOrder.indexOf(club.division) || 
-                     (currentDivision === club.division && currentTier > club.tier);
+                     (currentDivision === club.division && currentTier > (club.tier || 1));
     
     // Store current state before match
     const beforeState = {
@@ -80,7 +80,20 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
     }
   }
   
-  console.log(`Required matches to reach ${club.division} ${club.tier}: ${requiredMatches.length}`);
+  console.log(`Required matches to reach ${club.division} ${club.tier || 1}: ${requiredMatches.length}`);
+  
+  // If no matches needed (already at starting division), generate at least one match
+  if (requiredMatches.length === 0) {
+    requiredMatches.push({
+      needToWin: true,
+      beforeDivision: currentDivision,
+      beforeTier: currentTier,
+      beforeElitePoints: elitePoints,
+      afterDivision: currentDivision,
+      afterTier: currentTier,
+      afterElitePoints: elitePoints
+    });
+  }
   
   // Generate all matches
   const generatedHistory: Match[] = [];
@@ -162,7 +175,7 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
     generatedHistory.push(match);
   }
   
-  // Sort by date (oldest first, then reverse at the end)
+  // Sort by date (newest first)
   return generatedHistory.sort((a, b) => 
     new Date(b.endDate).getTime() - new Date(a.endDate).getTime()
   );
