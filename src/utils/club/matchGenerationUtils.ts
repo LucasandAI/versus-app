@@ -16,7 +16,7 @@ const OPPONENTS = [
 ];
 
 export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
-  console.log(`Starting match generation for ${club.name} (${club.division} ${club.tier})`);
+  console.log(`Starting match generation for ${club.name} (${club.division} ${club.tier || 1})`);
 
   // Define division progression path
   const divisionOrder: Division[] = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Elite'];
@@ -41,7 +41,7 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
   let currentTier = startingTier;
   let elitePoints = startingElitePoints;
   
-  console.log(`Generating match history from ${currentDivision} ${currentTier} to ${club.division} ${club.tier}`);
+  console.log(`Generating match history from ${currentDivision} ${currentTier} to ${club.division} ${club.tier || 1}`);
   
   // Generate all necessary matches to reach current division/tier
   while (currentDivision !== club.division || currentTier !== (club.tier || 1)) {
@@ -74,7 +74,7 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
     });
     
     // Safety break to prevent infinite loop
-    if (requiredMatches.length > 50) {
+    if (requiredMatches.length > 100) {
       console.log("Safety break - too many matches needed");
       break;
     }

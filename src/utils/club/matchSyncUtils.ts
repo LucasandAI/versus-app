@@ -24,7 +24,7 @@ export const syncClubDivisionWithMatchHistory = (club: Club): Club => {
     return {
       ...club,
       division: latestMatch.leagueAfterMatch.division,
-      tier: latestMatch.leagueAfterMatch.tier,
+      tier: latestMatch.leagueAfterMatch.tier || 1,
       // Include elite points if available
       ...(latestMatch.leagueAfterMatch.elitePoints !== undefined && {
         elitePoints: latestMatch.leagueAfterMatch.elitePoints

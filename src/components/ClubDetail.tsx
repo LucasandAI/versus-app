@@ -15,37 +15,21 @@ const ClubDetail: React.FC = () => {
     if (selectedClub) {
       console.log("Processing club match history in ClubDetail...");
 
-      // Calculate minimum required matches based on division and tier
-      const divisionOrder = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Elite'];
-      const currentDivisionIndex = divisionOrder.indexOf(selectedClub.division);
-      const minRequiredMatches = (currentDivisionIndex * 5) + // Matches to climb divisions
-                                (5 - (selectedClub.tier || 1)); // Matches within current division
+      // Force regeneration of match history for every club to ensure coherence
+      console.log("Forcing match history regeneration to ensure coherency");
       
-      console.log("Minimum required matches:", minRequiredMatches);
-      console.log("Current match count:", selectedClub.matchHistory?.length);
-
-      // Check if history needs regeneration
-      const clubNeedsHistoryFix = !selectedClub.matchHistory ||
-        selectedClub.matchHistory.length < minRequiredMatches ||
-        !selectedClub.matchHistory.some(m => 
-          m.leagueAfterMatch?.division === selectedClub.division && 
-          m.leagueAfterMatch?.tier === selectedClub.tier
-        );
+      // Generate a completely new match history
+      const newMatchHistory = generateMatchHistoryFromDivision(selectedClub);
+      console.log("Generated new match history with", newMatchHistory.length, "matches");
       
-      console.log("Club needs history fix:", clubNeedsHistoryFix);
+      // Create updated club with new match history
+      const clubWithHistory = {
+        ...selectedClub,
+        matchHistory: newMatchHistory
+      };
       
-      // Regenerate history if needed
-      const clubWithHistory = clubNeedsHistoryFix 
-        ? {
-            ...selectedClub,
-            matchHistory: generateMatchHistoryFromDivision(selectedClub)
-          }
-        : selectedClub;
-      
-      // Sync club's division with match history
-      const syncedClub = clubWithHistory.matchHistory?.length > 0 
-        ? syncClubDivisionWithMatchHistory(clubWithHistory)
-        : clubWithHistory;
+      // Ensure the club's division is in sync with the match history
+      const syncedClub = syncClubDivisionWithMatchHistory(clubWithHistory);
       
       // Calculate win/loss record
       const wins = syncedClub.matchHistory?.filter(match => {
@@ -57,15 +41,13 @@ const ClubDetail: React.FC = () => {
       
       console.log(`Win/Loss record: ${wins}W - ${losses}L`);
       
-      // Update if changes were made
-      if (JSON.stringify(syncedClub) !== JSON.stringify(selectedClub)) {
-        console.log('Updating club with new match history:', 
-          `${selectedClub.division} ${selectedClub.tier}`, 'to', 
-          `${syncedClub.division} ${syncedClub.tier}`,
-          'with match count:', syncedClub.matchHistory?.length
-        );
-        setSelectedClub(syncedClub);
-      }
+      // Always update with new match history
+      console.log('Updating club with regenerated match history:', 
+        `${selectedClub.division} ${selectedClub.tier}`, 'to', 
+        `${syncedClub.division} ${syncedClub.tier}`,
+        'with match count:', syncedClub.matchHistory?.length
+      );
+      setSelectedClub(syncedClub);
     }
   }, [selectedClub?.id]);
 
