@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -11,12 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Instagram, Linkedin, Globe, Twitter, Facebook, Upload } from "lucide-react";
-import UserAvatar from "@/components/shared/UserAvatar";
 import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { User } from "@/types";
 import { useApp } from "@/context/AppContext";
+import AvatarUploadSection from "./edit/AvatarUploadSection";
+import SocialLinksSection from "./edit/SocialLinksSection";
 
 interface EditProfileDialogProps {
   open: boolean;
@@ -39,7 +38,6 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
   const [previewKey, setPreviewKey] = useState(Date.now());
   const isMobile = useIsMobile();
 
-  // Reset form fields when user changes or dialog opens
   useEffect(() => {
     if (user) {
       setName(user.name || "");
@@ -64,6 +62,17 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
       setAvatar(previewUrl);
       setAvatarFile(file);
       setPreviewKey(Date.now()); // Force avatar preview to refresh
+    }
+  };
+
+  const handleSocialChange = (field: string, value: string) => {
+    switch (field) {
+      case 'instagram': setInstagram(value); break;
+      case 'linkedin': setLinkedin(value); break;
+      case 'twitter': setTwitter(value); break;
+      case 'facebook': setFacebook(value); break;
+      case 'website': setWebsite(value); break;
+      case 'tiktok': setTiktok(value); break;
     }
   };
 
@@ -119,33 +128,12 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
           <DialogTitle>Edit Profile</DialogTitle>
         </DialogHeader>
         <div className="space-y-6 py-4">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <UserAvatar 
-                name={user?.name || ""} 
-                image={avatar}
-                size="lg"
-                key={`avatar-${previewKey}`} // Force re-render with new image
-              />
-              <label 
-                htmlFor="avatar-upload" 
-                className="absolute bottom-0 right-0 bg-primary text-white p-1.5 rounded-full cursor-pointer shadow-md"
-              >
-                <Upload className="h-4 w-4" />
-                <span className="sr-only">Upload picture</span>
-              </label>
-              <input 
-                id="avatar-upload" 
-                type="file" 
-                accept="image/*" 
-                className="hidden" 
-                onChange={handleAvatarChange}
-              />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Click the icon to upload a new picture</p>
-            </div>
-          </div>
+          <AvatarUploadSection
+            avatar={avatar}
+            name={user?.name || ""}
+            previewKey={previewKey}
+            onAvatarChange={handleAvatarChange}
+          />
 
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
@@ -170,79 +158,15 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
             />
           </div>
 
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium">Social Links</h4>
-            
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Instagram className="h-4 w-4" />
-                <Input 
-                  placeholder="Instagram username" 
-                  value={instagram}
-                  onChange={(e) => setInstagram(e.target.value)}
-                />
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Twitter className="h-4 w-4" />
-                <Input 
-                  placeholder="Twitter username" 
-                  value={twitter}
-                  onChange={(e) => setTwitter(e.target.value)}
-                />
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Facebook className="h-4 w-4" />
-                <Input 
-                  placeholder="Facebook profile URL" 
-                  value={facebook}
-                  onChange={(e) => setFacebook(e.target.value)}
-                />
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Linkedin className="h-4 w-4" />
-                <Input 
-                  placeholder="LinkedIn profile URL" 
-                  value={linkedin}
-                  onChange={(e) => setLinkedin(e.target.value)}
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-4 w-4"
-                >
-                  <path d="M9 12A3 3 0 1 0 9 6a3 3 0 0 0 0 6Z" />
-                  <path d="M9 6v12m6-6v6m0-9v3" />
-                </svg>
-                <Input 
-                  placeholder="TikTok username" 
-                  value={tiktok}
-                  onChange={(e) => setTiktok(e.target.value)}
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Globe className="h-4 w-4" />
-                <Input 
-                  placeholder="Website URL" 
-                  value={website}
-                  onChange={(e) => setWebsite(e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
+          <SocialLinksSection
+            instagram={instagram}
+            linkedin={linkedin}
+            twitter={twitter}
+            facebook={facebook}
+            website={website}
+            tiktok={tiktok}
+            onSocialChange={handleSocialChange}
+          />
         </div>
         <DialogFooter className={`${isMobile ? 'flex-col gap-2' : ''}`}>
           <Button variant="outline" onClick={() => onOpenChange(false)} className={isMobile ? 'w-full' : ''}>
