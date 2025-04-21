@@ -8,24 +8,10 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  
-  // Always start with connect view by default, then update based on auth status
   const [currentView, setCurrentView] = useState<AppView>('connect');
-  
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   
   const { selectedClub, setSelectedClub, createClub } = useClubManagement(currentUser, setCurrentUser);
-
-  // Update currentView when authentication status changes
-  useEffect(() => {
-    if (currentUser?.stravaConnected) {
-      setCurrentView('home');
-    } else {
-      setCurrentView('connect');
-      // Clear club selection when logging out
-      setSelectedClub(null);
-    }
-  }, [currentUser?.stravaConnected]);
 
   // Update selected club when currentUser changes
   useEffect(() => {

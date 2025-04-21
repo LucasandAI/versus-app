@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { Club } from '@/types';
@@ -6,7 +5,6 @@ import UserAvatar from '../shared/UserAvatar';
 import MatchProgressBar from '../shared/MatchProgressBar';
 import { formatLeagueWithTier } from '@/lib/format';
 import { useClubNavigation } from '@/hooks/useClubNavigation';
-import { slugifyClubName } from '@/utils/slugify';
 
 interface ClubCardProps {
   club: Club;
@@ -41,11 +39,6 @@ const ClubCard: React.FC<ClubCardProps> = ({
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
-
-  // Ensure club has a slug
-  if (!club.slug) {
-    club.slug = slugifyClubName(club.name);
-  }
 
   return (
     <div 

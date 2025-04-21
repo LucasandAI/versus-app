@@ -5,7 +5,6 @@ import Button from '../shared/Button';
 import { formatLeagueWithTier } from '@/lib/format';
 import UserAvatar from '../shared/UserAvatar';
 import { useClubNavigation } from '@/hooks/useClubNavigation';
-import { slugifyClubName } from '@/utils/slugify';
 
 interface AvailableClub {
   id: string;
@@ -13,7 +12,6 @@ interface AvailableClub {
   division: string;
   tier: number;
   members: number;
-  slug?: string;
 }
 
 interface AvailableClubsProps {
@@ -30,7 +28,6 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
       name: club.name,
       division: club.division as any,
       tier: club.tier,
-      slug: club.slug || slugifyClubName(club.name),
       members: [],
       matchHistory: []
     });

@@ -1,54 +1,17 @@
-
 import React, { useEffect, useState } from 'react';
-import { useApp } from '@/context/AppContext';
+import { AppProvider, useApp } from '@/context/AppContext';
 import ConnectScreen from '@/components/ConnectScreen';
 import HomeView from '@/components/HomeView';
+import ClubDetail from '@/components/ClubDetail';
 import Leaderboard from '@/components/Leaderboard';
 import UserProfile from '@/components/UserProfile';
 import Navigation from '@/components/Navigation';
 import SupportPopover from '@/components/shared/SupportPopover';
 import { Toaster } from '@/components/ui/toaster';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { slugifyClubName } from '@/utils/slugify';
 
-const Index: React.FC = () => {
-  const { currentView, currentUser, selectedClub } = useApp();
+const AppContent: React.FC = () => {
+  const { currentView, currentUser } = useApp();
   const [chatNotifications, setChatNotifications] = useState(0);
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  // Update URL when current view changes - only when authenticated
-  useEffect(() => {
-    const isAuthed = currentUser?.stravaConnected;
-    const shouldNavigate = currentView === 'clubDetail' && selectedClub;
-
-    if (isAuthed && shouldNavigate) {
-      const slug = selectedClub.slug || slugifyClubName(selectedClub.name);
-
-      // Prevent repeated redirects during same session
-      const alreadyThere = location.pathname.includes(`/clubs/${slug}`);
-      const hasRedirected = sessionStorage.getItem('alreadyRedirected');
-
-      if (!alreadyThere && !hasRedirected) {
-        sessionStorage.setItem('alreadyRedirected', 'true');
-        navigate(`/clubs/${slug}`);
-      }
-    }
-  }, [
-    currentUser?.stravaConnected,
-    currentView,
-    selectedClub?.id,
-    selectedClub?.slug,
-    location.pathname,
-    navigate
-  ]);
-
-  // When user logs out, clear the redirect flag
-  useEffect(() => {
-    if (!currentUser?.stravaConnected) {
-      sessionStorage.removeItem('alreadyRedirected');
-    }
-  }, [currentUser?.stravaConnected]);
 
   // Load unread counts from localStorage on mount and when updated
   useEffect(() => {
@@ -115,6 +78,8 @@ const Index: React.FC = () => {
         return <ConnectScreen />;
       case 'home':
         return <HomeView chatNotifications={chatNotifications} />;
+      case 'clubDetail':
+        return <ClubDetail />;
       case 'leaderboard':
         return <Leaderboard />;
       case 'profile':
@@ -124,7 +89,7 @@ const Index: React.FC = () => {
     }
   };
 
-  const handleCreateSupportTicket = (ticketId: string, subject: string, message: string) => {
+  const handleCreateSupportChat = (ticketId: string, subject: string, message: string) => {
     // Update local state immediately 
     setChatNotifications(prev => prev + 1);
     
@@ -150,12 +115,22 @@ const Index: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <>
       {renderView()}
       {currentUser?.stravaConnected && currentView !== 'connect' && <Navigation />}
-      {currentUser?.stravaConnected && <SupportPopover onCreateSupportChat={handleCreateSupportTicket} />}
+      {currentUser?.stravaConnected && <SupportPopover onCreateSupportChat={handleCreateSupportChat} />}
       <Toaster />
-    </div>
+    </>
+  );
+};
+
+const Index: React.FC = () => {
+  return (
+    <AppProvider>
+      <div className="min-h-screen bg-gray-50">
+        <AppContent />
+      </div>
+    </AppProvider>
   );
 };
 

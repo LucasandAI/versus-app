@@ -5,11 +5,9 @@ import ClubDetailContent from './club/detail/ClubDetailContent';
 import GoBackHome from './shared/GoBackHome';
 import { generateMatchHistoryFromDivision } from '@/utils/club/matchGenerationUtils';
 import { syncClubDivisionWithMatchHistory } from '@/utils/club/matchSyncUtils';
-import { useNavigate } from 'react-router-dom';
 
 const ClubDetail: React.FC = () => {
   const { selectedClub, setSelectedClub, currentUser, setCurrentUser } = useApp();
-  const navigate = useNavigate();
   
   useEffect(() => {
     if (selectedClub && (!selectedClub.matchHistory || selectedClub.matchHistory.length === 0)) {
@@ -31,20 +29,16 @@ const ClubDetail: React.FC = () => {
       // Update both selectedClub and currentUser
       setSelectedClub(syncedClub);
       
-      // Only update current user's clubs if this is one of their clubs
+      // Update the club in currentUser's clubs array
       if (currentUser) {
-        const isUserClub = currentUser.clubs.some(club => club.id === syncedClub.id);
+        const updatedClubs = currentUser.clubs.map(club => 
+          club.id === syncedClub.id ? syncedClub : club
+        );
         
-        if (isUserClub) {
-          const updatedClubs = currentUser.clubs.map(club => 
-            club.id === syncedClub.id ? syncedClub : club
-          );
-          
-          setCurrentUser(prev => prev ? {
-            ...prev,
-            clubs: updatedClubs
-          } : prev);
-        }
+        setCurrentUser(prev => prev ? {
+          ...prev,
+          clubs: updatedClubs
+        } : prev);
       }
     }
   }, [selectedClub?.id]);

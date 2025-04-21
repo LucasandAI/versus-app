@@ -1,7 +1,6 @@
 
 import { Club, ClubMember, Division } from '@/types';
 import { availableClubs } from '@/data/availableClubs';
-import { slugifyClubName } from '@/utils/slugify';
 
 export const MAX_CLUBS_PER_USER = 3;
 
@@ -16,7 +15,6 @@ export const createNewClub = (clubId: string, clubName: string): Club => {
     logo: '/placeholder.svg',
     division: 'Bronze' as Division,
     tier: 3,
-    slug: slugifyClubName(clubName),
     members: [],
     currentMatch: null,
     matchHistory: []
@@ -33,18 +31,8 @@ export const getClubToJoin = (clubId: string, clubName: string, allClubs: Club[]
 
   if (!clubToJoin) {
     clubToJoin = mockClub ? 
-      { 
-        ...createNewClub(mockClub.id, mockClub.name), 
-        division: mockClub.division as Division, 
-        tier: mockClub.tier,
-        slug: slugifyClubName(mockClub.name)
-      } :
+      { ...createNewClub(mockClub.id, mockClub.name), division: mockClub.division as Division, tier: mockClub.tier } :
       createNewClub(clubId, clubName);
-  }
-
-  // Ensure club has a slug
-  if (!clubToJoin.slug) {
-    clubToJoin.slug = slugifyClubName(clubToJoin.name);
   }
 
   return clubToJoin;
