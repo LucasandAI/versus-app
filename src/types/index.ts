@@ -20,6 +20,7 @@ export interface Club {
   logo: string;
   division: Division;
   tier?: number;
+  elitePoints?: number;
   bio?: string;
   members: ClubMember[];
   currentMatch?: Match;
