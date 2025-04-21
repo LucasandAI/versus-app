@@ -22,6 +22,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setCurrentView('home');
     } else {
       setCurrentView('connect');
+      // Clear club selection when logging out
+      setSelectedClub(null);
     }
   }, [currentUser?.stravaConnected]);
 

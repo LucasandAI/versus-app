@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import ConnectScreen from '@/components/ConnectScreen';
@@ -18,17 +19,36 @@ const Index: React.FC = () => {
 
   // Update URL when current view changes - only when authenticated
   useEffect(() => {
-    const isReady = currentUser?.stravaConnected && 
-                   currentView === 'clubDetail' && 
-                   selectedClub;
-                   
-    if (isReady) {
+    const isAuthed = currentUser?.stravaConnected;
+    const shouldNavigate = currentView === 'clubDetail' && selectedClub;
+
+    if (isAuthed && shouldNavigate) {
       const slug = selectedClub.slug || slugifyClubName(selectedClub.name);
-      if (!location.pathname.includes(`/clubs/${slug}`)) {
+
+      // Prevent repeated redirects during same session
+      const alreadyThere = location.pathname.includes(`/clubs/${slug}`);
+      const hasRedirected = sessionStorage.getItem('alreadyRedirected');
+
+      if (!alreadyThere && !hasRedirected) {
+        sessionStorage.setItem('alreadyRedirected', 'true');
         navigate(`/clubs/${slug}`);
       }
     }
-  }, [currentView, selectedClub, navigate, location, currentUser?.stravaConnected]);
+  }, [
+    currentUser?.stravaConnected,
+    currentView,
+    selectedClub?.id,
+    selectedClub?.slug,
+    location.pathname,
+    navigate
+  ]);
+
+  // When user logs out, clear the redirect flag
+  useEffect(() => {
+    if (!currentUser?.stravaConnected) {
+      sessionStorage.removeItem('alreadyRedirected');
+    }
+  }, [currentUser?.stravaConnected]);
 
   // Load unread counts from localStorage on mount and when updated
   useEffect(() => {
