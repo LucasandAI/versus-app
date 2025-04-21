@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Match } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -37,10 +38,10 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({ match, clubId, onSelectUser
                   className="flex items-center gap-2 mb-1 cursor-pointer"
                   onClick={() => onSelectUser && onSelectUser(member.id, member.name, member.avatar)}
                 >
-                  <UserAvatar name={member.name} image={member.avatar} size="xs" />
+                  <UserAvatar name={member.name} image={member.avatar} size="sm" className="h-4 w-4" />
                   <div>
-                    <p className="text-xxs font-medium hover:text-primary">{member.name}</p>
-                    <p className="text-xxs text-gray-500">
+                    <p className="text-xs font-medium hover:text-primary">{member.name}</p>
+                    <p className="text-xs text-gray-500">
                       {member.distanceContribution?.toFixed(1)} km
                     </p>
                   </div>
@@ -71,10 +72,10 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({ match, clubId, onSelectUser
                   className="flex items-center gap-2 mb-1 cursor-pointer"
                   onClick={() => onSelectUser && onSelectUser(member.id, member.name, member.avatar)}
                 >
-                  <UserAvatar name={member.name} image={member.avatar} size="xs" />
+                  <UserAvatar name={member.name} image={member.avatar} size="sm" className="h-4 w-4" />
                   <div>
-                    <p className="text-xxs font-medium hover:text-primary">{member.name}</p>
-                    <p className="text-xxs text-gray-500">
+                    <p className="text-xs font-medium hover:text-primary">{member.name}</p>
+                    <p className="text-xs text-gray-500">
                       {member.distanceContribution?.toFixed(1)} km
                     </p>
                   </div>
