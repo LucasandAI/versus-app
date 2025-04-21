@@ -1,19 +1,44 @@
 
 import React, { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import ClubDetailContent from './club/detail/ClubDetailContent';
 import GoBackHome from './shared/GoBackHome';
 import { generateMatchHistoryFromDivision } from '@/utils/club/matchGenerationUtils';
 import { syncClubDivisionWithMatchHistory } from '@/utils/club/matchSyncUtils';
+import { buildMinimalClub } from '@/utils/club/clubBuilder';
 
 const ClubDetail: React.FC = () => {
   const { selectedClub, setSelectedClub, currentUser, setCurrentUser } = useApp();
+  const location = useLocation();
+  
+  useEffect(() => {
+    // Extract clubId from URL path
+    const clubId = location.pathname.split('/clubs/')[1];
+    
+    if (clubId && !selectedClub) {
+      console.log("No selected club, building minimal club for:", clubId);
+      
+      // First check if it's one of the user's clubs
+      const userClub = currentUser?.clubs.find(c => c.id === clubId);
+      
+      if (userClub) {
+        console.log("Found club in user's clubs");
+        setSelectedClub(userClub);
+      } else {
+        console.log("Building minimal club");
+        // Create a minimal club if we don't have it
+        const minimalClub = buildMinimalClub(clubId);
+        setSelectedClub(minimalClub);
+      }
+    }
+  }, [location.pathname, selectedClub]);
   
   useEffect(() => {
     if (selectedClub && (!selectedClub.matchHistory || selectedClub.matchHistory.length === 0)) {
       console.log("Generating new match history for club...");
       
-      // Generate a completely new match history
+      // Generate match history
       const newMatchHistory = generateMatchHistoryFromDivision(selectedClub);
       console.log("Generated new match history with", newMatchHistory.length, "matches");
       
@@ -26,11 +51,11 @@ const ClubDetail: React.FC = () => {
       // Ensure the club's division is in sync with the match history
       const syncedClub = syncClubDivisionWithMatchHistory(clubWithHistory);
       
-      // Update both selectedClub and currentUser
+      // Update both selectedClub and currentUser if needed
       setSelectedClub(syncedClub);
       
-      // Update the club in currentUser's clubs array
-      if (currentUser) {
+      // If this is a user's club, update it in their clubs array
+      if (currentUser && currentUser.clubs.some(c => c.id === syncedClub.id)) {
         const updatedClubs = currentUser.clubs.map(club => 
           club.id === syncedClub.id ? syncedClub : club
         );
@@ -43,7 +68,9 @@ const ClubDetail: React.FC = () => {
     }
   }, [selectedClub?.id]);
 
-  if (!selectedClub) {
+  // Only show GoBackHome if we have no clubId in the URL
+  const clubId = location.pathname.split('/clubs/')[1];
+  if (!clubId) {
     return <GoBackHome />;
   }
 
