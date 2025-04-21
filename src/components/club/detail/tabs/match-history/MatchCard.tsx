@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Match } from '@/types';
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -24,7 +23,6 @@ const MatchCard: React.FC<MatchCardProps> = ({
   const theirTeam = isHomeTeam ? match.awayClub : match.homeClub;
   const weWon = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
 
-  // Format date in a readable way
   const formatDateRange = (startDate: string, endDate: string) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -32,27 +30,20 @@ const MatchCard: React.FC<MatchCardProps> = ({
   };
 
   const getLeagueImpactText = (match: Match, clubId: string) => {
-    // If no league data, return "No impact"
     if (!match.leagueAfterMatch || !match.leagueBeforeMatch) {
       return 'No league data';
     }
     
     const beforeDivision = match.leagueBeforeMatch.division;
-    const beforeTier = match.leagueBeforeMatch.tier || 1;
     const afterDivision = match.leagueAfterMatch.division;
     const afterTier = match.leagueAfterMatch.tier || 1;
     
-    const beforeEmoji = getDivisionEmoji(beforeDivision);
     const afterEmoji = getDivisionEmoji(afterDivision);
-    
-    const beforeLeague = formatLeague(beforeDivision, beforeTier);
     const afterLeague = formatLeague(afterDivision, afterTier);
     
-    // Check if division or tier changed
     const isDivisionChange = beforeDivision !== afterDivision;
-    const isTierChange = beforeTier !== afterTier;
+    const isTierChange = match.leagueBeforeMatch.tier !== afterTier;
     
-    // For Elite Division, show points information
     if (afterDivision === 'Elite') {
       const beforePoints = match.leagueBeforeMatch.elitePoints || 0;
       const afterPoints = match.leagueAfterMatch.elitePoints || 0;
@@ -66,22 +57,21 @@ const MatchCard: React.FC<MatchCardProps> = ({
       }
     }
     
-    // For normal divisions, determine if it was a promotion, relegation, or maintenance
     if (isDivisionChange) {
       const divisionOrderChange = 
         ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Elite'].indexOf(afterDivision) >
         ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Elite'].indexOf(beforeDivision);
       
       if (divisionOrderChange) {
-        return `Promoted from ${beforeEmoji} ${beforeLeague} to ${afterEmoji} ${afterLeague}`;
+        return `Promoted to ${afterEmoji} ${afterLeague}`;
       } else {
-        return `Relegated from ${beforeEmoji} ${beforeLeague} to ${afterEmoji} ${afterLeague}`;
+        return `Relegated to ${afterEmoji} ${afterLeague}`;
       }
     } else if (isTierChange) {
-      if (beforeTier > afterTier) {
-        return `Promoted from ${beforeEmoji} ${beforeLeague} to ${afterEmoji} ${afterLeague}`;
+      if (match.leagueBeforeMatch.tier && match.leagueBeforeMatch.tier > afterTier) {
+        return `Promoted to ${afterEmoji} ${afterLeague}`;
       } else {
-        return `Relegated from ${beforeEmoji} ${beforeLeague} to ${afterEmoji} ${afterLeague}`;
+        return `Relegated to ${afterEmoji} ${afterLeague}`;
       }
     } else {
       return `Maintained ${afterEmoji} ${afterLeague}`;
