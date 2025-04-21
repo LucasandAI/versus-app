@@ -23,7 +23,6 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({
   const ensureTeamSize = (members: ClubMember[], teamName: string): ClubMember[] => {
     const result = [...members];
     
-    // If we have fewer than 5 members, add placeholder members
     if (result.length < 5) {
       const existingMemberCount = result.length;
       for (let i = existingMemberCount; i < 5; i++) {
@@ -56,12 +55,16 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({
       key={member.id} 
       className="flex justify-between text-xs items-center"
     >
-      <div 
-        className={`flex items-center gap-2 ${!member.id.includes('placeholder') ? 'cursor-pointer hover:text-primary' : 'text-gray-400'}`}
-        onClick={() => handleUserClick(member)}
-      >
+      <div className="flex items-center gap-2">
         <UserAvatar name={member.name} image={member.avatar} size="sm" />
-        <span>{member.name}</span>
+        <span 
+          className={!member.id.includes('placeholder') 
+            ? 'cursor-pointer hover:text-primary' 
+            : 'text-gray-400'}
+          onClick={() => handleUserClick(member)}
+        >
+          {member.name}
+        </span>
       </div>
       <span className="font-medium">
         {member.distanceContribution !== undefined 
@@ -91,3 +94,4 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({
 };
 
 export default MatchDetails;
+
