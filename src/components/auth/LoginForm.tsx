@@ -29,13 +29,13 @@ const LoginForm: React.FC = () => {
     },
   });
 
-  // Reset loading state after 10 seconds to prevent getting stuck
+  // Reset loading state after 15 seconds to prevent getting stuck
   useEffect(() => {
     if (isLoading) {
       const timeout = setTimeout(() => {
         setIsLoading(false);
         setError('Login is taking longer than expected. Please try again.');
-      }, 10000);
+      }, 15000);
       
       return () => clearTimeout(timeout);
     }
@@ -49,6 +49,12 @@ const LoginForm: React.FC = () => {
     
     try {
       console.log('[LoginForm] Submitting login form with email:', values.email);
+      
+      toast({
+        title: "Signing in",
+        description: "Attempting to sign you in...",
+      });
+      
       const user = await signIn(values.email, values.password);
       
       if (user) {

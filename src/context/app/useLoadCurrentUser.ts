@@ -134,6 +134,11 @@ export const useLoadCurrentUser = () => {
       return userProfile;
     } catch (error) {
       console.error('[useLoadCurrentUser] Error in loadCurrentUser:', error);
+      toast({
+        title: "Error loading user data",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive"
+      });
       
       // Return a basic user profile as fallback
       const basicUser: User = {

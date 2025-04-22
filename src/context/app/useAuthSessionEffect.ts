@@ -1,7 +1,9 @@
+
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AppView, User } from '@/types';
 import { useLoadCurrentUser } from './useLoadCurrentUser';
+import { toast } from '@/hooks/use-toast';
 
 export const useAuthSessionEffect = (
   options: {
@@ -16,29 +18,38 @@ export const useAuthSessionEffect = (
   const { setCurrentUser, setCurrentView, setUserLoading, setAuthChecked, setAuthError } = options;
 
   useEffect(() => {
-    console.log('[useAuthSessionCore] Setting up auth session listener');
+    console.log('[useAuthSessionEffect] Setting up auth session listener');
+    let isMounted = true;
 
-    const checkSessionEffect = async () => {
+    // Start by checking for an existing session
+    const checkSession = async () => {
       try {
         setAuthChecked(false);
         const { data: sessionData, error } = await supabase.auth.getSession();
 
+        if (!isMounted) return;
+
         if (error) {
-          throw error;
+          console.error('[useAuthSessionEffect] Error checking session:', error);
+          setAuthError(error.message);
+          setAuthChecked(true);
+          return;
         }
 
-        console.log('[useAuthSessionCore] Initial session check:', {
+        console.log('[useAuthSessionEffect] Initial session check:', {
           hasSession: !!sessionData?.session,
-          userId: sessionData?.session?.user?.id,
-          error,
+          userId: sessionData?.session?.user?.id
         });
 
-        // If we have a session, load the user data right away and set current view
+        // If we have a session, load the user data right away
         if (sessionData?.session?.user?.id) {
           setUserLoading(true);
 
           try {
             const userData = await loadCurrentUser(sessionData.session.user.id);
+            
+            if (!isMounted) return;
+            
             if (userData) {
               console.log('[useAuthSessionEffect] User data loaded:', userData.id);
               setCurrentUser(userData);
@@ -46,24 +57,35 @@ export const useAuthSessionEffect = (
             }
           } catch (loadError) {
             console.error('[useAuthSessionEffect] Error loading user:', loadError);
-            setAuthError('Failed to load user data');
+            if (isMounted) {
+              setAuthError('Failed to load user data');
+            }
           } finally {
-            setUserLoading(false);
+            if (isMounted) {
+              setUserLoading(false);
+              setAuthChecked(true);
+            }
+          }
+        } else {
+          if (isMounted) {
+            setCurrentView('connect');
+            setAuthChecked(true);
           }
         }
-
-        setAuthChecked(true);
       } catch (error) {
-        console.error('[useAuthSessionCore] Session check error:', error);
-        setAuthChecked(true);
-        setAuthError(error instanceof Error ? error.message : 'Unknown authentication error');
+        console.error('[useAuthSessionEffect] Session check error:', error);
+        if (isMounted) {
+          setAuthChecked(true);
+          setAuthError(error instanceof Error ? error.message : 'Unknown authentication error');
+        }
       }
     };
 
-    checkSessionEffect();
-
+    // Set up the auth state change listener first
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[useAuthSessionCore] Auth state changed:', {
+      if (!isMounted) return;
+
+      console.log('[useAuthSessionEffect] Auth state changed:', {
         event,
         userId: session?.user?.id
       });
@@ -73,25 +95,39 @@ export const useAuthSessionEffect = (
         
         try {
           const userData = await loadCurrentUser(session.user.id);
+          if (!isMounted) return;
+          
           if (userData) {
             setCurrentUser(userData);
             setCurrentView('home');
           }
         } catch (error) {
-          console.error('[useAuthSessionCore] Error loading user after sign in:', error);
-          setAuthError('Failed to load user data');
+          console.error('[useAuthSessionEffect] Error loading user after sign in:', error);
+          if (isMounted) {
+            setAuthError('Failed to load user data');
+          }
         } finally {
-          setUserLoading(false);
+          if (isMounted) {
+            setUserLoading(false);
+            setAuthChecked(true);
+          }
         }
       } else if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
         setCurrentView('connect');
-      } else {
-        console.log('[useAuthSessionCore] Other auth event:', event);
+        setAuthChecked(true);
+      } else if (event === 'TOKEN_REFRESHED') {
+        // Just ensure we're marked as checked when token is refreshed
+        setAuthChecked(true);
       }
     });
 
+    // Run the session check after setting up the listener
+    checkSession();
+
+    // Clean up
     return () => {
+      isMounted = false;
       authListener.subscription.unsubscribe();
     };
   }, [
