@@ -34,7 +34,8 @@ const DeleteClubDialog: React.FC<DeleteClubDialogProps> = ({
           Cancel
         </Button>
         <Button 
-          variant="destructive"
+          variant="primary" 
+          className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
           size="sm"
           loading={loading}
           onClick={onConfirmDelete}

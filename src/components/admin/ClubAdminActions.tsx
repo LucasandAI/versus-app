@@ -10,7 +10,7 @@ import AdminActionButtons from './club-members/AdminActionButtons';
 import DeleteClubDialog from './DeleteClubDialog';
 import { useDeleteClub } from '@/hooks/club/useDeleteClub';
 import { Trash } from 'lucide-react';
-import Button from '@/components/ui/Button';
+import Button from '@/components/shared/Button';
 
 interface ClubAdminActionsProps {
   club: Club;
