@@ -186,6 +186,51 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          club_id: string | null
+          created_at: string
+          id: string
+          message: string | null
+          status: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          club_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          status?: string
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          club_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          status?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           avatar: string | null

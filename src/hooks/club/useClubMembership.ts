@@ -26,8 +26,8 @@ export const useClubMembership = (club: Club) => {
       return;
     }
     
-    const checkPendingInvite = () => {
-      const pending = hasPendingInvite(club.id);
+    const checkPendingInvite = async () => {
+      const pending = await hasPendingInvite(club.id);
       if (pending || hasPending !== pending) {
         setHasPending(pending);
       }

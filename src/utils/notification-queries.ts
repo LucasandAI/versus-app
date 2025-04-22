@@ -1,4 +1,4 @@
-import { Division } from '@/types';
+
 import { supabase } from '@/integrations/supabase/client';
 
 // Function to fetch notifications for a user
@@ -17,35 +17,40 @@ export const fetchUserNotifications = async (userId: string) => {
   return data || [];
 };
 
-// Function to mark a notification as read
-export const markNotificationAsRead = async (notificationId: string) => {
-  const { error } = await supabase
+// Function to check if a user has a pending invite for a specific club
+export const hasPendingInvite = async (clubId: string): Promise<boolean> => {
+  const { data, error } = await supabase
     .from('notifications')
-    .update({ read: true })
-    .eq('id', notificationId);
-    
+    .select('*')
+    .eq('club_id', clubId)
+    .eq('type', 'invite')
+    .eq('status', 'pending')
+    .single();
+
   if (error) {
-    console.error('Error marking notification as read:', error);
+    if (error.code === 'PGRST116') { // No rows returned
+      return false;
+    }
+    console.error('Error checking pending invites:', error);
     return false;
   }
-  
-  return true;
+
+  return !!data;
 };
 
 // Function to create a new notification
 export const createNotification = async (notification: {
   user_id: string;
-  type: string;
-  title: string;
-  description: string;
-  data?: any;
+  type: 'invite' | 'join_request' | 'match_result' | 'match_start' | 'achievement';
+  club_id: string;
+  message?: string;
 }) => {
   const { error } = await supabase
     .from('notifications')
     .insert([
       {
         ...notification,
-        read: false,
+        status: 'pending',
         created_at: new Date().toISOString()
       }
     ]);
@@ -58,86 +63,20 @@ export const createNotification = async (notification: {
   return true;
 };
 
-// Function to create a join request notification
-export const createJoinRequestNotification = async (
-  adminId: string,
-  requesterId: string,
-  requesterName: string,
-  clubId: string,
-  clubName: string
+// Function to update notification status
+export const updateNotificationStatus = async (
+  notificationId: string,
+  status: 'accepted' | 'rejected'
 ) => {
-  return createNotification({
-    user_id: adminId,
-    type: 'join_request',
-    title: 'New Join Request',
-    description: `${requesterName} wants to join ${clubName}`,
-    data: {
-      requesterId,
-      clubId
-    }
-  });
-};
-
-// Function to create a match result notification
-export const createMatchResultNotification = async (
-  userId: string,
-  matchId: string,
-  clubName: string,
-  opponentName: string,
-  isWin: boolean,
-  newDivision?: Division,
-  promotedOrDemoted?: 'promoted' | 'demoted'
-) => {
-  const division = 'bronze'; // Changed from 'Bronze' to 'bronze'
-  
-  let title = isWin ? 'Match Won!' : 'Match Lost';
-  let description = `${clubName} ${isWin ? 'defeated' : 'lost to'} ${opponentName}`;
-  
-  if (promotedOrDemoted) {
-    description += ` and was ${promotedOrDemoted} to ${newDivision || division}`;
-  }
-  
-  return createNotification({
-    user_id: userId,
-    type: 'match_result',
-    title,
-    description,
-    data: {
-      matchId,
-      isWin,
-      newDivision,
-      promotedOrDemoted
-    }
-  });
-};
-
-// Function to delete all notifications for a user
-export const deleteAllUserNotifications = async (userId: string) => {
   const { error } = await supabase
     .from('notifications')
-    .delete()
-    .eq('user_id', userId);
-    
-  if (error) {
-    console.error('Error deleting notifications:', error);
-    return false;
-  }
-  
-  return true;
-};
+    .update({ status })
+    .eq('id', notificationId);
 
-// Function to mark all notifications as read for a user
-export const markAllNotificationsAsRead = async (userId: string) => {
-  const { error } = await supabase
-    .from('notifications')
-    .update({ read: true })
-    .eq('user_id', userId)
-    .eq('read', false);
-    
   if (error) {
-    console.error('Error marking all notifications as read:', error);
+    console.error('Error updating notification:', error);
     return false;
   }
-  
+
   return true;
 };
