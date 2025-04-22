@@ -18,9 +18,6 @@ const ClubCard: React.FC<ClubCardProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
   const { navigateToClubDetail } = useNavigation();
-  
-  // Ensure we have a valid members array
-  const memberCount = Array.isArray(club.members) ? club.members.length : 0;
 
   const toggleExpanded = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -66,7 +63,7 @@ const ClubCard: React.FC<ClubCardProps> = ({
               {formatLeagueWithTier(club.division, club.tier)}
             </span>
             <span className="text-xs text-gray-500">
-              • {memberCount}/5 members
+              • {club.members.length} members
             </span>
           </div>
         </div>
