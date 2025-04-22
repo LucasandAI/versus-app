@@ -1,5 +1,5 @@
 
-import React, { useState, ReactNode, useEffect } from 'react';
+import React, { useState, ReactNode, useEffect, useCallback } from 'react';
 import { AppContext } from './AppContext';
 import { AppContextType, User } from '@/types';
 import { updateUserInfo } from './useUserInfoSync';
@@ -7,6 +7,7 @@ import { useClubManagement } from './useClubManagement';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useViewState } from '@/hooks/navigation/useViewState';
 import { useAuthSessionEffect } from './useAuthSessionEffect';
+import { useLoadCurrentUser } from './useLoadCurrentUser';
 import { toast } from '@/hooks/use-toast';
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -18,6 +19,32 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const { signIn, signOut } = useAuth();
   const { currentView, setCurrentView, selectedClub, setSelectedClub, selectedUser, setSelectedUser } = useViewState();
   const { createClub } = useClubManagement(currentUser, setCurrentUser);
+  const { loadCurrentUser } = useLoadCurrentUser();
+
+  // Function to refresh the current user data
+  const refreshCurrentUser = useCallback(async () => {
+    if (!currentUser?.id) return null;
+    
+    try {
+      console.log('[AppProvider] Refreshing current user data for:', currentUser.id);
+      const refreshedUser = await loadCurrentUser(currentUser.id);
+      
+      if (refreshedUser) {
+        console.log('[AppProvider] User refreshed with clubs:', refreshedUser.clubs.length);
+        setCurrentUser(refreshedUser ? updateUserInfo(refreshedUser) : null);
+        return refreshedUser;
+      }
+      return null;
+    } catch (error) {
+      console.error('[AppProvider] Error refreshing user data:', error);
+      toast({
+        title: "Error refreshing data",
+        description: "Could not load your latest information",
+        variant: "destructive"
+      });
+      return null;
+    }
+  }, [currentUser, loadCurrentUser]);
 
   // Debugging state changes
   useEffect(() => {
@@ -137,7 +164,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setSelectedUser,
     signIn: handleSignIn,
     signOut,
-    createClub
+    createClub,
+    refreshCurrentUser
   };
 
   // Only show loading screen when explicitly performing auth operations

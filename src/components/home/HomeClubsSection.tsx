@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import ClubList from './ClubList';
 import FindClubsSection from './FindClubsSection';
+import { useApp } from '@/context/AppContext';
 
 interface HomeClubsSectionProps {
   userClubs: Club[];
@@ -19,17 +20,39 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
   userClubs,
   availableClubs,
   clubsLoading = false,
+  onSelectClub,
   onSelectUser,
   onCreateClub,
   onRequestJoin,
   onSearchClick
 }) => {
+  const { currentUser } = useApp();
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Track loading state based on initial render and clubs length
+  useEffect(() => {
+    // Set loading to true if we have a user but no clubs yet
+    if (currentUser && currentUser.clubs && currentUser.clubs.length === 0 && userClubs.length === 0) {
+      setIsLoading(true);
+      
+      // Add a short timeout to prevent flashing loading state for fast loads
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setIsLoading(false);
+    }
+  }, [currentUser, userClubs.length]);
+  
   const isAtClubCapacity = userClubs.length >= 3;
 
   return (
     <>
       <ClubList 
         userClubs={userClubs}
+        loading={isLoading || clubsLoading}
         onSelectUser={onSelectUser}
         onCreateClub={onCreateClub}
       />

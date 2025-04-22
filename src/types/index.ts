@@ -122,4 +122,5 @@ export interface AppContextType {
   signIn: (email: string, password: string) => Promise<User | null>;
   signOut: () => Promise<void>;
   createClub: (name: string, logo?: string) => Promise<Club | null>;
+  refreshCurrentUser: () => Promise<User | null>;
 }

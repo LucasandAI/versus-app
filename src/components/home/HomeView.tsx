@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
 import SupportPopover from '../shared/SupportPopover';
@@ -11,13 +11,14 @@ import HomeNotificationsHandler from './HomeNotificationsHandler';
 import { useClubActions } from '@/hooks/home/useClubActions';
 import { useSupportActions } from '@/hooks/home/useSupportActions';
 import { useHomeNotifications } from '@/hooks/home/useHomeNotifications';
+import { toast } from '@/hooks/use-toast';
 
 interface HomeViewProps {
   chatNotifications?: number;
 }
 
 const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
-  const { setCurrentView, setSelectedClub, setSelectedUser, currentUser } = useApp();
+  const { setCurrentView, setSelectedClub, setSelectedUser, currentUser, refreshCurrentUser } = useApp();
   const {
     searchDialogOpen,
     setSearchDialogOpen,
@@ -37,6 +38,18 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
     handleDeclineInvite,
     handleClearAllNotifications
   } = useHomeNotifications();
+
+  // Effect to ensure clubs are loaded when this component mounts
+  useEffect(() => {
+    if (currentUser && (!currentUser.clubs || currentUser.clubs.length === 0)) {
+      console.log('[HomeView] No clubs found on initial render, refreshing user data');
+      refreshCurrentUser().catch(error => {
+        console.error('[HomeView] Error refreshing user data:', error);
+      });
+    } else {
+      console.log('[HomeView] User has clubs on initial render:', currentUser?.clubs?.length || 0);
+    }
+  }, [currentUser, refreshCurrentUser]);
 
   const handleSelectClub = (club: Club) => {
     setSelectedClub(club);
