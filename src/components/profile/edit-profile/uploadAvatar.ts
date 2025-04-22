@@ -6,12 +6,14 @@ export const uploadAvatar = async (userId: string, file: File): Promise<string |
     console.log('[uploadAvatar] Starting upload for user:', userId);
     const fileExt = file.name.split('.').pop();
     const fileName = `${userId}-${Date.now()}.${fileExt}`;
-    const filePath = `avatars/${fileName}`;
+    const filePath = `${fileName}`;
 
-    // Ensure the avatars bucket exists
+    // First check if the avatars bucket exists
     try {
       const { data: buckets } = await safeSupabase.storage.listBuckets();
-      if (!buckets?.find(bucket => bucket.name === 'avatars')) {
+      const avatarsBucketExists = buckets?.find(bucket => bucket.name === 'avatars');
+      
+      if (!avatarsBucketExists) {
         console.log('[uploadAvatar] Creating avatars bucket');
         await safeSupabase.storage.createBucket('avatars', { public: true });
       }
@@ -29,14 +31,16 @@ export const uploadAvatar = async (userId: string, file: File): Promise<string |
       return null;
     }
 
-    // Get public URL using getPublicUrl properly
+    // Get public URL using getPublicUrl
     const { data } = safeSupabase.storage.from('avatars').getPublicUrl(filePath);
-    console.log('[uploadAvatar] Avatar upload successful, URL:', data.publicUrl);
-
-    // Wait a brief moment to ensure storage processing is complete
-    await new Promise(resolve => setTimeout(resolve, 300));
+    const publicUrl = data.publicUrl;
     
-    return data.publicUrl;
+    console.log('[uploadAvatar] Avatar upload successful, URL:', publicUrl);
+    
+    // Wait a moment to ensure storage processing is complete
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    return publicUrl;
   } catch (error) {
     console.error('[uploadAvatar] Error in avatar upload process:', error);
     return null;

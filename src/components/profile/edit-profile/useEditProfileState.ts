@@ -87,7 +87,7 @@ export const useEditProfileState = ({ user, onOpenChange }: UseEditProfileStateP
     setIsSaving(true);
 
     try {
-      let avatarUrl = user.avatar; // Start with current avatar, not local state
+      let avatarUrl = user.avatar; // Start with current avatar URL, not local state
 
       if (avatarFile) {
         console.log('[useEditProfileState] Uploading new avatar file');
@@ -145,7 +145,11 @@ export const useEditProfileState = ({ user, onOpenChange }: UseEditProfileStateP
 
       // Then refresh from the database to ensure everything is in sync
       console.log('[useEditProfileState] Refreshing user data from database');
-      await refreshCurrentUser();
+      const refreshedUser = await refreshCurrentUser();
+      
+      if (!refreshedUser) {
+        console.warn('[useEditProfileState] Failed to refresh user data');
+      }
       
       // Trigger a refresh event for any components listening
       window.dispatchEvent(new CustomEvent('userDataUpdated'));
