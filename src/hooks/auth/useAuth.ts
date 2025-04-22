@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthState, AuthActions } from './types';
@@ -76,4 +75,3 @@ export const useAuth = (): AuthState & AuthActions => {
     signOut
   };
 };
-

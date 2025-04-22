@@ -2,37 +2,69 @@
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/types';
 import { ensureDivision } from '@/utils/club/leagueUtils';
+import { toast } from '@/hooks/use-toast';
 
 export const useLoadCurrentUser = () => {
   const loadCurrentUser = async (userId: string): Promise<User | null> => {
     try {
       console.log('[useLoadCurrentUser] Loading user data for ID:', userId);
 
-      const { data: userData, error } = await supabase
+      // First verify if the user exists in the users table
+      const { data: userData, error, status, statusText } = await supabase
         .from('users')
         .select('id, name, avatar, bio')
         .eq('id', userId)
         .maybeSingle();
 
+      console.log('[useLoadCurrentUser] User query response:', { 
+        userData, 
+        error, 
+        status, 
+        statusText, 
+        hasUserData: !!userData 
+      });
+
       if (error) {
         console.error('[useLoadCurrentUser] Error fetching user profile:', error);
-        // surface error, not just null
+        toast({
+          title: "User Profile Error",
+          description: "Error fetching user profile: " + error.message,
+          variant: "destructive"
+        });
         throw new Error("Error fetching user profile from users table: " + error.message);
       }
+      
       if (!userData) {
         console.warn('[useLoadCurrentUser] No user row found in users table for ID:', userId);
+        toast({
+          title: "Missing User Profile",
+          description: "Your user account exists but no profile was found. You may need to create a profile row in the users table.",
+          variant: "destructive"
+        });
         return null;
       }
 
       let clubs = [];
       try {
+        console.log('[useLoadCurrentUser] Fetching clubs for user:', userId);
         const { data: memberships, error: clubsError } = await supabase
           .from('club_members')
           .select('club:clubs(id, name, logo, division, tier, elite_points)')
           .eq('user_id', userId);
 
+        console.log('[useLoadCurrentUser] Club memberships result:', { 
+          memberships, 
+          clubsError,
+          membershipCount: memberships?.length || 0 
+        });
+
         if (clubsError) {
           console.error('[useLoadCurrentUser] Error fetching user clubs:', clubsError);
+          toast({
+            title: "Club Data Error",
+            description: "Error loading your clubs: " + clubsError.message,
+            variant: "warning"
+          });
         } else {
           clubs = memberships && memberships.length > 0
             ? memberships.map(membership => {
@@ -52,23 +84,34 @@ export const useLoadCurrentUser = () => {
         }
       } catch (clubsError) {
         console.error('[useLoadCurrentUser] Error in clubs loading:', clubsError);
+        // Don't fail the whole login just because clubs failed to load
+        toast({
+          title: "Club Data Error",
+          description: "Failed to load your clubs, but login will proceed.",
+          variant: "warning"
+        });
       }
 
       const userProfile: User = {
         id: userData.id,
-        name: userData.name,
+        name: userData.name || 'User',  // Provide default name if missing
         avatar: userData.avatar || '/placeholder.svg',
-        bio: userData.bio,
+        bio: userData.bio || '',
         clubs: clubs
       };
 
+      console.log('[useLoadCurrentUser] Successfully built user profile:', userProfile);
       return userProfile;
     } catch (error) {
       // Log the error and surface
       console.error('[useLoadCurrentUser] Error in loadCurrentUser:', error);
+      toast({
+        title: "Profile Load Error",
+        description: error instanceof Error ? error.message : "Unknown error loading profile",
+        variant: "destructive"
+      });
       throw error;
     }
   };
   return { loadCurrentUser };
 };
-
