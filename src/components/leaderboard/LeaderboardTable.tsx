@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { ArrowUp, ArrowDown } from 'lucide-react';
-import { Club, LeaderboardClub } from '@/types';
+import { Club } from '@/types';
+import { LeaderboardClub } from './types';
 import { getDivisionIcon, getDivisionColor, formatLeagueWithTier } from './utils';
 
 interface LeaderboardTableProps {
@@ -53,6 +54,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ clubs, onSelectClub
                 name: club.name,
                 division: club.division,
                 tier: club.tier,
+                logo: '/placeholder.svg', // Add missing required property
                 members: [],
                 matchHistory: []
               })}

@@ -1,5 +1,6 @@
 
-import { Division, LeaderboardClub } from '@/types';
+import { Division } from '@/types';
+import { LeaderboardClub } from './types';
 
 export const generateMockLeaderboardData = (): LeaderboardClub[] => {
   const baseData = [
