@@ -73,7 +73,7 @@ const UserProfile: React.FC = () => {
         // Fetch user's clubs from Supabase via club_members join table
         const { data: memberships, error: clubsError } = await safeSupabase
           .from('club_members')
-          .select('club_id, is_admin, club:clubs(id, name, logo, division, tier, elite_points)')
+          .select('club_id, is_admin')
           .eq('user_id', selectedUser.id);
           
         if (clubsError) {
@@ -85,33 +85,58 @@ const UserProfile: React.FC = () => {
         
         if (memberships && memberships.length > 0) {
           for (const membership of memberships) {
-            if (!membership.club) continue;
+            // Fetch club details
+            const { data: clubData, error: clubError } = await safeSupabase
+              .from('clubs')
+              .select('id, name, logo, division, tier, elite_points, bio')
+              .eq('id', membership.club_id)
+              .single();
+              
+            if (clubError) {
+              console.error('Error fetching club details:', clubError);
+              continue;
+            }
             
             // Fetch club members
             const { data: membersData, error: membersError } = await safeSupabase
               .from('club_members')
-              .select('user_id, is_admin, users(id, name, avatar)')
-              .eq('club_id', membership.club.id);
+              .select('user_id, is_admin')
+              .eq('club_id', membership.club_id);
               
             if (membersError) {
               console.error('Error fetching club members:', membersError);
               continue;
             }
             
-            // Transform members data - using type assertions for now
-            const members: ClubMember[] = membersData.map((member: any) => ({
-              id: member.users.id,
-              name: member.users.name,
-              avatar: member.users.avatar || '/placeholder.svg',
-              isAdmin: member.is_admin,
-              distanceContribution: 0 // Default value
-            }));
+            // Fetch members' user details
+            const members: ClubMember[] = [];
+            
+            for (const member of membersData) {
+              const { data: memberUserData, error: memberUserError } = await safeSupabase
+                .from('users')
+                .select('id, name, avatar')
+                .eq('id', member.user_id)
+                .single();
+                
+              if (memberUserError) {
+                console.error('Error fetching member user data:', memberUserError);
+                continue;
+              }
+              
+              members.push({
+                id: memberUserData.id,
+                name: memberUserData.name,
+                avatar: memberUserData.avatar || '/placeholder.svg',
+                isAdmin: member.is_admin,
+                distanceContribution: 0 // Default value
+              });
+            }
             
             // Fetch match history
             const { data: matchHistory, error: matchError } = await safeSupabase
               .from('matches')
               .select('*')
-              .or(`home_club_id.eq.${membership.club.id},away_club_id.eq.${membership.club.id}`)
+              .or(`home_club_id.eq.${clubData.id},away_club_id.eq.${clubData.id}`)
               .order('end_date', { ascending: false });
               
             if (matchError) {
@@ -119,21 +144,22 @@ const UserProfile: React.FC = () => {
             }
             
             // Transform match data
-            const transformedMatches = transformRawMatchesToMatchType(matchHistory || [], membership.club.id);
+            const transformedMatches = transformRawMatchesToMatchType(matchHistory || [], clubData.id);
             
             // Determine correct division value
-            const divisionValue = ensureDivision(membership.club.division);
+            const divisionValue = ensureDivision(clubData.division);
             
             // Transform club data
             clubs.push({
-              id: membership.club.id,
-              name: membership.club.name,
-              logo: membership.club.logo || '/placeholder.svg',
+              id: clubData.id,
+              name: clubData.name,
+              logo: clubData.logo || '/placeholder.svg',
               division: divisionValue,
-              tier: membership.club.tier || 1,
-              elitePoints: membership.club.elite_points || 0,
+              tier: clubData.tier || 1,
+              elitePoints: clubData.elite_points || 0,
               members: members,
-              matchHistory: transformedMatches
+              matchHistory: transformedMatches,
+              bio: clubData.bio
             });
           }
         }
@@ -145,10 +171,10 @@ const UserProfile: React.FC = () => {
         
         // Update the selected user with the fetched data
         const updatedUser: User = {
-          id: userData?.id,
-          name: userData?.name || selectedUser.name,
-          avatar: userData?.avatar || selectedUser.avatar,
-          bio: userData?.bio,
+          id: userData.id,
+          name: userData.name || selectedUser.name,
+          avatar: userData.avatar || selectedUser.avatar,
+          bio: userData.bio,
           clubs: clubs
         };
         

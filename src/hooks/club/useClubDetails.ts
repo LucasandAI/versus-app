@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { safeSupabase } from '@/integrations/supabase/safeClient';
 import { Club } from '@/types';
 import { ensureDivision } from '@/utils/club/leagueUtils';
 
@@ -12,7 +12,7 @@ export const useClubDetails = (clubId: string | undefined) => {
     if (!clubId) return null;
     
     try {
-      const { data: clubData, error } = await supabase
+      const { data: clubData, error } = await safeSupabase
         .from('clubs')
         .select('id, name, logo, division, tier, bio, elite_points')
         .eq('id', clubId)

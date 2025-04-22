@@ -1,3 +1,4 @@
+
 import { safeSupabase } from '@/integrations/supabase/safeClient';
 import { User } from '@/types';
 import { ensureDivision } from '@/utils/club/leagueUtils';
@@ -54,7 +55,7 @@ export const useLoadCurrentUser = () => {
         console.log('[useLoadCurrentUser] Fetching clubs for user:', userId);
         const { data: memberships, error: clubsError } = await safeSupabase
           .from('club_members')
-          .select('club:clubs(id, name, logo, division, tier, elite_points)')
+          .select('club_id, is_admin')
           .eq('user_id', userId);
 
         console.log('[useLoadCurrentUser] Club memberships result:', { 
@@ -71,21 +72,34 @@ export const useLoadCurrentUser = () => {
             variant: "destructive"
           });
         } else {
-          clubs = memberships && memberships.length > 0
-            ? memberships.map(membership => {
-                if (!membership.club) return null;
-                return {
-                  id: membership.club.id,
-                  name: membership.club.name,
-                  logo: membership.club.logo || '/placeholder.svg',
-                  division: ensureDivision(membership.club.division),
-                  tier: membership.club.tier || 1,
-                  elitePoints: membership.club.elite_points || 0,
-                  members: [],
-                  matchHistory: []
-                };
-              }).filter(Boolean)
-            : [];
+          clubs = await Promise.all((memberships || []).map(async (membership) => {
+            // Get club data
+            const { data: club, error: clubError } = await safeSupabase
+              .from('clubs')
+              .select('id, name, logo, division, tier, elite_points, bio')
+              .eq('id', membership.club_id)
+              .single();
+              
+            if (clubError || !club) {
+              console.error('[useLoadCurrentUser] Error fetching club details:', clubError);
+              return null;
+            }
+              
+            return {
+              id: club.id,
+              name: club.name,
+              logo: club.logo || '/placeholder.svg',
+              division: ensureDivision(club.division),
+              tier: club.tier || 1,
+              elitePoints: club.elite_points || 0,
+              bio: club.bio || '',
+              members: [],
+              matchHistory: []
+            };
+          }));
+          
+          // Filter out null values
+          clubs = clubs.filter(Boolean);
         }
       } catch (clubsError) {
         console.error('[useLoadCurrentUser] Error in clubs loading:', clubsError);

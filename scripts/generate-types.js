@@ -27,7 +27,7 @@ console.log(`Generating types for Supabase project: ${projectId}`);
 console.log('This requires the Supabase CLI to be installed.');
 
 // Command to generate types
-const command = `npx supabase gen types typescript --project-id ${projectId} --out-file src/integrations/supabase/types.ts`;
+const command = `npx supabase gen types typescript --project-id ${projectId} > src/integrations/supabase/types.ts`;
 
 exec(command, (error, stdout, stderr) => {
   if (error) {
@@ -40,6 +40,6 @@ exec(command, (error, stdout, stderr) => {
     return;
   }
   
-  console.log(`Types generated successfully: ${stdout}`);
+  console.log(`Types generated successfully!`);
   console.log('Types written to src/integrations/supabase/types.ts');
 });

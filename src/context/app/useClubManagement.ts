@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Club, User } from './types';
 import { safeSupabase } from '@/integrations/supabase/safeClient';
@@ -53,40 +54,23 @@ export const useClubManagement = (
         throw new Error(memberError.message);
       }
 
-      // Fetch the complete club data including members
-      const { data: fullClubData, error: fetchError } = await safeSupabase
-        .from('clubs')
-        .select(`
-          *,
-          members:club_members(
-            users(*)
-          )
-        `)
-        .eq('id', clubData.id)
-        .single();
-
-      if (fetchError || !fullClubData) {
-        throw new Error(fetchError?.message || 'Error fetching club data');
-      }
-
-      // Transform the data to match our Club type
+      // Since we can't rely on complex joins with the current setup,
+      // we'll create a club object directly
       const newClub: Club = {
-        id: fullClubData.id,
-        name: fullClubData.name,
-        logo: fullClubData.logo || '/placeholder.svg',
-        division: fullClubData.division.toLowerCase() as Club['division'],
-        tier: fullClubData.tier,
-        elitePoints: fullClubData.elite_points || 0,
-        bio: fullClubData.bio,
-        members: Array.isArray(fullClubData.members) 
-          ? fullClubData.members.map((member: any) => ({
-              id: member.users.id,
-              name: member.users.name,
-              avatar: member.users.avatar || '/placeholder.svg',
-              isAdmin: member.is_admin,
-              distanceContribution: 0
-            }))
-          : [],
+        id: clubData.id,
+        name: clubData.name,
+        logo: clubData.logo || '/placeholder.svg',
+        division: clubData.division.toLowerCase() as Club['division'],
+        tier: clubData.tier,
+        elitePoints: clubData.elite_points || 0,
+        bio: clubData.bio,
+        members: [{
+          id: currentUser.id,
+          name: currentUser.name,
+          avatar: currentUser.avatar || '/placeholder.svg',
+          isAdmin: true,
+          distanceContribution: 0
+        }],
         matchHistory: []
       };
 
