@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Match } from '@/types';
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -56,13 +57,13 @@ const MatchCard: React.FC<MatchCardProps> = ({
     const isDivisionChange = beforeDivision !== afterDivision;
     const isTierChange = match.leagueBeforeMatch.tier !== afterTier;
     
-    if (afterDivision === 'Elite') {
+    if (afterDivision === 'elite') {
       const beforePoints = match.leagueBeforeMatch.elitePoints || 0;
       const afterPoints = match.leagueAfterMatch.elitePoints || 0;
       const pointChange = afterPoints - beforePoints;
       const pointsText = `(${pointChange >= 0 ? '+' : ''}${pointChange} points, total: ${afterPoints})`;
       
-      if (beforeDivision !== 'Elite') {
+      if (beforeDivision !== 'elite') {
         return `Promoted to ${afterEmoji} ${afterLeague} ${pointsText}`;
       } else {
         return `${weWon ? 'Gained' : 'Lost'} points in ${afterEmoji} ${afterLeague} ${pointsText}`;
@@ -71,8 +72,8 @@ const MatchCard: React.FC<MatchCardProps> = ({
     
     if (isDivisionChange) {
       const divisionOrderChange = 
-        ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Elite'].indexOf(afterDivision) >
-        ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Elite'].indexOf(beforeDivision);
+        ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'elite'].indexOf(afterDivision) >
+        ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'elite'].indexOf(beforeDivision);
       
       if (divisionOrderChange) {
         return `Promoted to ${afterEmoji} ${afterLeague}`;

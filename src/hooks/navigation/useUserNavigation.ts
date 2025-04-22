@@ -19,7 +19,7 @@ export const useUserNavigation = (): UserNavigationResult => {
         id: userId,
         name: userName,
         avatar: userAvatar,
-        stravaConnected: true,
+        stravaConnected: false, // Default since we don't have this column yet
         clubs: []
       };
       
@@ -29,7 +29,7 @@ export const useUserNavigation = (): UserNavigationResult => {
       // Fetch user data from Supabase
       const { data: userData, error } = await supabase
         .from('users')
-        .select('id, name, avatar, strava_connected, bio')
+        .select('id, name, avatar, bio')
         .eq('id', userId)
         .single();
         
@@ -49,8 +49,7 @@ export const useUserNavigation = (): UserNavigationResult => {
             name,
             logo,
             division,
-            tier,
-            elite_points
+            tier
           )
         `)
         .eq('user_id', userId);
@@ -109,9 +108,9 @@ export const useUserNavigation = (): UserNavigationResult => {
             id: club.id,
             name: club.name,
             logo: club.logo || '/placeholder.svg',
-            division: club.division,
+            division: club.division.toLowerCase() as any,
             tier: club.tier || 1,
-            elitePoints: club.elite_points,
+            elitePoints: 0, // Default since we don't have this column yet
             members: members,
             matchHistory: matchHistory || []
           });
@@ -123,7 +122,7 @@ export const useUserNavigation = (): UserNavigationResult => {
         id: userData.id,
         name: userData.name || userName,
         avatar: userData.avatar || userAvatar,
-        stravaConnected: Boolean(userData.strava_connected),
+        stravaConnected: false, // Default since we don't have this column yet
         bio: userData.bio,
         clubs: clubs
       });

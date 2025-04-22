@@ -54,7 +54,8 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ clubs, onSelectClub
                 name: club.name,
                 division: club.division,
                 tier: club.tier,
-                logo: '/placeholder.svg', // Add missing required property
+                elitePoints: 0, // Default value as it's required
+                logo: '/placeholder.svg', 
                 members: [],
                 matchHistory: []
               })}
@@ -71,7 +72,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ clubs, onSelectClub
                 </span>
               </td>
               <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-800">
-                {club.division === 'Elite' ? club.points : '-'}
+                {club.division === 'elite' ? club.points : '-'}
               </td>
               <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                 {getChangeIcon(club.change)}

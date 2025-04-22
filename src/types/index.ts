@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   name: string;
@@ -30,7 +31,7 @@ export interface ClubMember {
   distanceContribution: number;
 }
 
-export type Division = 'bronze' | 'silver' | 'gold' | 'platinum' | 'elite';
+export type Division = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond' | 'elite';
 
 export interface JoinRequest {
   id: string;
