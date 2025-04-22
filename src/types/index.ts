@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   name: string;
@@ -118,18 +119,7 @@ export interface AppContextType {
   setCurrentView: (view: AppView) => void;
   setSelectedClub: (club: Club | null) => void;
   setSelectedUser: (user: User | null) => void;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<User | null>;
   signOut: () => Promise<void>;
   createClub: (name: string, logo?: string) => Promise<Club | null>;
-}
-
-export interface AuthState {
-  user: User | null;
-  isLoading: boolean;
-  error: string | null;
-}
-
-export interface AuthActions {
-  signIn: (email: string, password: string) => Promise<void>;
-  signOut: () => Promise<void>;
 }

@@ -38,7 +38,8 @@ export const useAuth = (): AuthState & AuthActions => {
         description: message,
         variant: "destructive"
       });
-      throw error;
+      console.error('[useAuth] Sign in error:', message);
+      return null;
     } finally {
       setIsLoading(false);
     }

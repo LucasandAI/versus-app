@@ -12,7 +12,7 @@ import { toast } from '@/hooks/use-toast';
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 // Reduced timeout for better UX
-const AUTH_TIMEOUT = 3000; // 3 seconds timeout for auth check
+const AUTH_TIMEOUT = 5000; // 5 seconds timeout for auth check
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -99,10 +99,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   useEffect(() => {
     console.log('[AppContext] Setting up auth state listener...');
-    let authTimeoutId: NodeTimeout;
+    let authTimeoutId: number;
     
     // Set a timeout to prevent infinite loading
-    authTimeoutId = setTimeout(() => {
+    authTimeoutId = window.setTimeout(() => {
       if (!authChecked) {
         console.error('[AppContext] Auth check timed out after', AUTH_TIMEOUT, 'ms');
         setAuthChecked(true);

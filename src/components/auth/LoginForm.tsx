@@ -36,16 +36,22 @@ const LoginForm: React.FC = () => {
     try {
       console.log('[LoginForm] Submitting login form with email:', values.email);
       const user = await signIn(values.email, values.password);
-      console.log('[LoginForm] Sign-in successful:', user ? user.id : 'No user returned');
       
-      // Show success toast
-      toast({
-        title: 'Login successful',
-        description: 'Welcome back!',
-        variant: 'default',
-      });
-      
-      // If login is successful and we have a user, the AppContext will handle navigation
+      if (user) {
+        console.log('[LoginForm] Sign-in successful:', user.id);
+        
+        // Show success toast
+        toast({
+          title: 'Login successful',
+          description: 'Welcome back!',
+          variant: 'default',
+        });
+        
+        // If login is successful and we have a user, the AppContext will handle navigation
+      } else {
+        // This means the signIn function didn't throw but also didn't return a user
+        setError("Login failed. Please try again.");
+      }
     } catch (error) {
       console.error('[LoginForm] Login error:', error);
       setError(error instanceof Error ? error.message : 'Failed to sign in');
