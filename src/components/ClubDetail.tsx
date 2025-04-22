@@ -10,17 +10,24 @@ import { toast } from "@/components/ui/use-toast";
 const ClubDetail: React.FC = () => {
   const { selectedClub, refreshCurrentUser } = useApp();
   const [loadingTimeout, setLoadingTimeout] = useState<boolean>(false);
-  const { club, isLoading, error, refreshClubData } = useClubData(selectedClub?.id);
+  const { 
+    club, 
+    isLoading, 
+    error, 
+    refreshClubData, 
+    retryCount,
+    lastError
+  } = useClubData(selectedClub?.id);
 
   // Handle long loading times
   useEffect(() => {
-    // Set a timeout to show extended loading message after 5 seconds
+    // Set a timeout to show extended loading message after 3 seconds
     let timeoutId: NodeJS.Timeout;
     
     if (isLoading) {
       timeoutId = setTimeout(() => {
         setLoadingTimeout(true);
-      }, 5000);
+      }, 3000);
     } else {
       setLoadingTimeout(false);
     }
@@ -48,30 +55,45 @@ const ClubDetail: React.FC = () => {
       isLoading, 
       hasError: !!error, 
       selectedClubId: selectedClub?.id,
-      clubLoaded: !!club
+      clubLoaded: !!club,
+      retryCount
     });
-  }, [isLoading, error, selectedClub, club]);
+  }, [isLoading, error, selectedClub, club, retryCount]);
+
+  const handleRetry = () => {
+    console.log("Manual retry requested");
+    refreshClubData();
+    toast({
+      title: "Retrying",
+      description: "Attempting to load club data again...",
+    });
+  };
 
   if (isLoading) {
-    return <LoadingState />;
+    return (
+      <LoadingState 
+        timeout={loadingTimeout}
+        retryCount={retryCount} 
+        onRetry={handleRetry}
+      />
+    );
   }
 
   if (error || !club) {
-    // Show toast notification for the error
-    if (error) {
-      toast({
-        title: "Error Loading Club",
-        description: "There was a problem loading the club details.",
-        variant: "destructive",
-      });
-    }
-    return <ErrorState error={error?.toString()} />;
+    return (
+      <ErrorState 
+        error={lastError?.toString() || error?.toString()} 
+        onRetry={handleRetry}
+      />
+    );
   }
 
-  return <ClubDetailContent 
-    club={club} 
-    onClubUpdated={refreshClubData} 
-  />;
+  return (
+    <ClubDetailContent 
+      club={club} 
+      onClubUpdated={refreshClubData} 
+    />
+  );
 };
 
 export default ClubDetail;
