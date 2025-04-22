@@ -14,6 +14,8 @@ export const uploadAvatar = async (userId: string, file: File): Promise<string |
       if (!buckets?.find(bucket => bucket.name === 'avatars')) {
         console.log('[uploadAvatar] Creating avatars bucket');
         await safeSupabase.storage.createBucket('avatars', { public: true });
+      } else {
+        console.log('[uploadAvatar] Avatars bucket already exists');
       }
     } catch (error) {
       console.error('[uploadAvatar] Error checking/creating avatars bucket:', error);
@@ -29,7 +31,7 @@ export const uploadAvatar = async (userId: string, file: File): Promise<string |
       return null;
     }
 
-    // Get public URL using getPublicUrl properly
+    // Get public URL
     const { data } = safeSupabase.storage.from('avatars').getPublicUrl(filePath);
     console.log('[uploadAvatar] Avatar upload successful, URL:', data.publicUrl);
     
