@@ -22,7 +22,11 @@ const ClubMembersList: React.FC<ClubMembersListProps> = ({
   // Create a map to deduplicate members by ID
   const uniqueMembers = members.reduce((acc, member) => {
     if (!acc.has(member.id)) {
-      acc.set(member.id, member);
+      // Ensure every member has a distanceContribution (default to 0)
+      acc.set(member.id, {
+        ...member,
+        distanceContribution: member.distanceContribution || 0
+      });
     }
     return acc;
   }, new Map<string, ClubMember>());

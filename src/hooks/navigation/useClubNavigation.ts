@@ -29,7 +29,7 @@ export const useClubNavigation = (): ClubNavigationResult => {
         .eq('id', clubId)
         .single();
         
-      if (error) {
+      if (error || !clubData) {
         console.error('Error fetching club:', error);
         toast({
           title: "Error loading club",
@@ -45,7 +45,7 @@ export const useClubNavigation = (): ClubNavigationResult => {
         .select('user_id, is_admin, users(id, name, avatar)')
         .eq('club_id', clubId);
         
-      if (membersError) {
+      if (membersError || !membersData) {
         console.error('Error fetching club members:', membersError);
         return;
       }
@@ -75,22 +75,20 @@ export const useClubNavigation = (): ClubNavigationResult => {
         matchesData.map(match => transformMatchData(match, clubId)) : 
         [];
       
-      if (clubData) {
-        // Update the selected club with the full data
-        const divisionValue = ensureDivision(clubData.division);
-        
-        setSelectedClub({
-          id: clubData.id,
-          name: clubData.name,
-          logo: clubData.logo || '/placeholder.svg',
-          division: divisionValue,
-          tier: clubData.tier || 1,
-          elitePoints: clubData.elite_points || 0,
-          bio: clubData.bio,
-          members: members,
-          matchHistory: transformedMatches
-        });
-      }
+      // Update the selected club with the full data
+      const divisionValue = ensureDivision(clubData.division);
+      
+      setSelectedClub({
+        id: clubData.id,
+        name: clubData.name,
+        logo: clubData.logo || '/placeholder.svg',
+        division: divisionValue,
+        tier: clubData.tier || 1,
+        elitePoints: clubData.elite_points || 0,
+        bio: clubData.bio,
+        members: members,
+        matchHistory: transformedMatches
+      });
       
       setCurrentView('clubDetail');
     } catch (error) {

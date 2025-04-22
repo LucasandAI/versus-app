@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthState, AuthActions } from './types';
 import { toast } from '@/hooks/use-toast';
-import { User } from '@/types';
+import { User, Club, Division } from '@/types';
+import { ensureDivision } from '@/utils/club/leagueUtils';
 
 export const useAuth = (): AuthState & AuthActions => {
   const [isLoading, setIsLoading] = useState(false);
@@ -33,21 +34,25 @@ export const useAuth = (): AuthState & AuthActions => {
       if (profileError) throw new Error('Error fetching user profile');
       if (!userData) throw new Error('No user profile found');
       
+      // Transform the clubs data to match our app's type structure
+      const clubs: Club[] = (userData.clubs || []).map(club => ({
+        id: club.id,
+        name: club.name,
+        logo: club.logo || '/placeholder.svg',
+        division: ensureDivision(club.division),
+        tier: club.tier || 1,
+        elitePoints: club.elite_points || 0,
+        bio: club.bio,
+        members: [],
+        matchHistory: []
+      }));
+      
       const userProfile: User = {
         id: userData.id,
         name: userData.name,
         avatar: userData.avatar || '/placeholder.svg',
         bio: userData.bio,
-        clubs: (userData.clubs || []).map(club => ({
-          id: club.id,
-          name: club.name,
-          logo: club.logo || '/placeholder.svg',
-          division: club.division,
-          tier: club.tier || 1,
-          elitePoints: club.elite_points || 0,
-          members: [],
-          matchHistory: []
-        }))
+        clubs: clubs
       };
       
       setUser(userProfile);

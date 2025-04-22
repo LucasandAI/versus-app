@@ -26,7 +26,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           .eq('id', userId)
           .single();
           
-        if (error) {
+        if (error || !userData) {
           console.error('Error fetching user profile:', error);
           return;
         }
@@ -40,16 +40,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           console.error('Error fetching user clubs:', clubsError);
         }
         
-        const clubs = memberships?.map(membership => ({
-          id: membership.club.id,
-          name: membership.club.name,
-          logo: membership.club.logo || '/placeholder.svg',
-          division: ensureDivision(membership.club.division),
-          tier: membership.club.tier || 1,
-          elitePoints: membership.club.elite_points || 0,
-          members: [],
-          matchHistory: []
-        })) || [];
+        const clubs = memberships && memberships.length > 0
+          ? memberships.map(membership => {
+              if (!membership.club) return null;
+              return {
+                id: membership.club.id,
+                name: membership.club.name,
+                logo: membership.club.logo || '/placeholder.svg',
+                division: ensureDivision(membership.club.division),
+                tier: membership.club.tier || 1,
+                elitePoints: membership.club.elite_points || 0,
+                members: [],
+                matchHistory: []
+              };
+            }).filter(Boolean)
+          : [];
         
         setCurrentUser({
           id: userData.id,

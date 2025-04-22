@@ -51,13 +51,6 @@ const UserHeader: React.FC<UserHeaderProps> = ({
         onLogoutClick={onLogoutClick}
         onShareProfile={handleShareProfile}
       />
-
-      <Button 
-        className="bg-green-500 hover:bg-green-600 text-white w-full"
-        onClick={() => window.open('https://www.strava.com/athletes/' + user?.id, '_blank', 'noopener,noreferrer')}
-      >
-        Strava Profile
-      </Button>
     </div>
   );
 };

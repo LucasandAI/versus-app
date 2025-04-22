@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { User, Club } from '@/types';
@@ -32,7 +33,7 @@ export const useUserNavigation = (): UserNavigationResult => {
         .eq('id', userId)
         .single();
         
-      if (error) {
+      if (error || !userData) {
         console.error('Error fetching user profile:', error);
         return;
       }
@@ -61,7 +62,7 @@ export const useUserNavigation = (): UserNavigationResult => {
       
       const clubs: Club[] = [];
       
-      if (memberships) {
+      if (memberships && memberships.length > 0) {
         for (const membership of memberships) {
           if (!membership.clubs) continue;
           

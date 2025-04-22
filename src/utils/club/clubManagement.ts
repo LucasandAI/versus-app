@@ -1,3 +1,4 @@
+
 import { Club, ClubMember, Division } from '@/types';
 import { availableClubs } from '@/data/availableClubs';
 
@@ -12,8 +13,9 @@ export const createNewClub = (clubId: string, clubName: string): Club => {
     id: clubId,
     name: clubName,
     logo: '/placeholder.svg',
-    division: 'Bronze' as Division,
+    division: 'bronze' as Division,
     tier: 3,
+    elitePoints: 0,
     members: [],
     currentMatch: null,
     matchHistory: [],

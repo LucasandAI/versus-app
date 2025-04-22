@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import ClubDetailContent from './club/detail/ClubDetailContent';
@@ -25,8 +24,9 @@ const ClubDetail: React.FC = () => {
           .eq('id', selectedClub.id)
           .single();
           
-        if (error) {
+        if (error || !clubData) {
           console.error('Error fetching club:', error);
+          setIsLoading(false);
           return;
         }
         
@@ -36,8 +36,9 @@ const ClubDetail: React.FC = () => {
           .select('user_id, is_admin, users(id, name, avatar)')
           .eq('club_id', selectedClub.id);
           
-        if (membersError) {
+        if (membersError || !membersData) {
           console.error('Error fetching club members:', membersError);
+          setIsLoading(false);
           return;
         }
         

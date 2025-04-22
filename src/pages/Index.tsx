@@ -10,6 +10,7 @@ import Navigation from '@/components/Navigation';
 import SupportPopover from '@/components/shared/SupportPopover';
 import { Toaster } from '@/components/ui/toaster';
 import { supabase } from '@/integrations/supabase/client';
+import { ensureDivision } from '@/utils/club/leagueUtils';
 
 const AppContent: React.FC = () => {
   const { currentView, currentUser, setCurrentUser } = useApp();
@@ -32,7 +33,7 @@ const AppContent: React.FC = () => {
         // User is authenticated, fetch their data
         const { data: userData, error } = await supabase
           .from('users')
-          .select('id, name, avatar, strava_connected, bio')
+          .select('id, name, avatar, bio')
           .eq('id', session.user.id)
           .single();
           
@@ -52,13 +53,26 @@ const AppContent: React.FC = () => {
           console.error('Error fetching user clubs:', clubsError);
         }
         
-        const clubs = memberships ? memberships.map(m => m.club) : [];
+        const clubs = memberships && memberships.length > 0 
+          ? memberships.map(m => {
+              if (!m.club) return null;
+              return {
+                id: m.club.id,
+                name: m.club.name, 
+                logo: m.club.logo || '/placeholder.svg',
+                division: ensureDivision(m.club.division),
+                tier: m.club.tier || 1,
+                elitePoints: m.club.elite_points || 0,
+                members: [],
+                matchHistory: []
+              };
+            }).filter(Boolean)
+          : [];
         
         setCurrentUser({
           id: userData.id,
           name: userData.name,
           avatar: userData.avatar || '/placeholder.svg',
-          stravaConnected: Boolean(userData.strava_connected),
           bio: userData.bio,
           clubs: clubs
         });
@@ -181,8 +195,8 @@ const AppContent: React.FC = () => {
   return (
     <>
       {renderView()}
-      {currentUser?.stravaConnected && currentView !== 'connect' && <Navigation />}
-      {currentUser?.stravaConnected && <SupportPopover onCreateSupportChat={handleCreateSupportChat} />}
+      {currentUser && currentView !== 'connect' && <Navigation />}
+      {currentUser && <SupportPopover onCreateSupportChat={handleCreateSupportChat} />}
       <Toaster />
     </>
   );
