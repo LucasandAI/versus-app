@@ -39,9 +39,6 @@ export function useAuthSessionCore({
     let authTimeoutId: number;
     let sessionCheckAttempted = false;
 
-    // Start with loading state
-    setUserLoading(true);
-
     // Set timeout for auth check
     authTimeoutId = window.setTimeout(() => {
       if (!sessionCheckAttempted) {

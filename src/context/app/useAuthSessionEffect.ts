@@ -1,4 +1,5 @@
 
+import { useEffect } from 'react';
 import { useAuthSessionCore, AUTH_TIMEOUT } from './useAuthSessionCore';
 import { User, AppView } from '@/types';
 
@@ -20,8 +21,11 @@ export const useAuthSessionEffect = ({
   setAuthChecked,
   setAuthError,
 }: Props) => {
-  // Set initial values to ensure login screen shows by default
-  setUserLoading(true);
+  // Setup the auth session core
+  useEffect(() => {
+    // Set initial loading state in the effect
+    setUserLoading(true);
+  }, []); // Empty dependency array ensures this only runs once
   
   useAuthSessionCore({
     setCurrentUser,
