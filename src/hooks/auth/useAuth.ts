@@ -23,16 +23,10 @@ export const useAuth = (): AuthState & AuthActions => {
       if (authError) throw new Error(authError.message);
       if (!authData.user) throw new Error('No user data returned');
       
-      // Don't load user profile data here - this will be handled by AppContext
-      // This avoids race conditions and duplicate loading
+      console.log('[useAuth] Successfully signed in user:', authData.user.id);
       
-      // Set minimal user data just for this hook's state
-      setUser({
-        id: authData.user.id,
-        name: authData.user.email?.split('@')[0] || 'User',
-        avatar: '/placeholder.svg',
-        clubs: []
-      });
+      // Don't set the user here - AppContext will handle loading the full profile
+      // This makes sure we don't have race conditions
       
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to sign in";
@@ -51,9 +45,13 @@ export const useAuth = (): AuthState & AuthActions => {
   const signOut = async () => {
     setIsLoading(true);
     try {
+      console.log('[useAuth] Signing out user');
       const { error } = await supabase.auth.signOut();
       if (error) throw new Error(error.message);
       setUser(null);
+      
+      // Make sure to clear user data
+      console.log('[useAuth] User signed out successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to sign out";
       toast({

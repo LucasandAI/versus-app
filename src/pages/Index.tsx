@@ -73,6 +73,13 @@ const AppContent: React.FC = () => {
   console.log('[Index] renderView called with currentView:', currentView);
 
   const renderView = () => {
+    // If there's no user, always show the connect screen regardless of currentView
+    if (!currentUser) {
+      console.log('[Index] No user detected, rendering ConnectScreen');
+      return <ConnectScreen />;
+    }
+
+    // Only render other views if user is authenticated
     switch (currentView) {
       case 'connect':
         console.log('[Index] Rendering ConnectScreen');

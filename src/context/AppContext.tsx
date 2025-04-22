@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { AppContextType, User } from '@/types';
 import { updateUserInfo } from './app/useUserInfoSync';
@@ -38,7 +37,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         
       if (error) {
         console.error('[AppContext] Error fetching user profile:', error);
-        // Don't show toast here, just log the error and return null
         setUserLoading(false);
         return null;
       }
@@ -138,29 +136,31 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         
         console.log('[AppContext] Session found for user ID:', session.user.id);
         
-        // Load user data but don't block auth completion
-        setAuthChecked(true); // Mark auth as checked immediately
+        // Mark auth as checked immediately
+        setAuthChecked(true);
         
-        // Set current view to home to avoid being stuck on connect
-        setCurrentView('home');
+        // IMPORTANT: Don't set current view to home before loading user data
+        // This prevents going to home without having a valid user
         
         // Then load user data
         const userProfile = await loadCurrentUser(session.user.id);
         if (userProfile) {
           setCurrentUser(userProfile);
+          setCurrentView('home'); // Only navigate to home after user data is loaded
         } else {
-          console.error('[AppContext] Failed to load user profile, but continuing with session');
-          // Create minimal user object if profile can't be loaded
-          setCurrentUser({
-            id: session.user.id,
-            name: session.user.email?.split('@')[0] || 'User',
-            avatar: '/placeholder.svg',
-            clubs: []
-          });
+          console.error('[AppContext] Failed to load user profile, redirecting to connect');
+          // Redirect to connect on profile load failure
+          setCurrentView('connect');
+          // Sign out to clear any invalid session
+          try {
+            await supabase.auth.signOut();
+          } catch (error) {
+            console.error('[AppContext] Error signing out after profile load failure:', error);
+          }
           
           toast({
-            title: "Profile data incomplete",
-            description: "Some user data couldn't be loaded. Try refreshing the page.",
+            title: "Authentication failed",
+            description: "Unable to load your profile. Please sign in again.",
             variant: "destructive"
           });
         }
@@ -184,39 +184,34 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           clearTimeout(authTimeoutId);
           
           try {
-            // First mark auth as checked and navigate to home
             setAuthChecked(true);
-            setCurrentView('home');
+            // Don't set current view to home until user profile is loaded
             
             // Then load user data
             const userProfile = await loadCurrentUser(session.user.id);
             if (userProfile) {
               setCurrentUser(userProfile);
+              setCurrentView('home'); // Only navigate to home after profile load
             } else {
-              console.error('[AppContext] Failed to load user profile, but continuing with session');
-              // Create minimal user object if profile can't be loaded
-              setCurrentUser({
-                id: session.user.id,
-                name: session.user.email?.split('@')[0] || 'User',
-                avatar: '/placeholder.svg',
-                clubs: []
-              });
+              console.error('[AppContext] Failed to load user profile, redirecting to connect');
+              setCurrentView('connect');
+              
+              // Sign out to clear any invalid session
+              try {
+                await supabase.auth.signOut();
+              } catch (error) {
+                console.error('[AppContext] Error signing out after profile load failure:', error);
+              }
               
               toast({
-                title: "Profile data incomplete",
-                description: "Some user data couldn't be loaded. Try refreshing the page.",
+                title: "Authentication failed",
+                description: "Unable to load your profile. Please sign in again.",
                 variant: "destructive"
               });
             }
           } catch (error) {
             console.error('[AppContext] Error loading user after sign in:', error);
-            // Create minimal user object if profile can't be loaded
-            setCurrentUser({
-              id: session.user.id,
-              name: session.user.email?.split('@')[0] || 'User',
-              avatar: '/placeholder.svg',
-              clubs: []
-            });
+            setCurrentView('connect');
             setAuthError(error instanceof Error ? error.message : 'Unknown error');
           }
         } else if (event === 'SIGNED_OUT') {
