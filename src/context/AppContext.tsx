@@ -7,11 +7,14 @@ import { useAuth } from '@/hooks/auth/useAuth';
 import { useViewState } from '@/hooks/navigation/useViewState';
 import { supabase } from '@/integrations/supabase/client';
 import { ensureDivision } from '@/utils/club/leagueUtils';
+import { toast } from '@/hooks/use-toast';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [userLoading, setUserLoading] = useState(true);
   const { signIn, signOut, isLoading } = useAuth();
   const { currentView, setCurrentView, selectedClub, setSelectedClub, selectedUser, setSelectedUser } = useViewState();
   
@@ -20,16 +23,37 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     const loadCurrentUser = async (userId: string) => {
       try {
+        setUserLoading(true);
+        console.log('Loading user data for ID:', userId);
+        
         const { data: userData, error } = await supabase
           .from('users')
           .select('id, name, avatar, bio')
           .eq('id', userId)
           .single();
           
-        if (error || !userData) {
+        if (error) {
           console.error('Error fetching user profile:', error);
+          toast({
+            title: "Error loading profile",
+            description: "Could not load your profile data. Please try again.",
+            variant: "destructive"
+          });
+          setUserLoading(false);
+          // Set currentView to 'connect' if user data can't be loaded
+          setCurrentView('connect');
           return;
         }
+        
+        if (!userData) {
+          console.error('No user data found for ID:', userId);
+          // If no user data is found, redirect to connect screen
+          setCurrentView('connect');
+          setUserLoading(false);
+          return;
+        }
+        
+        console.log('User data loaded:', userData);
         
         const { data: memberships, error: clubsError } = await supabase
           .from('club_members')
@@ -65,26 +89,56 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         });
         
         setCurrentView('home');
+        setUserLoading(false);
       } catch (error) {
         console.error('Error in loadCurrentUser:', error);
+        setUserLoading(false);
+        // Fallback to connect screen if there's any error
+        setCurrentView('connect');
       }
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event);
         if (event === 'SIGNED_IN' && session?.user) {
           await loadCurrentUser(session.user.id);
         } else if (event === 'SIGNED_OUT') {
           setCurrentUser(null);
           setCurrentView('connect');
+          setUserLoading(false);
         }
       }
     );
 
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        await loadCurrentUser(session.user.id);
+      try {
+        console.log('Checking auth session...');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error checking session:', error);
+          setCurrentView('connect');
+          setAuthChecked(true);
+          setUserLoading(false);
+          return;
+        }
+        
+        if (session?.user) {
+          console.log('Session found, loading user data');
+          await loadCurrentUser(session.user.id);
+        } else {
+          console.log('No session found, redirecting to connect');
+          setCurrentView('connect');
+          setUserLoading(false);
+        }
+        
+        setAuthChecked(true);
+      } catch (error) {
+        console.error('Error in checkSession:', error);
+        setAuthChecked(true);
+        setUserLoading(false);
+        setCurrentView('connect');
       }
     };
     
@@ -120,10 +174,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     createClub
   };
 
-  if (isLoading) {
+  // Show loading state only if we're checking auth or loading user data
+  if (!authChecked || userLoading) {
+    console.log('App in loading state:', { authChecked, userLoading });
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
+  console.log('App ready:', { currentView, hasUser: !!currentUser });
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
 

@@ -15,78 +15,8 @@ import { ensureDivision } from '@/utils/club/leagueUtils';
 const AppContent: React.FC = () => {
   const { currentView, currentUser, setCurrentUser } = useApp();
   const [chatNotifications, setChatNotifications] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Check for authentication and load user data on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      setIsLoading(true);
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        setIsLoading(false);
-        return;
-      }
-      
-      try {
-        // User is authenticated, fetch their data
-        const { data: userData, error } = await supabase
-          .from('users')
-          .select('id, name, avatar, bio')
-          .eq('id', session.user.id)
-          .single();
-          
-        if (error || !userData) {
-          console.error('Error fetching user:', error);
-          setIsLoading(false);
-          return;
-        }
-        
-        // Load user's clubs
-        const { data: memberships, error: clubsError } = await supabase
-          .from('club_members')
-          .select('club:clubs(id, name, logo, division, tier, elite_points)')
-          .eq('user_id', userData.id);
-          
-        if (clubsError) {
-          console.error('Error fetching user clubs:', clubsError);
-        }
-        
-        const clubs = memberships && memberships.length > 0 
-          ? memberships.map(m => {
-              if (!m.club) return null;
-              return {
-                id: m.club.id,
-                name: m.club.name, 
-                logo: m.club.logo || '/placeholder.svg',
-                division: ensureDivision(m.club.division),
-                tier: m.club.tier || 1,
-                elitePoints: m.club.elite_points || 0,
-                members: [],
-                matchHistory: []
-              };
-            }).filter(Boolean)
-          : [];
-        
-        setCurrentUser({
-          id: userData.id,
-          name: userData.name,
-          avatar: userData.avatar || '/placeholder.svg',
-          bio: userData.bio,
-          clubs: clubs
-        });
-        
-      } catch (error) {
-        console.error('Error loading user data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    checkAuth();
-  }, []);
-  
   // Load unread counts from localStorage on mount and when updated
   useEffect(() => {
     const loadUnreadCounts = () => {
@@ -146,19 +76,27 @@ const AppContent: React.FC = () => {
     };
   }, []);
 
+  console.log('AppContent rendering with currentView:', currentView);
+
   const renderView = () => {
     switch (currentView) {
       case 'connect':
+        console.log('Rendering ConnectScreen');
         return <ConnectScreen />;
       case 'home':
+        console.log('Rendering HomeView');
         return <HomeView chatNotifications={chatNotifications} />;
       case 'clubDetail':
+        console.log('Rendering ClubDetail');
         return <ClubDetail />;
       case 'leaderboard':
+        console.log('Rendering Leaderboard');
         return <Leaderboard />;
       case 'profile':
+        console.log('Rendering UserProfile');
         return <UserProfile />;
       default:
+        console.log('No matching view, defaulting to ConnectScreen');
         return <ConnectScreen />;
     }
   };
@@ -189,7 +127,7 @@ const AppContent: React.FC = () => {
   };
 
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return <div className="flex items-center justify-center min-h-screen">Content Loading...</div>;
   }
 
   return (
@@ -203,6 +141,7 @@ const AppContent: React.FC = () => {
 };
 
 const Index: React.FC = () => {
+  console.log('Index component rendering');
   return (
     <AppProvider>
       <div className="min-h-screen bg-gray-50">

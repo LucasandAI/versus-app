@@ -24,12 +24,15 @@ export const useClubMembership = (club: Club) => {
     
     const checkPendingInvite = async () => {
       try {
+        console.log('Checking for pending invite for club:', club.id);
         const pending = await hasPendingInvite(club.id);
+        console.log('Pending invite status:', pending);
         if (pending || hasPending !== pending) {
           setHasPending(pending);
         }
       } catch (error) {
         console.error('Error checking pending invite:', error);
+        // Don't set hasPending to false here to avoid flickering UI
       }
     };
     

@@ -5,7 +5,7 @@ import { Club } from '@/types';
 
 export const useNavigation = () => {
   const { navigateToUserProfile, isLoading: userNavLoading } = useUserNavigation();
-  const { handleClubClick } = useClubNavigation();
+  const { handleClubClick, handleJoinRequest } = useClubNavigation();
   
   const navigateToClub = (clubData: Club | Partial<Club>) => {
     if ('id' in clubData && clubData.id) {
@@ -21,6 +21,7 @@ export const useNavigation = () => {
     navigateToUserProfile,
     navigateToClubDetail,
     navigateToClub,
+    handleJoinRequest,
     isLoading: userNavLoading || false
   };
 };
