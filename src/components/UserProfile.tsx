@@ -66,56 +66,60 @@ const UserProfile: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center min-h-screen bg-gray-50 pb-20">
-      <ProfileHeader
-        currentUser={currentUser}
-        selectedUser={selectedUser}
-        onBackClick={() => setCurrentView('home')}
-      />
+    <div className="flex flex-col w-full min-h-screen bg-gray-50 pb-20">
+      <div className="w-full">
+        <ProfileHeader
+          currentUser={currentUser}
+          selectedUser={selectedUser}
+          onBackClick={() => setCurrentView('home')}
+        />
+      </div>
 
-      <Card className={`w-full ${isMobile ? 'mx-4' : 'max-w-md mx-auto'} mt-4 p-6 rounded-lg`}>
-        <UserHeader
+      <div className="px-4 w-full max-w-screen-lg mx-auto">
+        <Card className={`w-full ${isMobile ? '' : 'max-w-md mx-auto'} mt-4 p-6 rounded-lg`}>
+          <UserHeader
+            user={selectedUser}
+            loading={loading}
+            isCurrentUserProfile={isCurrentUserProfile}
+            onEditProfile={() => setEditProfileOpen(true)}
+            onLogoutClick={() => setLogoutDialogOpen(true)}
+          />
+
+          <UserStats
+            loading={loading}
+            weeklyDistance={42.3}
+            bestLeague={bestLeague.league}
+            bestLeagueTier={bestLeague.tier}
+          />
+
+          <UserInviteSection 
+            showInviteButton={showInviteButton}
+            inviteDialogOpen={inviteDialogOpen}
+            setInviteDialogOpen={setInviteDialogOpen}
+            selectedUser={selectedUser}
+            adminClubs={adminClubs}
+          />
+        </Card>
+
+        <UserClubs
           user={selectedUser}
           loading={loading}
-          isCurrentUserProfile={isCurrentUserProfile}
-          onEditProfile={() => setEditProfileOpen(true)}
-          onLogoutClick={() => setLogoutDialogOpen(true)}
+          onClubClick={(club) => {
+            setSelectedClub(club);
+            setCurrentView('clubDetail');
+          }}
         />
 
-        <UserStats
+        <UserAchievements
           loading={loading}
-          weeklyDistance={42.3}
-          bestLeague={bestLeague.league}
-          bestLeagueTier={bestLeague.tier}
+          isCurrentUserProfile={isCurrentUserProfile}
+          completedAchievements={completedAchievements}
+          inProgressAchievements={inProgressAchievements}
+          moreInProgressAchievements={moreInProgressAchievements}
+          showMoreAchievements={showMoreAchievements}
+          onToggleMoreAchievements={() => setShowMoreAchievements(!showMoreAchievements)}
         />
-
-        <UserInviteSection 
-          showInviteButton={showInviteButton}
-          inviteDialogOpen={inviteDialogOpen}
-          setInviteDialogOpen={setInviteDialogOpen}
-          selectedUser={selectedUser}
-          adminClubs={adminClubs}
-        />
-      </Card>
-
-      <UserClubs
-        user={selectedUser}
-        loading={loading}
-        onClubClick={(club) => {
-          setSelectedClub(club);
-          setCurrentView('clubDetail');
-        }}
-      />
-
-      <UserAchievements
-        loading={loading}
-        isCurrentUserProfile={isCurrentUserProfile}
-        completedAchievements={completedAchievements}
-        inProgressAchievements={inProgressAchievements}
-        moreInProgressAchievements={moreInProgressAchievements}
-        showMoreAchievements={showMoreAchievements}
-        onToggleMoreAchievements={() => setShowMoreAchievements(!showMoreAchievements)}
-      />
+      </div>
 
       <EditProfileDialog
         open={editProfileOpen}
