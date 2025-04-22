@@ -98,7 +98,13 @@ export const useLoadCurrentUser = () => {
                 tier: club.tier || 1,
                 elitePoints: club.elite_points || 0,
                 bio: club.bio || '',
-                members: [],
+                members: [{
+                  id: userId,
+                  name: userData.name,
+                  avatar: userData.avatar || '/placeholder.svg',
+                  isAdmin: membership.is_admin,
+                  distanceContribution: 0
+                }],
                 matchHistory: []
               };
             } catch (error) {
@@ -109,6 +115,7 @@ export const useLoadCurrentUser = () => {
           
           // Wait for all club data to be processed
           clubs = (await Promise.all(clubPromises)).filter(Boolean);
+          console.log('[useLoadCurrentUser] Successfully loaded', clubs.length, 'clubs');
         }
       } catch (clubsError) {
         console.error('[useLoadCurrentUser] Error in clubs loading:', clubsError);
