@@ -6,7 +6,7 @@ export const uploadAvatar = async (userId: string, file: File): Promise<string |
     console.log('[uploadAvatar] Starting upload for user:', userId);
     const fileExt = file.name.split('.').pop();
     const fileName = `${userId}-${Date.now()}.${fileExt}`;
-    const filePath = `avatars/${fileName}`;
+    const filePath = `${fileName}`;
 
     // Ensure the avatars bucket exists
     try {
@@ -32,9 +32,6 @@ export const uploadAvatar = async (userId: string, file: File): Promise<string |
     // Get public URL using getPublicUrl properly
     const { data } = safeSupabase.storage.from('avatars').getPublicUrl(filePath);
     console.log('[uploadAvatar] Avatar upload successful, URL:', data.publicUrl);
-
-    // Wait a brief moment to ensure storage processing is complete
-    await new Promise(resolve => setTimeout(resolve, 300));
     
     return data.publicUrl;
   } catch (error) {

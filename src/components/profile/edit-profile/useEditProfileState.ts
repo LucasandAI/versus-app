@@ -87,7 +87,7 @@ export const useEditProfileState = ({ user, onOpenChange }: UseEditProfileStateP
     setIsSaving(true);
 
     try {
-      let avatarUrl = user.avatar; // Start with current avatar, not local state
+      let avatarUrl = user.avatar; // Start with current avatar
 
       if (avatarFile) {
         console.log('[useEditProfileState] Uploading new avatar file');

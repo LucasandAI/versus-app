@@ -71,7 +71,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
     setImageLoaded(true);
   };
 
-  // Clean up blob URLs to prevent memory leaks
+  // Check if image URL is valid
   const isValidUrl = (url?: string | null) => {
     return url && typeof url === 'string' && url.trim() !== '' && url !== '/placeholder.svg';
   };
