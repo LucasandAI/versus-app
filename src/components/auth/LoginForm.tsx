@@ -36,7 +36,7 @@ const LoginForm: React.FC = () => {
     try {
       console.log('[LoginForm] Submitting login form with email:', values.email);
       const user = await signIn(values.email, values.password);
-      console.log('[LoginForm] Sign-in successful for user:', user?.id);
+      console.log('[LoginForm] Sign-in successful:', user ? user.id : 'No user returned');
       
       // Show success toast
       toast({
@@ -45,18 +45,17 @@ const LoginForm: React.FC = () => {
         variant: 'default',
       });
       
-      // If login is successful and we have a user, we can try to navigate
-      // AppContext should handle the actual navigation once the profile is loaded
-    } catch (err) {
-      console.error('[LoginForm] Login error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to sign in');
+      // If login is successful and we have a user, the AppContext will handle navigation
+    } catch (error) {
+      console.error('[LoginForm] Login error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to sign in');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-md space-y-6">
+    <div className="w-full max-w-md">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField

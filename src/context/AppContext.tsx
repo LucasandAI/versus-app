@@ -75,8 +75,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               }).filter(Boolean)
             : [];
         }
-      } catch (clubsLoadError) {
-        console.error('[AppContext] Error in clubs loading:', clubsLoadError);
+      } catch (clubsError) {
+        console.error('[AppContext] Error in clubs loading:', clubsError);
         // Continue even if clubs fail to load
       }
       
@@ -99,7 +99,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   useEffect(() => {
     console.log('[AppContext] Setting up auth state listener...');
-    let authTimeoutId: NodeJS.Timeout;
+    let authTimeoutId: NodeTimeout;
     
     // Set a timeout to prevent infinite loading
     authTimeoutId = setTimeout(() => {
@@ -141,14 +141,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setAuthChecked(true);
         
         // IMPORTANT: Don't set current view to home before loading user data
-        // This prevents going to home without having a valid user
+        // This prevents going to home without a valid user
         
         // Then load user data
         const userProfile = await loadCurrentUser(session.user.id);
         if (userProfile) {
           setCurrentUser(userProfile);
           // Once we have the user profile, we can navigate to home
-          setCurrentView('home'); 
+          setCurrentView('home');
           console.log('[AppContext] Successfully loaded profile, navigating to home');
         } else {
           console.error('[AppContext] Failed to load user profile, redirecting to connect');
@@ -261,7 +261,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   // Create a custom signIn function that reports more information
-  const handleSignIn = async (email: string, password: string) => {
+  const handleSignIn = async (email: string, password: string): Promise<User | null> => {
     console.log('[AppContext] Sign in requested for email:', email);
     try {
       return await signIn(email, password);

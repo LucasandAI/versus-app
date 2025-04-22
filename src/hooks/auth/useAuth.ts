@@ -10,7 +10,7 @@ export const useAuth = (): AuthState & AuthActions => {
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<User | null> => {
     setIsLoading(true);
     setError(null);
     
@@ -29,7 +29,7 @@ export const useAuth = (): AuthState & AuthActions => {
       // Don't set the user here - AppContext will handle loading the full profile
       // This makes sure we don't have race conditions
       
-      return authData.user; // Return the user to indicate successful login
+      return authData.user as unknown as User; // Return the user to indicate successful login
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to sign in";
       setError(message);
@@ -52,7 +52,6 @@ export const useAuth = (): AuthState & AuthActions => {
       if (error) throw new Error(error.message);
       setUser(null);
       
-      // Make sure to clear user data
       console.log('[useAuth] User signed out successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to sign out";
