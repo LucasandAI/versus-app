@@ -27,7 +27,13 @@ const ClubList: React.FC<ClubListProps> = ({
     );
   }
   
-  if (userClubs.length === 0) {
+  // Ensure clubs have member arrays (defensive programming)
+  const safeClubs = userClubs.map(club => ({
+    ...club,
+    members: club.members || []
+  }));
+  
+  if (safeClubs.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6 text-center">
         <h3 className="font-medium mb-2">No clubs yet</h3>
@@ -47,7 +53,7 @@ const ClubList: React.FC<ClubListProps> = ({
 
   return (
     <div className="space-y-6">
-      {userClubs.map((club) => (
+      {safeClubs.map((club) => (
         <ClubCard
           key={club.id}
           club={club}

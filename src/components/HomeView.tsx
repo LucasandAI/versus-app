@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
@@ -105,6 +106,11 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   const isAtClubCapacity = userClubs.length >= 3;
 
   console.log('HomeView rendering with clubs:', userClubs.map(c => c.name));
+  
+  // Log club members to help debug the issue
+  userClubs.forEach(club => {
+    console.log(`Club ${club.name} has ${club.members?.length || 0} members`);
+  });
 
   return (
     <div className="pb-20 pt-6">

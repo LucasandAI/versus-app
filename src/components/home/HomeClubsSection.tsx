@@ -46,12 +46,21 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
     }
   }, [currentUser, userClubs.length]);
   
-  const isAtClubCapacity = userClubs.length >= 3;
+  // Make sure clubs have the correct member count displayed
+  const processedUserClubs = userClubs.map(club => {
+    // Ensure the members array exists
+    if (!club.members) {
+      club.members = [];
+    }
+    return club;
+  });
+  
+  const isAtClubCapacity = processedUserClubs.length >= 3;
 
   return (
     <>
       <ClubList 
-        userClubs={userClubs}
+        userClubs={processedUserClubs}
         loading={isLoading || clubsLoading}
         onSelectUser={onSelectUser}
         onCreateClub={onCreateClub}
