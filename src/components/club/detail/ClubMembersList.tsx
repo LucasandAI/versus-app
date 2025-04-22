@@ -4,18 +4,19 @@ import { ClubMember, Match } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Users } from 'lucide-react';
+import { useNavigation } from '@/hooks/useNavigation';
 
 interface ClubMembersListProps {
   members: ClubMember[];
   currentMatch?: Match | null;
-  onSelectMember: (userId: string, name: string, avatar?: string) => void;
 }
 
 const ClubMembersList: React.FC<ClubMembersListProps> = ({ 
   members, 
-  currentMatch, 
-  onSelectMember 
+  currentMatch
 }) => {
+  const { navigateToUserProfile } = useNavigation();
+  
   // Create a map to deduplicate members by ID
   const uniqueMembers = members.reduce((acc, member) => {
     if (!acc.has(member.id)) {
@@ -28,7 +29,7 @@ const ClubMembersList: React.FC<ClubMembersListProps> = ({
   const deduplicatedMembers = Array.from(uniqueMembers.values());
 
   const handleMemberClick = (member: ClubMember) => {
-    onSelectMember(member.id, member.name, member.avatar);
+    navigateToUserProfile(member.id, member.name, member.avatar);
   };
 
   return (
