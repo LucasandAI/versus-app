@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ArrowLeft, Users } from 'lucide-react';
 import { Club } from '@/types';
@@ -40,11 +39,8 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
   console.log('Club Header rendering with hasPendingInvite:', hasPendingInvite);
   const isClubFull = club.members.length >= 5;
 
-  // Cleaned up button rendering logic according to priority
   const renderActionButtons = () => {
-    // If user is a member, show appropriate member actions
     if (isActuallyMember) {
-      // If admin and club has room, show invite button and leave button
       if (isAdmin) {
         return (
           <div className="flex space-x-2">
@@ -68,7 +64,6 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
         );
       }
       
-      // If not admin, show leave button
       return (
         <Button 
           variant="outline" 
@@ -80,7 +75,6 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
       );
     }
     
-    // User is not a member - check for pending invite first
     if (hasPendingInvite) {
       return (
         <div className="flex space-x-2">
@@ -117,7 +111,6 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
       );
     }
     
-    // No invite, show request to join if club has room
     if (!isClubFull) {
       return (
         <Button 
@@ -130,22 +123,20 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
       );
     }
     
-    return null; // Club is full, no invite
+    return null;
   };
 
   return (
     <>
       <div className="bg-primary/95 text-white p-4 sticky top-0 z-10">
-        <div className="container-mobile relative">
-          <div className="flex items-center justify-center">
-            <button 
-              onClick={onBack} 
-              className="absolute left-0 text-white hover:bg-primary/80 rounded-full p-2 transition-colors"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <h1 className="text-xl font-bold">{club.name}</h1>
-          </div>
+        <div className="container-mobile relative flex items-center justify-center">
+          <button 
+            onClick={onBack} 
+            className="absolute left-0 text-white hover:bg-primary/80 rounded-full p-2 transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h1 className="text-xl font-bold">{club.name}</h1>
         </div>
       </div>
 
