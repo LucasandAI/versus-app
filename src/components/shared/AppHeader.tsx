@@ -14,18 +14,24 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   rightElement
 }) => {
   return (
-    <div className="bg-green-500 py-4 px-6 text-white flex items-center justify-center relative">
-      {onBack && (
-        <button 
-          onClick={onBack}
-          className="absolute left-4 text-white hover:bg-green-600 rounded-full p-2 transition-colors"
-        >
-          <ArrowLeft className="h-6 w-6" />
-        </button>
-      )}
-      <h1 className="text-xl font-semibold">{title}</h1>
+    <div className="bg-green-500 py-4 px-6 text-white flex items-center justify-between relative">
+      <div className="flex items-center">
+        {onBack && (
+          <button 
+            onClick={onBack}
+            className="text-white hover:bg-green-600 rounded-full p-2 transition-colors mr-2"
+          >
+            <ArrowLeft className="h-6 w-6" />
+          </button>
+        )}
+      </div>
+      
+      <h1 className="text-xl font-semibold absolute left-1/2 transform -translate-x-1/2">
+        {title}
+      </h1>
+      
       {rightElement && (
-        <div className="absolute right-4">
+        <div className="flex items-center">
           {rightElement}
         </div>
       )}
