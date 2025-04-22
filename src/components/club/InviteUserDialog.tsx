@@ -13,14 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import UserAvatar from "../shared/UserAvatar";
-
-// Mock data for now - in a real app this would come from an API
-const mockUsers = [
-  { id: 'u1', name: 'John Runner', avatar: '/placeholder.svg' },
-  { id: 'u2', name: 'Alice Sprint', avatar: '/placeholder.svg' },
-  { id: 'u3', name: 'Charlie Run', avatar: '/placeholder.svg' },
-  { id: 'u4', name: 'Diana Dash', avatar: '/placeholder.svg' },
-];
+import { useClubInvites } from '@/hooks/club/useClubInvites';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface InviteUserDialogProps {
   open: boolean;
@@ -34,17 +28,85 @@ const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
   clubId 
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const { users, loading, error, sendInvite } = useClubInvites(clubId);
   
-  const filteredUsers = mockUsers.filter(user =>
+  const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleInvite = (userId: string, userName: string) => {
-    // In a real app, this would send the invite through an API
-    toast({
-      title: "Invitation Sent",
-      description: `Invitation sent to ${userName}`,
-    });
+  const handleInvite = async (userId: string, userName: string) => {
+    const success = await sendInvite(userId, userName);
+    
+    if (success) {
+      toast({
+        title: "Invitation Sent",
+        description: `Invitation sent to ${userName}`,
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to send invitation",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center justify-between p-2">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+              <Skeleton className="h-8 w-16" />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <p className="text-center text-destructive py-4">
+          Error loading users. Please try again.
+        </p>
+      );
+    }
+
+    if (filteredUsers.length === 0) {
+      return (
+        <p className="text-center text-muted-foreground py-4">
+          {users.length === 0 
+            ? "No users available to invite" 
+            : "No runners found matching your search"}
+        </p>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {filteredUsers.map((user) => (
+          <div 
+            key={user.id}
+            className="flex items-center justify-between p-2 rounded-lg hover:bg-muted"
+          >
+            <div className="flex items-center gap-3">
+              <UserAvatar name={user.name} image={user.avatar} size="sm" />
+              <span className="font-medium">{user.name}</span>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => handleInvite(user.id, user.name)}
+            >
+              Invite
+            </Button>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -71,30 +133,7 @@ const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
           />
         </div>
 
-        <div className="space-y-4">
-          {filteredUsers.map((user) => (
-            <div 
-              key={user.id}
-              className="flex items-center justify-between p-2 rounded-lg hover:bg-muted"
-            >
-              <div className="flex items-center gap-3">
-                <UserAvatar name={user.name} image={user.avatar} size="sm" />
-                <span className="font-medium">{user.name}</span>
-              </div>
-              <Button
-                size="sm"
-                onClick={() => handleInvite(user.id, user.name)}
-              >
-                Invite
-              </Button>
-            </div>
-          ))}
-          {filteredUsers.length === 0 && (
-            <p className="text-center text-muted-foreground py-4">
-              No runners found matching your search
-            </p>
-          )}
-        </div>
+        {renderContent()}
       </DialogContent>
     </Dialog>
   );
