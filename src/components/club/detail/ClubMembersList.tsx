@@ -33,6 +33,7 @@ const ClubMembersList: React.FC<ClubMembersListProps> = ({
   
   // Convert back to array
   const deduplicatedMembers = Array.from(uniqueMembers.values());
+  const memberCount = deduplicatedMembers.length;
 
   const handleMemberClick = (member: ClubMember) => {
     if (onSelectMember) {
@@ -51,7 +52,7 @@ const ClubMembersList: React.FC<ClubMembersListProps> = ({
             Members
           </CardTitle>
           <span className="text-xs text-gray-500">
-            {deduplicatedMembers.length}/5 members
+            {memberCount}/5 members
           </span>
         </div>
       </CardHeader>
