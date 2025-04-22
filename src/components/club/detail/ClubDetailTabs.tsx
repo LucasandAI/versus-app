@@ -3,9 +3,9 @@ import React from 'react';
 import { Club, User } from '@/types';
 import ClubMembersList from './ClubMembersList';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useApp } from '@/context/AppContext';
 import MatchHistoryTab from './tabs/MatchHistoryTab';
 import OverviewTab from './tabs/OverviewTab';
+import { useNavigation } from '@/hooks/useNavigation';
 
 interface ClubDetailTabsProps {
   club: Club;
@@ -18,17 +18,10 @@ const ClubDetailTabs: React.FC<ClubDetailTabsProps> = ({
   isActuallyMember, 
   currentUser 
 }) => {
-  const { setSelectedUser, setCurrentView } = useApp();
+  const { navigateToUserProfile } = useNavigation();
 
-  const handleSelectUser = (userId: string, name: string, avatar?: string) => {
-    setSelectedUser({
-      id: userId,
-      name: name,
-      avatar: avatar || '/placeholder.svg',
-      stravaConnected: true,
-      clubs: []
-    });
-    setCurrentView('profile');
+  const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
+    navigateToUserProfile(userId, userName, userAvatar);
   };
 
   return (

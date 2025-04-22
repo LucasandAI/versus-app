@@ -1,18 +1,78 @@
+
 import React, { useEffect, useState } from 'react';
 import { AppProvider, useApp } from '@/context/AppContext';
 import ConnectScreen from '@/components/ConnectScreen';
-import HomeView from '@/components/HomeView';
+import HomeView from '@/components/home/HomeView';
 import ClubDetail from '@/components/ClubDetail';
 import Leaderboard from '@/components/Leaderboard';
 import UserProfile from '@/components/UserProfile';
 import Navigation from '@/components/Navigation';
 import SupportPopover from '@/components/shared/SupportPopover';
 import { Toaster } from '@/components/ui/toaster';
+import { supabase } from '@/integrations/supabase/client';
 
 const AppContent: React.FC = () => {
-  const { currentView, currentUser } = useApp();
+  const { currentView, currentUser, setCurrentUser } = useApp();
   const [chatNotifications, setChatNotifications] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Check for authentication and load user data on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      setIsLoading(true);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        // User is authenticated, fetch their data
+        const { data: userData, error } = await supabase
+          .from('users')
+          .select('id, name, avatar, strava_connected, bio')
+          .eq('id', session.user.id)
+          .single();
+          
+        if (error || !userData) {
+          console.error('Error fetching user:', error);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Load user's clubs
+        const { data: memberships, error: clubsError } = await supabase
+          .from('club_members')
+          .select('club:clubs(id, name, logo, division, tier, elite_points)')
+          .eq('user_id', userData.id);
+          
+        if (clubsError) {
+          console.error('Error fetching user clubs:', clubsError);
+        }
+        
+        const clubs = memberships ? memberships.map(m => m.club) : [];
+        
+        setCurrentUser({
+          id: userData.id,
+          name: userData.name,
+          avatar: userData.avatar || '/placeholder.svg',
+          stravaConnected: Boolean(userData.strava_connected),
+          bio: userData.bio,
+          clubs: clubs
+        });
+        
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    checkAuth();
+  }, []);
+  
   // Load unread counts from localStorage on mount and when updated
   useEffect(() => {
     const loadUnreadCounts = () => {
@@ -113,6 +173,10 @@ const AppContent: React.FC = () => {
     const event = new CustomEvent('unreadMessagesUpdated');
     window.dispatchEvent(event);
   };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
 
   return (
     <>

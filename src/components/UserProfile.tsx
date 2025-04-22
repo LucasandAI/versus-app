@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Card } from './ui/card';
 import EditProfileDialog from './profile/EditProfileDialog';
@@ -29,12 +29,14 @@ import {
   inProgressAchievements, 
   moreInProgressAchievements 
 } from './profile/data/achievements';
+import { supabase } from '@/integrations/supabase/client';
+import { Club, ClubMember, User } from '@/types';
 
 const UserProfile: React.FC = () => {
   const { currentUser, selectedUser, setCurrentUser, setSelectedUser, setCurrentView, setSelectedClub } = useApp();
   const isMobile = useIsMobile();
   const {
-    loading,
+    loading: profileLoading,
     inviteDialogOpen,
     setInviteDialogOpen,
     showMoreAchievements,
@@ -44,6 +46,120 @@ const UserProfile: React.FC = () => {
     logoutDialogOpen,
     setLogoutDialogOpen
   } = useProfileState();
+  
+  const [loading, setLoading] = useState(true);
+  const [weeklyDistance, setWeeklyDistance] = useState(0);
+  
+  useEffect(() => {
+    const loadUserData = async () => {
+      if (!selectedUser) return;
+      
+      setLoading(true);
+      try {
+        // Fetch user data from Supabase
+        const { data: userData, error } = await supabase
+          .from('users')
+          .select('id, name, avatar, strava_connected, bio')
+          .eq('id', selectedUser.id)
+          .single();
+          
+        if (error) {
+          console.error('Error fetching user profile:', error);
+          return;
+        }
+        
+        // Fetch user's clubs from Supabase via club_members join table
+        const { data: memberships, error: clubsError } = await supabase
+          .from('club_members')
+          .select('club_id, is_admin, club:clubs(id, name, logo, division, tier, elite_points)')
+          .eq('user_id', selectedUser.id);
+          
+        if (clubsError) {
+          console.error('Error fetching user clubs:', clubsError);
+        }
+        
+        // Transform the clubs data
+        const clubs: Club[] = [];
+        
+        if (memberships && memberships.length > 0) {
+          for (const membership of memberships) {
+            if (!membership.club) continue;
+            
+            // Fetch club members
+            const { data: membersData, error: membersError } = await supabase
+              .from('club_members')
+              .select('user_id, is_admin, users(id, name, avatar)')
+              .eq('club_id', membership.club.id);
+              
+            if (membersError) {
+              console.error('Error fetching club members:', membersError);
+              continue;
+            }
+            
+            // Transform members data
+            const members: ClubMember[] = membersData.map(member => ({
+              id: member.users.id,
+              name: member.users.name,
+              avatar: member.users.avatar || '/placeholder.svg',
+              isAdmin: member.is_admin,
+              distanceContribution: 0 // Default value
+            }));
+            
+            // Fetch match history
+            const { data: matchHistory, error: matchError } = await supabase
+              .from('matches')
+              .select('*')
+              .or(`home_club_id.eq.${membership.club.id},away_club_id.eq.${membership.club.id}`)
+              .order('end_date', { ascending: false });
+              
+            if (matchError) {
+              console.error('Error fetching match history:', matchError);
+            }
+            
+            // Transform club data
+            clubs.push({
+              id: membership.club.id,
+              name: membership.club.name,
+              logo: membership.club.logo || '/placeholder.svg',
+              division: membership.club.division,
+              tier: membership.club.tier || 1,
+              elitePoints: membership.club.elite_points,
+              members: members,
+              matchHistory: matchHistory || []
+            });
+          }
+        }
+        
+        // Calculate weekly distance (this would be computed from actual activity data in a real app)
+        // For now, just generate a random distance for demonstration
+        const randomWeeklyDistance = Math.round((Math.random() * 50 + 20) * 10) / 10;
+        setWeeklyDistance(randomWeeklyDistance);
+        
+        // Update the selected user with the fetched data
+        const updatedUser: User = {
+          id: userData.id,
+          name: userData.name || selectedUser.name,
+          avatar: userData.avatar || selectedUser.avatar,
+          stravaConnected: Boolean(userData.strava_connected),
+          bio: userData.bio,
+          clubs: clubs
+        };
+        
+        setSelectedUser(updatedUser);
+        
+        // If this is the current user, update currentUser as well
+        if (currentUser && currentUser.id === updatedUser.id) {
+          setCurrentUser(updatedUser);
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadUserData();
+  }, [selectedUser?.id]);
 
   if (!selectedUser) {
     return <NoUserState onBackHome={() => setCurrentView('home')} />;
@@ -87,7 +203,7 @@ const UserProfile: React.FC = () => {
 
           <UserStats
             loading={loading}
-            weeklyDistance={42.3}
+            weeklyDistance={weeklyDistance}
             bestLeague={bestLeague.league}
             bestLeagueTier={bestLeague.tier}
           />

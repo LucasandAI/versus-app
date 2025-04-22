@@ -3,8 +3,7 @@ import React, { useState } from 'react';
 import { Club } from '@/types';
 import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import MatchCard from './match-history/MatchCard';
-import { useApp } from '@/context/AppContext';
-import { useClubNavigation } from '@/hooks/useClubNavigation';
+import { useNavigation } from '@/hooks/useNavigation';
 
 interface MatchHistoryTabProps {
   club: Club;
@@ -13,8 +12,7 @@ interface MatchHistoryTabProps {
 const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
   const [showAllMatches, setShowAllMatches] = useState(false);
-  const { setSelectedUser, setCurrentView } = useApp();
-  const { navigateToClub } = useClubNavigation();
+  const { navigateToUserProfile, navigateToClubDetail } = useNavigation();
 
   const handleViewMatchDetails = (matchId: string) => {
     setExpandedMatchId(expandedMatchId === matchId ? null : matchId);
@@ -25,19 +23,12 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
   };
 
   const handleSelectUser = (userId: string, name: string, avatar?: string) => {
-    setSelectedUser({
-      id: userId,
-      name: name,
-      avatar: avatar || '/placeholder.svg',
-      stravaConnected: true,
-      clubs: []
-    });
-    setCurrentView('profile');
+    navigateToUserProfile(userId, name, avatar);
   };
 
   const handleSelectClub = (clubId: string, name: string, logo?: string) => {
     console.log("Selecting club from match history:", clubId, name);
-    navigateToClub({ 
+    navigateToClubDetail(clubId, { 
       id: clubId, 
       name,
       logo: logo || '/placeholder.svg'
