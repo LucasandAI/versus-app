@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { AppProvider, useApp } from '@/context/AppContext';
 import ConnectScreen from '@/components/ConnectScreen';
 import HomeView from '@/components/home/HomeView';
@@ -9,16 +9,13 @@ import UserProfile from '@/components/UserProfile';
 import Navigation from '@/components/Navigation';
 import SupportPopover from '@/components/shared/SupportPopover';
 import { Toaster } from '@/components/ui/toaster';
-import { supabase } from '@/integrations/supabase/client';
-import { ensureDivision } from '@/utils/club/leagueUtils';
 
 const AppContent: React.FC = () => {
-  const { currentView, currentUser, setCurrentUser } = useApp();
-  const [chatNotifications, setChatNotifications] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const { currentView, currentUser } = useApp();
+  const [chatNotifications, setChatNotifications] = React.useState(0);
 
   // Load unread counts from localStorage on mount and when updated
-  useEffect(() => {
+  React.useEffect(() => {
     const loadUnreadCounts = () => {
       const unreadMessages = localStorage.getItem('unreadMessages');
       if (unreadMessages) {
@@ -76,27 +73,27 @@ const AppContent: React.FC = () => {
     };
   }, []);
 
-  console.log('AppContent rendering with currentView:', currentView);
+  console.log('[Index] AppContent rendering with currentView:', currentView);
 
   const renderView = () => {
     switch (currentView) {
       case 'connect':
-        console.log('Rendering ConnectScreen');
+        console.log('[Index] Rendering ConnectScreen');
         return <ConnectScreen />;
       case 'home':
-        console.log('Rendering HomeView');
+        console.log('[Index] Rendering HomeView');
         return <HomeView chatNotifications={chatNotifications} />;
       case 'clubDetail':
-        console.log('Rendering ClubDetail');
+        console.log('[Index] Rendering ClubDetail');
         return <ClubDetail />;
       case 'leaderboard':
-        console.log('Rendering Leaderboard');
+        console.log('[Index] Rendering Leaderboard');
         return <Leaderboard />;
       case 'profile':
-        console.log('Rendering UserProfile');
+        console.log('[Index] Rendering UserProfile');
         return <UserProfile />;
       default:
-        console.log('No matching view, defaulting to ConnectScreen');
+        console.log('[Index] No matching view, defaulting to ConnectScreen');
         return <ConnectScreen />;
     }
   };
@@ -126,10 +123,6 @@ const AppContent: React.FC = () => {
     window.dispatchEvent(event);
   };
 
-  if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Content Loading...</div>;
-  }
-
   return (
     <>
       {renderView()}
@@ -141,7 +134,7 @@ const AppContent: React.FC = () => {
 };
 
 const Index: React.FC = () => {
-  console.log('Index component rendering');
+  console.log('[Index] Index component rendering');
   return (
     <AppProvider>
       <div className="min-h-screen bg-gray-50">
