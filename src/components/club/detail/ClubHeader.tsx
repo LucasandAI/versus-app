@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ArrowLeft, Users } from 'lucide-react';
 import { Club } from '@/types';
@@ -129,14 +130,16 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
   return (
     <>
       <div className="bg-primary/95 text-white p-4 sticky top-0 z-10">
-        <div className="container-mobile relative flex items-center justify-center">
+        <div className="container-mobile flex items-center">
           <button 
             onClick={onBack} 
-            className="absolute left-0 text-white hover:bg-primary/80 rounded-full p-2 transition-colors"
+            className="mr-auto text-white hover:bg-primary/80 rounded-full p-2 transition-colors"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h1 className="text-xl font-bold">{club.name}</h1>
+          <h1 className="text-xl font-bold absolute left-1/2 transform -translate-x-1/2">
+            {club.name}
+          </h1>
         </div>
       </div>
 
@@ -182,3 +185,4 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
 };
 
 export default ClubHeader;
+
