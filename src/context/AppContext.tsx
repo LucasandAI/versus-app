@@ -11,124 +11,106 @@ import { toast } from '@/hooks/use-toast';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const AUTH_TIMEOUT = 10000; // 10 seconds timeout for auth check
+
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [userLoading, setUserLoading] = useState(true);
+  const [userLoading, setUserLoading] = useState(false);
   const { signIn, signOut, isLoading } = useAuth();
   const { currentView, setCurrentView, selectedClub, setSelectedClub, selectedUser, setSelectedUser } = useViewState();
   
   const { createClub } = useClubManagement(currentUser, setCurrentUser);
 
+  // Function to handle user data loading
+  const loadCurrentUser = async (userId: string) => {
+    try {
+      setUserLoading(true);
+      console.log('[AppContext] Loading user data for ID:', userId);
+      
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('id, name, avatar, bio')
+        .eq('id', userId)
+        .single();
+        
+      if (error) {
+        console.error('[AppContext] Error fetching user profile:', error);
+        toast({
+          title: "Error loading profile",
+          description: "Could not load your profile data. Please try again.",
+          variant: "destructive"
+        });
+        setUserLoading(false);
+        // Important: Don't change currentView or currentUser here
+        return null;
+      }
+      
+      if (!userData) {
+        console.error('[AppContext] No user data found for ID:', userId);
+        setUserLoading(false);
+        return null;
+      }
+      
+      console.log('[AppContext] User data loaded:', userData);
+      
+      const { data: memberships, error: clubsError } = await supabase
+        .from('club_members')
+        .select('club:clubs(id, name, logo, division, tier, elite_points)')
+        .eq('user_id', userId);
+        
+      if (clubsError) {
+        console.error('[AppContext] Error fetching user clubs:', clubsError);
+      }
+      
+      const clubs = memberships && memberships.length > 0
+        ? memberships.map(membership => {
+            if (!membership.club) return null;
+            return {
+              id: membership.club.id,
+              name: membership.club.name,
+              logo: membership.club.logo || '/placeholder.svg',
+              division: ensureDivision(membership.club.division),
+              tier: membership.club.tier || 1,
+              elitePoints: membership.club.elite_points || 0,
+              members: [],
+              matchHistory: []
+            };
+          }).filter(Boolean)
+        : [];
+      
+      const userProfile: User = {
+        id: userData.id,
+        name: userData.name,
+        avatar: userData.avatar || '/placeholder.svg',
+        bio: userData.bio,
+        clubs: clubs
+      };
+      
+      return userProfile;
+    } catch (error) {
+      console.error('[AppContext] Error in loadCurrentUser:', error);
+      return null;
+    } finally {
+      setUserLoading(false);
+    }
+  };
+
   useEffect(() => {
     console.log('[AppContext] Setting up auth state listener...');
+    let authTimeoutId: NodeJS.Timeout;
     
-    // Set up the auth state listener first
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('[AppContext] Auth state change:', event);
-        
-        if (event === 'SIGNED_IN' && session?.user) {
-          try {
-            await loadCurrentUser(session.user.id);
-          } catch (error) {
-            console.error('[AppContext] Error loading user after sign in:', error);
-            setCurrentUser(null);
-            setCurrentView('connect');
-            setUserLoading(false);
-            setAuthChecked(true); // Ensure authChecked is set even on error
-          }
-        } else if (event === 'SIGNED_OUT') {
-          console.log('[AppContext] User signed out, clearing state');
-          setCurrentUser(null);
-          setCurrentView('connect');
-          setUserLoading(false);
-          setAuthChecked(true); // Ensure authChecked is set after signout
-        }
-      }
-    );
-
-    const loadCurrentUser = async (userId: string) => {
-      try {
-        setUserLoading(true);
-        console.log('[AppContext] Loading user data for ID:', userId);
-        
-        const { data: userData, error } = await supabase
-          .from('users')
-          .select('id, name, avatar, bio')
-          .eq('id', userId)
-          .single();
-          
-        if (error) {
-          console.error('[AppContext] Error fetching user profile:', error);
-          toast({
-            title: "Error loading profile",
-            description: "Could not load your profile data. Please try again.",
-            variant: "destructive"
-          });
-          setUserLoading(false);
-          setAuthChecked(true); // Ensure authChecked is set even on error
-          // Set currentView to 'connect' if user data can't be loaded
-          setCurrentView('connect');
-          return;
-        }
-        
-        if (!userData) {
-          console.error('[AppContext] No user data found for ID:', userId);
-          // If no user data is found, redirect to connect screen
-          setCurrentView('connect');
-          setUserLoading(false);
-          setAuthChecked(true); // Ensure authChecked is set even if no user data
-          return;
-        }
-        
-        console.log('[AppContext] User data loaded:', userData);
-        
-        const { data: memberships, error: clubsError } = await supabase
-          .from('club_members')
-          .select('club:clubs(id, name, logo, division, tier, elite_points)')
-          .eq('user_id', userId);
-          
-        if (clubsError) {
-          console.error('[AppContext] Error fetching user clubs:', clubsError);
-        }
-        
-        const clubs = memberships && memberships.length > 0
-          ? memberships.map(membership => {
-              if (!membership.club) return null;
-              return {
-                id: membership.club.id,
-                name: membership.club.name,
-                logo: membership.club.logo || '/placeholder.svg',
-                division: ensureDivision(membership.club.division),
-                tier: membership.club.tier || 1,
-                elitePoints: membership.club.elite_points || 0,
-                members: [],
-                matchHistory: []
-              };
-            }).filter(Boolean)
-          : [];
-        
-        setCurrentUser({
-          id: userData.id,
-          name: userData.name,
-          avatar: userData.avatar || '/placeholder.svg',
-          bio: userData.bio,
-          clubs: clubs
-        });
-        
-        setCurrentView('home');
-        setUserLoading(false);
-        setAuthChecked(true); // Ensure authChecked is set after user is loaded
-      } catch (error) {
-        console.error('[AppContext] Error in loadCurrentUser:', error);
-        setUserLoading(false);
-        setAuthChecked(true); // Ensure authChecked is set even on error
-        // Fallback to connect screen if there's any error
+    // Set a timeout to prevent infinite loading
+    authTimeoutId = setTimeout(() => {
+      if (!authChecked) {
+        console.error('[AppContext] Auth check timed out after', AUTH_TIMEOUT, 'ms');
+        setAuthChecked(true);
         setCurrentView('connect');
+        setUserLoading(false);
       }
-    };
-
+    }, AUTH_TIMEOUT);
+    
+    // First check if there's an existing session
     const checkSession = async () => {
       try {
         console.log('[AppContext] Checking auth session...');
@@ -137,40 +119,84 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (error) {
           console.error('[AppContext] Error checking session:', error);
           setCurrentView('connect');
-          setAuthChecked(true); // Important: Set authChecked to true even on error
+          setAuthChecked(true);
           setUserLoading(false);
           return;
         }
         
-        if (session?.user) {
-          console.log('[AppContext] Session found, loading user data');
-          try {
-            await loadCurrentUser(session.user.id);
-          } catch (error) {
-            console.error('[AppContext] Error loading user from session:', error);
-            setCurrentView('connect');
-            setUserLoading(false);
-            setAuthChecked(true); // Ensure authChecked is set on load error
-          }
-        } else {
+        if (!session?.user) {
           console.log('[AppContext] No session found, redirecting to connect');
           setCurrentView('connect');
+          setAuthChecked(true);
           setUserLoading(false);
-          setAuthChecked(true); // Critical: Always set authChecked even when no session
+          return;
         }
+        
+        console.log('[AppContext] Session found for user ID:', session.user.id);
+        
+        // Load user data
+        const userProfile = await loadCurrentUser(session.user.id);
+        if (userProfile) {
+          setCurrentUser(userProfile);
+          setCurrentView('home');
+        } else {
+          // If we couldn't load user data but have a session, still redirect to home
+          // The app can attempt to reload user data later
+          setCurrentView('connect');
+        }
+        
+        // IMPORTANT: Always set authChecked even if user loading fails
+        setAuthChecked(true);
+        
       } catch (error) {
         console.error('[AppContext] Error in checkSession:', error);
-        setAuthChecked(true); // Critical: Always set authChecked even on error
+        // Even on error, mark auth as checked and go to connect screen
+        setAuthChecked(true);
         setUserLoading(false);
         setCurrentView('connect');
       }
     };
     
-    // Run the session check
+    // Set up the auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('[AppContext] Auth state change:', event);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          try {
+            const userProfile = await loadCurrentUser(session.user.id);
+            if (userProfile) {
+              setCurrentUser(userProfile);
+              setCurrentView('home');
+            } else {
+              // If loading user data fails, go to connect screen
+              setCurrentView('connect');
+            }
+          } catch (error) {
+            console.error('[AppContext] Error loading user after sign in:', error);
+            setCurrentUser(null);
+            setCurrentView('connect');
+          } finally {
+            // Always set authChecked to true
+            setAuthChecked(true);
+            setUserLoading(false);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          console.log('[AppContext] User signed out, clearing state');
+          setCurrentUser(null);
+          setCurrentView('connect');
+          setAuthChecked(true);
+          setUserLoading(false);
+        }
+      }
+    );
+
+    // Run the session check immediately
     checkSession();
     
     return () => {
       subscription.unsubscribe();
+      clearTimeout(authTimeoutId);
     };
   }, []);
 
@@ -199,10 +225,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     createClub
   };
 
-  // Show loading state only if we're checking auth or loading user data
-  if (!authChecked || userLoading) {
-    console.log('[AppContext] App in loading state:', { authChecked, userLoading });
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  // Show loading state only if auth hasn't been checked yet
+  if (!authChecked) {
+    console.log('[AppContext] App in loading state: Auth being checked');
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="flex flex-col items-center gap-2">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+        <p>Loading...</p>
+      </div>
+    </div>;
   }
 
   console.log('[AppContext] App ready:', { currentView, hasUser: !!currentUser });

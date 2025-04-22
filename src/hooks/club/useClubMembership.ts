@@ -10,13 +10,21 @@ export const useClubMembership = (club: Club) => {
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [hasPending, setHasPending] = useState<boolean>(false);
+  const [isCheckingInvite, setIsCheckingInvite] = useState(false);
 
-  const isActuallyMember = currentUser?.clubs.some(c => c.id === club.id) || false;
-  const isAdmin = isActuallyMember && currentUser && club.members.some(member => 
-    member.id === currentUser.id && member.isAdmin
-  );
+  // Safely check if user is a member
+  const isActuallyMember = currentUser?.clubs?.some(c => c.id === club.id) || false;
+  
+  // Safely check if user is an admin
+  const isAdmin = isActuallyMember && currentUser && 
+    club.members?.some(member => member.id === currentUser.id && member.isAdmin);
 
   useEffect(() => {
+    if (!club?.id) {
+      console.log('Club ID is missing, skipping invite check');
+      return;
+    }
+    
     if (isActuallyMember) {
       console.log('User is already a member, skipping invite check');
       return;
@@ -24,15 +32,16 @@ export const useClubMembership = (club: Club) => {
     
     const checkPendingInvite = async () => {
       try {
+        setIsCheckingInvite(true);
         console.log('Checking for pending invite for club:', club.id);
         const pending = await hasPendingInvite(club.id);
         console.log('Pending invite status:', pending);
-        if (pending || hasPending !== pending) {
-          setHasPending(pending);
-        }
+        setHasPending(pending);
       } catch (error) {
         console.error('Error checking pending invite:', error);
-        // Don't set hasPending to false here to avoid flickering UI
+        // Don't update hasPending state on error to avoid UI flickering
+      } finally {
+        setIsCheckingInvite(false);
       }
     };
     
@@ -40,7 +49,9 @@ export const useClubMembership = (club: Club) => {
     checkPendingInvite();
     
     const handleNotificationUpdate = () => {
-      checkPendingInvite();
+      if (!isCheckingInvite) {
+        checkPendingInvite();
+      }
     };
     
     window.addEventListener('notificationsUpdated', handleNotificationUpdate);
@@ -48,7 +59,7 @@ export const useClubMembership = (club: Club) => {
     return () => {
       window.removeEventListener('notificationsUpdated', handleNotificationUpdate);
     };
-  }, [club.id, isActuallyMember, hasPending]);
+  }, [club?.id, isActuallyMember, isCheckingInvite]);
 
   return {
     isActuallyMember,

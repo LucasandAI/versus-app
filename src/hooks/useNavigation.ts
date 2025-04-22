@@ -9,11 +9,15 @@ export const useNavigation = () => {
   
   const navigateToClub = (clubData: Club | Partial<Club>) => {
     if ('id' in clubData && clubData.id) {
+      console.log('[useNavigation] Navigating to club:', clubData.id);
       handleClubClick(clubData.id);
+    } else {
+      console.error('[useNavigation] Cannot navigate to club, missing ID:', clubData);
     }
   };
   
   const navigateToClubDetail = (clubId: string, clubData?: Partial<Club>) => {
+    console.log('[useNavigation] Navigating to club detail:', clubId);
     handleClubClick(clubId);
   };
   

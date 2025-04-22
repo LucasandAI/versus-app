@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AppProvider, useApp } from '@/context/AppContext';
 import ConnectScreen from '@/components/ConnectScreen';
 import HomeView from '@/components/home/HomeView';
@@ -14,14 +13,16 @@ const AppContent: React.FC = () => {
   const { currentView, currentUser } = useApp();
   const [chatNotifications, setChatNotifications] = React.useState(0);
 
-  // Load unread counts from localStorage on mount and when updated
+  useEffect(() => {
+    console.log('[Index] Current view:', currentView, 'Current user:', currentUser ? 'exists' : 'null');
+  }, [currentView, currentUser]);
+
   React.useEffect(() => {
     const loadUnreadCounts = () => {
       const unreadMessages = localStorage.getItem('unreadMessages');
       if (unreadMessages) {
         try {
           const unreadMap = JSON.parse(unreadMessages);
-          // Calculate total unread count
           const totalUnread = Object.values(unreadMap).reduce(
             (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 
             0
@@ -36,10 +37,8 @@ const AppContent: React.FC = () => {
       }
     };
     
-    // Load unread counts initially
     loadUnreadCounts();
     
-    // Set up event listeners for tracking unread message counts
     const handleUnreadMessagesUpdated = () => {
       loadUnreadCounts();
     };
@@ -48,19 +47,16 @@ const AppContent: React.FC = () => {
       if (event.detail && event.detail.count) {
         setChatNotifications(prev => prev + event.detail.count);
       } else {
-        // If no count is provided, reload from localStorage
         loadUnreadCounts();
       }
     };
     
-    // Listen for events that should update the notification count
     window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
     window.addEventListener('supportTicketCreated', handleSupportTicketCreated as EventListener);
     window.addEventListener('chatDrawerClosed', handleUnreadMessagesUpdated);
     window.addEventListener('focus', handleUnreadMessagesUpdated);
     window.addEventListener('notificationsUpdated', handleUnreadMessagesUpdated);
     
-    // Make sure to check for notification changes frequently for better UX
     const checkInterval = setInterval(handleUnreadMessagesUpdated, 1000);
     
     return () => {
@@ -73,7 +69,7 @@ const AppContent: React.FC = () => {
     };
   }, []);
 
-  console.log('[Index] AppContent rendering with currentView:', currentView);
+  console.log('[Index] renderView called with currentView:', currentView);
 
   const renderView = () => {
     switch (currentView) {
@@ -99,15 +95,12 @@ const AppContent: React.FC = () => {
   };
 
   const handleCreateSupportChat = (ticketId: string, subject: string, message: string) => {
-    // Update local state immediately 
     setChatNotifications(prev => prev + 1);
     
-    // Force a reload of unread counts from localStorage
     const unreadMessages = localStorage.getItem('unreadMessages');
     if (unreadMessages) {
       try {
         const unreadMap = JSON.parse(unreadMessages);
-        // Calculate total unread count
         const totalUnread = Object.values(unreadMap).reduce(
           (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 
           0
@@ -118,7 +111,6 @@ const AppContent: React.FC = () => {
       }
     }
     
-    // Dispatch event to notify other components
     const event = new CustomEvent('unreadMessagesUpdated');
     window.dispatchEvent(event);
   };
