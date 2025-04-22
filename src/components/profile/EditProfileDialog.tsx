@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -15,6 +14,7 @@ import { useApp } from "@/context/AppContext";
 import AvatarSection from "./edit-profile/AvatarSection";
 import BasicInfoSection from "./edit-profile/BasicInfoSection";
 import SocialLinksSection from "./edit-profile/SocialLinksSection";
+import { safeSupabase } from '@/integrations/supabase/safeClient';
 
 interface EditProfileDialogProps {
   open: boolean;
@@ -35,6 +35,7 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
   const [avatar, setAvatar] = useState(user?.avatar || "");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewKey, setPreviewKey] = useState(Date.now());
+  const [isSaving, setIsSaving] = useState(false);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -63,7 +64,33 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
     }
   };
 
-  const handleSaveChanges = () => {
+  const uploadAvatar = async (userId: string, file: File): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+      
+      const { error: uploadError } = await safeSupabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+        
+      if (uploadError) {
+        console.error('Error uploading avatar:', uploadError);
+        return null;
+      }
+      
+      const { data } = safeSupabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+        
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Error in avatar upload process:', error);
+      return null;
+    }
+  };
+
+  const handleSaveChanges = async () => {
     if (!name.trim()) {
       toast({
         title: "Error",
@@ -82,28 +109,78 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
       return;
     }
     
-    const updatedUser = {
-      ...user,
-      name,
-      bio,
-      instagram,
-      linkedin,
-      twitter,
-      facebook,
-      website,
-      tiktok,
-      avatar
-    };
+    setIsSaving(true);
     
-    setCurrentUser(updatedUser);
-    setSelectedUser(updatedUser);
+    try {
+      let avatarUrl = avatar;
+      
+      if (avatarFile) {
+        const uploadedUrl = await uploadAvatar(user.id, avatarFile);
+        if (uploadedUrl) {
+          avatarUrl = uploadedUrl;
+        } else {
+          toast({
+            title: "Warning",
+            description: "Failed to upload new avatar, keeping existing one",
+            variant: "destructive",
+          });
+        }
+      }
+      
+      const { error } = await safeSupabase
+        .from('users')
+        .update({
+          name,
+          bio,
+          instagram,
+          twitter,
+          facebook,
+          linkedin,
+          website,
+          tiktok,
+          avatar: avatarUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      const updatedUser = {
+        ...user,
+        name,
+        bio,
+        instagram,
+        linkedin,
+        twitter,
+        facebook,
+        website,
+        tiktok,
+        avatar: avatarUrl
+      };
+      
+      setCurrentUser(updatedUser);
+      setSelectedUser(updatedUser);
+      
+      window.dispatchEvent(new CustomEvent('userDataUpdated'));
 
-    toast({
-      title: "Profile Updated",
-      description: "Your profile has been updated successfully",
-    });
-    
-    onOpenChange(false);
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been updated successfully",
+      });
+      
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Update Failed",
+        description: "There was an error updating your profile. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -143,11 +220,15 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
           />
         </div>
         <DialogFooter className={`${isMobile ? 'flex-col gap-2' : ''}`}>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className={isMobile ? 'w-full' : ''}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} className={isMobile ? 'w-full' : ''} disabled={isSaving}>
             Cancel
           </Button>
-          <Button onClick={handleSaveChanges} className={isMobile ? 'w-full' : ''}>
-            Save Changes
+          <Button 
+            onClick={handleSaveChanges} 
+            className={isMobile ? 'w-full' : ''} 
+            disabled={isSaving}
+          >
+            {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -19,7 +19,7 @@ export const useUserProfileStateLogic = () => {
         // Fetch user data from Supabase
         const { data: userData, error } = await safeSupabase
           .from('users')
-          .select('id, name, avatar, bio')
+          .select('id, name, avatar, bio, instagram, twitter, facebook, linkedin, website, tiktok')
           .eq('id', selectedUser.id)
           .single();
 
@@ -130,6 +130,12 @@ export const useUserProfileStateLogic = () => {
           name: userData.name || selectedUser.name,
           avatar: userData.avatar || selectedUser.avatar,
           bio: userData.bio,
+          instagram: userData.instagram,
+          twitter: userData.twitter,
+          facebook: userData.facebook,
+          linkedin: userData.linkedin,
+          website: userData.website,
+          tiktok: userData.tiktok,
           clubs: clubs
         };
 
@@ -147,9 +153,19 @@ export const useUserProfileStateLogic = () => {
     };
 
     loadUserData();
-    // React to changes in selectedUser
-  }, [selectedUser?.id]);
+    
+    // Listen for profile update events
+    const handleProfileUpdate = () => {
+      loadUserData();
+    };
+    
+    window.addEventListener('userDataUpdated', handleProfileUpdate);
+    
+    return () => {
+      window.removeEventListener('userDataUpdated', handleProfileUpdate);
+    };
+    
+  }, [selectedUser?.id, currentUser, setCurrentUser, setSelectedUser]);
 
   return { loading, weeklyDistance };
 };
-
