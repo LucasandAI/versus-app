@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { AppContextType, AppView, User, mockUser } from './app/types';
 import { updateUserInfo } from './app/useUserInfoSync';
@@ -41,8 +40,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             clubs: updatedClubs
           } : prev);
         }
-      } else {
-        setSelectedClub(null);
+      } else if (!selectedClub.isPreviewClub) {
+        // Only preserve the club if it's marked as a preview club
+        console.log('Preserving non-member preview club');
       }
     }
   }, [currentUser, selectedClub?.id]);

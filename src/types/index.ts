@@ -24,6 +24,7 @@ export interface Club {
   members: ClubMember[];
   currentMatch?: Match;
   matchHistory: Match[];
+  isPreviewClub?: boolean; // Flag to identify non-member preview clubs
 }
 
 export interface ClubMember {

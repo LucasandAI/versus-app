@@ -1,4 +1,3 @@
-
 import { Club, ClubMember, Division } from '@/types';
 import { availableClubs } from '@/data/availableClubs';
 
@@ -17,7 +16,8 @@ export const createNewClub = (clubId: string, clubName: string): Club => {
     tier: 3,
     members: [],
     currentMatch: null,
-    matchHistory: []
+    matchHistory: [],
+    isPreviewClub: true
   };
 };
 
@@ -40,7 +40,8 @@ export const getClubToJoin = (clubId: string, clubName: string, allClubs: Club[]
         ...createNewClub(mockClub.id, mockClub.name),
         division: mockClub.division as Division, 
         tier: mockClub.tier,
-        logo: mockClub.logo || '/placeholder.svg'
+        logo: mockClub.logo || '/placeholder.svg',
+        isPreviewClub: true
       };
     } else {
       // Create a completely new club

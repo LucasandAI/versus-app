@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import ClubDetailContent from './club/detail/ClubDetailContent';
@@ -16,24 +15,19 @@ const ClubDetail: React.FC = () => {
       setIsLoading(true);
       
       try {
-        // Generate a completely new match history
         const newMatchHistory = generateMatchHistoryFromDivision(selectedClub);
         console.log("Generated new match history with", newMatchHistory.length, "matches");
         
-        // Create updated club with new match history
         const clubWithHistory = {
           ...selectedClub,
           matchHistory: newMatchHistory
         };
         
-        // Ensure the club's division is in sync with the match history
         const syncedClub = syncClubDivisionWithMatchHistory(clubWithHistory);
         
-        // Update both selectedClub and currentUser
         setSelectedClub(syncedClub);
         
-        // Update the club in currentUser's clubs array if they're a member
-        if (currentUser) {
+        if (currentUser && !syncedClub.isPreviewClub) {
           const isMember = currentUser.clubs.some(club => club.id === syncedClub.id);
           
           if (isMember) {
