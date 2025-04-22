@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useApp } from '@/context/AppContext';
 import { Card } from './ui/card';
@@ -23,7 +24,7 @@ import UserInviteSection from './profile/UserInviteSection';
 import { useProfileState } from './profile/hooks/useProfileState';
 
 const UserProfile: React.FC = () => {
-  const { currentUser, selectedUser, setCurrentUser, setSelectedUser, setCurrentView } = useApp();
+  const { currentUser, selectedUser, setCurrentUser, setSelectedUser, setCurrentView, setSelectedClub } = useApp();
   const isMobile = useIsMobile();
   const {
     loading,
