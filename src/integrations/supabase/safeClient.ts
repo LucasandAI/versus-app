@@ -45,7 +45,7 @@ export const safeSupabase = {
     clearSession: async () => {
       try {
         // Clear any existing session
-        const { error } = await supabase.auth.signOut({ scope: 'local' });
+        const { error } = await supabase.auth.signOut();
         if (error) {
           console.error('[safeSupabase] Error clearing session:', error);
         }
@@ -70,7 +70,7 @@ export const clearAllAuthData = async () => {
     localStorage.removeItem('supabase.auth.token');
     
     // Sign out from Supabase
-    await safeSupabase.auth.signOut({ scope: 'local' });
+    await safeSupabase.auth.signOut();
     
     console.log('[safeSupabase] Auth data cleared');
     return true;
