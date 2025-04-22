@@ -11,9 +11,9 @@ import { toast } from '@/hooks/use-toast';
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [authChecked, setAuthChecked] = useState(false);
+  const [authChecked, setAuthChecked] = useState(true); // Default to true to avoid initial loading screen
   const [authError, setAuthError] = useState<string | null>(null);
-  const [userLoading, setUserLoading] = useState(false); 
+  const [userLoading, setUserLoading] = useState(false); // Default to false to avoid initial loading screen
 
   const { signIn, signOut } = useAuth();
   const { currentView, setCurrentView, selectedClub, setSelectedClub, selectedUser, setSelectedUser } = useViewState();
@@ -100,6 +100,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const handleSignIn = async (email: string, password: string): Promise<User | null> => {
     try {
       console.log('[AppProvider] handleSignIn called with email:', email);
+      // Set loading state when user explicitly tries to sign in
+      setUserLoading(true);
+      
       const user = await signIn(email, password);
       
       if (user) {
@@ -110,10 +113,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         return user;
       } else {
         console.error('[AppProvider] Sign-in failed, no user returned');
+        setUserLoading(false);
         return null;
       }
     } catch (error) {
       console.error('[AppProvider] handleSignIn error:', error);
+      setUserLoading(false);
       toast({
         title: "Login Failed",
         description: error instanceof Error ? error.message : "Unknown error during sign-in",
@@ -137,8 +142,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     createClub
   };
 
-  if (!authChecked) {
-    console.log('[AppProvider] Auth not checked yet, showing loading screen');
+  if (!authChecked && userLoading) {
+    console.log('[AppProvider] Auth not checked yet and user is loading, showing loading screen');
     return <div className="flex items-center justify-center min-h-screen">
       <div className="flex flex-col items-center gap-2">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>

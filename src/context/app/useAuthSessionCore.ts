@@ -105,82 +105,14 @@ export const useAuthSessionCore = ({
       }
     };
 
-    // Initial session check
-    const checkCurrentSession = async () => {
-      try {
-        console.log('[useAuthSessionCore] Checking current session');
-        const { data: { session }, error } = await safeSupabase.auth.getSession();
-        
-        console.log('[useAuthSessionCore] Current session check result:', { 
-          hasSession: !!session,
-          userId: session?.user?.id,
-          error: error ? error.message : 'none'
-        });
-
-        if (error) {
-          console.error('[useAuthSessionCore] Session check error:', error);
-          if (isMounted) {
-            setAuthError(error.message);
-            setCurrentView('connect');
-            setAuthChecked(true);
-            setUserLoading(false);
-          }
-        } else if (session?.user) {
-          // Let the auth state change handler handle loading the user
-          console.log('[useAuthSessionCore] Found existing session for user:', session.user.id);
-          
-          // Create a basic user immediately
-          const basicUser: User = {
-            id: session.user.id,
-            name: session.user.email || 'User',
-            avatar: '/placeholder.svg',
-            bio: '',
-            clubs: []
-          };
-          
-          setCurrentUser(basicUser);
-          
-          // Let the auth state change handler handle the rest
-          // (It will be triggered by onAuthStateChange)
-        } else {
-          console.log('[useAuthSessionCore] No session found, showing connect view');
-          if (isMounted) {
-            setCurrentView('connect');
-            setAuthChecked(true);
-            setUserLoading(false);
-          }
-        }
-      } catch (error) {
-        console.error('[useAuthSessionCore] Error checking session:', error);
-        if (isMounted) {
-          setAuthError(error instanceof Error ? error.message : 'Failed to check authentication');
-          setCurrentView('connect');
-          setAuthChecked(true);
-          setUserLoading(false);
-        }
-      }
-    };
-
-    // First, set up the auth state change listener
+    // Setup the auth state change listener
     const { data: { subscription } } = safeSupabase.auth.onAuthStateChange(handleAuthChange);
     
-    // Then check for an existing session
-    checkCurrentSession();
-
-    // Set timeout to ensure we don't get stuck in checking state
-    authTimeoutId = setTimeout(() => {
-      if (isMounted) {
-        console.warn('[useAuthSessionCore] Auth check timeout reached');
-        setAuthChecked(true);
-        setUserLoading(false);
-        setCurrentView('connect');
-        toast({
-          title: "Authentication Timeout",
-          description: "Please try again or check your connection",
-          variant: "destructive"
-        });
-      }
-    }, AUTH_TIMEOUT);
+    // Skip automatic session check and mark auth as checked immediately
+    // This way we won't show a loading screen on initial app load
+    setAuthChecked(true);
+    setUserLoading(false);
+    setCurrentView('connect');
 
     return () => {
       isMounted = false;
