@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
 import SupportPopover from '../shared/SupportPopover';
@@ -11,16 +11,13 @@ import HomeNotificationsHandler from './HomeNotificationsHandler';
 import { useClubActions } from '@/hooks/home/useClubActions';
 import { useSupportActions } from '@/hooks/home/useSupportActions';
 import { useHomeNotifications } from '@/hooks/home/useHomeNotifications';
-import { safeSupabase } from '@/integrations/supabase/safeClient';
 
 interface HomeViewProps {
   chatNotifications?: number;
 }
 
 const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
-  const { setCurrentView, setSelectedClub, setSelectedUser, currentUser, setCurrentUser } = useApp();
-  const [isRefreshingClubs, setIsRefreshingClubs] = useState(false);
-  
+  const { setCurrentView, setSelectedClub, setSelectedUser, currentUser } = useApp();
   const {
     searchDialogOpen,
     setSearchDialogOpen,
@@ -41,114 +38,16 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
     handleClearAllNotifications
   } = useHomeNotifications();
 
-  // Force refresh user clubs data on initial load and when returning to home view
-  useEffect(() => {
-    const refreshUserClubs = async () => {
-      if (!currentUser || isRefreshingClubs) return;
-      
-      console.log('Refreshing user clubs data...');
-      setIsRefreshingClubs(true);
-      
-      try {
-        // Fetch the user's club memberships
-        const { data: memberships, error: membershipError } = await safeSupabase
-          .from('club_members')
-          .select('club_id, is_admin')
-          .eq('user_id', currentUser.id);
-        
-        if (membershipError) {
-          console.error('Error fetching club memberships:', membershipError);
-          return;
-        }
-        
-        if (!memberships || memberships.length === 0) {
-          console.log('No club memberships found');
-          setIsRefreshingClubs(false);
-          return;
-        }
-        
-        console.log(`Found ${memberships.length} club memberships`);
-        
-        // Fetch the full club data for each membership
-        const clubPromises = memberships.map(async membership => {
-          const { data: club, error: clubError } = await safeSupabase
-            .from('clubs')
-            .select('id, name, logo, division, tier, elite_points, bio')
-            .eq('id', membership.club_id)
-            .single();
-          
-          if (clubError || !club) {
-            console.error('Error fetching club details:', clubError);
-            return null;
-          }
-          
-          // Transform the club data to match the expected shape
-          return {
-            id: club.id,
-            name: club.name,
-            logo: club.logo || '/placeholder.svg',
-            division: club.division.toLowerCase(),
-            tier: club.tier,
-            elitePoints: club.elite_points,
-            bio: club.bio || '',
-            members: [{
-              id: currentUser.id,
-              name: currentUser.name,
-              avatar: currentUser.avatar,
-              isAdmin: membership.is_admin,
-              distanceContribution: 0
-            }],
-            matchHistory: []
-          };
-        });
-        
-        const clubs = (await Promise.all(clubPromises)).filter(Boolean);
-        
-        if (clubs.length > 0) {
-          console.log(`Successfully loaded ${clubs.length} clubs`);
-          
-          // Update the current user with the fetched clubs
-          setCurrentUser(prev => {
-            if (!prev) return prev;
-            return {
-              ...prev,
-              clubs: clubs as Club[]
-            };
-          });
-        }
-      } catch (error) {
-        console.error('Error refreshing clubs:', error);
-      } finally {
-        setIsRefreshingClubs(false);
-      }
-    };
-    
-    refreshUserClubs();
-    
-    // Also refresh when the window is focused
-    const handleFocus = () => {
-      if (currentUser) {
-        refreshUserClubs();
-      }
-    };
-    
-    window.addEventListener('focus', handleFocus);
-    
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [currentUser, setCurrentUser]);
-
   const handleSelectClub = (club: Club) => {
     setSelectedClub(club);
     setCurrentView('clubDetail');
   };
 
-  const handleSelectUser = (userId: string, name: string, avatar?: string) => {
+  const handleSelectUser = (userId: string, name: string) => {
     setSelectedUser({
       id: userId,
       name: name,
-      avatar: avatar || '/placeholder.svg',
+      avatar: '/placeholder.svg',
       clubs: []
     });
     setCurrentView('profile');

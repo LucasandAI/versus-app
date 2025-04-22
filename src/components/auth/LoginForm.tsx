@@ -29,13 +29,13 @@ const LoginForm: React.FC = () => {
     },
   });
 
-  // Reset loading state after 15 seconds to prevent getting stuck
+  // Reset loading state after 10 seconds to prevent getting stuck
   useEffect(() => {
     if (isLoading) {
       const timeout = setTimeout(() => {
         setIsLoading(false);
         setError('Login is taking longer than expected. Please try again.');
-      }, 15000);
+      }, 10000);
       
       return () => clearTimeout(timeout);
     }
@@ -49,20 +49,16 @@ const LoginForm: React.FC = () => {
     
     try {
       console.log('[LoginForm] Submitting login form with email:', values.email);
-      
-      toast({
-        title: "Signing in",
-        description: "Attempting to sign you in...",
-      });
-      
       const user = await signIn(values.email, values.password);
       
-      if (!user) {
+      if (user) {
+        console.log('[LoginForm] Sign-in successful:', user.id);
+        // The navigation will be handled by the auth state change listener
+      } else {
         console.error('[LoginForm] Login failed: No user returned');
         setError("Login failed. Please check your credentials and try again.");
         setIsLoading(false);
       }
-      // Success case is handled by the auth state change listener
     } catch (error) {
       console.error('[LoginForm] Login error:', error);
       setError(error instanceof Error ? error.message : 'Failed to sign in');
