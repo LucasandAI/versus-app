@@ -10,10 +10,17 @@ export const uploadAvatar = async (userId: string, file: File): Promise<string |
       type: file.type,
       lastModified: file.lastModified
     });
-    
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${userId}-${Date.now()}.${fileExt}`;
-    const filePath = `${fileName}`;
+
+    // Enforce accepted image types (PNG, JPEG, JPG, WEBP, GIF)
+    const validImageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
+    if (!validImageTypes.includes(file.type)) {
+      console.error('[uploadAvatar] File type not supported:', file.type);
+      return null;
+    }
+
+    // Updated file path with user folder and timestamp
+    const filePath = `${userId}/${Date.now()}-${file.name}`;
+    console.log('[uploadAvatar] Using file path:', filePath);
 
     // Ensure the avatars bucket exists
     try {
@@ -28,12 +35,13 @@ export const uploadAvatar = async (userId: string, file: File): Promise<string |
       console.error('[uploadAvatar] Error checking/creating avatars bucket:', error);
     }
 
+    // Upload with upsert and correct file path
     console.log('[uploadAvatar] Uploading file to path:', filePath);
     const { data, error: uploadError } = await safeSupabase.storage
       .from('avatars')
       .upload(filePath, file, { upsert: true });
-    
-    // Log both data and error to diagnose the issue
+
+    // Log upload result for diagnostics
     console.log('[uploadAvatar] Upload result:', { data, error: uploadError });
 
     if (uploadError) {
@@ -41,11 +49,14 @@ export const uploadAvatar = async (userId: string, file: File): Promise<string |
       return null;
     }
 
-    // Get public URL
+    // Get public URL for this file
     const { data: urlData } = safeSupabase.storage.from('avatars').getPublicUrl(filePath);
-    console.log('[uploadAvatar] Avatar upload successful, URL:', urlData.publicUrl);
-    
-    return urlData.publicUrl;
+    if (urlData && urlData.publicUrl) {
+      console.log('[uploadAvatar] Avatar upload successful, URL:', urlData.publicUrl);
+      return urlData.publicUrl;
+    }
+    console.error('[uploadAvatar] Could not get public URL after upload:', urlData);
+    return null;
   } catch (error) {
     console.error('[uploadAvatar] Error in avatar upload process:', error);
     return null;
