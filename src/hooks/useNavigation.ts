@@ -28,7 +28,7 @@ export const useNavigation = () => {
       // Attempt to fetch user profile data from Supabase
       const { data: userData, error } = await supabase
         .from('users')
-        .select('*, clubs:clubs_members(club:clubs(*))')
+        .select('id, name, avatar_url, strava_connected, bio')
         .eq('id', userId)
         .single();
         
@@ -73,26 +73,75 @@ export const useNavigation = () => {
           });
         }
       } else if (userData) {
-        // Transform the Supabase data to match our User type
-        const transformedUser: User = {
+        // Fetch user's clubs from Supabase
+        const { data: userClubsData, error: clubsError } = await supabase
+          .from('clubs_members')
+          .select('club_id, is_admin, distance_contribution, club:clubs(id, name, logo_url, division, tier, elite_points)')
+          .eq('user_id', userId);
+          
+        if (clubsError) {
+          console.error('Error fetching user clubs:', clubsError);
+        }
+        
+        // Transform the user clubs data
+        const clubs: Club[] = [];
+        
+        if (userClubsData && userClubsData.length > 0) {
+          for (const clubData of userClubsData) {
+            // Fetch club members
+            const { data: membersData, error: membersError } = await supabase
+              .from('clubs_members')
+              .select('user_id, is_admin, distance_contribution, user:users(id, name, avatar_url)')
+              .eq('club_id', clubData.club.id);
+              
+            if (membersError) {
+              console.error('Error fetching club members:', membersError);
+              continue;
+            }
+            
+            // Transform members data
+            const members: ClubMember[] = membersData.map(member => ({
+              id: member.user.id,
+              name: member.user.name,
+              avatar: member.user.avatar_url || '/placeholder.svg',
+              isAdmin: member.is_admin,
+              distanceContribution: member.distance_contribution
+            }));
+            
+            // Fetch match history
+            const { data: matchHistory, error: matchError } = await supabase
+              .from('matches')
+              .select('*')
+              .or(`home_club_id.eq.${clubData.club.id},away_club_id.eq.${clubData.club.id}`)
+              .order('end_date', { ascending: false });
+              
+            if (matchError) {
+              console.error('Error fetching match history:', matchError);
+            }
+            
+            // Transform club data
+            clubs.push({
+              id: clubData.club.id,
+              name: clubData.club.name,
+              logo: clubData.club.logo_url || '/placeholder.svg',
+              division: clubData.club.division,
+              tier: clubData.club.tier || 1,
+              elitePoints: clubData.club.elite_points,
+              members: members,
+              matchHistory: matchHistory || []
+            });
+          }
+        }
+        
+        // Update the selected user with the transformed data
+        setSelectedUser({
           id: userData.id,
           name: userData.name || userName,
           avatar: userData.avatar_url || userAvatar,
           stravaConnected: Boolean(userData.strava_connected),
           bio: userData.bio,
-          clubs: userData.clubs?.map((clubData: any) => ({
-            id: clubData.club.id,
-            name: clubData.club.name,
-            logo: clubData.club.logo_url,
-            division: clubData.club.division,
-            tier: clubData.club.tier,
-            elitePoints: clubData.club.elite_points,
-            members: clubData.club.members || [],
-            matchHistory: clubData.club.match_history || []
-          })) || []
-        };
-        
-        setSelectedUser(transformedUser);
+          clubs: clubs
+        });
       }
     } catch (error) {
       console.error('Error in navigateToUserProfile:', error);
@@ -106,9 +155,83 @@ export const useNavigation = () => {
     }
   };
 
-  const navigateToClubDetail = (clubId: string, club: any) => {
-    setSelectedClub(club);
-    setCurrentView('clubDetail');
+  const navigateToClubDetail = async (clubId: string, club?: any) => {
+    setIsLoading(true);
+    
+    try {
+      // Create a temporary club object with basic info while we load data
+      if (club) {
+        setSelectedClub(club);
+        setCurrentView('clubDetail');
+      }
+      
+      // Fetch club data from Supabase
+      const { data: clubData, error } = await supabase
+        .from('clubs')
+        .select('id, name, logo_url, division, tier, elite_points, bio')
+        .eq('id', clubId)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching club:', error);
+        return;
+      }
+      
+      // Fetch club members
+      const { data: membersData, error: membersError } = await supabase
+        .from('clubs_members')
+        .select('user_id, is_admin, distance_contribution, user:users(id, name, avatar_url)')
+        .eq('club_id', clubId);
+        
+      if (membersError) {
+        console.error('Error fetching club members:', membersError);
+        return;
+      }
+      
+      // Transform members data
+      const members: ClubMember[] = membersData.map(member => ({
+        id: member.user.id,
+        name: member.user.name,
+        avatar: member.user.avatar_url || '/placeholder.svg',
+        isAdmin: member.is_admin,
+        distanceContribution: member.distance_contribution
+      }));
+      
+      // Fetch match history
+      const { data: matchHistory, error: matchError } = await supabase
+        .from('matches')
+        .select('*')
+        .or(`home_club_id.eq.${clubId},away_club_id.eq.${clubId}`)
+        .order('end_date', { ascending: false });
+        
+      if (matchError) {
+        console.error('Error fetching match history:', matchError);
+      }
+      
+      // Update the selected club with the full data
+      setSelectedClub({
+        id: clubData.id,
+        name: clubData.name,
+        logo: clubData.logo_url || '/placeholder.svg',
+        division: clubData.division,
+        tier: clubData.tier || 1,
+        elitePoints: clubData.elite_points,
+        bio: clubData.bio,
+        members: members,
+        matchHistory: matchHistory || []
+      });
+      
+      setCurrentView('clubDetail');
+    } catch (error) {
+      console.error('Error in navigateToClubDetail:', error);
+      toast({
+        title: "Error loading club",
+        description: "Could not load complete club data",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return {

@@ -9,11 +9,13 @@ import { useNavigation } from '@/hooks/useNavigation';
 interface ClubMembersListProps {
   members: ClubMember[];
   currentMatch?: Match | null;
+  onSelectMember?: (userId: string, name: string, avatar?: string) => void;
 }
 
 const ClubMembersList: React.FC<ClubMembersListProps> = ({ 
   members, 
-  currentMatch
+  currentMatch,
+  onSelectMember
 }) => {
   const { navigateToUserProfile } = useNavigation();
   
@@ -29,7 +31,11 @@ const ClubMembersList: React.FC<ClubMembersListProps> = ({
   const deduplicatedMembers = Array.from(uniqueMembers.values());
 
   const handleMemberClick = (member: ClubMember) => {
-    navigateToUserProfile(member.id, member.name, member.avatar);
+    if (onSelectMember) {
+      onSelectMember(member.id, member.name, member.avatar);
+    } else {
+      navigateToUserProfile(member.id, member.name, member.avatar);
+    }
   };
 
   return (

@@ -8,15 +8,21 @@ import { useNavigation } from '@/hooks/useNavigation';
 
 interface ClubMembersPopoverProps {
   club: Club;
+  onSelectUser?: (userId: string, userName: string, userAvatar?: string) => void;
 }
 
 const ClubMembersPopover: React.FC<ClubMembersPopoverProps> = ({
   club,
+  onSelectUser
 }) => {
   const { navigateToUserProfile } = useNavigation();
 
   const handleUserClick = (member: any) => {
-    navigateToUserProfile(member.id, member.name, member.avatar);
+    if (onSelectUser) {
+      onSelectUser(member.id, member.name, member.avatar);
+    } else {
+      navigateToUserProfile(member.id, member.name, member.avatar);
+    }
   };
 
   return (
