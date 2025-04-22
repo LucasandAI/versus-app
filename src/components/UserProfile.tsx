@@ -1,10 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useApp } from '@/context/AppContext';
-import { ArrowLeft } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { UserPlus } from 'lucide-react';
 import { Card } from './ui/card';
-import ClubInviteDialog from './admin/ClubInviteDialog';
 import EditProfileDialog from './profile/EditProfileDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
@@ -22,41 +18,24 @@ import UserHeader from './profile/UserHeader';
 import UserClubs from './profile/UserClubs';
 import UserStats from './profile/UserStats';
 import UserAchievements from './profile/UserAchievements';
+import ProfileHeader from './profile/ProfileHeader';
+import UserInviteSection from './profile/UserInviteSection';
+import { useProfileState } from './profile/hooks/useProfileState';
 
 const UserProfile: React.FC = () => {
-  const { selectedUser, setCurrentView, currentUser, setSelectedUser, setSelectedClub, currentView, setCurrentUser } = useApp();
-  const [loading, setLoading] = useState(true);
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [showMoreAchievements, setShowMoreAchievements] = useState(false);
-  const [editProfileOpen, setEditProfileOpen] = useState(false);
-  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const { currentUser, selectedUser, setCurrentUser, setSelectedUser, setCurrentView } = useApp();
   const isMobile = useIsMobile();
-
-  useEffect(() => {
-    setTimeout(() => {
-      setLoading(false);
-    }, 500);
-  }, [selectedUser]);
-
-  useEffect(() => {
-    if (currentUser && currentView === 'profile' && !selectedUser) {
-      setSelectedUser(currentUser);
-    }
-  }, [currentView, currentUser, selectedUser, setSelectedUser]);
-
-  useEffect(() => {
-    const handleUserDataUpdate = () => {
-      if (selectedUser && currentUser && selectedUser.id === currentUser.id) {
-        setSelectedUser(currentUser);
-      }
-    };
-    
-    window.addEventListener('userDataUpdated', handleUserDataUpdate);
-    
-    return () => {
-      window.removeEventListener('userDataUpdated', handleUserDataUpdate);
-    };
-  }, [currentUser, selectedUser, setSelectedUser]);
+  const {
+    loading,
+    inviteDialogOpen,
+    setInviteDialogOpen,
+    showMoreAchievements,
+    setShowMoreAchievements,
+    editProfileOpen,
+    setEditProfileOpen,
+    logoutDialogOpen,
+    setLogoutDialogOpen
+  } = useProfileState();
 
   if (!selectedUser) {
     return (
@@ -80,6 +59,12 @@ const UserProfile: React.FC = () => {
   
   const isCurrentUserProfile = currentUser?.id === selectedUser?.id;
   const showInviteButton = !isCurrentUserProfile && adminClubs.length > 0;
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setCurrentView('connect');
+    setLogoutDialogOpen(false);
+  };
 
   const getBestLeague = () => {
     if (!selectedUser.clubs || selectedUser.clubs.length === 0) {
@@ -164,25 +149,13 @@ const UserProfile: React.FC = () => {
     }
   ];
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setCurrentView('connect');
-    setLogoutDialogOpen(false);
-  };
-
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-50 pb-20">
-      <div className="w-full bg-green-500 py-4 px-6 text-white flex items-center justify-center relative">
-        <button 
-          onClick={() => setCurrentView('home')} 
-          className="absolute left-4 text-white hover:bg-green-600 rounded-full p-2 transition-colors"
-        >
-          <ArrowLeft className="h-6 w-6" />
-        </button>
-        <h1 className="text-xl font-semibold text-center">
-          {currentUser?.id === selectedUser?.id ? 'Profile' : `${selectedUser.name}'s Profile`}
-        </h1>
-      </div>
+      <ProfileHeader
+        currentUser={currentUser}
+        selectedUser={selectedUser}
+        onBackClick={() => setCurrentView('home')}
+      />
 
       <Card className={`w-full ${isMobile ? 'mx-4' : 'max-w-md mx-auto'} mt-4 p-6 rounded-lg`}>
         <UserHeader
@@ -200,26 +173,13 @@ const UserProfile: React.FC = () => {
           bestLeagueTier={bestLeague.tier}
         />
 
-        {showInviteButton && (
-          <>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex items-center gap-1 mt-2"
-              onClick={() => setInviteDialogOpen(true)}
-            >
-              <UserPlus className="h-4 w-4" />
-              Invite to Club
-            </Button>
-            
-            <ClubInviteDialog 
-              open={inviteDialogOpen}
-              onOpenChange={setInviteDialogOpen}
-              user={selectedUser}
-              adminClubs={adminClubs}
-            />
-          </>
-        )}
+        <UserInviteSection 
+          showInviteButton={showInviteButton}
+          inviteDialogOpen={inviteDialogOpen}
+          setInviteDialogOpen={setInviteDialogOpen}
+          selectedUser={selectedUser}
+          adminClubs={adminClubs}
+        />
       </Card>
 
       <UserClubs
