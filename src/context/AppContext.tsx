@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { AppContextType, User } from '@/types';
 import { updateUserInfo } from './app/useUserInfoSync';
@@ -99,7 +98,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   useEffect(() => {
     console.log('[AppContext] Setting up auth state listener...');
-    let authTimeoutId: NodeTimeout;
+    let authTimeoutId: ReturnType<typeof setTimeout>;
     
     // Set a timeout to prevent infinite loading
     authTimeoutId = setTimeout(() => {
