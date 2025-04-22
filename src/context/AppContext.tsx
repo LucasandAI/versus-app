@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { AppContextType, User } from '@/types';
 import { updateUserInfo } from './app/useUserInfoSync';
@@ -146,7 +147,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         const userProfile = await loadCurrentUser(session.user.id);
         if (userProfile) {
           setCurrentUser(userProfile);
-          setCurrentView('home'); // Only navigate to home after user data is loaded
+          // Once we have the user profile, we can navigate to home
+          setCurrentView('home'); 
+          console.log('[AppContext] Successfully loaded profile, navigating to home');
         } else {
           console.error('[AppContext] Failed to load user profile, redirecting to connect');
           // Redirect to connect on profile load failure
@@ -185,13 +188,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           
           try {
             setAuthChecked(true);
-            // Don't set current view to home until user profile is loaded
+            
+            // We need to show a loading indicator while we load the user profile
+            setUserLoading(true);
             
             // Then load user data
             const userProfile = await loadCurrentUser(session.user.id);
             if (userProfile) {
               setCurrentUser(userProfile);
-              setCurrentView('home'); // Only navigate to home after profile load
+              
+              // Important: Only navigate to home after profile load
+              setCurrentView('home');
+              console.log('[AppContext] Auth state changed to SIGNED_IN, redirecting to home');
+              
+              toast({
+                title: "Welcome back!",
+                description: `Signed in as ${userProfile.name || userProfile.id}`,
+              });
             } else {
               console.error('[AppContext] Failed to load user profile, redirecting to connect');
               setCurrentView('connect');
@@ -213,6 +226,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             console.error('[AppContext] Error loading user after sign in:', error);
             setCurrentView('connect');
             setAuthError(error instanceof Error ? error.message : 'Unknown error');
+          } finally {
+            setUserLoading(false);
           }
         } else if (event === 'SIGNED_OUT') {
           console.log('[AppContext] User signed out, clearing state');
@@ -245,6 +260,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  // Create a custom signIn function that reports more information
+  const handleSignIn = async (email: string, password: string) => {
+    console.log('[AppContext] Sign in requested for email:', email);
+    try {
+      return await signIn(email, password);
+    } catch (error) {
+      console.error('[AppContext] Sign in failed:', error);
+      throw error;
+    }
+  };
+
   const value: AppContextType = {
     currentUser,
     currentView,
@@ -254,7 +280,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCurrentView,
     setSelectedClub,
     setSelectedUser,
-    signIn,
+    signIn: handleSignIn,
     signOut,
     createClub
   };
@@ -266,6 +292,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       <div className="flex flex-col items-center gap-2">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
         <p>Loading authentication...</p>
+      </div>
+    </div>;
+  }
+
+  // Show loading state if user is loading after auth is checked
+  if (userLoading) {
+    console.log('[AppContext] App in loading state: User profile loading');
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="flex flex-col items-center gap-2">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+        <p>Loading your profile...</p>
       </div>
     </div>;
   }

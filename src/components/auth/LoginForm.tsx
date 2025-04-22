@@ -7,6 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useApp } from '@/context/AppContext';
+import { toast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
@@ -16,7 +17,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const LoginForm: React.FC = () => {
-  const { signIn } = useApp();
+  const { signIn, setCurrentView } = useApp();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,9 +34,21 @@ const LoginForm: React.FC = () => {
     setError(null);
     
     try {
-      await signIn(values.email, values.password);
+      console.log('[LoginForm] Submitting login form with email:', values.email);
+      const user = await signIn(values.email, values.password);
+      console.log('[LoginForm] Sign-in successful for user:', user?.id);
+      
+      // Show success toast
+      toast({
+        title: 'Login successful',
+        description: 'Welcome back!',
+        variant: 'default',
+      });
+      
+      // If login is successful and we have a user, we can try to navigate
+      // AppContext should handle the actual navigation once the profile is loaded
     } catch (err) {
-      console.error('Login error:', err);
+      console.error('[LoginForm] Login error:', err);
       setError(err instanceof Error ? err.message : 'Failed to sign in');
     } finally {
       setIsLoading(false);

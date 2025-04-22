@@ -15,6 +15,7 @@ export const useAuth = (): AuthState & AuthActions => {
     setError(null);
     
     try {
+      console.log('[useAuth] Attempting to sign in with email:', email);
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -28,6 +29,7 @@ export const useAuth = (): AuthState & AuthActions => {
       // Don't set the user here - AppContext will handle loading the full profile
       // This makes sure we don't have race conditions
       
+      return authData.user; // Return the user to indicate successful login
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to sign in";
       setError(message);
