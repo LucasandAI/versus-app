@@ -26,12 +26,6 @@ export const useAuth = (): AuthState & AuthActions => {
         authError
       });
 
-      const sessionNow = await supabase.auth.getSession();
-      console.log("[useAuth] Session immediately after sign-in:", {
-        hasSession: !!sessionNow.data.session,
-        userId: sessionNow.data.session?.user?.id
-      });
-
       if (authError) throw new Error(authError.message);
       if (!authData.user) throw new Error('No user data returned');
       

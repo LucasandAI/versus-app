@@ -12,7 +12,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [userLoading, setUserLoading] = useState(true);  // Start with loading state
+  const [userLoading, setUserLoading] = useState(false);  // Start with loading state false
 
   const { signIn, signOut } = useAuth();
   const { currentView, setCurrentView, selectedClub, setSelectedClub, selectedUser, setSelectedUser } = useViewState();
@@ -31,6 +31,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return () => clearTimeout(timeoutId);
   }, [authChecked]);
 
+  // Set up auth session effect
   useAuthSessionEffect({
     setCurrentUser,
     setCurrentView,

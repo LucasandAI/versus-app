@@ -17,7 +17,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const LoginForm: React.FC = () => {
-  const { signIn, setCurrentView } = useApp();
+  const { signIn } = useApp();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,23 +39,19 @@ const LoginForm: React.FC = () => {
       
       if (user) {
         console.log('[LoginForm] Sign-in successful:', user.id);
-        
-        // Show success toast
         toast({
           title: 'Login successful',
           description: 'Welcome back!',
           variant: 'default',
         });
-        
-        // If login is successful and we have a user, the AppContext will handle navigation
+        // The navigation will be handled by the auth state change listener
       } else {
-        // This means the signIn function didn't throw but also didn't return a user
         setError("Login failed. Please try again.");
+        setIsLoading(false);
       }
     } catch (error) {
       console.error('[LoginForm] Login error:', error);
       setError(error instanceof Error ? error.message : 'Failed to sign in');
-    } finally {
       setIsLoading(false);
     }
   };
