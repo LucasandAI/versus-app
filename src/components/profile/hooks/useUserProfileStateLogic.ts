@@ -11,11 +11,13 @@ export const useUserProfileStateLogic = () => {
   const { currentUser, selectedUser, setCurrentUser, setSelectedUser } = useApp();
   const [loading, setLoading] = useState(true);
   const [weeklyDistance, setWeeklyDistance] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadUserData = async () => {
       if (!selectedUser) return;
       setLoading(true);
+      setError(null);
       
       try {
         console.log('Loading user data for:', selectedUser.id);
@@ -29,6 +31,7 @@ export const useUserProfileStateLogic = () => {
 
         if (error) {
           console.error('Error fetching user profile:', error);
+          setError(error.message);
           setLoading(false);
           toast({
             title: "Error loading profile",
@@ -40,6 +43,7 @@ export const useUserProfileStateLogic = () => {
 
         if (!userData) {
           console.error('No user data found');
+          setError('User data not found');
           setLoading(false);
           return;
         }
@@ -85,7 +89,7 @@ export const useUserProfileStateLogic = () => {
 
             // Fetch members' user details
             const members: ClubMember[] = [];
-            for (const member of membersData) {
+            for (const member of membersData || []) {
               const { data: memberUserData, error: memberUserError } = await supabase
                 .from('users')
                 .select('id, name, avatar')
@@ -165,6 +169,7 @@ export const useUserProfileStateLogic = () => {
         }
       } catch (error) {
         console.error('Error loading user data:', error);
+        setError(error instanceof Error ? error.message : 'Unknown error loading profile data');
         toast({
           title: "Error loading profile data",
           description: "There was a problem loading profile information",
@@ -179,6 +184,7 @@ export const useUserProfileStateLogic = () => {
     
     // Listen for profile update events
     const handleProfileUpdate = () => {
+      console.log('Profile update event detected, reloading user data');
       loadUserData();
     };
     
@@ -190,5 +196,5 @@ export const useUserProfileStateLogic = () => {
     
   }, [selectedUser?.id, currentUser, setCurrentUser, setSelectedUser]);
 
-  return { loading, weeklyDistance };
+  return { loading, weeklyDistance, error };
 };

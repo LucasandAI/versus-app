@@ -24,9 +24,12 @@ export const useEditProfileState = ({ user, onOpenChange }: UseEditProfileStateP
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewKey, setPreviewKey] = useState(Date.now());
   const [isSaving, setIsSaving] = useState(false);
+  // Add a flag to track if initial data has been loaded
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false);
 
+  // Only set form values from user data on initial load or when user changes
   useEffect(() => {
-    if (user) {
+    if (user && !initialDataLoaded) {
       setName(user.name || "");
       setBio(user.bio || "Strava Athlete");
       setInstagram(user.instagram || "");
@@ -38,8 +41,16 @@ export const useEditProfileState = ({ user, onOpenChange }: UseEditProfileStateP
       setAvatar(user.avatar || "");
       setAvatarFile(null);
       setPreviewKey(Date.now());
+      setInitialDataLoaded(true);
     }
-  }, [user]);
+  }, [user, initialDataLoaded]);
+
+  // Reset form data when dialog opens with a different user
+  useEffect(() => {
+    if (user) {
+      setInitialDataLoaded(false);
+    }
+  }, [user?.id]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
