@@ -118,7 +118,7 @@ export interface AppContextType {
   setCurrentView: (view: AppView) => void;
   setSelectedClub: (club: Club | null) => void;
   setSelectedUser: (user: User | null) => void;
-  signIn: (email: string, password: string) => Promise<User | null>;
+  signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   createClub: (name: string, logo?: string) => Promise<Club | null>;
 }
