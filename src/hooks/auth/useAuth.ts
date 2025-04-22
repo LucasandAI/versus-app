@@ -20,15 +20,17 @@ export const useAuth = (): AuthState & AuthActions => {
         email,
         password
       });
-      
+      console.log("[useAuth] signInWithPassword result:", { authData, authError });
+
+      const sessionNow = await supabase.auth.getSession();
+      console.log("[useAuth] Session immediately after sign-in:", sessionNow);
+
       if (authError) throw new Error(authError.message);
       if (!authData.user) throw new Error('No user data returned');
       
-      console.log('[useAuth] Successfully signed in user:', authData.user.id);
-      
       // Don't set the user here - AppContext will handle loading the full profile
       // This makes sure we don't have race conditions
-      
+
       return authData.user as unknown as User; // Return the user to indicate successful login
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to sign in";
@@ -52,7 +54,6 @@ export const useAuth = (): AuthState & AuthActions => {
       const { error } = await supabase.auth.signOut();
       if (error) throw new Error(error.message);
       setUser(null);
-      
       console.log('[useAuth] User signed out successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to sign out";
@@ -75,3 +76,4 @@ export const useAuth = (): AuthState & AuthActions => {
     signOut
   };
 };
+

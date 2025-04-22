@@ -12,9 +12,15 @@ export const useLoadCurrentUser = () => {
         .from('users')
         .select('id, name, avatar, bio')
         .eq('id', userId)
-        .single();
-      if (error || !userData) {
+        .maybeSingle();
+
+      if (error) {
         console.error('[useLoadCurrentUser] Error fetching user profile:', error);
+        // surface error, not just null
+        throw new Error("Error fetching user profile from users table: " + error.message);
+      }
+      if (!userData) {
+        console.warn('[useLoadCurrentUser] No user row found in users table for ID:', userId);
         return null;
       }
 
@@ -24,6 +30,7 @@ export const useLoadCurrentUser = () => {
           .from('club_members')
           .select('club:clubs(id, name, logo, division, tier, elite_points)')
           .eq('user_id', userId);
+
         if (clubsError) {
           console.error('[useLoadCurrentUser] Error fetching user clubs:', clubsError);
         } else {
@@ -57,9 +64,11 @@ export const useLoadCurrentUser = () => {
 
       return userProfile;
     } catch (error) {
+      // Log the error and surface
       console.error('[useLoadCurrentUser] Error in loadCurrentUser:', error);
-      return null;
+      throw error;
     }
   };
   return { loadCurrentUser };
 };
+
