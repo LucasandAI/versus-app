@@ -3,6 +3,17 @@ import { Match } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { transformMatchData } from '@/utils/club/matchHistoryUtils';
 import { ensureDivision } from '@/utils/club/leagueUtils';
+import { Json } from '@/integrations/supabase/types';
+
+// Helper function to safely access JSON object properties
+const getJsonObjectProperty = (json: Json | null, property: string, defaultValue: any): any => {
+  if (!json || typeof json !== 'object' || Array.isArray(json)) {
+    return defaultValue;
+  }
+  
+  // Now TypeScript knows json is a non-array object
+  return (json as Record<string, Json>)[property] ?? defaultValue;
+};
 
 export const useClubMatches = () => {
   const fetchClubMatches = async (clubId: string): Promise<Match[]> => {
@@ -44,30 +55,18 @@ export const useClubMatches = () => {
         // Type cast league data properly
         const leagueBeforeMatch = match.league_before_match ? {
           division: ensureDivision(
-            typeof match.league_before_match === 'object' && match.league_before_match !== null 
-              ? String(match.league_before_match.division || 'bronze') 
-              : 'bronze'
+            getJsonObjectProperty(match.league_before_match, 'division', 'bronze')
           ),
-          tier: typeof match.league_before_match === 'object' && match.league_before_match !== null 
-            ? Number(match.league_before_match.tier || 1) 
-            : 1,
-          elitePoints: typeof match.league_before_match === 'object' && match.league_before_match !== null 
-            ? Number(match.league_before_match.elite_points || 0) 
-            : 0
+          tier: Number(getJsonObjectProperty(match.league_before_match, 'tier', 1)),
+          elitePoints: Number(getJsonObjectProperty(match.league_before_match, 'elite_points', 0))
         } : undefined;
         
         const leagueAfterMatch = match.league_after_match ? {
           division: ensureDivision(
-            typeof match.league_after_match === 'object' && match.league_after_match !== null 
-              ? String(match.league_after_match.division || 'bronze') 
-              : 'bronze'
+            getJsonObjectProperty(match.league_after_match, 'division', 'bronze')
           ),
-          tier: typeof match.league_after_match === 'object' && match.league_after_match !== null 
-            ? Number(match.league_after_match.tier || 1) 
-            : 1,
-          elitePoints: typeof match.league_after_match === 'object' && match.league_after_match !== null 
-            ? Number(match.league_after_match.elite_points || 0) 
-            : 0
+          tier: Number(getJsonObjectProperty(match.league_after_match, 'tier', 1)),
+          elitePoints: Number(getJsonObjectProperty(match.league_after_match, 'elite_points', 0))
         } : undefined;
 
         const enhancedMatch = {
