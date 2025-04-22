@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { ArrowLeft } from 'lucide-react';
 import { User } from '@/types';
+import AppHeader from '@/components/shared/AppHeader';
 
 interface ProfileHeaderProps {
   currentUser: User | null;
@@ -15,17 +15,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   onBackClick
 }) => {
   return (
-    <div className="w-full bg-green-500 py-4 px-6 text-white flex items-center justify-center relative">
-      <button 
-        onClick={onBackClick}
-        className="absolute left-4 text-white hover:bg-green-600 rounded-full p-2 transition-colors"
-      >
-        <ArrowLeft className="h-6 w-6" />
-      </button>
-      <h1 className="text-xl font-semibold text-center">
-        {currentUser?.id === selectedUser?.id ? 'Profile' : `${selectedUser?.name}'s Profile`}
-      </h1>
-    </div>
+    <AppHeader
+      title={currentUser?.id === selectedUser?.id ? 'Profile' : `${selectedUser?.name}'s Profile`}
+      onBack={onBackClick}
+    />
   );
 };
 

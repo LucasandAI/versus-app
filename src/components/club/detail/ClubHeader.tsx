@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { ArrowLeft, Users } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { Club } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
 import Button from '@/components/shared/Button';
@@ -11,6 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import AppHeader from '@/components/shared/AppHeader';
 
 interface ClubHeaderProps {
   club: Club;
@@ -129,20 +129,10 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
 
   return (
     <>
-      <div className="bg-primary/95 text-white p-4 sticky top-0 z-10">
-        <div className="container-mobile flex items-center">
-          <button 
-            onClick={onBack} 
-            className="text-white hover:bg-primary/80 rounded-full p-2 transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <h1 className="text-xl font-bold flex-1 text-center">
-            {club.name}
-          </h1>
-          <div className="w-10" /> {/* Spacer to balance the layout */}
-        </div>
-      </div>
+      <AppHeader 
+        title={club.name}
+        onBack={onBack}
+      />
 
       <div className="bg-white shadow-md">
         <div className="container-mobile py-6">

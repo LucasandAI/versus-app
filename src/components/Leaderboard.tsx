@@ -2,14 +2,8 @@ import React from 'react';
 import { ArrowUp, ArrowDown, Trophy, Medal } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { Division } from '@/types';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
+import AppHeader from '@/components/shared/AppHeader';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useClubNavigation } from '@/hooks/useClubNavigation';
 
@@ -23,7 +17,6 @@ interface LeaderboardClub {
   change: 'up' | 'down' | 'same';
 }
 
-// Updated mock data with fixed Weekend Warriors ranking to 24th
 const mockLeaderboardData: LeaderboardClub[] = [
   { id: '3', name: 'Run For Fun', division: 'Elite', rank: 1, points: 9, change: 'down' },
   { id: '4', name: 'Swift Feet', division: 'Diamond', tier: 1, rank: 2, points: 0, change: 'up' },
@@ -35,7 +28,6 @@ const mockLeaderboardData: LeaderboardClub[] = [
   { id: '9', name: 'Trailblazers', division: 'Gold', tier: 1, rank: 8, points: 0, change: 'up' },
 ];
 
-// Adding clubs from ranks 9-23 to ensure proper positioning
 for (let i = 9; i <= 23; i++) {
   let division: Division;
   let tier: number;
@@ -59,7 +51,6 @@ for (let i = 9; i <= 23; i++) {
   });
 }
 
-// Add Weekend Warriors at rank 24
 mockLeaderboardData.push({
   id: '1',
   name: 'Weekend Warriors',
@@ -70,14 +61,12 @@ mockLeaderboardData.push({
   change: 'up'
 });
 
-// Continue with the rest of the clubs from rank 25 to 100
 for (let i = 25; i <= 100; i++) {
   let division: Division;
   let tier: number;
   
   if (i <= 40) {
     division = 'Silver';
-    // For Silver tiers 2-5
     if (i <= 30) {
       tier = 2; // More Silver tier 2
     } else {
@@ -107,17 +96,13 @@ const Leaderboard: React.FC = () => {
   const [selectedDivision, setSelectedDivision] = React.useState<Division | 'All'>('All');
   const [activeTab, setActiveTab] = React.useState<'global' | 'myClubs'>('global');
 
-  // Create a complete leaderboard data set that includes user's custom clubs
   const [leaderboardData] = React.useState<LeaderboardClub[]>(() => {
     const baseData = [...mockLeaderboardData];
     
-    // Add any user-created clubs that aren't already in the leaderboard
     if (currentUser?.clubs) {
       currentUser.clubs.forEach(club => {
-        // Check if club is already in the leaderboard
         const existingClub = baseData.find(c => c.id === club.id);
         if (!existingClub) {
-          // Add new club at an appropriate rank (near bottom based on Bronze tier 5)
           const newRank = baseData.length + 1;
           baseData.push({
             id: club.id,
@@ -139,7 +124,6 @@ const Leaderboard: React.FC = () => {
     ? leaderboardData
     : leaderboardData.filter(club => club.division === selectedDivision);
 
-  // Find user's clubs - Updated to use the complete leaderboard data
   const userClubIds = currentUser?.clubs.map(club => club.id) || [];
   const userClubsInLeaderboard = leaderboardData.filter(club => userClubIds.includes(club.id));
   
@@ -206,17 +190,12 @@ const Leaderboard: React.FC = () => {
 
   return (
     <div className="pb-20">
-      <div className="bg-primary/95 text-white p-4 sticky top-0 z-10">
-        <div className="container-mobile text-center">
-          <div className="flex items-center justify-center">
-            <Trophy className="h-5 w-5 mr-2" />
-            <h1 className="text-xl font-bold">Leagues</h1>
-          </div>
-        </div>
-      </div>
+      <AppHeader
+        title="Leagues"
+        rightElement={<Trophy className="h-5 w-5" />}
+      />
 
       <div className="container-mobile pt-4">
-        {/* Tabs for Global/My Clubs */}
         <div className="flex border-b mb-4">
           <button
             className={`py-2 px-4 font-medium text-sm ${activeTab === 'global' ? 'text-primary border-b-2 border-primary' : 'text-gray-500'}`}
