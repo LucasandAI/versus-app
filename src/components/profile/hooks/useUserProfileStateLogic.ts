@@ -1,10 +1,11 @@
 
 import { useEffect, useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { safeSupabase } from '@/integrations/supabase/safeClient';
+import { supabase } from '@/integrations/supabase/client';
 import { Club, ClubMember, User } from '@/types';
 import { transformRawMatchesToMatchType } from '@/utils/club/matchHistoryUtils';
 import { ensureDivision } from '@/utils/club/leagueUtils';
+import { toast } from '@/hooks/use-toast';
 
 export const useUserProfileStateLogic = () => {
   const { currentUser, selectedUser, setCurrentUser, setSelectedUser } = useApp();
@@ -15,22 +16,38 @@ export const useUserProfileStateLogic = () => {
     const loadUserData = async () => {
       if (!selectedUser) return;
       setLoading(true);
+      
       try {
+        console.log('Loading user data for:', selectedUser.id);
+        
         // Fetch user data from Supabase
-        const { data: userData, error } = await safeSupabase
+        const { data: userData, error } = await supabase
           .from('users')
           .select('id, name, avatar, bio, instagram, twitter, facebook, linkedin, website, tiktok')
           .eq('id', selectedUser.id)
           .single();
 
-        if (error || !userData) {
+        if (error) {
           console.error('Error fetching user profile:', error);
+          setLoading(false);
+          toast({
+            title: "Error loading profile",
+            description: error.message,
+            variant: "destructive"
+          });
+          return;
+        }
+
+        if (!userData) {
+          console.error('No user data found');
           setLoading(false);
           return;
         }
 
+        console.log('User data fetched:', userData);
+
         // Fetch user's clubs from Supabase via club_members join table
-        const { data: memberships, error: clubsError } = await safeSupabase
+        const { data: memberships, error: clubsError } = await supabase
           .from('club_members')
           .select('club_id, is_admin')
           .eq('user_id', selectedUser.id);
@@ -44,7 +61,7 @@ export const useUserProfileStateLogic = () => {
         if (memberships && memberships.length > 0) {
           for (const membership of memberships) {
             // Fetch club details
-            const { data: clubData, error: clubError } = await safeSupabase
+            const { data: clubData, error: clubError } = await supabase
               .from('clubs')
               .select('id, name, logo, division, tier, elite_points, bio')
               .eq('id', membership.club_id)
@@ -56,7 +73,7 @@ export const useUserProfileStateLogic = () => {
             }
 
             // Fetch club members
-            const { data: membersData, error: membersError } = await safeSupabase
+            const { data: membersData, error: membersError } = await supabase
               .from('club_members')
               .select('user_id, is_admin')
               .eq('club_id', membership.club_id);
@@ -69,7 +86,7 @@ export const useUserProfileStateLogic = () => {
             // Fetch members' user details
             const members: ClubMember[] = [];
             for (const member of membersData) {
-              const { data: memberUserData, error: memberUserError } = await safeSupabase
+              const { data: memberUserData, error: memberUserError } = await supabase
                 .from('users')
                 .select('id, name, avatar')
                 .eq('id', member.user_id)
@@ -89,7 +106,7 @@ export const useUserProfileStateLogic = () => {
             }
 
             // Fetch match history
-            const { data: matchHistory, error: matchError } = await safeSupabase
+            const { data: matchHistory, error: matchError } = await supabase
               .from('matches')
               .select('*')
               .or(`home_club_id.eq.${clubData.id},away_club_id.eq.${clubData.id}`)
@@ -128,8 +145,8 @@ export const useUserProfileStateLogic = () => {
         const updatedUser: User = {
           id: userData.id,
           name: userData.name || selectedUser.name,
-          avatar: userData.avatar || selectedUser.avatar,
-          bio: userData.bio,
+          avatar: userData.avatar || selectedUser.avatar || '/placeholder.svg',
+          bio: userData.bio || '',
           instagram: userData.instagram,
           twitter: userData.twitter,
           facebook: userData.facebook,
@@ -139,6 +156,7 @@ export const useUserProfileStateLogic = () => {
           clubs: clubs
         };
 
+        console.log('Updated user data:', updatedUser);
         setSelectedUser(updatedUser);
 
         // If this is the current user, update currentUser as well
@@ -147,6 +165,11 @@ export const useUserProfileStateLogic = () => {
         }
       } catch (error) {
         console.error('Error loading user data:', error);
+        toast({
+          title: "Error loading profile data",
+          description: "There was a problem loading profile information",
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
       }
