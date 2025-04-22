@@ -1,11 +1,13 @@
 
 import { useState, useEffect } from 'react';
 import { safeSupabase } from '@/integrations/supabase/safeClient';
+import { Division } from '@/types';
+import { ensureDivision } from '@/utils/club/leagueUtils';
 
 export interface AvailableClub {
   id: string;
   name: string;
-  division: string;
+  division: Division;
   tier: number;
   members: number;
   logo: string;
@@ -27,7 +29,13 @@ export const useAvailableClubs = () => {
           return;
         }
         
-        setClubs(data);
+        // Transform and validate division field to match Division type
+        const typedData: AvailableClub[] = data.map(club => ({
+          ...club,
+          division: ensureDivision(club.division)
+        }));
+        
+        setClubs(typedData);
         setError(null);
       } catch (e) {
         setError('Failed to fetch available clubs');

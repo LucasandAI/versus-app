@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { safeSupabase } from '@/integrations/supabase/safeClient';
 import { LeaderboardClub } from '@/components/leaderboard/types';
 import { Division } from '@/types';
+import { ensureDivision } from '@/utils/club/leagueUtils';
 
 export const useLeaderboardData = (selectedDivision: Division | 'All' = 'All') => {
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardClub[]>([]);
@@ -20,10 +21,16 @@ export const useLeaderboardData = (selectedDivision: Division | 'All' = 'All') =
           return;
         }
         
+        // Transform and validate data to match LeaderboardClub type
+        const typedData: LeaderboardClub[] = data.map(club => ({
+          ...club,
+          division: ensureDivision(club.division) // Ensure division is a valid Division type
+        }));
+        
         // Filter by division if specified
-        let filteredData = data;
+        let filteredData = typedData;
         if (selectedDivision !== 'All') {
-          filteredData = data.filter(club => club.division === selectedDivision);
+          filteredData = typedData.filter(club => club.division === selectedDivision);
         }
         
         setLeaderboardData(filteredData);
