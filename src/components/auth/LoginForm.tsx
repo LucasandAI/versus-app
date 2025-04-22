@@ -41,7 +41,6 @@ const LoginForm: React.FC = () => {
       
       if (user) {
         console.log('[LoginForm] Sign-in successful:', user.id);
-        // Show we're processing but let auth state listener handle navigation
         toast({
           title: 'Login successful',
           description: 'Welcome back!',

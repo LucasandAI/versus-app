@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { safeSupabase } from '@/integrations/supabase/safeClient';
 import { AppView, User } from '@/types';
@@ -41,22 +42,30 @@ export const useAuthSessionCore = ({
             setUserLoading(true);
             console.log('[useAuthSessionCore] Loading user profile for ID:', session.user.id);
             
+            // Create a basic user first
+            const basicUser: User = {
+              id: session.user.id,
+              name: session.user.email || 'User',
+              avatar: '/placeholder.svg',
+              bio: '',
+              clubs: []
+            };
+            
+            // Set the basic user immediately for better UX
+            setCurrentUser(basicUser);
+            
+            // Then load the full profile
             const userProfile = await loadCurrentUser(session.user.id);
             if (isMounted) {
               if (userProfile) {
                 console.log('[useAuthSessionCore] User profile loaded:', userProfile.id);
                 setCurrentUser(userProfile);
-                setCurrentView('home');
               } else {
-                console.warn('[useAuthSessionCore] No user profile returned');
-                toast({
-                  title: "Profile Error",
-                  description: "Failed to load your profile",
-                  variant: "destructive"
-                });
-                // Still change view to home with basic user
-                setCurrentView('home');
+                console.warn('[useAuthSessionCore] Using basic user profile');
               }
+              
+              // Even with a basic user, proceed to home view
+              setCurrentView('home');
               setUserLoading(false);
               setAuthChecked(true);
             }
@@ -64,12 +73,8 @@ export const useAuthSessionCore = ({
             console.error('[useAuthSessionCore] Error loading user profile:', error);
             if (isMounted) {
               setAuthError(error instanceof Error ? error.message : 'Failed to load user profile');
-              toast({
-                title: "Profile Error",
-                description: error instanceof Error ? error.message : "Failed to load your profile",
-                variant: "destructive"
-              });
-              // If we had errors loading the profile but auth succeeded, still show home
+              
+              // If we had errors loading the profile but auth succeeded, still show home with basic user
               setCurrentView('home');
               setUserLoading(false);
               setAuthChecked(true);
@@ -105,29 +110,38 @@ export const useAuthSessionCore = ({
       try {
         console.log('[useAuthSessionCore] Checking current session');
         const { data: { session }, error } = await safeSupabase.auth.getSession();
+        
         console.log('[useAuthSessionCore] Current session check result:', { 
           hasSession: !!session,
           userId: session?.user?.id,
-          error
+          error: error ? error.message : 'none'
         });
 
         if (error) {
           console.error('[useAuthSessionCore] Session check error:', error);
           if (isMounted) {
             setAuthError(error.message);
-            toast({
-              title: "Authentication Error",
-              description: error.message,
-              variant: "destructive"
-            });
             setCurrentView('connect');
             setAuthChecked(true);
             setUserLoading(false);
           }
         } else if (session?.user) {
-          console.log('[useAuthSessionCore] Found existing session for user:', session.user.id);
           // Let the auth state change handler handle loading the user
-          // We don't set authChecked here as the handler will do it
+          console.log('[useAuthSessionCore] Found existing session for user:', session.user.id);
+          
+          // Create a basic user immediately
+          const basicUser: User = {
+            id: session.user.id,
+            name: session.user.email || 'User',
+            avatar: '/placeholder.svg',
+            bio: '',
+            clubs: []
+          };
+          
+          setCurrentUser(basicUser);
+          
+          // Let the auth state change handler handle the rest
+          // (It will be triggered by onAuthStateChange)
         } else {
           console.log('[useAuthSessionCore] No session found, showing connect view');
           if (isMounted) {
@@ -147,10 +161,10 @@ export const useAuthSessionCore = ({
       }
     };
 
-    // Set up auth state change listener
+    // First, set up the auth state change listener
     const { data: { subscription } } = safeSupabase.auth.onAuthStateChange(handleAuthChange);
     
-    // Check current session
+    // Then check for an existing session
     checkCurrentSession();
 
     // Set timeout to ensure we don't get stuck in checking state

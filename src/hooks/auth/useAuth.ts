@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { safeSupabase } from '@/integrations/supabase/safeClient';
 import { AuthState, AuthActions } from './types';
@@ -15,14 +16,17 @@ export const useAuth = (): AuthState & AuthActions => {
     
     try {
       console.log('[useAuth] Attempting to sign in with email:', email);
+      
+      // Use signInWithPassword for email/password authentication
       const { data: authData, error: authError } = await safeSupabase.auth.signInWithPassword({
         email,
         password
       });
+      
       console.log("[useAuth] signInWithPassword result:", { 
         user: authData?.user?.id, 
         hasSession: !!authData?.session,
-        authError
+        error: authError ? authError.message : 'none'
       });
 
       if (authError) {
@@ -35,6 +39,7 @@ export const useAuth = (): AuthState & AuthActions => {
         throw new Error('No user data returned');
       }
       
+      // Create a basic user object with what we know from auth
       const basicUser: User = {
         id: authData.user.id,
         name: authData.user.email || 'User',
