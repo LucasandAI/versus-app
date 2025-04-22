@@ -13,11 +13,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [userLoading, setUserLoading] = useState(false);  // Start with loading state false
+  const [userLoading, setUserLoading] = useState(false); 
 
   const { signIn, signOut } = useAuth();
   const { currentView, setCurrentView, selectedClub, setSelectedClub, selectedUser, setSelectedUser } = useViewState();
   const { createClub } = useClubManagement(currentUser, setCurrentUser);
+
+  // Debugging state changes
+  useEffect(() => {
+    console.log('[AppProvider] State changed:', { 
+      authChecked, 
+      userLoading, 
+      currentUser: currentUser?.id || 'null',
+      currentView 
+    });
+  }, [authChecked, userLoading, currentUser, currentView]);
 
   // Set a timeout to ensure we don't get stuck in loading state forever
   useEffect(() => {
@@ -26,11 +36,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         console.warn('[AppProvider] Auth check timeout reached, forcing auth checked state');
         setAuthChecked(true);
         setUserLoading(false);
+        // Force to connect view if we time out
+        setCurrentView('connect');
       }
     }, 15000); // 15 second timeout as a safety net
     
     return () => clearTimeout(timeoutId);
-  }, [authChecked]);
+  }, [authChecked, setCurrentView]);
   
   // Add another timeout to prevent getting stuck in user loading state
   useEffect(() => {
@@ -47,6 +59,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             description: "Some user data may be missing. Please refresh if needed.",
             variant: "destructive"
           });
+        } else {
+          // If no user after timeout, go to connect
+          setCurrentView('connect');
         }
       }, 10000); // 10 second timeout for user loading
       

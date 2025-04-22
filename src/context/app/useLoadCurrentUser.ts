@@ -38,7 +38,7 @@ export const useLoadCurrentUser = () => {
         toast({
           title: "Missing User Profile",
           description: "Your user account exists but no profile was found in the database. Loading with basic information.",
-          variant: "warning"
+          variant: "destructive" // Changed from "warning" to "destructive" as it's a valid variant
         });
         
         // Create a minimal user for the session to continue

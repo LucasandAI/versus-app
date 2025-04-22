@@ -43,41 +43,46 @@ export const useAuthSessionCore = ({
             console.log('[useAuthSessionCore] Loading user profile for ID:', session.user.id);
             
             const userProfile = await loadCurrentUser(session.user.id);
-            if (userProfile) {
-              console.log('[useAuthSessionCore] User profile loaded:', userProfile.id);
-              setCurrentUser(userProfile);
-              setCurrentView('home');
-            } else {
-              console.warn('[useAuthSessionCore] No user profile returned');
-              toast({
-                title: "Profile Error",
-                description: "Failed to load your profile",
-                variant: "destructive"
-              });
-              // Still change view to home with basic user
-              setCurrentView('home');
+            if (isMounted) {
+              if (userProfile) {
+                console.log('[useAuthSessionCore] User profile loaded:', userProfile.id);
+                setCurrentUser(userProfile);
+                setCurrentView('home');
+              } else {
+                console.warn('[useAuthSessionCore] No user profile returned');
+                toast({
+                  title: "Profile Error",
+                  description: "Failed to load your profile",
+                  variant: "destructive"
+                });
+                // Still change view to home with basic user
+                setCurrentView('home');
+              }
+              setUserLoading(false);
+              setAuthChecked(true);
             }
           } catch (error) {
             console.error('[useAuthSessionCore] Error loading user profile:', error);
-            setAuthError(error instanceof Error ? error.message : 'Failed to load user profile');
-            toast({
-              title: "Profile Error",
-              description: error instanceof Error ? error.message : "Failed to load your profile",
-              variant: "destructive"
-            });
-            // If we had errors loading the profile but auth succeeded, still show home
-            setCurrentView('home');
-          } finally {
             if (isMounted) {
+              setAuthError(error instanceof Error ? error.message : 'Failed to load user profile');
+              toast({
+                title: "Profile Error",
+                description: error instanceof Error ? error.message : "Failed to load your profile",
+                variant: "destructive"
+              });
+              // If we had errors loading the profile but auth succeeded, still show home
+              setCurrentView('home');
               setUserLoading(false);
               setAuthChecked(true);
             }
           }
         } else {
           console.warn('[useAuthSessionCore] Session exists but no user ID');
-          setAuthChecked(true);
-          setUserLoading(false);
-          setCurrentView('connect');
+          if (isMounted) {
+            setAuthChecked(true);
+            setUserLoading(false);
+            setCurrentView('connect');
+          }
         }
       } else if (event === 'SIGNED_OUT') {
         console.log('[useAuthSessionCore] User signed out');
@@ -89,8 +94,10 @@ export const useAuthSessionCore = ({
         }
       } else {
         console.log('[useAuthSessionCore] Other auth event:', event);
-        setAuthChecked(true);
-        setUserLoading(false);
+        if (isMounted) {
+          setAuthChecked(true);
+          setUserLoading(false);
+        }
       }
     };
 
@@ -107,27 +114,37 @@ export const useAuthSessionCore = ({
 
         if (error) {
           console.error('[useAuthSessionCore] Session check error:', error);
-          setAuthError(error.message);
-          toast({
-            title: "Authentication Error",
-            description: error.message,
-            variant: "destructive"
-          });
-          setCurrentView('connect');
+          if (isMounted) {
+            setAuthError(error.message);
+            toast({
+              title: "Authentication Error",
+              description: error.message,
+              variant: "destructive"
+            });
+            setCurrentView('connect');
+            setAuthChecked(true);
+            setUserLoading(false);
+          }
         } else if (session?.user) {
           console.log('[useAuthSessionCore] Found existing session for user:', session.user.id);
-          // The auth state change handler will handle loading the user
+          // Let the auth state change handler handle loading the user
+          // We don't set authChecked here as the handler will do it
         } else {
           console.log('[useAuthSessionCore] No session found, showing connect view');
-          setCurrentView('connect');
+          if (isMounted) {
+            setCurrentView('connect');
+            setAuthChecked(true);
+            setUserLoading(false);
+          }
         }
       } catch (error) {
         console.error('[useAuthSessionCore] Error checking session:', error);
-        setAuthError(error instanceof Error ? error.message : 'Failed to check authentication');
-        setCurrentView('connect');
-      } finally {
-        // Don't set authChecked here, let the authStateChange handler do it
-        // This avoids a race condition where we might render before the user profile is loaded
+        if (isMounted) {
+          setAuthError(error instanceof Error ? error.message : 'Failed to check authentication');
+          setCurrentView('connect');
+          setAuthChecked(true);
+          setUserLoading(false);
+        }
       }
     };
 

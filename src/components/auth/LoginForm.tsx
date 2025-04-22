@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -44,11 +45,11 @@ const LoginForm: React.FC = () => {
         toast({
           title: 'Login successful',
           description: 'Welcome back!',
-          variant: 'default',
         });
         // The navigation will be handled by the auth state change listener
-        // We'll keep isLoading true to prevent multiple submissions
+        // Don't set isLoading to false here to prevent multiple submissions
       } else {
+        console.error('[LoginForm] Login failed: No user returned');
         setError("Login failed. Please try again.");
         setIsLoading(false);
       }
@@ -57,6 +58,14 @@ const LoginForm: React.FC = () => {
       setError(error instanceof Error ? error.message : 'Failed to sign in');
       setIsLoading(false);
     }
+    
+    // Set a timeout to reset isLoading in case we get stuck
+    setTimeout(() => {
+      if (isLoading) {
+        console.warn('[LoginForm] Login process taking too long, resetting button state');
+        setIsLoading(false);
+      }
+    }, 8000);
   };
 
   return (

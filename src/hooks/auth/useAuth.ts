@@ -26,8 +26,15 @@ export const useAuth = (): AuthState & AuthActions => {
         authError
       });
 
-      if (authError) throw new Error(authError.message);
-      if (!authData.user) throw new Error('No user data returned');
+      if (authError) {
+        console.error('[useAuth] Auth error:', authError.message);
+        throw new Error(authError.message);
+      }
+      
+      if (!authData.user) {
+        console.error('[useAuth] No user data returned');
+        throw new Error('No user data returned');
+      }
       
       // Return a basic user object to indicate successful login
       // The AppContext will handle loading the full profile
