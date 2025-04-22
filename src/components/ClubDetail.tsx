@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import ClubDetailContent from './club/detail/ClubDetailContent';
@@ -9,7 +8,6 @@ import { toast } from "@/components/ui/use-toast";
 
 const ClubDetail: React.FC = () => {
   const { selectedClub, refreshCurrentUser } = useApp();
-  const [loadingTimeout, setLoadingTimeout] = useState<boolean>(false);
   const { 
     club, 
     isLoading, 
@@ -36,6 +34,8 @@ const ClubDetail: React.FC = () => {
       if (timeoutId) clearTimeout(timeoutId);
     };
   }, [isLoading]);
+
+  const [loadingTimeout, setLoadingTimeout] = useState<boolean>(false);
 
   // When the component mounts, refresh user data to ensure clubs list is up to date
   useEffect(() => {
@@ -69,6 +69,17 @@ const ClubDetail: React.FC = () => {
     });
   };
 
+  // If we already have the complete club data in the selectedClub object, use it directly
+  if (selectedClub && 'members' in selectedClub && 'matchHistory' in selectedClub) {
+    return (
+      <ClubDetailContent 
+        club={selectedClub} 
+        onClubUpdated={refreshClubData} 
+      />
+    );
+  }
+
+  // Otherwise, load the club data using the hook
   if (isLoading) {
     return (
       <LoadingState 

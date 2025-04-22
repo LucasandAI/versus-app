@@ -1,13 +1,24 @@
-
 import { useApp } from '@/context/AppContext';
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import { createNotification } from '@/utils/notification-queries';
 
 export const useClubNavigation = () => {
   const { currentUser, setCurrentView, setSelectedClub } = useApp();
 
   const handleClubClick = (clubId: string) => {
-    setSelectedClub({ id: clubId } as any);
+    // Find if this is a club the user is a member of
+    const userClub = currentUser?.clubs.find(c => c.id === clubId);
+    
+    if (userClub) {
+      // If user is a member, we already have the complete club data
+      console.log("Navigating to user's club with complete data:", userClub.name);
+      setSelectedClub(userClub);
+    } else {
+      // Otherwise just use the ID and let the detail page fetch the data
+      console.log("Navigating to club with ID only:", clubId);
+      setSelectedClub({ id: clubId } as any);
+    }
+    
     setCurrentView('clubDetail');
   };
 
