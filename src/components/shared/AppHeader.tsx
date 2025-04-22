@@ -14,8 +14,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   rightElement
 }) => {
   return (
-    <div className="bg-green-500 py-4 px-6 text-white flex items-center justify-between relative">
-      <div className="flex items-center">
+    <div className="bg-green-500 py-4 px-6 text-white flex items-center relative">
+      <div className="flex-1 flex items-center">
         {onBack && (
           <button 
             onClick={onBack}
@@ -30,11 +30,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         {title}
       </h1>
       
-      {rightElement && (
-        <div className="flex items-center">
-          {rightElement}
-        </div>
-      )}
+      <div className="flex-1 flex items-center justify-end">
+        {rightElement && rightElement}
+      </div>
     </div>
   );
 };
