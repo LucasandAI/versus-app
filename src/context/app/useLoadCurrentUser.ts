@@ -1,6 +1,6 @@
 
 import { safeSupabase } from '@/integrations/supabase/safeClient';
-import { User } from '@/types';
+import { User, ClubMember } from '@/types';
 import { ensureDivision } from '@/utils/club/leagueUtils';
 import { toast } from '@/hooks/use-toast';
 
@@ -89,6 +89,35 @@ export const useLoadCurrentUser = () => {
                 console.error('[useLoadCurrentUser] Error fetching club details:', clubError);
                 return null;
               }
+              
+              // NEW: Fetch club members for this club
+              const { data: clubMembers, error: membersError } = await safeSupabase
+                .from('club_members')
+                .select(`
+                  user_id, 
+                  is_admin,
+                  users (
+                    id,
+                    name,
+                    avatar
+                  )
+                `)
+                .eq('club_id', club.id);
+              
+              if (membersError) {
+                console.error('[useLoadCurrentUser] Error fetching club members:', membersError);
+              }
+              
+              // Transform club members into the expected format
+              const members: ClubMember[] = clubMembers ? clubMembers.map(member => ({
+                id: member.users.id,
+                name: member.users.name,
+                avatar: member.users.avatar || '/placeholder.svg',
+                isAdmin: member.is_admin,
+                distanceContribution: 0
+              })) : [];
+              
+              console.log(`[useLoadCurrentUser] Club ${club.name} has ${members.length} members`);
                 
               return {
                 id: club.id,
@@ -98,7 +127,7 @@ export const useLoadCurrentUser = () => {
                 tier: club.tier || 1,
                 elitePoints: club.elite_points || 0,
                 bio: club.bio || '',
-                members: [],
+                members: members,
                 matchHistory: []
               };
             } catch (error) {
