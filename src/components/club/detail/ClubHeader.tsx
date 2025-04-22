@@ -136,9 +136,12 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
   return (
     <>
       <div className="bg-primary/95 text-white p-4 sticky top-0 z-10">
-        <div className="container-mobile">
-          <div className="flex items-center">
-            <button onClick={onBack} className="mr-2">
+        <div className="container-mobile relative">
+          <div className="flex items-center justify-center">
+            <button 
+              onClick={onBack} 
+              className="absolute left-0 text-white hover:bg-primary/80 rounded-full p-2 transition-colors"
+            >
               <ArrowLeft className="h-5 w-5" />
             </button>
             <h1 className="text-xl font-bold">{club.name}</h1>
