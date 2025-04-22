@@ -42,6 +42,8 @@ const ClubMembersList: React.FC<ClubMembersListProps> = ({
     }
   };
 
+  const MAX_MEMBERS = 5;
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -51,7 +53,7 @@ const ClubMembersList: React.FC<ClubMembersListProps> = ({
             Members
           </CardTitle>
           <span className="text-xs text-gray-500">
-            {deduplicatedMembers.length}/5 members
+            {deduplicatedMembers.length}/{MAX_MEMBERS} members
           </span>
         </div>
       </CardHeader>

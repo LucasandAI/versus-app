@@ -24,6 +24,8 @@ const ClubsList: React.FC<ClubsListProps> = ({
   onSelectUser,
   setChatToDelete,
 }) => {
+  const MAX_MEMBERS = 5;
+
   return (
     <div className="p-3">
       <h3 className="text-sm font-medium mb-2">Your Clubs</h3>

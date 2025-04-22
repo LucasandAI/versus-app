@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { Club } from '@/types';
@@ -41,6 +40,8 @@ const ClubCard: React.FC<ClubCardProps> = ({
     return diffDays;
   };
 
+  const MAX_MEMBERS = 5;
+
   return (
     <div 
       className="bg-white rounded-lg shadow-md p-4 cursor-pointer"
@@ -63,7 +64,7 @@ const ClubCard: React.FC<ClubCardProps> = ({
               {formatLeagueWithTier(club.division, club.tier)}
             </span>
             <span className="text-xs text-gray-500">
-              • {club.members.length} members
+              • {club.members.length}/{MAX_MEMBERS} members
             </span>
           </div>
         </div>
