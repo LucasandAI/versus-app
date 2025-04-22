@@ -39,8 +39,13 @@ export function useAuthSessionCore({
     let authTimeoutId: number;
     let sessionCheckAttempted = false;
 
+    // Start with loading state
+    setUserLoading(true);
+
+    // Set timeout for auth check
     authTimeoutId = window.setTimeout(() => {
       if (!sessionCheckAttempted) {
+        console.warn('[useAuthSessionEffect] Auth check timed out after', AUTH_TIMEOUT, 'ms');
         setAuthChecked(true);
         setCurrentView('connect');
         setUserLoading(false);
@@ -50,7 +55,6 @@ export function useAuthSessionCore({
           description: "The authentication check took too long to complete. Please try again.",
           variant: "destructive",
         });
-        console.warn('[useAuthSessionEffect] Auth check timed out after', AUTH_TIMEOUT, 'ms');
       }
     }, AUTH_TIMEOUT);
 
@@ -66,6 +70,9 @@ export function useAuthSessionCore({
           hasUser: !!session?.user 
         });
         
+        // Clear the timeout since we've completed the session check
+        clearTimeout(authTimeoutId);
+        
         if (error) {
           setCurrentView('connect');
           setAuthChecked(true);
@@ -80,13 +87,15 @@ export function useAuthSessionCore({
           return;
         }
         
+        // If no session or user, redirect to connect screen
         if (!session?.user) {
+          console.log('[useAuthSessionEffect] No session or user. Redirecting to connect screen.');
           setCurrentView('connect');
           setAuthChecked(true);
           setUserLoading(false);
-          console.log('[useAuthSessionEffect] No session or user. Redirecting to connect screen.');
           return;
         }
+        
         setAuthChecked(true);
 
         console.log('[useAuthSessionEffect] Session detected for user ID:', session.user.id);
@@ -124,8 +133,11 @@ export function useAuthSessionCore({
             description: "There was an error loading your full profile, but you're still logged in.",
             variant: "destructive",
           });
+        } finally {
+          setUserLoading(false);
         }
       } catch (error) {
+        clearTimeout(authTimeoutId);
         setAuthChecked(true);
         setUserLoading(false);
         setCurrentView('connect');
@@ -136,8 +148,6 @@ export function useAuthSessionCore({
           variant: "destructive",
         });
         console.error('[useAuthSessionEffect] Exception during checkSession:', error);
-      } finally {
-        setUserLoading(false);
       }
     };
 
@@ -186,8 +196,10 @@ export function useAuthSessionCore({
                 description: "There was an issue loading your complete profile, but you can still use the app.",
                 variant: "destructive",
               });
+            } finally {
+              setUserLoading(false);
             }
-          } finally {
+          } catch (error) {
             setUserLoading(false);
           }
         } else if (event === 'SIGNED_OUT') {
@@ -201,6 +213,7 @@ export function useAuthSessionCore({
       }
     );
 
+    // Immediately check for session
     checkSession();
 
     return () => {

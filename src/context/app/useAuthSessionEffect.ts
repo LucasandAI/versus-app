@@ -20,6 +20,9 @@ export const useAuthSessionEffect = ({
   setAuthChecked,
   setAuthError,
 }: Props) => {
+  // Set initial values to ensure login screen shows by default
+  setUserLoading(true);
+  
   useAuthSessionCore({
     setCurrentUser,
     setCurrentView,
