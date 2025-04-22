@@ -98,7 +98,7 @@ export const useUserProfileStateLogic = () => {
               }
               members.push({
                 id: memberUserData.id,
-                name: memberUserData.name,
+                name: memberUserData.name || 'Unknown User',
                 avatar: memberUserData.avatar || '/placeholder.svg',
                 isAdmin: member.is_admin,
                 distanceContribution: 0 // Default value
@@ -132,7 +132,7 @@ export const useUserProfileStateLogic = () => {
               elitePoints: clubData.elite_points || 0,
               members: members,
               matchHistory: transformedMatches,
-              bio: clubData.bio
+              bio: clubData.bio || 'No description available'
             });
           }
         }
@@ -144,15 +144,15 @@ export const useUserProfileStateLogic = () => {
         // Update the selected user with the fetched data
         const updatedUser: User = {
           id: userData.id,
-          name: userData.name || selectedUser.name,
-          avatar: userData.avatar || selectedUser.avatar || '/placeholder.svg',
+          name: userData.name || 'Unknown User',
+          avatar: userData.avatar || '/placeholder.svg',
           bio: userData.bio || '',
-          instagram: userData.instagram,
-          twitter: userData.twitter,
-          facebook: userData.facebook,
-          linkedin: userData.linkedin,
-          website: userData.website,
-          tiktok: userData.tiktok,
+          instagram: userData.instagram || '',
+          twitter: userData.twitter || '',
+          facebook: userData.facebook || '',
+          linkedin: userData.linkedin || '',
+          website: userData.website || '',
+          tiktok: userData.tiktok || '',
           clubs: clubs
         };
 

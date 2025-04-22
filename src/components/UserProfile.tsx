@@ -21,7 +21,7 @@ const UserProfile: React.FC = () => {
   const isMobile = useIsMobile();
 
   const {
-    loading: profileLoading,
+    loading: profileStateLoading,
     inviteDialogOpen,
     setInviteDialogOpen,
     showMoreAchievements,
@@ -32,7 +32,8 @@ const UserProfile: React.FC = () => {
     setLogoutDialogOpen
   } = useProfileState();
 
-  const { loading, weeklyDistance } = useUserProfileStateLogic();
+  const { loading: profileDataLoading, weeklyDistance } = useUserProfileStateLogic();
+  const loading = profileStateLoading || profileDataLoading;
 
   useEffect(() => {
     if (!selectedUser && currentUser) {

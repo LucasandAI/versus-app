@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -39,7 +40,7 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    if (user) {
+    if (user && open) {
       setName(user.name || "");
       setBio(user.bio || "Strava Athlete");
       setInstagram(user.instagram || "");
@@ -70,9 +71,29 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
       const fileName = `${userId}-${Date.now()}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
       
+      // Ensure the avatars bucket exists
+      // This is a basic check, in a production app you might want to handle this more gracefully
+      try {
+        const { data: buckets } = await safeSupabase.storage.listBuckets();
+        if (!buckets?.find(bucket => bucket.name === 'avatars')) {
+          // If bucket doesn't exist, try to create it
+          const { error: createBucketError } = await safeSupabase.storage.createBucket('avatars', {
+            public: true
+          });
+          
+          if (createBucketError) {
+            console.error('Error creating avatars bucket:', createBucketError);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking for avatars bucket:', error);
+      }
+      
       const { error: uploadError } = await safeSupabase.storage
         .from('avatars')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          upsert: true
+        });
         
       if (uploadError) {
         console.error('Error uploading avatar:', uploadError);
@@ -147,6 +168,7 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
         throw error;
       }
       
+      // Update local state with the new user data
       const updatedUser = {
         ...user,
         name,
@@ -163,6 +185,7 @@ const EditProfileDialog = ({ open, onOpenChange, user }: EditProfileDialogProps)
       setCurrentUser(updatedUser);
       setSelectedUser(updatedUser);
       
+      // Trigger a refresh of user data
       window.dispatchEvent(new CustomEvent('userDataUpdated'));
 
       toast({
