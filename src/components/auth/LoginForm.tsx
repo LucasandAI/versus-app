@@ -57,14 +57,12 @@ const LoginForm: React.FC = () => {
       
       const user = await signIn(values.email, values.password);
       
-      if (user) {
-        console.log('[LoginForm] Sign-in successful:', user.id);
-        // The navigation will be handled by the auth state change listener
-      } else {
+      if (!user) {
         console.error('[LoginForm] Login failed: No user returned');
         setError("Login failed. Please check your credentials and try again.");
         setIsLoading(false);
       }
+      // Success case is handled by the auth state change listener
     } catch (error) {
       console.error('[LoginForm] Login error:', error);
       setError(error instanceof Error ? error.message : 'Failed to sign in');

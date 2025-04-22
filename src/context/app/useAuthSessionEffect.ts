@@ -21,6 +21,51 @@ export const useAuthSessionEffect = (
     console.log('[useAuthSessionEffect] Setting up auth session listener');
     let isMounted = true;
 
+    // Set up the auth state change listener first
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+
+      console.log('[useAuthSessionEffect] Auth state changed:', {
+        event,
+        userId: session?.user?.id
+      });
+
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUserLoading(true);
+        
+        try {
+          const userData = await loadCurrentUser(session.user.id);
+          if (!isMounted) return;
+          
+          if (userData) {
+            setCurrentUser(userData);
+            setCurrentView('home');
+            toast({
+              title: "Signed in successfully",
+              description: `Welcome back, ${userData.name || 'User'}!`
+            });
+          }
+        } catch (error) {
+          console.error('[useAuthSessionEffect] Error loading user after sign in:', error);
+          if (isMounted) {
+            setAuthError('Failed to load user data');
+          }
+        } finally {
+          if (isMounted) {
+            setUserLoading(false);
+            setAuthChecked(true);
+          }
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+        setCurrentView('connect');
+        setAuthChecked(true);
+      } else if (event === 'TOKEN_REFRESHED') {
+        // Just ensure we're marked as checked when token is refreshed
+        setAuthChecked(true);
+      }
+    });
+
     // Start by checking for an existing session
     const checkSession = async () => {
       try {
@@ -80,47 +125,6 @@ export const useAuthSessionEffect = (
         }
       }
     };
-
-    // Set up the auth state change listener first
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!isMounted) return;
-
-      console.log('[useAuthSessionEffect] Auth state changed:', {
-        event,
-        userId: session?.user?.id
-      });
-
-      if (event === 'SIGNED_IN' && session?.user) {
-        setUserLoading(true);
-        
-        try {
-          const userData = await loadCurrentUser(session.user.id);
-          if (!isMounted) return;
-          
-          if (userData) {
-            setCurrentUser(userData);
-            setCurrentView('home');
-          }
-        } catch (error) {
-          console.error('[useAuthSessionEffect] Error loading user after sign in:', error);
-          if (isMounted) {
-            setAuthError('Failed to load user data');
-          }
-        } finally {
-          if (isMounted) {
-            setUserLoading(false);
-            setAuthChecked(true);
-          }
-        }
-      } else if (event === 'SIGNED_OUT') {
-        setCurrentUser(null);
-        setCurrentView('connect');
-        setAuthChecked(true);
-      } else if (event === 'TOKEN_REFRESHED') {
-        // Just ensure we're marked as checked when token is refreshed
-        setAuthChecked(true);
-      }
-    });
 
     // Run the session check after setting up the listener
     checkSession();
