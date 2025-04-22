@@ -48,3 +48,4 @@ const DeleteClubDialog: React.FC<DeleteClubDialogProps> = ({
 );
 
 export default DeleteClubDialog;
+
