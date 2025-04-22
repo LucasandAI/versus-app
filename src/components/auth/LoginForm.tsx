@@ -23,8 +23,8 @@ const LoginForm: React.FC = () => {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: '',
-      password: '',
+      email: 'test@example.com', // Test credentials
+      password: 'password123',    // Test credentials
     },
   });
 
@@ -36,7 +36,7 @@ const LoginForm: React.FC = () => {
       await signIn(values.email, values.password);
     } catch (err) {
       console.error('Login error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to sign in. Please check your credentials.');
+      setError(err instanceof Error ? err.message : 'Failed to sign in');
     } finally {
       setIsLoading(false);
     }
@@ -44,11 +44,6 @@ const LoginForm: React.FC = () => {
 
   return (
     <div className="w-full max-w-md space-y-6">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold">Welcome Back</h1>
-        <p className="text-sm text-gray-500 mt-2">Sign in to continue to Versus</p>
-      </div>
-      
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField

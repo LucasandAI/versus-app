@@ -11,50 +11,12 @@ const ConnectScreen: React.FC = () => {
           <div className="flex justify-center">
             <div className="w-16 h-1 bg-primary rounded-full"></div>
           </div>
-          <h2 className="font-medium text-gray-700 mx-auto whitespace-nowrap text-lg">The Competitive League for Runners</h2>
+          <h2 className="font-medium text-gray-700 mx-auto whitespace-nowrap text-lg">
+            The Competitive League for Runners
+          </h2>
         </div>
 
         <LoginForm />
-
-        <div className="py-4">
-          <div className="space-y-6 text-left">
-            <div className="flex items-start">
-              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white font-bold">
-                1
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900">Create Your Club</h3>
-                <p className="mt-1 text-gray-500">
-                  Build a team of runners who share your competitive spirit
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start">
-              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white font-bold">
-                2
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900">Compete Weekly</h3>
-                <p className="mt-1 text-gray-500">
-                  Get matched against similar clubs every Monday
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start">
-              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white font-bold">
-                3
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900">Climb the Ranks</h3>
-                <p className="mt-1 text-gray-500">
-                  Win matches to ascend through leagues
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

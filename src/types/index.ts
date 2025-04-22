@@ -122,3 +122,14 @@ export interface AppContextType {
   signOut: () => Promise<void>;
   createClub: (name: string, logo?: string) => Promise<Club | null>;
 }
+
+export interface AuthState {
+  user: User | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+export interface AuthActions {
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+}

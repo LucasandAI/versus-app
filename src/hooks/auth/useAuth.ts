@@ -15,15 +15,42 @@ export const useAuth = (): AuthState & AuthActions => {
     setError(null);
     
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password
       });
       
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (authError) throw new Error(authError.message);
+      if (!authData.user) throw new Error('No user data returned');
       
+      // Fetch user profile data
+      const { data: userData, error: profileError } = await supabase
+        .from('users')
+        .select('id, name, avatar, bio, clubs(id, name, logo, division, tier, elite_points)')
+        .eq('id', authData.user.id)
+        .single();
+        
+      if (profileError) throw new Error('Error fetching user profile');
+      if (!userData) throw new Error('No user profile found');
+      
+      const userProfile: User = {
+        id: userData.id,
+        name: userData.name,
+        avatar: userData.avatar || '/placeholder.svg',
+        bio: userData.bio,
+        clubs: (userData.clubs || []).map(club => ({
+          id: club.id,
+          name: club.name,
+          logo: club.logo || '/placeholder.svg',
+          division: club.division,
+          tier: club.tier || 1,
+          elitePoints: club.elite_points || 0,
+          members: [],
+          matchHistory: []
+        }))
+      };
+      
+      setUser(userProfile);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to sign in";
       setError(message);
@@ -40,14 +67,9 @@ export const useAuth = (): AuthState & AuthActions => {
 
   const signOut = async () => {
     setIsLoading(true);
-    
     try {
       const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        throw new Error(error.message);
-      }
-      
+      if (error) throw new Error(error.message);
       setUser(null);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to sign out";
