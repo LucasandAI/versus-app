@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { ClubNavigationResult } from './types';
 import { transformMatchData } from '@/utils/club/matchHistoryUtils';
+import { ensureDivision } from '@/utils/club/leagueUtils';
 
 export const useClubNavigation = (): ClubNavigationResult => {
   const { setCurrentView, setSelectedClub } = useApp();
@@ -24,26 +25,24 @@ export const useClubNavigation = (): ClubNavigationResult => {
       // Fetch club data from Supabase
       const { data: clubData, error } = await supabase
         .from('clubs')
-        .select('id, name, logo, division, tier, bio')
+        .select('id, name, logo, division, tier, elite_points, bio')
         .eq('id', clubId)
         .single();
         
       if (error) {
         console.error('Error fetching club:', error);
+        toast({
+          title: "Error loading club",
+          description: "Could not load club details",
+          variant: "destructive"
+        });
         return;
       }
       
       // Fetch club members
       const { data: membersData, error: membersError } = await supabase
         .from('club_members')
-        .select(`
-          users (
-            id,
-            name,
-            avatar
-          ),
-          is_admin
-        `)
+        .select('user_id, is_admin, users(id, name, avatar)')
         .eq('club_id', clubId);
         
       if (membersError) {
@@ -57,16 +56,8 @@ export const useClubNavigation = (): ClubNavigationResult => {
         name: member.users.name,
         avatar: member.users.avatar || '/placeholder.svg',
         isAdmin: member.is_admin,
-        distanceContribution: 0
+        distanceContribution: 0 // Default value
       }));
-      
-      // Create a map of clubs for match data transformation
-      const clubsMap = new Map();
-      clubsMap.set(clubId, {
-        name: clubData.name,
-        logo: clubData.logo || '/placeholder.svg',
-        members
-      });
       
       // Fetch match history
       const { data: matchesData, error: matchError } = await supabase
@@ -79,55 +70,25 @@ export const useClubNavigation = (): ClubNavigationResult => {
         console.error('Error fetching match history:', matchError);
       }
       
-      // Fetch all unique clubs from matches for proper rendering
-      if (matchesData && matchesData.length > 0) {
-        const otherClubIds = new Set<string>();
-        
-        matchesData.forEach(match => {
-          if (match.home_club_id !== clubId) {
-            otherClubIds.add(match.home_club_id);
-          }
-          if (match.away_club_id !== clubId) {
-            otherClubIds.add(match.away_club_id);
-          }
-        });
-        
-        if (otherClubIds.size > 0) {
-          const { data: otherClubs, error: otherClubsError } = await supabase
-            .from('clubs')
-            .select('id, name, logo')
-            .in('id', Array.from(otherClubIds));
-            
-          if (!otherClubsError && otherClubs) {
-            otherClubs.forEach(club => {
-              clubsMap.set(club.id, {
-                name: club.name,
-                logo: club.logo || '/placeholder.svg',
-                members: []
-              });
-            });
-          }
-        }
-      }
-      
-      // Transform match data
-      const matchHistory = matchesData ? 
-        matchesData.map(match => transformMatchData(match, clubId, clubsMap)) : 
+      // Process match data
+      const transformedMatches = matchesData ? 
+        matchesData.map(match => transformMatchData(match, clubId)) : 
         [];
       
       if (clubData) {
         // Update the selected club with the full data
+        const divisionValue = ensureDivision(clubData.division);
+        
         setSelectedClub({
           id: clubData.id,
           name: clubData.name,
           logo: clubData.logo || '/placeholder.svg',
-          division: clubData.division.toLowerCase(),
+          division: divisionValue,
           tier: clubData.tier || 1,
-          elitePoints: 0, // Default since we don't have this column yet
+          elitePoints: clubData.elite_points || 0,
           bio: clubData.bio,
           members: members,
-          matchHistory: matchHistory,
-          currentMatch: matchHistory.find(m => m.status === 'active') || null
+          matchHistory: transformedMatches
         });
       }
       
@@ -136,7 +97,7 @@ export const useClubNavigation = (): ClubNavigationResult => {
       console.error('Error in navigateToClubDetail:', error);
       toast({
         title: "Error loading club",
-        description: "Could not load complete club data",
+        description: "Could not load club details",
         variant: "destructive"
       });
     } finally {

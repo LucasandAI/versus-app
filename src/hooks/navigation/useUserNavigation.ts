@@ -1,13 +1,13 @@
-
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { User, Club, ClubMember } from '@/types';
+import { User, Club } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { UserNavigationResult } from './types';
+import { ensureDivision } from '@/utils/club/leagueUtils';
 
 export const useUserNavigation = (): UserNavigationResult => {
-  const { setCurrentView, setSelectedUser, currentUser } = useApp();
+  const { setCurrentView, setSelectedUser } = useApp();
   const [isLoading, setIsLoading] = useState(false);
 
   const navigateToUserProfile = async (userId: string, userName: string, userAvatar: string = '/placeholder.svg') => {
@@ -19,7 +19,6 @@ export const useUserNavigation = (): UserNavigationResult => {
         id: userId,
         name: userName,
         avatar: userAvatar,
-        stravaConnected: false, // Default since we don't have this column yet
         clubs: []
       };
       
@@ -38,7 +37,7 @@ export const useUserNavigation = (): UserNavigationResult => {
         return;
       }
       
-      // Fetch user's clubs with members
+      // Fetch user's clubs
       const { data: memberships, error: clubsError } = await supabase
         .from('club_members')
         .select(`
@@ -49,7 +48,9 @@ export const useUserNavigation = (): UserNavigationResult => {
             name,
             logo,
             division,
-            tier
+            tier,
+            elite_points,
+            bio
           )
         `)
         .eq('user_id', userId);
@@ -58,61 +59,26 @@ export const useUserNavigation = (): UserNavigationResult => {
         console.error('Error fetching user clubs:', clubsError);
       }
       
-      // Transform the clubs data
       const clubs: Club[] = [];
       
       if (memberships) {
         for (const membership of memberships) {
+          if (!membership.clubs) continue;
+          
+          // Transform data
           const club = membership.clubs;
-          if (!club) continue;
-          
-          // Fetch club members
-          const { data: membersData, error: membersError } = await supabase
-            .from('club_members')
-            .select(`
-              users (
-                id,
-                name,
-                avatar
-              ),
-              is_admin
-            `)
-            .eq('club_id', club.id);
-            
-          if (membersError) {
-            console.error('Error fetching club members:', membersError);
-            continue;
-          }
-          
-          // Transform members data
-          const members: ClubMember[] = membersData.map(member => ({
-            id: member.users.id,
-            name: member.users.name,
-            avatar: member.users.avatar || '/placeholder.svg',
-            isAdmin: member.is_admin,
-            distanceContribution: 0
-          }));
-          
-          // Fetch match history
-          const { data: matchHistory, error: matchError } = await supabase
-            .from('matches')
-            .select('*')
-            .or(`home_club_id.eq.${club.id},away_club_id.eq.${club.id}`)
-            .order('end_date', { ascending: false });
-            
-          if (matchError) {
-            console.error('Error fetching match history:', matchError);
-          }
+          const divisionValue = ensureDivision(club.division);
           
           clubs.push({
             id: club.id,
             name: club.name,
             logo: club.logo || '/placeholder.svg',
-            division: club.division.toLowerCase() as any,
+            division: divisionValue,
             tier: club.tier || 1,
-            elitePoints: 0, // Default since we don't have this column yet
-            members: members,
-            matchHistory: matchHistory || []
+            elitePoints: club.elite_points || 0,
+            bio: club.bio,
+            members: [], // Will be populated if needed
+            matchHistory: []
           });
         }
       }
@@ -122,15 +88,15 @@ export const useUserNavigation = (): UserNavigationResult => {
         id: userData.id,
         name: userData.name || userName,
         avatar: userData.avatar || userAvatar,
-        stravaConnected: false, // Default since we don't have this column yet
         bio: userData.bio,
         clubs: clubs
       });
+      
     } catch (error) {
       console.error('Error in navigateToUserProfile:', error);
       toast({
         title: "Error loading profile",
-        description: "Could not load complete profile data",
+        description: "Could not load profile data",
         variant: "destructive"
       });
     } finally {

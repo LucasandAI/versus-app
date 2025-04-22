@@ -54,12 +54,13 @@ export const useClubJoin = () => {
     // Remove any existing instances of the user in the club members list to prevent duplicates
     clubToJoin.members = clubToJoin.members.filter(member => member.id !== currentUser.id);
     
-    // Add user to club members
+    // Add user to club members with distanceContribution
     clubToJoin.members.push({
       id: currentUser.id,
       name: currentUser.name,
       avatar: currentUser.avatar || '/placeholder.svg',
-      isAdmin: false
+      isAdmin: false,
+      distanceContribution: 0
     });
     
     // Update localStorage

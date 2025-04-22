@@ -1,4 +1,3 @@
-
 import { Division } from '@/types';
 
 export const formatLeague = (division: Division, tier?: number) => {
