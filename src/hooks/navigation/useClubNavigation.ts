@@ -121,7 +121,7 @@ export const useClubNavigation = (): ClubNavigationResult => {
           id: clubData.id,
           name: clubData.name,
           logo: clubData.logo || '/placeholder.svg',
-          division: clubData.division.toLowerCase() as any,
+          division: clubData.division.toLowerCase(),
           tier: clubData.tier || 1,
           elitePoints: 0, // Default since we don't have this column yet
           bio: clubData.bio,

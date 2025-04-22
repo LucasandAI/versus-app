@@ -1,119 +1,89 @@
-import { Club, Match, Division, ClubMember } from '@/types';
 
-// Transform raw match data from Supabase into typed Match objects
+import { Club, ClubMember, Division, Match } from '@/types';
+
+// Transform raw match data from Supabase into our Match type
 export const transformMatchData = (
   matchData: any,
-  clubId: string,
-  allClubs: Map<string, {name: string, logo: string, members: ClubMember[]}>
+  currentClubId: string,
+  clubsMap: Map<string, {name: string, logo: string, members: ClubMember[]}>
 ): Match => {
-  const isHomeClub = matchData.home_club_id === clubId;
-  const homeClubId = matchData.home_club_id;
-  const awayClubId = matchData.away_club_id;
+  const isHomeTeam = matchData.home_club_id === currentClubId;
+  const homeClubInfo = clubsMap.get(matchData.home_club_id) || { name: 'Unknown Club', logo: '/placeholder.svg', members: [] };
+  const awayClubInfo = clubsMap.get(matchData.away_club_id) || { name: 'Unknown Club', logo: '/placeholder.svg', members: [] };
   
-  const homeClubInfo = allClubs.get(homeClubId) || { 
-    name: 'Unknown Club', 
-    logo: '/placeholder.svg',
-    members: []
-  };
-  
-  const awayClubInfo = allClubs.get(awayClubId) || { 
-    name: 'Unknown Club', 
-    logo: '/placeholder.svg',
-    members: []
-  };
-  
-  // Transform winner value to expected union type or undefined
-  let winner: 'home' | 'away' | 'draw' | undefined;
-  if (matchData.winner === 'home' || matchData.winner === 'away' || matchData.winner === 'draw') {
-    winner = matchData.winner;
-  }
-  
-  // Transform league data
-  const transformLeagueData = (leagueData: any) => {
+  // Parse league data
+  const parseLeagueData = (leagueData: any) => {
     if (!leagueData) return undefined;
     
-    // Check if it's a string that needs to be parsed
-    const data = typeof leagueData === 'string' ? JSON.parse(leagueData) : leagueData;
+    // If it's a string, try to parse it as JSON
+    if (typeof leagueData === 'string') {
+      try {
+        const parsed = JSON.parse(leagueData);
+        return {
+          division: (parsed.division || 'bronze').toLowerCase() as Division,
+          tier: parsed.tier || 1,
+          elitePoints: parsed.elite_points || 0
+        };
+      } catch (e) {
+        console.error('Error parsing league data:', e);
+        return {
+          division: 'bronze' as Division,
+          tier: 1,
+          elitePoints: 0
+        };
+      }
+    }
     
+    // If it's already an object
     return {
-      division: (data.division || 'bronze').toLowerCase() as Division,
-      tier: data.tier || 1,
-      elitePoints: data.elitePoints || 0
+      division: ((leagueData.division || 'bronze') + '').toLowerCase() as Division,
+      tier: leagueData.tier || 1,
+      elitePoints: leagueData.elite_points || 0
     };
   };
   
   return {
     id: matchData.id,
     homeClub: {
-      id: homeClubId,
+      id: matchData.home_club_id,
       name: homeClubInfo.name,
       logo: homeClubInfo.logo,
-      totalDistance: 0, // This would need to be calculated from match_distances
-      members: homeClubInfo.members || []
+      totalDistance: 0, // This would need to be calculated from distances
+      members: homeClubInfo.members
     },
     awayClub: {
-      id: awayClubId,
+      id: matchData.away_club_id,
       name: awayClubInfo.name,
       logo: awayClubInfo.logo,
-      totalDistance: 0, // This would need to be calculated from match_distances
-      members: awayClubInfo.members || []
+      totalDistance: 0, // This would need to be calculated from distances
+      members: awayClubInfo.members
     },
     startDate: matchData.start_date,
     endDate: matchData.end_date,
     status: new Date(matchData.end_date) > new Date() ? 'active' : 'completed',
-    winner: winner,
-    leagueBeforeMatch: transformLeagueData(matchData.league_before_match),
-    leagueAfterMatch: transformLeagueData(matchData.league_after_match)
+    winner: matchData.winner as 'home' | 'away' | 'draw',
+    leagueBeforeMatch: parseLeagueData(matchData.league_before_match),
+    leagueAfterMatch: parseLeagueData(matchData.league_after_match)
   };
 };
 
-export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
-  const numberOfMatches = 5;
-  const matchHistory: Match[] = [];
-
-  for (let i = 0; i < numberOfMatches; i++) {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - (i * 7)); // One week apart
-
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + 6); // 7-day match
-
-    const totalDistanceHome = Math.floor(Math.random() * 100);
-    const totalDistanceAway = Math.floor(Math.random() * 100);
-
-    const winner = totalDistanceHome > totalDistanceAway ? 'home' : 'away';
-
-    matchHistory.push({
-      id: `match-${i}`,
-      homeClub: {
-        id: club.id,
-        name: club.name,
-        logo: club.logo,
-        totalDistance: totalDistanceHome,
-        members: club.members
-      },
-      awayClub: {
-        id: 'away-club-id', // Replace with actual away club ID if available
-        name: 'Away Club', // Replace with actual away club name if available
-        logo: '/placeholder.svg', // Replace with actual away club logo if available
-        totalDistance: totalDistanceAway,
-        members: club.members
-      },
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      status: 'completed',
-      winner: winner,
-      leagueBeforeMatch: {
-        division: club.division,
-        tier: club.tier,
-        elitePoints: club.elitePoints
-      },
-      leagueAfterMatch: {
-        division: club.division,
-        tier: club.tier,
-        elitePoints: club.elitePoints
-      }
+export const transformRawMatchesToMatchType = (matches: any[], clubId: string): Match[] => {
+  if (!matches || matches.length === 0) return [];
+  
+  return matches.map(match => {
+    // Create a simple clubs map for this match
+    const clubsMap = new Map();
+    clubsMap.set(match.home_club_id, { 
+      name: 'Home Club', 
+      logo: '/placeholder.svg',
+      members: [] 
     });
-  }
-  return [];
+    clubsMap.set(match.away_club_id, { 
+      name: 'Away Club', 
+      logo: '/placeholder.svg',
+      members: [] 
+    });
+    
+    return transformMatchData(match, clubId, clubsMap);
+  });
 };

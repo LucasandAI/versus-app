@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Match } from '@/types';
+import { Match, Division } from '@/types';
 import { ChevronDown, ChevronUp } from "lucide-react";
 import MatchProgressBar from '@/components/shared/MatchProgressBar';
 import { formatLeague, getDivisionEmoji } from '@/utils/club/leagueUtils';

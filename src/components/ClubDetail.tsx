@@ -5,6 +5,7 @@ import ClubDetailContent from './club/detail/ClubDetailContent';
 import GoBackHome from './shared/GoBackHome';
 import { supabase } from '@/integrations/supabase/client';
 import { Club, ClubMember, Match } from '@/types';
+import { transformMatchData } from '@/utils/club/matchHistoryUtils';
 
 const ClubDetail: React.FC = () => {
   const { selectedClub, setSelectedClub, currentUser } = useApp();
@@ -19,7 +20,7 @@ const ClubDetail: React.FC = () => {
         // Fetch club data from Supabase
         const { data: clubData, error } = await supabase
           .from('clubs')
-          .select('id, name, logo, division, tier, elite_points, bio')
+          .select('id, name, logo, division, tier, bio')
           .eq('id', selectedClub.id)
           .single();
           
@@ -134,6 +135,34 @@ const ClubDetail: React.FC = () => {
               };
             });
             
+            // Process league data
+            const processLeagueData = (leagueData: any) => {
+              if (!leagueData) return undefined;
+              
+              try {
+                if (typeof leagueData === 'string') {
+                  const parsed = JSON.parse(leagueData);
+                  return {
+                    division: (parsed.division || 'bronze').toLowerCase(),
+                    tier: parsed.tier || 1,
+                    elitePoints: parsed.elite_points || 0
+                  };
+                }
+                return {
+                  division: (leagueData.division || 'bronze').toLowerCase(),
+                  tier: leagueData.tier || 1,
+                  elitePoints: leagueData.elite_points || 0
+                };
+              } catch (e) {
+                console.error('Error processing league data:', e);
+                return {
+                  division: 'bronze',
+                  tier: 1,
+                  elitePoints: 0
+                };
+              }
+            };
+            
             // Create enhanced match
             enhancedMatches.push({
               id: match.id,
@@ -154,9 +183,9 @@ const ClubDetail: React.FC = () => {
               startDate: match.start_date,
               endDate: match.end_date,
               status: new Date(match.end_date) > new Date() ? 'active' : 'completed',
-              winner: match.winner,
-              leagueBeforeMatch: match.league_before_match,
-              leagueAfterMatch: match.league_after_match
+              winner: (match.winner as 'home' | 'away' | 'draw') || undefined,
+              leagueBeforeMatch: processLeagueData(match.league_before_match),
+              leagueAfterMatch: processLeagueData(match.league_after_match)
             });
           }
         }
@@ -171,9 +200,9 @@ const ClubDetail: React.FC = () => {
           id: clubData.id,
           name: clubData.name,
           logo: clubData.logo || '/placeholder.svg',
-          division: clubData.division,
+          division: clubData.division.toLowerCase(),
           tier: clubData.tier || 1,
-          elitePoints: clubData.elite_points,
+          elitePoints: 0, // Default value since the column doesn't exist yet
           bio: clubData.bio,
           members: members,
           matchHistory: enhancedMatches,

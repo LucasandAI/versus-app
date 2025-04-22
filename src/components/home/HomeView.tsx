@@ -48,7 +48,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
       id: userId,
       name: name,
       avatar: '/placeholder.svg',
-      stravaConnected: true,
       clubs: []
     });
     setCurrentView('profile');

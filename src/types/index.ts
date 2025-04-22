@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   name: string;
@@ -81,12 +82,30 @@ export interface Match {
 
 export interface Notification {
   id: string;
-  type: 'invite' | 'join_request' | 'match_result' | 'match_start' | 'achievement';
+  type: 'invite' | 'join_request' | 'match_result' | 'match_start' | 'achievement' | 'invitation' | 'activity';
   title: string;
   description: string;
   timestamp: string;
   read: boolean;
   data?: Record<string, any>;
+  
+  // Fields for club-related notifications
+  clubId?: string;
+  clubName?: string;
+  
+  // Fields for user-related notifications
+  userId?: string;
+  userName?: string;
+  userAvatar?: string;
+  
+  // Fields for activity notifications
+  distance?: number;
+  
+  // Field for invitation notifications
+  message?: string;
+  
+  // Field for displaying notifications
+  previouslyDisplayed?: boolean;
 }
 
 export type AppView = 'connect' | 'home' | 'clubDetail' | 'leaderboard' | 'profile';
