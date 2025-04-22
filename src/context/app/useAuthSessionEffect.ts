@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { useAuthSessionCore } from './useAuthSessionCore';
 import { User, AppView } from '@/types';
+import { safeSupabase } from '@/integrations/supabase/safeClient';
 
 interface Props {
   setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>;
@@ -25,14 +26,20 @@ export const useAuthSessionEffect = ({
 }: Props) => {
   // Initial setup effect
   useEffect(() => {
-    // Set initial state - we don't want to show loading until user attempts login
-    setAuthChecked(true);
-    setUserLoading(false);
-    
-    // This will only show the connect view if there's no stored session
+    // Start with showing the connect view until we verify auth status
     setCurrentView('connect');
     
-    console.log('[useAuthSessionEffect] Authentication effect initialized without loading state');
+    // Check for an active session first
+    safeSupabase.auth.getSession().then(({ data: { session } }) => {
+      // If no active session, stay on connect view
+      if (!session || !session.user) {
+        console.log('[useAuthSessionEffect] No active session found, showing login');
+        setAuthChecked(true);
+        setUserLoading(false);
+      }
+    });
+    
+    console.log('[useAuthSessionEffect] Authentication effect initialized');
   }, [setAuthChecked, setUserLoading, setCurrentView]);
   
   // Setup the auth session core which will handle auth state changes

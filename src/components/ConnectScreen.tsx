@@ -1,8 +1,27 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import LoginForm from './auth/LoginForm';
+import { clearAllAuthData } from '@/integrations/supabase/safeClient';
+import { Button } from './ui/button';
 
 const ConnectScreen: React.FC = () => {
+  // Force logout when this component mounts to ensure clean testing state
+  useEffect(() => {
+    // Check if there's a force logout parameter in the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('logout') === 'true') {
+      clearAllAuthData().then(() => {
+        // Remove the parameter from URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      });
+    }
+  }, []);
+
+  const handleForceLogout = async () => {
+    await clearAllAuthData();
+    window.location.reload();
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gradient-to-b from-white to-gray-100">
       <div className="max-w-md w-full space-y-8 text-center">
@@ -17,6 +36,17 @@ const ConnectScreen: React.FC = () => {
         </div>
 
         <LoginForm />
+        
+        <div className="pt-4 text-sm text-gray-500">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleForceLogout}
+            className="text-xs text-gray-400 hover:text-gray-600"
+          >
+            Clear Session
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -39,9 +39,45 @@ export const safeSupabase = {
     
     // Pass through other auth methods directly
     getSession: () => supabase.auth.getSession(),
-    signOut: () => supabase.auth.signOut()
+    signOut: () => supabase.auth.signOut(),
+    
+    // Add clear session method for testing
+    clearSession: async () => {
+      try {
+        // Clear any existing session
+        const { error } = await supabase.auth.signOut({ scope: 'local' });
+        if (error) {
+          console.error('[safeSupabase] Error clearing session:', error);
+        }
+        return { error };
+      } catch (error) {
+        console.error('[safeSupabase] Unexpected error clearing session:', error);
+        return {
+          error: error instanceof Error ? 
+            { message: error.message } as PostgrestError : 
+            { message: 'Unknown error clearing session' } as PostgrestError
+        };
+      }
+    }
   },
   storage: supabase.storage
+};
+
+// Add debug method to force sign out and clear session
+export const clearAllAuthData = async () => {
+  try {
+    // Clear browser storage
+    localStorage.removeItem('supabase.auth.token');
+    
+    // Sign out from Supabase
+    await safeSupabase.auth.signOut({ scope: 'local' });
+    
+    console.log('[safeSupabase] Auth data cleared');
+    return true;
+  } catch (error) {
+    console.error('[safeSupabase] Failed to clear auth data:', error);
+    return false;
+  }
 };
 
 // Re-export the original client in case it's needed

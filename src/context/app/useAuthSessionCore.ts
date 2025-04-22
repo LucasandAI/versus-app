@@ -32,10 +32,10 @@ export const useAuthSessionCore = ({
     console.log('[useAuthSessionCore] Setting up auth session listener');
 
     // First, set up the auth state change listener
-    const { data } = safeSupabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[useAuthSessionCore] Auth state changed:', { event, userId: session?.user?.id });
-      
+    const { data } = safeSupabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return;
+      
+      console.log('[useAuthSessionCore] Auth state changed:', { event, userId: session?.user?.id });
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         if (session?.user?.id) {
@@ -138,8 +138,8 @@ export const useAuthSessionCore = ({
           return;
         }
         
-        if (!session) {
-          // No session found, staying on connect view
+        if (!session || !session.user) {
+          // No valid session found, staying on connect view
           setAuthChecked(true);
           setUserLoading(false);
           setCurrentView('connect');
