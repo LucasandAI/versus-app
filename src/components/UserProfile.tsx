@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { UserPlus, ArrowLeft } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import { Card } from './ui/card';
 import ClubInviteDialog from './admin/ClubInviteDialog';
 import EditProfileDialog from './profile/EditProfileDialog';
@@ -18,7 +18,6 @@ import {
   AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 
-// Import new components
 import UserHeader from './profile/UserHeader';
 import UserClubs from './profile/UserClubs';
 import UserStats from './profile/UserStats';
@@ -45,10 +44,8 @@ const UserProfile: React.FC = () => {
     }
   }, [currentView, currentUser, selectedUser, setSelectedUser]);
 
-  // Add listener for user data updates
   useEffect(() => {
     const handleUserDataUpdate = () => {
-      // If we're viewing the current user's profile, update the selected user
       if (selectedUser && currentUser && selectedUser.id === currentUser.id) {
         setSelectedUser(currentUser);
       }
@@ -175,14 +172,14 @@ const UserProfile: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-50 pb-20">
-      <div className="w-full bg-green-500 py-4 px-6 text-white flex items-center">
+      <div className="w-full bg-green-500 py-4 px-6 text-white flex items-center justify-center relative">
         <button 
           onClick={() => setCurrentView('home')} 
-          className="mr-4 text-white hover:bg-green-600 rounded-full p-2 transition-colors"
+          className="absolute left-4 text-white hover:bg-green-600 rounded-full p-2 transition-colors"
         >
           <ArrowLeft className="h-6 w-6" />
         </button>
-        <h1 className="text-xl font-semibold flex-1">
+        <h1 className="text-xl font-semibold text-center">
           {currentUser?.id === selectedUser?.id ? 'Profile' : `${selectedUser.name}'s Profile`}
         </h1>
       </div>
