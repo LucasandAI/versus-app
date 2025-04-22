@@ -20,8 +20,8 @@ const ProfileInfo: React.FC<ProfileInfoProps> = ({ loading, name, bio }) => {
 
   return (
     <div className="flex-1">
-      <h2 className="text-xl font-bold">{name}</h2>
-      <p className="text-gray-500">{bio || 'Strava Athlete'}</p>
+      <h2 className="text-xl font-bold">{name || 'Unnamed Runner'}</h2>
+      <p className="text-gray-500">{bio || 'No bio available'}</p>
     </div>
   );
 };
