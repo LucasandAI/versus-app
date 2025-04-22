@@ -1,10 +1,10 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { AppContextType, AppView, User } from './app/types';
+import { AppContextType, AppView, User, Club, ClubMember } from '@/types';
 import { updateUserInfo } from './app/useUserInfoSync';
 import { useClubManagement } from './app/useClubManagement';
 import { supabase } from '@/integrations/supabase/client';
-import { ClubMember, Club } from '@/types';
+import { toast } from '@/hooks/use-toast';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -24,7 +24,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         // Fetch user data from Supabase
         const { data: userData, error } = await supabase
           .from('users')
-          .select('id, name, avatar, strava_connected, bio')
+          .select('id, name, avatar, bio')
           .eq('id', userId)
           .single();
           
@@ -88,7 +88,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               logo: membership.club.logo || '/placeholder.svg',
               division: membership.club.division,
               tier: membership.club.tier || 1,
-              elitePoints: membership.club.elite_points,
+              elitePoints: membership.club.elite_points || 0,
               members: members,
               matchHistory: matchHistory || []
             });
@@ -100,10 +100,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           id: userData.id,
           name: userData.name,
           avatar: userData.avatar || '/placeholder.svg',
-          stravaConnected: Boolean(userData.strava_connected),
           bio: userData.bio,
           clubs: clubs
         });
+        
+        // If user is authenticated, redirect to home
+        setCurrentView('home');
       } catch (error) {
         console.error('Error in loadCurrentUser:', error);
       } finally {
@@ -180,40 +182,54 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [currentUser, selectedUser]);
 
-  const connectToStrava = async () => {
+  // Sign in with email and password
+  const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     
     try {
-      // In a real app, you would initiate a Strava OAuth flow
-      // For now, create a mock user in Supabase and return success
-      
-      // Generate a random UUID for testing
-      const mockUserId = crypto.randomUUID();
-      
-      // Create a new user in Supabase
-      const { error: userError } = await supabase
-        .from('users')
-        .insert({
-          id: mockUserId,
-          name: 'Test User',
-          avatar: '/placeholder.svg',
-          strava_connected: true
-        });
-        
-      if (userError) {
-        console.error('Error creating user:', userError);
-        return;
-      }
-      
-      // Set up a mock session
-      await supabase.auth.signInWithPassword({
-        email: 'test@example.com',
-        password: 'password123'
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
       });
       
-      setCurrentView('home');
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      // Auth state change listener will handle loading the user data
     } catch (error) {
-      console.error('Error connecting to Strava:', error);
+      console.error('Error signing in:', error);
+      toast({
+        title: "Authentication failed",
+        description: error instanceof Error ? error.message : "Failed to sign in",
+        variant: "destructive"
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Sign out
+  const signOut = async () => {
+    setIsLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      // Auth state change listener will handle clearing the user data
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: "Sign out failed",
+        description: error instanceof Error ? error.message : "Failed to sign out",
+        variant: "destructive"
+      });
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -240,7 +256,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCurrentView,
     setSelectedClub,
     setSelectedUser,
-    connectToStrava,
+    signIn,
+    signOut,
     createClub
   };
 

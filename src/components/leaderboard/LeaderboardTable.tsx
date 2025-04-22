@@ -54,7 +54,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ clubs, onSelectClub
                 name: club.name,
                 division: club.division,
                 tier: club.tier,
-                elitePoints: 0, // Default value as it's required
+                elitePoints: club.division === 'elite' ? club.points : 0,
                 logo: '/placeholder.svg', 
                 members: [],
                 matchHistory: []

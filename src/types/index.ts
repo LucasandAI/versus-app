@@ -3,9 +3,15 @@ export interface User {
   id: string;
   name: string;
   avatar: string;
-  stravaConnected: boolean;
   bio?: string;
   clubs: Club[];
+  // Social media fields for the profile page
+  instagram?: string;
+  twitter?: string;
+  facebook?: string;
+  linkedin?: string;
+  website?: string;
+  tiktok?: string;
 }
 
 export interface Club {
@@ -72,4 +78,30 @@ export interface Match {
     tier?: number;
     elitePoints?: number;
   };
+}
+
+export interface Notification {
+  id: string;
+  type: 'invite' | 'join_request' | 'match_result' | 'match_start' | 'achievement';
+  title: string;
+  description: string;
+  timestamp: string;
+  read: boolean;
+  data?: Record<string, any>;
+}
+
+export type AppView = 'connect' | 'home' | 'clubDetail' | 'leaderboard' | 'profile';
+
+export interface AppContextType {
+  currentUser: User | null;
+  currentView: AppView;
+  selectedClub: Club | null;
+  selectedUser: User | null;
+  setCurrentUser: (user: User | null | ((prev: User | null) => User | null)) => void;
+  setCurrentView: (view: AppView) => void;
+  setSelectedClub: (club: Club | null) => void;
+  setSelectedUser: (user: User | null) => void;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  createClub: (name: string, logo?: string) => Promise<Club | null>;
 }

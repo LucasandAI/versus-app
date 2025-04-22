@@ -1,24 +1,25 @@
+
 import React from 'react';
-import Button from './shared/Button';
-import { useApp } from '@/context/AppContext';
+import LoginForm from './auth/LoginForm';
+
 const ConnectScreen: React.FC = () => {
-  const {
-    connectToStrava
-  } = useApp();
-  return <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gradient-to-b from-white to-gray-100">
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gradient-to-b from-white to-gray-100">
       <div className="max-w-md w-full space-y-8 text-center">
         <div className="space-y-4">
           <h1 className="text-4xl font-bold text-gray-900">Versus</h1>
           <div className="flex justify-center">
-            <div className="w-16 h-1 bg-strava rounded-full"></div>
+            <div className="w-16 h-1 bg-primary rounded-full"></div>
           </div>
           <h2 className="font-medium text-gray-700 mx-auto whitespace-nowrap text-lg">The Competitive League for Runners</h2>
         </div>
 
-        <div className="py-8">
+        <LoginForm />
+
+        <div className="py-4">
           <div className="space-y-6 text-left">
             <div className="flex items-start">
-              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-strava flex items-center justify-center text-white font-bold">
+              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white font-bold">
                 1
               </div>
               <div className="ml-4">
@@ -30,7 +31,7 @@ const ConnectScreen: React.FC = () => {
             </div>
 
             <div className="flex items-start">
-              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-strava flex items-center justify-center text-white font-bold">
+              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white font-bold">
                 2
               </div>
               <div className="ml-4">
@@ -42,7 +43,7 @@ const ConnectScreen: React.FC = () => {
             </div>
 
             <div className="flex items-start">
-              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-strava flex items-center justify-center text-white font-bold">
+              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white font-bold">
                 3
               </div>
               <div className="ml-4">
@@ -54,19 +55,9 @@ const ConnectScreen: React.FC = () => {
             </div>
           </div>
         </div>
-
-        <div className="space-y-4">
-          <Button variant="strava" size="lg" fullWidth onClick={connectToStrava} className="p-0 bg-transparent hover:bg-transparent flex justify-center">
-            <img src="/lovable-uploads/3a4510f7-9a3b-4980-8479-b78f493f9c52.png" alt="Connect with Strava" className="h-auto w-auto max-w-full object-contain" onError={e => {
-            console.error('Strava Connect Logo failed to load', e);
-            e.currentTarget.style.display = 'none';
-          }} />
-          </Button>
-          
-        </div>
-
-        
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default ConnectScreen;

@@ -1,18 +1,18 @@
 
-import { Club } from '@/types';
+import { Club, Division } from '@/types';
 
 export const getBestLeague = (clubs: Club[] = []) => {
   if (!clubs || clubs.length === 0) {
-    return { league: 'Bronze', tier: 5 };
+    return { league: 'bronze' as Division, tier: 5 };
   }
 
   const leagueRanking = {
-    'Elite': 0,
-    'Diamond': 1,
-    'Platinum': 2,
-    'Gold': 3,
-    'Silver': 4,
-    'Bronze': 5
+    'elite': 0,
+    'diamond': 1,
+    'platinum': 2,
+    'gold': 3,
+    'silver': 4,
+    'bronze': 5
   };
 
   return clubs.reduce((best, club) => {
@@ -27,5 +27,5 @@ export const getBestLeague = (clubs: Club[] = []) => {
       };
     }
     return best;
-  }, { league: 'Bronze' as const, tier: 5, rank: 5 });
+  }, { league: 'bronze' as Division, tier: 5, rank: 5 });
 };
