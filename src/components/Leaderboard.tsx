@@ -7,44 +7,35 @@ import AppHeader from '@/components/shared/AppHeader';
 import { useClubNavigation } from '@/hooks/useClubNavigation';
 import LeaderboardTable from './leaderboard/LeaderboardTable';
 import LeagueSystem from './leaderboard/LeagueSystem';
-import { divisions, generateMockLeaderboardData } from './leaderboard/utils';
+import { divisions } from './leaderboard/utils';
+import { useLeaderboardData } from '@/hooks/leaderboard/useLeaderboardData';
+import { Skeleton } from './ui/skeleton';
 
 const Leaderboard: React.FC = () => {
   const { currentUser } = useApp();
   const { navigateToClub } = useClubNavigation();
   const [selectedDivision, setSelectedDivision] = React.useState<Division | 'All'>('All');
   const [activeTab, setActiveTab] = React.useState<'global' | 'myClubs'>('global');
+  
+  const { leaderboardData, loading, error } = useLeaderboardData(selectedDivision);
 
-  const [leaderboardData] = React.useState(() => {
-    const baseData = generateMockLeaderboardData();
-    
-    if (currentUser?.clubs) {
-      currentUser.clubs.forEach(club => {
-        const existingClub = baseData.find(c => c.id === club.id);
-        if (!existingClub) {
-          const newRank = baseData.length + 1;
-          baseData.push({
-            id: club.id,
-            name: club.name,
-            division: club.division,
-            tier: club.tier,
-            rank: newRank,
-            points: 0,
-            change: 'same'
-          });
-        }
-      });
-    }
-    
-    return baseData;
-  });
-
-  const filteredClubs = selectedDivision === 'All' 
-    ? leaderboardData
-    : leaderboardData.filter(club => club.division === selectedDivision);
-
+  // Filter for user's clubs in the leaderboard
   const userClubIds = currentUser?.clubs.map(club => club.id) || [];
   const userClubsInLeaderboard = leaderboardData.filter(club => userClubIds.includes(club.id));
+
+  if (error) {
+    return (
+      <div className="pb-20">
+        <AppHeader title="Leagues" rightElement={<Trophy className="h-5 w-5" />} />
+        <div className="container-mobile pt-4">
+          <div className="bg-white rounded-lg shadow-md p-6 text-center">
+            <h3 className="font-medium mb-2">Error Loading Leaderboard</h3>
+            <p className="text-gray-500 text-sm mb-4">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pb-20">
@@ -69,23 +60,31 @@ const Leaderboard: React.FC = () => {
           </button>
         </div>
 
-        {activeTab === 'myClubs' && userClubsInLeaderboard.length > 0 && (
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold mb-3">My Clubs Rankings</h2>
-            <LeaderboardTable
-              clubs={userClubsInLeaderboard}
-              onSelectClub={navigateToClub}
-            />
-          </div>
-        )}
-
-        {activeTab === 'myClubs' && userClubsInLeaderboard.length === 0 && (
-          <div className="bg-white rounded-lg shadow-md p-6 text-center mb-6">
-            <h3 className="font-medium mb-2">No Clubs in Rankings</h3>
-            <p className="text-gray-500 text-sm mb-4">
-              Join or create a club to see your rankings here
-            </p>
-          </div>
+        {activeTab === 'myClubs' && (
+          <>
+            {loading ? (
+              <div className="space-y-4 mb-6">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : userClubsInLeaderboard.length > 0 ? (
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold mb-3">My Clubs Rankings</h2>
+                <LeaderboardTable
+                  clubs={userClubsInLeaderboard}
+                  onSelectClub={navigateToClub}
+                />
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow-md p-6 text-center mb-6">
+                <h3 className="font-medium mb-2">No Clubs in Rankings</h3>
+                <p className="text-gray-500 text-sm mb-4">
+                  Join or create a club to see your rankings here
+                </p>
+              </div>
+            )}
+          </>
         )}
 
         {activeTab === 'global' && (
@@ -113,10 +112,20 @@ const Leaderboard: React.FC = () => {
               </div>
             </div>
 
-            <LeaderboardTable
-              clubs={filteredClubs}
-              onSelectClub={navigateToClub}
-            />
+            {loading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : (
+              <LeaderboardTable
+                clubs={leaderboardData}
+                onSelectClub={navigateToClub}
+              />
+            )}
           </>
         )}
 

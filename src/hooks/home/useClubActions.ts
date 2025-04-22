@@ -1,7 +1,7 @@
 
 import { useClubDialogs } from './useClubDialogs';
 import { useClubJoin } from './useClubJoin';
-import { availableClubs } from '@/data/availableClubs';
+import { useAvailableClubs } from './useAvailableClubs';
 
 export const useClubActions = () => {
   const {
@@ -12,6 +12,7 @@ export const useClubActions = () => {
   } = useClubDialogs();
 
   const { handleRequestToJoin, handleJoinClub } = useClubJoin();
+  const { clubs: availableClubs, loading: clubsLoading } = useAvailableClubs();
 
   return {
     searchDialogOpen,
@@ -20,6 +21,7 @@ export const useClubActions = () => {
     setCreateClubDialogOpen,
     handleRequestToJoin,
     handleJoinClub,
-    availableClubs
+    availableClubs,
+    clubsLoading
   };
 };

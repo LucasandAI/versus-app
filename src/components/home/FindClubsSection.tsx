@@ -3,9 +3,11 @@ import React from 'react';
 import { Search } from 'lucide-react';
 import AvailableClubs from '../club/AvailableClubs';
 import Button from '../shared/Button';
+import { Skeleton } from '../ui/skeleton';
 
 interface FindClubsSectionProps {
   clubs: any[];
+  isLoading?: boolean;
   onRequestJoin: (clubId: string, clubName: string) => void;
   onSearchClick: () => void;
   onCreateClick: () => void;
@@ -13,6 +15,7 @@ interface FindClubsSectionProps {
 
 const FindClubsSection: React.FC<FindClubsSectionProps> = ({
   clubs,
+  isLoading = false,
   onRequestJoin,
   onSearchClick,
   onCreateClick,
@@ -30,10 +33,21 @@ const FindClubsSection: React.FC<FindClubsSectionProps> = ({
         </button>
       </div>
 
-      <AvailableClubs 
-        clubs={clubs}
-        onRequestJoin={onRequestJoin}
-      />
+      {isLoading ? (
+        <div className="bg-white rounded-lg shadow-md p-4">
+          <Skeleton className="h-4 w-1/3 mb-6" />
+          <div className="space-y-3">
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+        </div>
+      ) : (
+        <AvailableClubs 
+          clubs={clubs}
+          onRequestJoin={onRequestJoin}
+        />
+      )}
 
       <div className="mt-6 text-center">
         <Button 

@@ -7,6 +7,7 @@ import FindClubsSection from './FindClubsSection';
 interface HomeClubsSectionProps {
   userClubs: Club[];
   availableClubs: any[];
+  clubsLoading?: boolean;
   onSelectClub: (club: Club) => void;
   onSelectUser: (userId: string, name: string, avatar?: string) => void;
   onCreateClub: () => void;
@@ -17,6 +18,7 @@ interface HomeClubsSectionProps {
 const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
   userClubs,
   availableClubs,
+  clubsLoading = false,
   onSelectUser,
   onCreateClub,
   onRequestJoin,
@@ -35,6 +37,7 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
       {!isAtClubCapacity && (
         <FindClubsSection 
           clubs={availableClubs}
+          isLoading={clubsLoading}
           onRequestJoin={onRequestJoin}
           onSearchClick={onSearchClick}
           onCreateClick={onCreateClub}

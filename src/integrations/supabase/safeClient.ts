@@ -60,7 +60,89 @@ export const safeSupabase = {
       }
     }
   },
-  storage: supabase.storage
+  storage: supabase.storage,
+  clubs: {
+    // Get available clubs that the user can join
+    getAvailableClubs: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('clubs')
+          .select('id, name, division, tier, logo')
+          .order('created_at', { ascending: false })
+          .limit(10);
+        
+        if (error) {
+          console.error('[safeSupabase] Error fetching available clubs:', error);
+          return { data: [], error };
+        }
+        
+        // Count members for each club
+        const clubsWithMemberCount = await Promise.all(
+          data.map(async (club) => {
+            const { count, error: countError } = await supabase
+              .from('club_members')
+              .select('*', { count: 'exact', head: true })
+              .eq('club_id', club.id);
+            
+            return {
+              ...club,
+              members: countError ? 0 : count || 0
+            };
+          })
+        );
+        
+        return { data: clubsWithMemberCount, error: null };
+      } catch (error) {
+        console.error('[safeSupabase] Unexpected error fetching available clubs:', error);
+        return {
+          data: [],
+          error: error instanceof Error ? 
+            { message: error.message } as PostgrestError : 
+            { message: 'Unknown error fetching clubs' } as PostgrestError
+        };
+      }
+    },
+    
+    // Get clubs for the leaderboard view
+    getLeaderboardClubs: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('clubs')
+          .select('id, name, division, tier, elite_points')
+          .order('division', { ascending: false })
+          .order('tier', { ascending: true })
+          .order('elite_points', { ascending: false });
+        
+        if (error) {
+          console.error('[safeSupabase] Error fetching leaderboard clubs:', error);
+          return { data: [], error };
+        }
+        
+        // Transform to leaderboard format
+        const leaderboardData = data.map((club, index) => {
+          return {
+            id: club.id,
+            name: club.name,
+            division: club.division.toLowerCase(),
+            tier: club.tier,
+            rank: index + 1,
+            points: club.division.toLowerCase() === 'elite' ? club.elite_points : 0,
+            change: ['up', 'down', 'same'][Math.floor(Math.random() * 3)] as 'up' | 'down' | 'same'
+          };
+        });
+        
+        return { data: leaderboardData, error: null };
+      } catch (error) {
+        console.error('[safeSupabase] Unexpected error fetching leaderboard clubs:', error);
+        return {
+          data: [],
+          error: error instanceof Error ? 
+            { message: error.message } as PostgrestError : 
+            { message: 'Unknown error fetching leaderboard data' } as PostgrestError
+        };
+      }
+    }
+  }
 };
 
 // Add debug method to force sign out and clear session
