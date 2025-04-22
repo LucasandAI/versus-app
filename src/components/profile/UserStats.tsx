@@ -2,6 +2,7 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatLeague } from '@/utils/club/leagueUtils';
 
 interface UserStatsProps {
   loading: boolean;
@@ -26,7 +27,7 @@ const UserStats: React.FC<UserStatsProps> = ({
       </div>
       <div className="bg-gray-50 p-4 text-center rounded-lg">
         <p className="text-xl font-bold">
-          {loading ? <Skeleton className="h-6 w-16 mx-auto" /> : `${bestLeague} ${bestLeagueTier}`}
+          {loading ? <Skeleton className="h-6 w-16 mx-auto" /> : formatLeague(bestLeague as Division, bestLeagueTier)}
         </p>
         <p className="text-gray-500 text-sm">Best League</p>
       </div>
