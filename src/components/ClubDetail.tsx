@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import ClubDetailContent from './club/detail/ClubDetailContent';
 import LoadingState from './club/detail/states/LoadingState';
@@ -7,8 +7,13 @@ import ErrorState from './club/detail/states/ErrorState';
 import { useClubData } from '@/hooks/club/useClubData';
 
 const ClubDetail: React.FC = () => {
-  const { selectedClub } = useApp();
-  const { club, isLoading, error } = useClubData(selectedClub?.id);
+  const { selectedClub, refreshCurrentUser } = useApp();
+  const { club, isLoading, error, refreshClubData } = useClubData(selectedClub?.id);
+
+  // When the component mounts, refresh user data to ensure clubs list is up to date
+  useEffect(() => {
+    refreshCurrentUser();
+  }, [refreshCurrentUser]);
 
   if (isLoading) {
     return <LoadingState />;
@@ -18,7 +23,10 @@ const ClubDetail: React.FC = () => {
     return <ErrorState />;
   }
 
-  return <ClubDetailContent club={club} />;
+  return <ClubDetailContent 
+    club={club} 
+    onClubUpdated={refreshClubData} 
+  />;
 };
 
 export default ClubDetail;

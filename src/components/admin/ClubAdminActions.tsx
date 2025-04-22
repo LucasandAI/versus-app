@@ -12,9 +12,14 @@ import AdminActionButtons from './club-members/AdminActionButtons';
 interface ClubAdminActionsProps {
   club: Club;
   currentUser: User | null;
+  onClubUpdated?: () => void;
 }
 
-const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({ club, currentUser }) => {
+const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({ 
+  club, 
+  currentUser,
+  onClubUpdated 
+}) => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [requestsDialogOpen, setRequestsDialogOpen] = useState(false);
   const { setCurrentUser, setSelectedClub } = useApp();
@@ -54,6 +59,10 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({ club, currentUser }
       title: "Member Removed",
       description: `${memberName} has been removed from the club.`,
     });
+    
+    if (onClubUpdated) {
+      onClubUpdated();
+    }
   };
   
   const handleMakeAdmin = (memberId: string, memberName: string) => {
@@ -82,6 +91,10 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({ club, currentUser }
       title: "Admin Role Granted",
       description: `${memberName} is now an admin of the club.`,
     });
+    
+    if (onClubUpdated) {
+      onClubUpdated();
+    }
   };
 
   return (
@@ -105,7 +118,8 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({ club, currentUser }
       <EditClubDialog 
         open={editDialogOpen} 
         onOpenChange={setEditDialogOpen} 
-        club={currentClub} 
+        club={currentClub}
+        onClubUpdated={onClubUpdated}
       />
 
       <JoinRequestsDialog 

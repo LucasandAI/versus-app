@@ -23,12 +23,14 @@ interface EditClubDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   club: Club;
+  onClubUpdated?: () => void;
 }
 
 const EditClubDialog: React.FC<EditClubDialogProps> = ({ 
   open, 
   onOpenChange, 
-  club 
+  club,
+  onClubUpdated
 }) => {
   const { setSelectedClub, setCurrentUser } = useApp();
   const [name, setName] = useState(club.name);
@@ -140,6 +142,11 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
         title: "Club Updated",
         description: "The club details have been updated.",
       });
+
+      // Call the refresh function if provided
+      if (onClubUpdated) {
+        onClubUpdated();
+      }
 
       onOpenChange(false);
     } catch (error) {
