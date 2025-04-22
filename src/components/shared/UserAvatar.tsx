@@ -73,7 +73,24 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
 
   // Check if image URL is valid
   const isValidUrl = (url?: string | null) => {
-    return url && typeof url === 'string' && url.trim() !== '' && url !== '/placeholder.svg';
+    if (!url) return false;
+    if (typeof url !== 'string') return false;
+    if (url.trim() === '') return false;
+    if (url === '/placeholder.svg') return false;
+    
+    // Additional check to ensure URL looks like a proper Supabase storage URL
+    // This helps with avatar URLs from Supabase storage
+    if (url.includes('supabase') && url.includes('storage')) {
+      return true;
+    }
+    
+    // Also accept other valid URLs
+    try {
+      new URL(url);
+      return true;
+    } catch (e) {
+      return false;
+    }
   };
 
   // Show image if it's a valid URL and no error occurred
