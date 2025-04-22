@@ -3,14 +3,8 @@ export interface User {
   name: string;
   avatar: string;
   stravaConnected: boolean;
-  clubs: Club[];
   bio?: string;
-  instagram?: string;
-  twitter?: string;
-  facebook?: string;
-  linkedin?: string;
-  website?: string;
-  tiktok?: string;
+  clubs: Club[];
 }
 
 export interface Club {
@@ -18,13 +12,14 @@ export interface Club {
   name: string;
   logo: string;
   division: Division;
-  tier?: number;
-  elitePoints?: number;
+  tier: number;
+  elitePoints: number;
   bio?: string;
   members: ClubMember[];
-  currentMatch?: Match;
-  matchHistory: Match[];
-  isPreviewClub?: boolean; // Flag to identify non-member preview clubs
+  matchHistory?: Match[];
+  currentMatch?: Match | null;
+  joinRequests?: JoinRequest[];
+  isPreviewClub?: boolean;
 }
 
 export interface ClubMember {
@@ -32,7 +27,18 @@ export interface ClubMember {
   name: string;
   avatar: string;
   isAdmin: boolean;
-  distanceContribution?: number;
+  distanceContribution: number;
+}
+
+export type Division = 'bronze' | 'silver' | 'gold' | 'platinum' | 'elite';
+
+export interface JoinRequest {
+  id: string;
+  userId: string;
+  clubId: string;
+  userName: string;
+  userAvatar: string;
+  createdAt: string;
 }
 
 export interface Match {
@@ -53,8 +59,8 @@ export interface Match {
   };
   startDate: string;
   endDate: string;
-  status: 'upcoming' | 'active' | 'completed';
-  winner?: 'home' | 'away';
+  status: 'active' | 'completed';
+  winner?: 'home' | 'away' | 'draw';
   leagueBeforeMatch?: {
     division: Division;
     tier?: number;
@@ -65,36 +71,4 @@ export interface Match {
     tier?: number;
     elitePoints?: number;
   };
-}
-
-export type Division = 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Diamond' | 'Elite';
-
-export type AppView = 'connect' | 'home' | 'clubDetail' | 'leaderboard' | 'profile';
-
-export interface AppContextType {
-  currentUser: User | null;
-  currentView: AppView;
-  selectedClub: Club | null;
-  selectedUser: User | null;
-  setCurrentUser: (user: User | null | ((prev: User | null) => User | null)) => void;
-  setCurrentView: (view: AppView) => void;
-  setSelectedClub: (club: Club | null) => void;
-  setSelectedUser: (user: User | null) => void;
-  connectToStrava: () => void;
-  createClub: (name: string, logo: string) => void;
-}
-
-export interface Notification {
-  id: string;
-  userId: string;
-  userName: string;
-  userAvatar?: string;
-  clubId: string;
-  clubName: string;
-  distance: number;
-  timestamp: string;
-  read: boolean;
-  type?: 'activity' | 'invitation';
-  message?: string;
-  previouslyDisplayed?: boolean;
 }
