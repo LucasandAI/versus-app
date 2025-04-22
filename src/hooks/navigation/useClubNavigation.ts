@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club, ClubMember } from '@/types';
@@ -11,7 +12,7 @@ export const useClubNavigation = (): ClubNavigationResult => {
   const { setCurrentView, setSelectedClub } = useApp();
   const [isLoading, setIsLoading] = useState(false);
 
-  const navigateToClubDetail = async (clubId: string, initialClub?: Partial<Club>) => {
+  const navigateToClubDetail = async (clubId: string, initialClub?: Partial<Club>, thirdParam?: any) => {
     setIsLoading(true);
     
     try {

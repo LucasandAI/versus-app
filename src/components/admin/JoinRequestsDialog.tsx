@@ -24,11 +24,15 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
   club 
 }) => {
   const {
-    joinRequests,
-    isClubFull,
-    handleApprove,
-    handleDeny
-  } = useJoinRequests(club);
+    isLoading,
+    error,
+    handleAcceptRequest,
+    handleDeclineRequest
+  } = useJoinRequests();
+
+  // Fetch join requests from local storage or other source
+  const joinRequests = [];  // This would be fetched from storage/API
+  const isClubFull = club.members.length >= 5;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -55,8 +59,8 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
                 <JoinRequestItem
                   key={request.id}
                   request={request}
-                  onApprove={handleApprove}
-                  onDeny={handleDeny}
+                  onApprove={(req) => handleAcceptRequest(req, club)}
+                  onDeny={handleDeclineRequest}
                   isClubFull={isClubFull}
                 />
               ))}

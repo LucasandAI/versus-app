@@ -27,6 +27,22 @@ export const isUserClubMember = (club: Club, userId: string): boolean => {
   return club.members.some(member => member.id === userId);
 };
 
+// This function generates a random logo based on the club name
+export const getRandomLogoForName = (name: string): string => {
+  // Generate a deterministic but seemingly random logo based on the club name
+  const seed = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  
+  // Available logo options (using placeholder for now)
+  const logoOptions = [
+    '/placeholder.svg',
+    '/placeholder.svg', // In a real app, we would have multiple logo options
+  ];
+  
+  // Use the seed to select a logo
+  const index = seed % logoOptions.length;
+  return logoOptions[index];
+};
+
 export const getClubToJoin = (clubId: string, clubName: string, allClubs: Club[]): Club => {
   // Try to find the club in the available clubs (mock data)
   const mockClub = availableClubs.find(club => club.id === clubId);

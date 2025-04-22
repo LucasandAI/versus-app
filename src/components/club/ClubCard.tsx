@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { Club } from '@/types';
 import UserAvatar from '../shared/UserAvatar';
 import MatchProgressBar from '../shared/MatchProgressBar';
 import { formatLeagueWithTier } from '@/lib/format';
-import { useClubNavigation } from '@/hooks/useClubNavigation';
+import { useNavigation } from '@/hooks/useNavigation';
 
 interface ClubCardProps {
   club: Club;
@@ -16,7 +17,7 @@ const ClubCard: React.FC<ClubCardProps> = ({
   onSelectUser 
 }) => {
   const [expanded, setExpanded] = useState(false);
-  const { navigateToClub } = useClubNavigation();
+  const { navigateToClubDetail } = useNavigation();
 
   const toggleExpanded = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -24,12 +25,12 @@ const ClubCard: React.FC<ClubCardProps> = ({
   };
 
   const handleClubClick = () => {
-    navigateToClub(club);
+    navigateToClubDetail(club.id, club);
   };
 
   const handleClubNameClick = (e: React.MouseEvent, clubData: Partial<Club>) => {
     e.stopPropagation();
-    navigateToClub(clubData);
+    navigateToClubDetail(clubData.id || '', clubData);
   };
 
   const getDaysRemaining = (endDate: string) => {

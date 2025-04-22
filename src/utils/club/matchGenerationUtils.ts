@@ -1,154 +1,169 @@
-import { Club, Match, Division, ClubMember } from '@/types';
-import { generateMemberDistances, generateOpponentMembers } from './memberDistanceUtils';
+import { Club, ClubMatch, ClubMember, Division, Match } from '@/types';
+import { ensureDivision } from './leagueUtils';
 
-const generatePastDate = (daysAgo: number) => {
-  const date = new Date();
-  date.setDate(date.getDate() - daysAgo);
-  return date;
+// Helper function to generate a random date within last 3 months
+export const getRandomRecentDate = (maxDaysAgo: number = 90): Date => {
+  const today = new Date();
+  const daysAgo = Math.floor(Math.random() * maxDaysAgo);
+  const result = new Date(today);
+  result.setDate(today.getDate() - daysAgo);
+  return result;
 };
 
-const OPPONENTS = [
-  'Weekend Warriors', 'Road Runners', 'Sprint Squad', 'Hill Climbers',
-  'Mountain Goats', 'Trail Blazers', 'Urban Pacers', 'Night Striders',
-  'Marathon Masters', 'Peak Performers', 'Distance Demons', 'Endurance Elite'
-];
+// Format date to ISO string for serialization
+export const formatDateIso = (date: Date): string => {
+  return date.toISOString();
+};
 
-export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
-  console.log(`Generating match history for ${club.name} (${club.division} ${club.tier || 1})`);
-
-  // Define division progression path
-  const divisionOrder: Division[] = ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'elite'];
+// Helper function to create a match result based on a club's league
+export const createMatchResultForLeague = (
+  homeClub: Club,
+  daysAgo: number = 7,
+  isWin?: boolean
+): Match => {
+  // Generate opposing club based on league
+  const awayClub = generateOpposingClub(homeClub);
   
-  // Always start from Bronze 5
-  const startingDivision = 'bronze' as Division;
-  const startingTier = 5;
+  // Determine match dates
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() - daysAgo);
   
-  // Calculate how many matches needed to reach current division/tier
-  let matchPath: Array<{
-    needToWin: boolean;
-    division: Division;
-    tier: number;
-    elitePoints?: number;
-  }> = [];
+  const startDate = new Date(endDate);
+  startDate.setDate(startDate.getDate() - 7); // Match duration is 7 days
   
-  // Start with Bronze 5
-  let currentDivision = startingDivision;
-  let currentTier = startingTier;
-  let elitePoints = 0;
+  // Determine winner (if not specified)
+  const determineWinner = isWin !== undefined ? isWin : Math.random() > 0.5;
+  const winner = determineWinner ? 'home' : 'away';
   
-  console.log(`Building path from ${currentDivision} ${currentTier} to ${club.division} ${club.tier || 1}`);
+  // Generate league status before and after the match
+  const leagueBeforeMatch = {
+    division: homeClub.division,
+    tier: homeClub.tier,
+    elitePoints: homeClub.elitePoints
+  };
   
-  // Generate the path of matches needed
-  while (currentDivision !== club.division || currentTier !== (club.tier || 1)) {
-    // For progression, we always need to win
-    const needToWin = true;
-    
-    matchPath.push({
-      needToWin,
-      division: currentDivision,
-      tier: currentTier,
-      elitePoints: currentDivision === 'Elite' ? elitePoints : undefined
-    });
-    
-    // Calculate next state based on a win
-    if (currentTier === 1) {
-      // Move to next division at tier 5 (or Elite tier 1)
-      const currentDivIndex = divisionOrder.indexOf(currentDivision);
-      if (currentDivIndex < divisionOrder.length - 1) {
-        currentDivision = divisionOrder[currentDivIndex + 1];
-        currentTier = currentDivision === 'Elite' ? 1 : 5;
-        if (currentDivision === 'Elite') elitePoints = 0;
+  // Calculate new league status after match
+  let leagueAfterMatch = { ...leagueBeforeMatch };
+  
+  const divisionValue = ensureDivision(homeClub.division);
+  
+  // Elite league special handling
+  if (divisionValue === 'elite') {
+    if (winner === 'home') {
+      leagueAfterMatch.elitePoints = (leagueBeforeMatch.elitePoints || 0) + 1;
+    } else {
+      leagueAfterMatch.elitePoints = Math.max((leagueBeforeMatch.elitePoints || 0) - 1, 0);
+    }
+  } 
+  // Other leagues: promotion/relegation based on tiers
+  else {
+    if (winner === 'home') {
+      // Promotion logic
+      if (leagueBeforeMatch.tier === 1) {
+        // Promote to next division
+        if (divisionValue === 'bronze') {
+          leagueAfterMatch.division = 'silver';
+          leagueAfterMatch.tier = 5;
+        } else if (divisionValue === 'silver') {
+          leagueAfterMatch.division = 'gold';
+          leagueAfterMatch.tier = 5;
+        } else if (divisionValue === 'gold') {
+          leagueAfterMatch.division = 'elite';
+          leagueAfterMatch.tier = 1;
+          leagueAfterMatch.elitePoints = 0;
+        }
+      } else {
+        // Move up within same division
+        leagueAfterMatch.tier = Math.max(leagueBeforeMatch.tier - 1, 1);
       }
     } else {
-      // Move up one tier in same division
-      currentTier--;
-    }
-    
-    // Safety break
-    if (matchPath.length > 30) break;
-  }
-  
-  // Add final state
-  matchPath.push({
-    needToWin: true,
-    division: club.division,
-    tier: club.tier || 1,
-    elitePoints: club.division === 'Elite' ? (club.elitePoints || 0) : undefined
-  });
-  
-  console.log(`Generated path with ${matchPath.length} matches`);
-  
-  // Generate matches based on the path
-  const matches: Match[] = [];
-  
-  for (let i = 0; i < matchPath.length - 1; i++) {
-    const beforeState = matchPath[i];
-    const afterState = matchPath[i + 1];
-    
-    // Generate match details
-    const opponentName = OPPONENTS[Math.floor(Math.random() * OPPONENTS.length)];
-    const isHomeTeam = i % 2 === 0;
-    
-    // Generate date for the match
-    const totalMatches = matchPath.length - 1;
-    const daysAgo = Math.floor((totalMatches - i) * (7 + Math.random() * 3));
-    const endDate = generatePastDate(daysAgo);
-    const startDate = new Date(endDate);
-    startDate.setDate(endDate.getDate() - 7);
-    
-    // Generate distances ensuring winner has more distance
-    const baseDistance = 150 + Math.random() * 150;
-    const winnerDistance = baseDistance * (1.15 + Math.random() * 0.3);
-    const loserDistance = baseDistance * (0.7 + Math.random() * 0.2);
-    
-    const ourDistance = isHomeTeam ? winnerDistance : loserDistance;
-    const theirDistance = !isHomeTeam ? winnerDistance : loserDistance;
-    
-    // Use actual club members with generated distances
-    const ourMembers = generateMemberDistances(club.members || [], ourDistance);
-    const theirMembers = generateOpponentMembers(
-      Math.floor(Math.random() * 3) + 3,
-      theirDistance,
-      opponentName
-    );
-    
-    // Create the match object
-    const match: Match = {
-      id: `match-${club.id}-${i}`,
-      homeClub: {
-        id: isHomeTeam ? club.id : `opponent-${i}`,
-        name: isHomeTeam ? club.name : opponentName,
-        logo: isHomeTeam ? (club.logo || '/placeholder.svg') : '/placeholder.svg',
-        totalDistance: parseFloat(ourDistance.toFixed(1)),
-        members: isHomeTeam ? ourMembers : theirMembers
-      },
-      awayClub: {
-        id: !isHomeTeam ? club.id : `opponent-${i}`,
-        name: !isHomeTeam ? club.name : opponentName,
-        logo: !isHomeTeam ? (club.logo || '/placeholder.svg') : '/placeholder.svg',
-        totalDistance: parseFloat(theirDistance.toFixed(1)),
-        members: !isHomeTeam ? ourMembers : theirMembers
-      },
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      status: 'completed',
-      winner: isHomeTeam ? 'home' : 'away',
-      leagueBeforeMatch: {
-        division: beforeState.division,
-        tier: beforeState.tier,
-        elitePoints: beforeState.elitePoints
-      },
-      leagueAfterMatch: {
-        division: afterState.division,
-        tier: afterState.tier,
-        elitePoints: afterState.elitePoints
+      // Relegation logic
+      if (leagueBeforeMatch.tier === 5) {
+        // Relegate to previous division
+        if (divisionValue === 'gold') {
+          leagueAfterMatch.division = 'silver';
+          leagueAfterMatch.tier = 1;
+        } else if (divisionValue === 'silver') {
+          leagueAfterMatch.division = 'bronze';
+          leagueAfterMatch.tier = 1;
+        }
+        // Bronze stays at bronze 5
+      } else {
+        // Move down within same division
+        leagueAfterMatch.tier = Math.min(leagueBeforeMatch.tier + 1, 5);
       }
-    };
-    
-    matches.push(match);
+    }
   }
   
-  return matches.sort((a, b) => 
-    new Date(b.endDate).getTime() - new Date(a.endDate).getTime()
-  );
+  // Create the match result
+  return {
+    id: `match-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    status: 'completed',
+    startDate: formatDateIso(startDate),
+    endDate: formatDateIso(endDate),
+    homeClub: {
+      id: homeClub.id,
+      name: homeClub.name,
+      logo: homeClub.logo,
+      totalDistance: winner === 'home' ? 150 : 100,
+      members: homeClub.members.map(member => ({
+        ...member,
+        distanceContribution: (winner === 'home' ? 150 : 100) / Math.max(homeClub.members.length, 1)
+      }))
+    },
+    awayClub: {
+      id: awayClub.id,
+      name: awayClub.name,
+      logo: awayClub.logo,
+      totalDistance: winner === 'away' ? 150 : 100,
+      members: awayClub.members.map(member => ({
+        ...member,
+        distanceContribution: (winner === 'away' ? 150 : 100) / Math.max(awayClub.members.length, 1)
+      }))
+    },
+    winner,
+    leagueBeforeMatch,
+    leagueAfterMatch
+  };
+};
+
+// Generate an opposing club based on the home club's league
+export const generateOpposingClub = (homeClub: Club): Club => {
+  const divisionValue = ensureDivision(homeClub.division);
+  
+  // Get a league-appropriate name
+  const names = {
+    bronze: ['Bronze Stars', 'Rookie Runners', 'Beginner Biathletes', 'Newbie Navigators'],
+    silver: ['Silver Sprinters', 'Midway Marathoners', 'Core Cyclists', 'Steady Striders'],
+    gold: ['Golden Gazelles', 'Premier Pacers', 'Elite Endurance', 'Top Triathletes'],
+    elite: ['Champion Chargers', 'Ultimate Ultrarunners', 'Supreme Speedsters', 'Master Movers']
+  };
+  
+  const divisionNames = names[divisionValue] || names.bronze;
+  const randomName = divisionNames[Math.floor(Math.random() * divisionNames.length)];
+  
+  // Generate random members (1-5)
+  const memberCount = Math.floor(Math.random() * 5) + 1;
+  const members: ClubMember[] = [];
+  
+  for (let i = 0; i < memberCount; i++) {
+    members.push({
+      id: `opp-member-${i}-${Date.now()}`,
+      name: `Runner ${i+1}`,
+      avatar: '/placeholder.svg',
+      isAdmin: i === 0, // First member is admin
+      distanceContribution: 0 // Will be set later
+    });
+  }
+  
+  return {
+    id: `opp-club-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    name: randomName,
+    logo: '/placeholder.svg',
+    division: divisionValue,
+    tier: homeClub.tier || 3,
+    members,
+    elitePoints: divisionValue === 'elite' ? Math.floor(Math.random() * 10) : 0,
+    matchHistory: []
+  };
 };
