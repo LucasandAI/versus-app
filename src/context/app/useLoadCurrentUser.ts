@@ -12,7 +12,7 @@ export const useLoadCurrentUser = () => {
       // First check if the user exists in the database
       const { data: userData, error: userError } = await safeSupabase
         .from('users')
-        .select('id, name, avatar, bio')
+        .select('id, name, avatar, bio, instagram, twitter, facebook, linkedin, website, tiktok')
         .eq('id', userId)
         .maybeSingle();
 
@@ -120,6 +120,12 @@ export const useLoadCurrentUser = () => {
         name: userData.name || 'User',
         avatar: userData.avatar || '/placeholder.svg',
         bio: userData.bio || '',
+        instagram: userData.instagram || '',
+        twitter: userData.twitter || '',
+        facebook: userData.facebook || '',
+        linkedin: userData.linkedin || '',
+        website: userData.website || '',
+        tiktok: userData.tiktok || '',
         clubs: clubs
       };
 

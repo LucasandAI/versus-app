@@ -141,7 +141,7 @@ export const useUserProfileStateLogic = () => {
           }
         }
 
-        // Calculate weekly distance (placeholder logic)
+        // Calculate weekly distance (for demo purposes)
         const randomWeeklyDistance = Math.round((Math.random() * 50 + 20) * 10) / 10;
         setWeeklyDistance(randomWeeklyDistance);
 
