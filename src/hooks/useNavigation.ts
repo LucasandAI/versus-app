@@ -5,18 +5,22 @@ import { Club } from '@/types';
 
 export const useNavigation = () => {
   const { navigateToUserProfile, isLoading: userNavLoading } = useUserNavigation();
-  const { navigateToClubDetail, isLoading: clubNavLoading } = useClubNavigation();
+  const { handleClubClick } = useClubNavigation();
   
   const navigateToClub = (clubData: Club | Partial<Club>) => {
     if ('id' in clubData && clubData.id) {
-      navigateToClubDetail(clubData.id, clubData);
+      handleClubClick(clubData.id);
     }
+  };
+  
+  const navigateToClubDetail = (clubId: string, clubData?: Partial<Club>) => {
+    handleClubClick(clubId);
   };
   
   return {
     navigateToUserProfile,
     navigateToClubDetail,
     navigateToClub,
-    isLoading: userNavLoading || clubNavLoading
+    isLoading: userNavLoading || false
   };
 };

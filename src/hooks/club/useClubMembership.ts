@@ -9,11 +9,7 @@ export const useClubMembership = (club: Club) => {
   const { currentUser, setCurrentView, setCurrentUser, setSelectedClub } = useApp();
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
-  const [hasPending, setHasPending] = useState<boolean>(() => {
-    const hasInvite = hasPendingInvite(club.id);
-    console.log(`Initial pending invite check for club ${club.id}:`, hasInvite);
-    return hasInvite;
-  });
+  const [hasPending, setHasPending] = useState<boolean>(false);
 
   const isActuallyMember = currentUser?.clubs.some(c => c.id === club.id) || false;
   const isAdmin = isActuallyMember && currentUser && club.members.some(member => 
@@ -27,12 +23,17 @@ export const useClubMembership = (club: Club) => {
     }
     
     const checkPendingInvite = async () => {
-      const pending = await hasPendingInvite(club.id);
-      if (pending || hasPending !== pending) {
-        setHasPending(pending);
+      try {
+        const pending = await hasPendingInvite(club.id);
+        if (pending || hasPending !== pending) {
+          setHasPending(pending);
+        }
+      } catch (error) {
+        console.error('Error checking pending invite:', error);
       }
     };
     
+    // Initial check
     checkPendingInvite();
     
     const handleNotificationUpdate = () => {

@@ -41,6 +41,35 @@ export const useClubMatches = () => {
 
         const matchStatus = new Date(match.end_date) > new Date() ? 'active' : 'completed';
 
+        // Type cast league data properly
+        const leagueBeforeMatch = match.league_before_match ? {
+          division: ensureDivision(
+            typeof match.league_before_match === 'object' && match.league_before_match !== null 
+              ? String(match.league_before_match.division || 'bronze') 
+              : 'bronze'
+          ),
+          tier: typeof match.league_before_match === 'object' && match.league_before_match !== null 
+            ? Number(match.league_before_match.tier || 1) 
+            : 1,
+          elitePoints: typeof match.league_before_match === 'object' && match.league_before_match !== null 
+            ? Number(match.league_before_match.elite_points || 0) 
+            : 0
+        } : undefined;
+        
+        const leagueAfterMatch = match.league_after_match ? {
+          division: ensureDivision(
+            typeof match.league_after_match === 'object' && match.league_after_match !== null 
+              ? String(match.league_after_match.division || 'bronze') 
+              : 'bronze'
+          ),
+          tier: typeof match.league_after_match === 'object' && match.league_after_match !== null 
+            ? Number(match.league_after_match.tier || 1) 
+            : 1,
+          elitePoints: typeof match.league_after_match === 'object' && match.league_after_match !== null 
+            ? Number(match.league_after_match.elite_points || 0) 
+            : 0
+        } : undefined;
+
         const enhancedMatch = {
           id: match.id,
           homeClub: {
@@ -61,16 +90,8 @@ export const useClubMatches = () => {
           endDate: match.end_date,
           status: matchStatus as 'active' | 'completed',
           winner: match.winner as 'home' | 'away' | 'draw' | undefined,
-          leagueBeforeMatch: match.league_before_match ? {
-            division: ensureDivision(String(match.league_before_match?.division || 'bronze')),
-            tier: Number(match.league_before_match?.tier || 1),
-            elitePoints: Number(match.league_before_match?.elite_points || 0)
-          } : undefined,
-          leagueAfterMatch: match.league_after_match ? {
-            division: ensureDivision(String(match.league_after_match?.division || 'bronze')),
-            tier: Number(match.league_after_match?.tier || 1),
-            elitePoints: Number(match.league_after_match?.elite_points || 0)
-          } : undefined
+          leagueBeforeMatch,
+          leagueAfterMatch
         };
 
         enhancedMatches.push(enhancedMatch);
