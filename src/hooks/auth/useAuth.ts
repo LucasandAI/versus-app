@@ -1,6 +1,5 @@
-
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { safeSupabase } from '@/integrations/supabase/safeClient';
 import { AuthState, AuthActions } from './types';
 import { toast } from '@/hooks/use-toast';
 import { User } from '@/types';
@@ -16,7 +15,7 @@ export const useAuth = (): AuthState & AuthActions => {
     
     try {
       console.log('[useAuth] Attempting to sign in with email:', email);
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      const { data: authData, error: authError } = await safeSupabase.auth.signInWithPassword({
         email,
         password
       });
@@ -36,8 +35,6 @@ export const useAuth = (): AuthState & AuthActions => {
         throw new Error('No user data returned');
       }
       
-      // Return a basic user object to indicate successful login
-      // The AppContext will handle loading the full profile
       const basicUser: User = {
         id: authData.user.id,
         name: authData.user.email || 'User',
@@ -72,7 +69,7 @@ export const useAuth = (): AuthState & AuthActions => {
     setIsLoading(true);
     try {
       console.log('[useAuth] Signing out user');
-      const { error } = await supabase.auth.signOut();
+      const { error } = await safeSupabase.auth.signOut();
       if (error) throw new Error(error.message);
       setUser(null);
       console.log('[useAuth] User signed out successfully');

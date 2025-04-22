@@ -9,7 +9,464 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      achievements: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          title: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          title: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      club_chat_messages: {
+        Row: {
+          club_id: string | null
+          id: string
+          message: string
+          sender_id: string | null
+          timestamp: string
+        }
+        Insert: {
+          club_id?: string | null
+          id?: string
+          message: string
+          sender_id?: string | null
+          timestamp?: string
+        }
+        Update: {
+          club_id?: string | null
+          id?: string
+          message?: string
+          sender_id?: string | null
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_chat_messages_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "club_chat_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      club_members: {
+        Row: {
+          club_id: string
+          is_admin: boolean
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          club_id: string
+          is_admin?: boolean
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          club_id?: string
+          is_admin?: boolean
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_members_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "club_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clubs: {
+        Row: {
+          bio: string | null
+          created_at: string
+          created_by: string | null
+          division: string
+          elite_points: number
+          id: string
+          logo: string | null
+          name: string
+          slug: string
+          tier: number
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          created_by?: string | null
+          division: string
+          elite_points?: number
+          id?: string
+          logo?: string | null
+          name: string
+          slug: string
+          tier: number
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          created_by?: string | null
+          division?: string
+          elite_points?: number
+          id?: string
+          logo?: string | null
+          name?: string
+          slug?: string
+          tier?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clubs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_distances: {
+        Row: {
+          club_id: string | null
+          created_at: string
+          distance: number
+          id: string
+          match_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          club_id?: string | null
+          created_at?: string
+          distance: number
+          id?: string
+          match_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          club_id?: string | null
+          created_at?: string
+          distance?: number
+          id?: string
+          match_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_distances_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_distances_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_distances_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matches: {
+        Row: {
+          away_club_id: string | null
+          created_at: string
+          end_date: string
+          home_club_id: string | null
+          id: string
+          league_after_match: Json | null
+          league_before_match: Json | null
+          start_date: string
+          status: string
+          winner: string | null
+        }
+        Insert: {
+          away_club_id?: string | null
+          created_at?: string
+          end_date: string
+          home_club_id?: string | null
+          id?: string
+          league_after_match?: Json | null
+          league_before_match?: Json | null
+          start_date: string
+          status: string
+          winner?: string | null
+        }
+        Update: {
+          away_club_id?: string | null
+          created_at?: string
+          end_date?: string
+          home_club_id?: string | null
+          id?: string
+          league_after_match?: Json | null
+          league_before_match?: Json | null
+          start_date?: string
+          status?: string
+          winner?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_away_club_id_fkey"
+            columns: ["away_club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_home_club_id_fkey"
+            columns: ["home_club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          club_id: string | null
+          created_at: string
+          data: Json | null
+          description: string | null
+          id: string
+          message: string | null
+          read: boolean
+          status: Database["public"]["Enums"]["notification_status"]
+          title: string | null
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string | null
+        }
+        Insert: {
+          club_id?: string | null
+          created_at?: string
+          data?: Json | null
+          description?: string | null
+          id?: string
+          message?: string | null
+          read?: boolean
+          status?: Database["public"]["Enums"]["notification_status"]
+          title?: string | null
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id?: string | null
+        }
+        Update: {
+          club_id?: string | null
+          created_at?: string
+          data?: Json | null
+          description?: string | null
+          id?: string
+          message?: string | null
+          read?: boolean
+          status?: Database["public"]["Enums"]["notification_status"]
+          title?: string | null
+          type?: Database["public"]["Enums"]["notification_type"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_messages: {
+        Row: {
+          id: string
+          is_support: boolean | null
+          sender_id: string | null
+          text: string
+          ticket_id: string | null
+          timestamp: string
+        }
+        Insert: {
+          id?: string
+          is_support?: boolean | null
+          sender_id?: string | null
+          text: string
+          ticket_id?: string | null
+          timestamp?: string
+        }
+        Update: {
+          id?: string
+          is_support?: boolean | null
+          sender_id?: string | null
+          text?: string
+          ticket_id?: string | null
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          created_at: string
+          id: string
+          subject: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          subject: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          subject?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_achievements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          avatar: string | null
+          bio: string | null
+          created_at: string
+          facebook: string | null
+          id: string
+          instagram: string | null
+          linkedin: string | null
+          name: string
+          tiktok: string | null
+          twitter: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          avatar?: string | null
+          bio?: string | null
+          created_at?: string
+          facebook?: string | null
+          id: string
+          instagram?: string | null
+          linkedin?: string | null
+          name: string
+          tiktok?: string | null
+          twitter?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          avatar?: string | null
+          bio?: string | null
+          created_at?: string
+          facebook?: string | null
+          id?: string
+          instagram?: string | null
+          linkedin?: string | null
+          name?: string
+          tiktok?: string | null
+          twitter?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +475,20 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      notification_status:
+        | "pending"
+        | "accepted"
+        | "rejected"
+        | "read"
+        | "unread"
+      notification_type:
+        | "invite"
+        | "join_request"
+        | "match_result"
+        | "match_start"
+        | "achievement"
+        | "invitation"
+        | "activity"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +603,23 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      notification_status: [
+        "pending",
+        "accepted",
+        "rejected",
+        "read",
+        "unread",
+      ],
+      notification_type: [
+        "invite",
+        "join_request",
+        "match_result",
+        "match_start",
+        "achievement",
+        "invitation",
+        "activity",
+      ],
+    },
   },
 } as const

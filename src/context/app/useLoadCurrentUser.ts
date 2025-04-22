@@ -1,5 +1,4 @@
-
-import { supabase } from '@/integrations/supabase/client';
+import { safeSupabase } from '@/integrations/supabase/safeClient';
 import { User } from '@/types';
 import { ensureDivision } from '@/utils/club/leagueUtils';
 import { toast } from '@/hooks/use-toast';
@@ -9,7 +8,7 @@ export const useLoadCurrentUser = () => {
     try {
       console.log('[useLoadCurrentUser] Loading user data for ID:', userId);
 
-      const { data: userData, error, status, statusText } = await supabase
+      const { data: userData, error, status, statusText } = await safeSupabase
         .from('users')
         .select('id, name, avatar, bio')
         .eq('id', userId)
@@ -38,10 +37,9 @@ export const useLoadCurrentUser = () => {
         toast({
           title: "Missing User Profile",
           description: "Your user account exists but no profile was found in the database. Loading with basic information.",
-          variant: "destructive" // Changed from "warning" to "destructive" as it's a valid variant
+          variant: "destructive"
         });
         
-        // Create a minimal user for the session to continue
         return {
           id: userId,
           name: 'User',
@@ -54,7 +52,7 @@ export const useLoadCurrentUser = () => {
       let clubs = [];
       try {
         console.log('[useLoadCurrentUser] Fetching clubs for user:', userId);
-        const { data: memberships, error: clubsError } = await supabase
+        const { data: memberships, error: clubsError } = await safeSupabase
           .from('club_members')
           .select('club:clubs(id, name, logo, division, tier, elite_points)')
           .eq('user_id', userId);
@@ -116,7 +114,6 @@ export const useLoadCurrentUser = () => {
         variant: "destructive"
       });
       
-      // Return a basic user object so auth flow can continue
       return {
         id: userId,
         name: 'User',

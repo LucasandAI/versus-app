@@ -1,6 +1,5 @@
-
 import { useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { safeSupabase } from '@/integrations/supabase/safeClient';
 import { AppView, User } from '@/types';
 import { useLoadCurrentUser } from './useLoadCurrentUser';
 import { toast } from '@/hooks/use-toast';
@@ -105,7 +104,7 @@ export const useAuthSessionCore = ({
     const checkCurrentSession = async () => {
       try {
         console.log('[useAuthSessionCore] Checking current session');
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const { data: { session }, error } = await safeSupabase.auth.getSession();
         console.log('[useAuthSessionCore] Current session check result:', { 
           hasSession: !!session,
           userId: session?.user?.id,
@@ -149,7 +148,7 @@ export const useAuthSessionCore = ({
     };
 
     // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
+    const { data: { subscription } } = safeSupabase.auth.onAuthStateChange(handleAuthChange);
     
     // Check current session
     checkCurrentSession();

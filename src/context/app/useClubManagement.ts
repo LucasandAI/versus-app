@@ -1,7 +1,6 @@
-
 import { useState } from 'react';
 import { Club, User } from './types';
-import { supabase } from '@/integrations/supabase/client';
+import { safeSupabase } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
 
 export const useClubManagement = (
@@ -22,7 +21,7 @@ export const useClubManagement = (
     
     try {
       // Insert the new club
-      const { data: clubData, error: clubError } = await supabase
+      const { data: clubData, error: clubError } = await safeSupabase
         .from('clubs')
         .insert({
           name,
@@ -42,7 +41,7 @@ export const useClubManagement = (
       }
 
       // Add the creator as an admin member
-      const { error: memberError } = await supabase
+      const { error: memberError } = await safeSupabase
         .from('club_members')
         .insert({
           club_id: clubData.id,
@@ -55,7 +54,7 @@ export const useClubManagement = (
       }
 
       // Fetch the complete club data including members
-      const { data: fullClubData, error: fetchError } = await supabase
+      const { data: fullClubData, error: fetchError } = await safeSupabase
         .from('clubs')
         .select(`
           *,
@@ -79,13 +78,15 @@ export const useClubManagement = (
         tier: fullClubData.tier,
         elitePoints: fullClubData.elite_points || 0,
         bio: fullClubData.bio,
-        members: fullClubData.members.map((member: any) => ({
-          id: member.users.id,
-          name: member.users.name,
-          avatar: member.users.avatar || '/placeholder.svg',
-          isAdmin: member.is_admin,
-          distanceContribution: 0
-        })),
+        members: Array.isArray(fullClubData.members) 
+          ? fullClubData.members.map((member: any) => ({
+              id: member.users.id,
+              name: member.users.name,
+              avatar: member.users.avatar || '/placeholder.svg',
+              isAdmin: member.is_admin,
+              distanceContribution: 0
+            }))
+          : [],
         matchHistory: []
       };
 
@@ -123,4 +124,3 @@ export const useClubManagement = (
     createClub
   };
 };
-

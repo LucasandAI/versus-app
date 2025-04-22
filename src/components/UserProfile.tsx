@@ -14,6 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from "@/components/ui/alert-dialog";
+import { safeSupabase } from '@/integrations/supabase/safeClient';
 
 import UserHeader from './profile/UserHeader';
 import UserClubs from './profile/UserClubs';
@@ -29,8 +30,7 @@ import {
   inProgressAchievements, 
   moreInProgressAchievements 
 } from './profile/data/achievements';
-import { supabase } from '@/integrations/supabase/client';
-import { Club, ClubMember, Division, User } from '@/types';
+import { Club, ClubMember, User } from '@/types';
 import { transformRawMatchesToMatchType } from '@/utils/club/matchHistoryUtils';
 import { ensureDivision } from '@/utils/club/leagueUtils';
 
@@ -59,7 +59,7 @@ const UserProfile: React.FC = () => {
       setLoading(true);
       try {
         // Fetch user data from Supabase
-        const { data: userData, error } = await supabase
+        const { data: userData, error } = await safeSupabase
           .from('users')
           .select('id, name, avatar, bio')
           .eq('id', selectedUser.id)
@@ -71,7 +71,7 @@ const UserProfile: React.FC = () => {
         }
         
         // Fetch user's clubs from Supabase via club_members join table
-        const { data: memberships, error: clubsError } = await supabase
+        const { data: memberships, error: clubsError } = await safeSupabase
           .from('club_members')
           .select('club_id, is_admin, club:clubs(id, name, logo, division, tier, elite_points)')
           .eq('user_id', selectedUser.id);
@@ -88,7 +88,7 @@ const UserProfile: React.FC = () => {
             if (!membership.club) continue;
             
             // Fetch club members
-            const { data: membersData, error: membersError } = await supabase
+            const { data: membersData, error: membersError } = await safeSupabase
               .from('club_members')
               .select('user_id, is_admin, users(id, name, avatar)')
               .eq('club_id', membership.club.id);
@@ -98,8 +98,8 @@ const UserProfile: React.FC = () => {
               continue;
             }
             
-            // Transform members data
-            const members: ClubMember[] = membersData.map(member => ({
+            // Transform members data - using type assertions for now
+            const members: ClubMember[] = membersData.map((member: any) => ({
               id: member.users.id,
               name: member.users.name,
               avatar: member.users.avatar || '/placeholder.svg',
@@ -108,7 +108,7 @@ const UserProfile: React.FC = () => {
             }));
             
             // Fetch match history
-            const { data: matchHistory, error: matchError } = await supabase
+            const { data: matchHistory, error: matchError } = await safeSupabase
               .from('matches')
               .select('*')
               .or(`home_club_id.eq.${membership.club.id},away_club_id.eq.${membership.club.id}`)
@@ -145,10 +145,10 @@ const UserProfile: React.FC = () => {
         
         // Update the selected user with the fetched data
         const updatedUser: User = {
-          id: userData.id,
-          name: userData.name || selectedUser.name,
-          avatar: userData.avatar || selectedUser.avatar,
-          bio: userData.bio,
+          id: userData?.id,
+          name: userData?.name || selectedUser.name,
+          avatar: userData?.avatar || selectedUser.avatar,
+          bio: userData?.bio,
           clubs: clubs
         };
         
