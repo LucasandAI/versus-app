@@ -23,11 +23,13 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   
   // Reset states when image prop changes
   useEffect(() => {
-    if (image) {
-      console.log(`[UserAvatar] Image prop changed to: ${image}`);
-      setImageLoaded(false);
-      setImageError(false);
-    }
+    setImageLoaded(false);
+    setImageError(false);
+  }, [image]);
+
+  // For debugging
+  useEffect(() => {
+    console.log(`[UserAvatar] Rendering with image: ${image}`);
   }, [image]);
 
   const getInitials = (name: string) => {
@@ -60,7 +62,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   };
 
   const handleImageError = () => {
-    console.error(`[UserAvatar] Error loading image: ${image}`);
+    console.log(`[UserAvatar] Error loading image: ${image}`);
     setImageError(true);
   };
 
@@ -69,16 +71,13 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
     setImageLoaded(true);
   };
 
-  // Determine if we should show the image
-  const isValidImage = (url?: string | null): boolean => {
-    if (!url) return false;
-    if (typeof url !== 'string') return false;
-    if (url.trim() === '') return false;
-    if (url === '/placeholder.svg') return false;
-    return true;
+  // Clean up blob URLs to prevent memory leaks
+  const isValidUrl = (url?: string | null) => {
+    return url && typeof url === 'string' && url.trim() !== '' && url !== '/placeholder.svg';
   };
 
-  const shouldShowImage = isValidImage(image) && !imageError;
+  // Show image if it's a valid URL and no error occurred
+  const shouldShowImage = isValidUrl(image) && !imageError;
   const initials = getInitials(name);
 
   return (
@@ -86,7 +85,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
       className={cn(sizeClasses[size], className, onClick ? 'cursor-pointer' : '')}
       onClick={onClick}
     >
-      {shouldShowImage && (
+      {shouldShowImage ? (
         <AvatarImage 
           src={image || ''} 
           alt={name} 
@@ -94,7 +93,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
           onError={handleImageError}
           onLoad={handleImageLoad}
         />
-      )}
+      ) : null}
       
       <AvatarFallback 
         className="bg-primary/10 text-primary font-bold"
