@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { AppProvider, useApp } from '@/context/AppContext';
 import ConnectScreen from '@/components/ConnectScreen';
@@ -14,7 +15,7 @@ const AppContent: React.FC = () => {
   const [chatNotifications, setChatNotifications] = React.useState(0);
 
   useEffect(() => {
-    console.log('[Index] Current view:', currentView, 'Current user:', currentUser ? 'exists' : 'null');
+    console.log('[Index] Current view:', currentView, 'Current user:', currentUser ? currentUser.id : 'null');
   }, [currentView, currentUser]);
 
   React.useEffect(() => {
@@ -29,7 +30,7 @@ const AppContent: React.FC = () => {
           );
           setChatNotifications(Number(totalUnread));
         } catch (error) {
-          console.error("Error parsing unread messages:", error);
+          console.error("[Index] Error parsing unread messages:", error);
           setChatNotifications(0);
         }
       } else {
@@ -107,7 +108,7 @@ const AppContent: React.FC = () => {
         );
         setChatNotifications(Number(totalUnread));
       } catch (error) {
-        console.error("Error parsing unread messages:", error);
+        console.error("[Index] Error parsing unread messages:", error);
       }
     }
     

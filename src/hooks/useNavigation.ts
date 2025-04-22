@@ -8,6 +8,11 @@ export const useNavigation = () => {
   const { handleClubClick, handleJoinRequest } = useClubNavigation();
   
   const navigateToClub = (clubData: Club | Partial<Club>) => {
+    if (!clubData) {
+      console.error('[useNavigation] Cannot navigate to club, missing club data');
+      return;
+    }
+    
     if ('id' in clubData && clubData.id) {
       console.log('[useNavigation] Navigating to club:', clubData.id);
       handleClubClick(clubData.id);
@@ -17,6 +22,11 @@ export const useNavigation = () => {
   };
   
   const navigateToClubDetail = (clubId: string, clubData?: Partial<Club>) => {
+    if (!clubId) {
+      console.error('[useNavigation] Cannot navigate to club detail, missing club ID');
+      return;
+    }
+    
     console.log('[useNavigation] Navigating to club detail:', clubId);
     handleClubClick(clubId);
   };
