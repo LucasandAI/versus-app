@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
@@ -59,7 +58,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
       id: userId,
       name: name,
       avatar: avatar || '/placeholder.svg',
-      stravaConnected: true,
       clubs: []
     });
     setCurrentView('profile');

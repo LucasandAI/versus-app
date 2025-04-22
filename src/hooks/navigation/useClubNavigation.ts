@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club, ClubMember } from '@/types';
@@ -12,17 +11,27 @@ export const useClubNavigation = (): ClubNavigationResult => {
   const { setCurrentView, setSelectedClub } = useApp();
   const [isLoading, setIsLoading] = useState(false);
 
-  const navigateToClubDetail = async (clubId: string, club?: Partial<Club>) => {
+  const navigateToClubDetail = async (clubId: string, initialClub?: Partial<Club>) => {
     setIsLoading(true);
     
     try {
       // Create a temporary club object with basic info while we load data
-      if (club) {
-        setSelectedClub(club as Club);
+      if (initialClub) {
+        const tempClub: Club = {
+          id: clubId,
+          name: initialClub.name || '',
+          logo: initialClub.logo || '/placeholder.svg',
+          division: initialClub.division || 'bronze',
+          tier: initialClub.tier || 1,
+          elitePoints: initialClub.elitePoints || 0,
+          members: [],
+          matchHistory: []
+        };
+        setSelectedClub(tempClub);
         setCurrentView('clubDetail');
       }
       
-      // Fetch club data from Supabase
+      // Fetch full club data
       const { data: clubData, error } = await supabase
         .from('clubs')
         .select('id, name, logo, division, tier, elite_points, bio')

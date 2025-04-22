@@ -47,6 +47,7 @@ export type Database = {
       }
       clubs: {
         Row: {
+          bio: string | null
           created_at: string
           created_by: string | null
           division: string
@@ -58,6 +59,7 @@ export type Database = {
           tier: number
         }
         Insert: {
+          bio?: string | null
           created_at?: string
           created_by?: string | null
           division?: string
@@ -69,6 +71,7 @@ export type Database = {
           tier?: number
         }
         Update: {
+          bio?: string | null
           created_at?: string
           created_by?: string | null
           division?: string

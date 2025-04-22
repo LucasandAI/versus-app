@@ -23,12 +23,19 @@ const ClubDetail: React.FC = () => {
           .select('id, name, logo, division, tier, bio, elite_points')
           .eq('id', selectedClub.id)
           .single();
-          
-        if (error || !clubData) {
-          console.error('Error fetching club:', error);
-          setIsLoading(false);
-          return;
-        }
+        
+      if (error) {
+        console.error('Error fetching club:', error);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!clubData) {
+        console.error('No club data found');
+        setIsLoading(false);
+        return;
+      }
+
         
         // Fetch club members
         const { data: membersData, error: membersError } = await supabase
@@ -228,6 +235,7 @@ const ClubDetail: React.FC = () => {
         };
         
         setSelectedClub(updatedClub);
+        
       } catch (error) {
         console.error('Error loading club data:', error);
       } finally {

@@ -1,4 +1,3 @@
-
 import { Club, Match, Division, ClubMember } from '@/types';
 import { generateMemberDistances, generateOpponentMembers } from './memberDistanceUtils';
 
@@ -18,10 +17,10 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
   console.log(`Generating match history for ${club.name} (${club.division} ${club.tier || 1})`);
 
   // Define division progression path
-  const divisionOrder: Division[] = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Elite'];
+  const divisionOrder: Division[] = ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'elite'];
   
   // Always start from Bronze 5
-  const startingDivision = 'Bronze' as Division;
+  const startingDivision = 'bronze' as Division;
   const startingTier = 5;
   
   // Calculate how many matches needed to reach current division/tier

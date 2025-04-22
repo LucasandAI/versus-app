@@ -1,101 +1,115 @@
-
 import { useState } from 'react';
-import { Club } from '@/types';
-import { useApp } from '@/context/AppContext';
-import { toast } from "@/hooks/use-toast";
+import { supabase } from '@/integrations/supabase/client';
+import { JoinRequest, Club } from '@/types';
+import { toast } from '@/hooks/use-toast';
 
-interface JoinRequest {
-  id: string;
-  userId: string;
-  name: string;
-  avatar: string;
-  requestDate: string;
-}
+export const useJoinRequests = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-export const useJoinRequests = (club: Club) => {
-  const { setSelectedClub, setCurrentUser } = useApp();
-  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([
-    {
-      id: 'req1',
-      userId: 'u10',
-      name: 'Alex Runner',
-      avatar: '/placeholder.svg',
-      requestDate: '2025-04-15T14:48:00.000Z',
-    },
-    {
-      id: 'req2',
-      userId: 'u11',
-      name: 'Sam Speed',
-      avatar: '/placeholder.svg',
-      requestDate: '2025-04-16T09:23:00.000Z',
-    },
-    {
-      id: 'req3',
-      userId: 'u12',
-      name: 'Jamie Jogger',
-      avatar: '/placeholder.svg',
-      requestDate: '2025-04-17T11:05:00.000Z',
-    }
-  ]);
+  const handleAcceptRequest = async (request: JoinRequest, club: Club) => {
+    try {
+      setIsLoading(true);
+      setError(null);
 
-  const isClubFull = club.members.length >= 5;
+      // Optimistically update the UI
+      const updatedClub = {
+        ...club,
+        members: [
+          ...club.members,
+          {
+            id: request.userId,
+            name: request.userName,
+            avatar: request.userAvatar,
+            isAdmin: false,
+            distanceContribution: 0
+          }
+        ]
+      };
 
-  const handleApprove = (request: JoinRequest) => {
-    if (isClubFull) {
+      // Add the user to the club_members table
+      const { error: addMemberError } = await supabase
+        .from('club_members')
+        .insert([
+          {
+            club_id: club.id,
+            user_id: request.userId,
+            is_admin: false,
+            joined_at: new Date().toISOString()
+          }
+        ]);
+
+      if (addMemberError) {
+        throw new Error(`Failed to add member: ${addMemberError.message}`);
+      }
+
+      // Delete the join request from the join_requests table
+      const { error: deleteRequestError } = await supabase
+        .from('join_requests')
+        .delete()
+        .eq('id', request.id);
+
+      if (deleteRequestError) {
+        throw new Error(`Failed to delete request: ${deleteRequestError.message}`);
+      }
+
       toast({
-        title: "Club is full",
-        description: "The club has reached the maximum number of members.",
+        title: "Request accepted",
+        description: `${request.userName} has been added to the club`,
+      });
+
+      return updatedClub;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to accept request";
+      setError(message);
+      toast({
+        title: "Error accepting request",
+        description: message,
         variant: "destructive"
       });
-      return;
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
-    
-    const newMember = {
-      id: request.userId,
-      name: request.name,
-      avatar: request.avatar,
-      isAdmin: false
-    };
-    
-    const updatedMembers = [...club.members, newMember];
-    const updatedClub = { ...club, members: updatedMembers };
-    
-    setSelectedClub(updatedClub);
-    
-    setCurrentUser(prev => {
-      if (!prev) return prev;
-      
-      const updatedClubs = prev.clubs.map(userClub => {
-        if (userClub.id === club.id) {
-          return { ...userClub, members: updatedMembers };
-        }
-        return userClub;
-      });
-      
-      return { ...prev, clubs: updatedClubs };
-    });
-    
-    setJoinRequests(prev => prev.filter(r => r.id !== request.id));
-    
-    toast({
-      title: "Request Approved",
-      description: `${request.name} has been added to the club.`,
-    });
   };
 
-  const handleDeny = (request: JoinRequest) => {
-    setJoinRequests(prev => prev.filter(r => r.id !== request.id));
-    
-    toast({
-      title: "Request Denied",
-      description: `${request.name}'s request has been denied.`,
-    });
+  const handleDeclineRequest = async (request: JoinRequest) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Delete the join request from the join_requests table
+      const { error: deleteRequestError } = await supabase
+        .from('join_requests')
+        .delete()
+        .eq('id', request.id);
+
+      if (deleteRequestError) {
+        throw new Error(`Failed to delete request: ${deleteRequestError.message}`);
+      }
+
+      toast({
+        title: "Request declined",
+        description: `Join request from ${request.userName} has been declined`,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to decline request";
+      setError(message);
+      toast({
+        title: "Error declining request",
+        description: message,
+        variant: "destructive"
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return {
-    joinRequests,
-    isClubFull,
-    handleApprove,
-    handleDeny
+    isLoading,
+    error,
+    handleAcceptRequest,
+    handleDeclineRequest
   };
 };

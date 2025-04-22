@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthState, AuthActions } from './types';
@@ -27,7 +26,7 @@ export const useAuth = (): AuthState & AuthActions => {
       // Fetch user profile data
       const { data: userData, error: profileError } = await supabase
         .from('users')
-        .select('id, name, avatar, bio, clubs(id, name, logo, division, tier, elite_points)')
+        .select('id, name, avatar, bio, clubs(id, name, logo, division, tier, elite_points, bio)')
         .eq('id', authData.user.id)
         .single();
         
