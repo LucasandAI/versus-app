@@ -6,12 +6,16 @@ import { useProfileState } from './profile/hooks/useProfileState';
 import UserProfileMainContent from './profile/UserProfileMainContent';
 import UserProfileDialogs from './profile/UserProfileDialogs';
 import { useUserProfileStateLogic } from './profile/hooks/useUserProfileStateLogic';
-
-// NOTE: This file has been refactored for maintainability.
-// You may want to further break down props/state if any subcomponent grows too large.
+import { clearAllAuthData } from '@/integrations/supabase/safeClient'; // Import the clear method
 
 const UserProfile: React.FC = () => {
-  const { currentUser, selectedUser, setCurrentUser, setCurrentView, setSelectedClub } = useApp();
+  const { 
+    currentUser, 
+    selectedUser, 
+    setCurrentUser, 
+    setCurrentView, 
+    setSelectedClub 
+  } = useApp();
   const isMobile = useIsMobile();
 
   const {
@@ -36,9 +40,14 @@ const UserProfile: React.FC = () => {
   const isCurrentUserProfile = currentUser?.id === selectedUser?.id;
   const showInviteButton = !isCurrentUserProfile && adminClubs.length > 0;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Use clearAllAuthData to fully clear the session
+    await clearAllAuthData();
+    
+    // Reset application state
     setCurrentUser(null);
     setCurrentView('connect');
+    setSelectedClub(null);
     setLogoutDialogOpen(false);
   };
 
