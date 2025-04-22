@@ -23,6 +23,7 @@ export const useAuthSessionEffect = ({
   setAuthChecked,
   setAuthError,
 }: Props) => {
+  // Initial setup effect
   useEffect(() => {
     // Set initial state - we don't want to show loading until user attempts login
     setAuthChecked(true);

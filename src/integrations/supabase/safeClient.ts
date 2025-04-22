@@ -11,8 +11,6 @@ export const safeSupabase = {
     return supabase.from(table as any) as any;
   },
   auth: {
-    ...supabase.auth,
-    
     // Wrap signInWithPassword to add better error handling
     signInWithPassword: async (credentials: { email: string; password: string }) => {
       try {
@@ -34,10 +32,14 @@ export const safeSupabase = {
       }
     },
     
+    // Safely wrap onAuthStateChange
+    onAuthStateChange: (callback) => {
+      return supabase.auth.onAuthStateChange(callback);
+    },
+    
     // Pass through other auth methods directly
-    onAuthStateChange: supabase.auth.onAuthStateChange,
-    getSession: supabase.auth.getSession,
-    signOut: supabase.auth.signOut
+    getSession: () => supabase.auth.getSession(),
+    signOut: () => supabase.auth.signOut()
   },
   storage: supabase.storage
 };

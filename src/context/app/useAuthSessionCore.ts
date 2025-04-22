@@ -32,7 +32,7 @@ export const useAuthSessionCore = ({
     console.log('[useAuthSessionCore] Setting up auth session listener');
 
     // First, set up the auth state change listener
-    const { data: { subscription } } = safeSupabase.auth.onAuthStateChange(async (event, session) => {
+    const { data } = safeSupabase.auth.onAuthStateChange(async (event, session) => {
       console.log('[useAuthSessionCore] Auth state changed:', { event, userId: session?.user?.id });
       
       if (!isMounted) return;
@@ -60,6 +60,7 @@ export const useAuthSessionCore = ({
             setCurrentUser(basicUser);
             
             // Fetch full user profile in the background
+            // Using setTimeout to avoid potential deadlocks with Supabase auth
             setTimeout(async () => {
               if (!isMounted) return;
               
@@ -115,37 +116,46 @@ export const useAuthSessionCore = ({
     });
     
     // Then, check for an existing session, but don't show loading screen
-    safeSupabase.auth.getSession().then(({ data: { session }, error }) => {
+    // Using setTimeout to avoid potential deadlocks with the auth state change listener
+    setTimeout(() => {
       if (!isMounted) return;
       
-      console.log('[useAuthSessionCore] Initial session check:', { 
-        hasSession: !!session,
-        userId: session?.user?.id,
-        error: error?.message
+      safeSupabase.auth.getSession().then(({ data: { session }, error }) => {
+        if (!isMounted) return;
+        
+        console.log('[useAuthSessionCore] Initial session check:', { 
+          hasSession: !!session,
+          userId: session?.user?.id,
+          error: error?.message
+        });
+        
+        if (error) {
+          console.error('[useAuthSessionCore] Session check error:', error);
+          setAuthError(error.message);
+          setAuthChecked(true);
+          setUserLoading(false);
+          setCurrentView('connect');
+          return;
+        }
+        
+        if (!session) {
+          // No session found, staying on connect view
+          setAuthChecked(true);
+          setUserLoading(false);
+          setCurrentView('connect');
+        }
+        // If session exists, the onAuthStateChange handler will be triggered
       });
-      
-      if (error) {
-        console.error('[useAuthSessionCore] Session check error:', error);
-        setAuthError(error.message);
-        setAuthChecked(true);
-        setUserLoading(false);
-        setCurrentView('connect');
-        return;
-      }
-      
-      if (!session) {
-        // No session found, staying on connect view
-        setAuthChecked(true);
-        setUserLoading(false);
-        setCurrentView('connect');
-      }
-      // If session exists, the onAuthStateChange handler will be triggered
-    });
+    }, 0);
 
     return () => {
       isMounted = false;
-      subscription.unsubscribe();
       clearTimeout(authTimeoutId);
+      
+      // Clean up the subscription
+      if (data && data.subscription && typeof data.subscription.unsubscribe === 'function') {
+        data.subscription.unsubscribe();
+      }
     };
   }, [setCurrentUser, setCurrentView, setUserLoading, setAuthChecked, setAuthError, loadCurrentUser]);
 };
