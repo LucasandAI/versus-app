@@ -1,9 +1,7 @@
-
 import React, { useEffect } from 'react';
 import LoginForm from './auth/LoginForm';
 import { clearAllAuthData } from '@/integrations/supabase/safeClient';
 import { Button } from './ui/button';
-import { CheckCircle } from 'lucide-react';
 
 const ConnectScreen: React.FC = () => {
   // Force logout when this component mounts to ensure clean testing state
@@ -36,9 +34,7 @@ const ConnectScreen: React.FC = () => {
           </h2>
         </div>
 
-        <LoginForm />
-        
-        <div className="bg-white shadow-md rounded-lg p-6 mt-6">
+        <div className="bg-white shadow-md rounded-lg p-6 mb-6">
           <div className="space-y-4">
             {[
               { 
@@ -69,6 +65,8 @@ const ConnectScreen: React.FC = () => {
             ))}
           </div>
         </div>
+
+        <LoginForm />
         
         <div className="pt-4 text-sm text-gray-500">
           <Button 
