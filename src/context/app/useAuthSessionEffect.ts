@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -12,7 +13,7 @@ interface Props {
   setAuthError: (error: string | null) => void;
 }
 
-export const AUTH_TIMEOUT = 10000; // Increased from 5000 to 10000 (10 seconds)
+export const AUTH_TIMEOUT = 10000; // 10 seconds timeout
 
 export const useAuthSessionEffect = ({
   setCurrentUser,
@@ -92,15 +93,14 @@ export const useAuthSessionEffect = ({
               description: `Signed in as ${userProfile.name || userProfile.id}`,
             });
           } else {
-            // TEMPORARY: Instead of redirecting to connect screen, log a warning and proceed
-            console.warn('[useAuthSessionEffect] User row missing in users table for id', session.user.id);
+            // Create a minimal user object to prevent logout
+            console.warn('[useAuthSessionEffect] User profile missing or incomplete for id', session.user.id);
             toast({
               title: "Profile Warning",
-              description: "Your user profile was not found, but you can still use basic features. Please check your database.",
+              description: "Your profile data is incomplete but you can continue to use the app.",
               variant: "destructive"
             });
             
-            // Create a minimal user object from auth data to allow login
             const minimalUser: User = {
               id: session.user.id,
               name: session.user.email || 'User',
@@ -113,12 +113,23 @@ export const useAuthSessionEffect = ({
           }
         } catch (profileError) {
           console.error('[useAuthSessionEffect] Failed to load user profile:', profileError);
+          
+          // Don't log out - use minimal profile data
+          const minimalUser: User = {
+            id: session.user.id,
+            name: session.user.email || 'User',
+            avatar: '/placeholder.svg',
+            bio: '',
+            clubs: []
+          };
+          setCurrentUser(minimalUser);
+          setCurrentView('home');
+          
           toast({
             title: "Profile Load Error",
-            description: profileError instanceof Error ? profileError.message : "Unknown error loading profile",
+            description: "There was an error loading your full profile, but you're still logged in.",
             variant: "destructive"
           });
-          // Keep current view - don't redirect to login if we have a valid session
         }
       } catch (error) {
         setAuthChecked(true);
@@ -160,13 +171,8 @@ export const useAuthSessionEffect = ({
                   description: `Signed in as ${userProfile.name || userProfile.id}`,
                 });
               } else {
-                // TEMPORARY: Create minimal user to bypass redirect
+                // Use minimal user to avoid logout
                 console.warn('[useAuthSessionEffect] Creating minimal user object to bypass redirect');
-                toast({
-                  title: "Profile Warning",
-                  description: "Your user profile could not be loaded fully, but you can still use basic features.",
-                  variant: "destructive"
-                });
                 
                 // Create a minimal user object from auth data
                 const minimalUser: User = {
@@ -178,15 +184,16 @@ export const useAuthSessionEffect = ({
                 };
                 setCurrentUser(minimalUser);
                 setCurrentView('home');
+                
+                toast({
+                  title: "Profile Warning",
+                  description: "Your profile data is incomplete but you can continue to use the app.",
+                  variant: "destructive"
+                });
               }
             } catch (profileError) {
               console.error('[useAuthSessionEffect] Error loading user profile after sign-in:', profileError);
-              toast({
-                title: "Profile Load Error",
-                description: "There was an error loading your profile: " + 
-                  (profileError instanceof Error ? profileError.message : "Unknown error"),
-                variant: "destructive"
-              });
+              
               // Allow login with minimal profile instead of redirecting to login
               const minimalUser: User = {
                 id: session.user.id,
@@ -197,6 +204,12 @@ export const useAuthSessionEffect = ({
               };
               setCurrentUser(minimalUser);
               setCurrentView('home');
+              
+              toast({
+                title: "Profile Load Warning",
+                description: "There was an issue loading your complete profile, but you can still use the app.",
+                variant: "destructive"
+              });
             }
           } finally {
             setUserLoading(false);

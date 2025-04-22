@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthState, AuthActions } from './types';
@@ -19,18 +20,32 @@ export const useAuth = (): AuthState & AuthActions => {
         email,
         password
       });
-      console.log("[useAuth] signInWithPassword result:", { authData, authError });
+      console.log("[useAuth] signInWithPassword result:", { 
+        user: authData?.user?.id, 
+        hasSession: !!authData?.session,
+        authError
+      });
 
       const sessionNow = await supabase.auth.getSession();
-      console.log("[useAuth] Session immediately after sign-in:", sessionNow);
+      console.log("[useAuth] Session immediately after sign-in:", {
+        hasSession: !!sessionNow.data.session,
+        userId: sessionNow.data.session?.user?.id
+      });
 
       if (authError) throw new Error(authError.message);
       if (!authData.user) throw new Error('No user data returned');
       
-      // Don't set the user here - AppContext will handle loading the full profile
-      // This makes sure we don't have race conditions
-
-      return authData.user as unknown as User; // Return the user to indicate successful login
+      // Return a basic user object to indicate successful login
+      // The AppContext will handle loading the full profile
+      const basicUser: User = {
+        id: authData.user.id,
+        name: authData.user.email || 'User',
+        avatar: '/placeholder.svg',
+        bio: '',
+        clubs: []
+      };
+      
+      return basicUser;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to sign in";
       setError(message);

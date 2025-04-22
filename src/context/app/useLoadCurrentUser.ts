@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/types';
 import { ensureDivision } from '@/utils/club/leagueUtils';
@@ -39,7 +40,15 @@ export const useLoadCurrentUser = () => {
           description: "Your user account exists but no profile was found. You may need to create a profile row in the users table.",
           variant: "destructive"
         });
-        return null;
+        
+        // Create a minimal user for the session to continue
+        return {
+          id: userId,
+          name: 'User',
+          avatar: '/placeholder.svg',
+          bio: '',
+          clubs: []
+        };
       }
 
       let clubs = [];
@@ -106,7 +115,15 @@ export const useLoadCurrentUser = () => {
         description: error instanceof Error ? error.message : "Unknown error loading profile",
         variant: "destructive"
       });
-      throw error;
+      
+      // Return a basic user object so auth flow can continue
+      return {
+        id: userId,
+        name: 'User',
+        avatar: '/placeholder.svg',
+        bio: '',
+        clubs: []
+      };
     }
   };
   return { loadCurrentUser };
