@@ -133,13 +133,14 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
         <div className="container-mobile flex items-center">
           <button 
             onClick={onBack} 
-            className="mr-auto text-white hover:bg-primary/80 rounded-full p-2 transition-colors"
+            className="text-white hover:bg-primary/80 rounded-full p-2 transition-colors"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h1 className="text-xl font-bold absolute left-1/2 transform -translate-x-1/2">
+          <h1 className="text-xl font-bold flex-1 text-center">
             {club.name}
           </h1>
+          <div className="w-10" /> {/* Spacer to balance the layout */}
         </div>
       </div>
 
@@ -185,4 +186,3 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
 };
 
 export default ClubHeader;
-
