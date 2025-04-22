@@ -1,11 +1,10 @@
+
 import { useApp } from '@/context/AppContext';
-import { useRouter } from 'next/navigation';
 import { toast } from "@/hooks/use-toast";
 import { createNotification } from '@/utils/notification-queries';
 
 export const useClubNavigation = () => {
   const { currentUser, setCurrentView, setSelectedClub } = useApp();
-  const router = useRouter();
 
   const handleClubClick = (clubId: string) => {
     setSelectedClub({ id: clubId } as any);
