@@ -2,12 +2,12 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { User } from '@/types';
+import { User, AppView } from '@/types';
 import { useLoadCurrentUser } from './useLoadCurrentUser';
 
 interface Props {
   setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>;
-  setCurrentView: (view: string) => void;
+  setCurrentView: React.Dispatch<React.SetStateAction<AppView>>;
   setUserLoading: (loading: boolean) => void;
   setAuthChecked: (checked: boolean) => void;
   setAuthError: (error: string | null) => void;
