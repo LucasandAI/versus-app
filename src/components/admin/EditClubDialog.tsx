@@ -17,6 +17,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Save, Upload } from 'lucide-react';
 import { Textarea } from "@/components/ui/textarea";
 import { useApp } from '@/context/AppContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface EditClubDialogProps {
   open: boolean;
@@ -33,27 +34,61 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
   const [name, setName] = useState(club.name);
   const [bio, setBio] = useState(club.bio || 'A club for enthusiastic runners');
   const [logoPreview, setLogoPreview] = useState(club.logo || '/placeholder.svg');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
   
-  // Reset form when club or open state changes
   React.useEffect(() => {
     if (open && club) {
       setName(club.name);
       setBio(club.bio || 'A club for enthusiastic runners');
       setLogoPreview(club.logo || '/placeholder.svg');
+      setLogoFile(null);
     }
   }, [club, open]);
   
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // In a real app, this would upload the file to a storage service
-      // For now, we'll just create a temporary URL
+      setLogoFile(file);
       const previewUrl = URL.createObjectURL(file);
       setLogoPreview(previewUrl);
     }
   };
 
-  const handleSave = () => {
+  const uploadLogoIfNeeded = async () => {
+    if (!logoFile) return club.logo; // no change
+    try {
+      // Use club id and timestamp for filename to avoid clashes
+      const ext = logoFile.name.split('.').pop();
+      const logoPath = `${club.id}/${Date.now()}.${ext}`;
+
+      const { data, error } = await supabase
+        .storage
+        .from('club-logos')
+        .upload(logoPath, logoFile, { upsert: true });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Get public URL
+      const { data: publicUrlData } = supabase
+        .storage
+        .from('club-logos')
+        .getPublicUrl(logoPath);
+        
+      return publicUrlData?.publicUrl;
+    } catch (e) {
+      toast({
+        title: "Logo Upload Failed",
+        description: e instanceof Error ? e.message : "Error uploading logo.",
+        variant: "destructive",
+      });
+      return club.logo || '/placeholder.svg';
+    }
+  };
+
+  const handleSave = async () => {
     if (!name.trim()) {
       toast({
         title: "Error",
@@ -62,46 +97,60 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
       });
       return;
     }
-    
-    // Create an updated club with the new details
-    const updatedClub = {
-      ...club,
-      name: name.trim(),
-      bio: bio.trim(),
-      logo: logoPreview
-    };
-    
-    // Update the club in the context
-    setSelectedClub(updatedClub);
-    
-    // Update the club in user's clubs list
-    setCurrentUser(prev => {
-      if (!prev) return prev;
-      
-      const updatedClubs = prev.clubs.map(userClub => {
-        if (userClub.id === club.id) {
-          return {
-            ...userClub,
-            name: name.trim(),
-            bio: bio.trim(),
-            logo: logoPreview
-          };
-        }
-        return userClub;
-      });
-      
-      return {
-        ...prev,
-        clubs: updatedClubs
+    setLoading(true);
+
+    try {
+      // 1. Upload logo if new file selected
+      const logoUrl = await uploadLogoIfNeeded();
+
+      // 2. Update club in DB
+      const { error: updateError } = await supabase
+        .from('clubs')
+        .update({
+          name: name.trim(),
+          bio: bio.trim(),
+          logo: logoUrl,
+        })
+        .eq('id', club.id);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      // 3. Update context (selectedClub and clubs array for user)
+      const updatedClub = {
+        ...club,
+        name: name.trim(),
+        bio: bio.trim(),
+        logo: logoUrl,
       };
-    });
-    
-    toast({
-      title: "Club Updated",
-      description: "The club details have been updated successfully.",
-    });
-    
-    onOpenChange(false);
+      setSelectedClub(updatedClub);
+
+      setCurrentUser(prev => {
+        if (!prev) return prev;
+        const updatedClubs = prev.clubs.map(userClub =>
+          userClub.id === club.id
+            ? { ...userClub, name: name.trim(), bio: bio.trim(), logo: logoUrl }
+            : userClub
+        );
+        return { ...prev, clubs: updatedClubs };
+      });
+
+      toast({
+        title: "Club Updated",
+        description: "The club details have been updated.",
+      });
+
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: "Error Updating Club",
+        description: error instanceof Error ? error.message : "Something went wrong.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -146,6 +195,7 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
                 value={name} 
                 onChange={(e) => setName(e.target.value)} 
                 placeholder="Enter club name"
+                disabled={loading}
               />
             </div>
             
@@ -157,6 +207,7 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
                 onChange={(e) => setBio(e.target.value)} 
                 placeholder="Enter club bio"
                 rows={4}
+                disabled={loading}
               />
             </div>
           </div>
@@ -164,11 +215,11 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
 
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
+            <Button variant="outline" disabled={loading}>Cancel</Button>
           </DialogClose>
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} disabled={loading}>
             <Save className="mr-2 h-4 w-4" />
-            Save Changes
+            {loading ? "Saving..." : "Save Changes"}
           </Button>
         </DialogFooter>
       </DialogContent>
