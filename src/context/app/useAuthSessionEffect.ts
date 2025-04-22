@@ -97,7 +97,7 @@ export const useAuthSessionEffect = ({
             toast({
               title: "Profile Warning",
               description: "Your user profile was not found, but you can still use basic features. Please check your database.",
-              variant: "warning"
+              variant: "destructive"
             });
             
             // Create a minimal user object from auth data to allow login
@@ -165,7 +165,7 @@ export const useAuthSessionEffect = ({
                 toast({
                   title: "Profile Warning",
                   description: "Your user profile could not be loaded fully, but you can still use basic features.",
-                  variant: "warning"
+                  variant: "destructive"
                 });
                 
                 // Create a minimal user object from auth data

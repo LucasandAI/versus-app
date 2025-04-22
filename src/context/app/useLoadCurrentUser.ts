@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/types';
 import { ensureDivision } from '@/utils/club/leagueUtils';
@@ -9,7 +8,6 @@ export const useLoadCurrentUser = () => {
     try {
       console.log('[useLoadCurrentUser] Loading user data for ID:', userId);
 
-      // First verify if the user exists in the users table
       const { data: userData, error, status, statusText } = await supabase
         .from('users')
         .select('id, name, avatar, bio')
@@ -63,7 +61,7 @@ export const useLoadCurrentUser = () => {
           toast({
             title: "Club Data Error",
             description: "Error loading your clubs: " + clubsError.message,
-            variant: "warning"
+            variant: "destructive"
           });
         } else {
           clubs = memberships && memberships.length > 0
@@ -84,17 +82,16 @@ export const useLoadCurrentUser = () => {
         }
       } catch (clubsError) {
         console.error('[useLoadCurrentUser] Error in clubs loading:', clubsError);
-        // Don't fail the whole login just because clubs failed to load
         toast({
           title: "Club Data Error",
           description: "Failed to load your clubs, but login will proceed.",
-          variant: "warning"
+          variant: "destructive"
         });
       }
 
       const userProfile: User = {
         id: userData.id,
-        name: userData.name || 'User',  // Provide default name if missing
+        name: userData.name || 'User',
         avatar: userData.avatar || '/placeholder.svg',
         bio: userData.bio || '',
         clubs: clubs
@@ -103,7 +100,6 @@ export const useLoadCurrentUser = () => {
       console.log('[useLoadCurrentUser] Successfully built user profile:', userProfile);
       return userProfile;
     } catch (error) {
-      // Log the error and surface
       console.error('[useLoadCurrentUser] Error in loadCurrentUser:', error);
       toast({
         title: "Profile Load Error",
