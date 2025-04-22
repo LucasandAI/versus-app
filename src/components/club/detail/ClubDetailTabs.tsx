@@ -11,14 +11,12 @@ interface ClubDetailTabsProps {
   club: Club;
   isActuallyMember: boolean;
   currentUser: User | null;
-  onClubUpdated?: () => void;
 }
 
 const ClubDetailTabs: React.FC<ClubDetailTabsProps> = ({ 
   club, 
   isActuallyMember, 
-  currentUser,
-  onClubUpdated
+  currentUser 
 }) => {
   const { navigateToUserProfile } = useNavigation();
 
@@ -39,7 +37,6 @@ const ClubDetailTabs: React.FC<ClubDetailTabsProps> = ({
           club={club}
           currentUser={currentUser}
           onSelectUser={handleSelectUser}
-          onClubUpdated={onClubUpdated}
         />
       </TabsContent>
       

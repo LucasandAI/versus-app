@@ -12,13 +12,9 @@ import { useClubActions } from '@/hooks/club/useClubActions';
 
 interface ClubDetailContentProps {
   club: Club;
-  onClubUpdated?: () => void;
 }
 
-const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ 
-  club,
-  onClubUpdated
-}) => {
+const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
   const { currentUser, setCurrentView } = useApp();
   const { handleRequestToJoin } = useClubJoin();
   
@@ -63,7 +59,6 @@ const ClubDetailContent: React.FC<ClubDetailContentProps> = ({
           club={club}
           isActuallyMember={isActuallyMember}
           currentUser={currentUser}
-          onClubUpdated={onClubUpdated}
         />
       </div>
 

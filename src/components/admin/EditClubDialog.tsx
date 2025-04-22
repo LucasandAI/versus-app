@@ -11,24 +11,24 @@ import {
   DialogDescription
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Save } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
+import { Save, Upload } from 'lucide-react';
+import { Textarea } from "@/components/ui/textarea";
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
-import EditClubForm from './EditClubForm';
 
 interface EditClubDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   club: Club;
-  onClubUpdated?: () => void;
 }
 
-const EditClubDialog: React.FC<EditClubDialogProps> = ({
-  open,
-  onOpenChange,
-  club,
-  onClubUpdated
+const EditClubDialog: React.FC<EditClubDialogProps> = ({ 
+  open, 
+  onOpenChange, 
+  club 
 }) => {
   const { setSelectedClub, setCurrentUser } = useApp();
   const [name, setName] = useState(club.name);
@@ -36,7 +36,7 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
   const [logoPreview, setLogoPreview] = useState(club.logo || '/placeholder.svg');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-
+  
   React.useEffect(() => {
     if (open && club) {
       setName(club.name);
@@ -45,7 +45,7 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
       setLogoFile(null);
     }
   }, [club, open]);
-
+  
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -58,17 +58,25 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
   const uploadLogoIfNeeded = async () => {
     if (!logoFile) return club.logo; // no change
     try {
+      // Use club id and timestamp for filename to avoid clashes
       const ext = logoFile.name.split('.').pop();
       const logoPath = `${club.id}/${Date.now()}.${ext}`;
+
       const { data, error } = await supabase
         .storage
         .from('club-logos')
         .upload(logoPath, logoFile, { upsert: true });
-      if (error) throw new Error(error.message);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Get public URL
       const { data: publicUrlData } = supabase
         .storage
         .from('club-logos')
         .getPublicUrl(logoPath);
+        
       return publicUrlData?.publicUrl;
     } catch (e) {
       toast({
@@ -90,8 +98,12 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
       return;
     }
     setLoading(true);
+
     try {
+      // 1. Upload logo if new file selected
       const logoUrl = await uploadLogoIfNeeded();
+
+      // 2. Update club in DB
       const { error: updateError } = await supabase
         .from('clubs')
         .update({
@@ -100,9 +112,12 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
           logo: logoUrl,
         })
         .eq('id', club.id);
-      if (updateError) throw new Error(updateError.message);
 
-      // Optimistically update context (user's clubs and selected club)
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      // 3. Update context (selectedClub and clubs array for user)
       const updatedClub = {
         ...club,
         name: name.trim(),
@@ -126,10 +141,6 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
         description: "The club details have been updated.",
       });
 
-      // Call the refresh function if provided
-      if (onClubUpdated) {
-        onClubUpdated();
-      }
       onOpenChange(false);
     } catch (error) {
       toast({
@@ -147,27 +158,64 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Club Details</DialogTitle>
-          <DialogDescription>
-            Make changes to your club's profile here.
-          </DialogDescription>
+          <DialogDescription>Make changes to your club's profile here.</DialogDescription>
         </DialogHeader>
+
         <div className="py-4">
-          <EditClubForm
-            name={name}
-            setName={setName}
-            bio={bio}
-            setBio={setBio}
-            logoPreview={logoPreview}
-            clubName={name}
-            onLogoChange={handleLogoChange}
-            loading={loading}
-          />
+          <div className="space-y-6">
+            <div className="flex flex-col items-center gap-3">
+              <div className="relative">
+                <img 
+                  src={logoPreview} 
+                  alt={name} 
+                  className="h-24 w-24 rounded-full object-cover border"
+                />
+                <label 
+                  htmlFor="logo-upload" 
+                  className="absolute bottom-0 right-0 bg-primary text-white p-1.5 rounded-full cursor-pointer shadow-md"
+                >
+                  <Upload className="h-4 w-4" />
+                  <span className="sr-only">Upload logo</span>
+                </label>
+                <input 
+                  id="logo-upload" 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={handleLogoChange}
+                />
+              </div>
+              <p className="text-xs text-gray-500">Click the icon to upload a new logo</p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="club-name">Club Name</Label>
+              <Input 
+                id="club-name" 
+                value={name} 
+                onChange={(e) => setName(e.target.value)} 
+                placeholder="Enter club name"
+                disabled={loading}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="club-bio">Club Bio</Label>
+              <Textarea 
+                id="club-bio" 
+                value={bio} 
+                onChange={(e) => setBio(e.target.value)} 
+                placeholder="Enter club bio"
+                rows={4}
+                disabled={loading}
+              />
+            </div>
+          </div>
         </div>
+
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant="outline" disabled={loading}>
-              Cancel
-            </Button>
+            <Button variant="outline" disabled={loading}>Cancel</Button>
           </DialogClose>
           <Button onClick={handleSave} disabled={loading}>
             <Save className="mr-2 h-4 w-4" />
