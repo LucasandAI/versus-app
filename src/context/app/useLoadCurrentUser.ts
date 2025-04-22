@@ -37,8 +37,8 @@ export const useLoadCurrentUser = () => {
         console.warn('[useLoadCurrentUser] No user row found in users table for ID:', userId);
         toast({
           title: "Missing User Profile",
-          description: "Your user account exists but no profile was found. You may need to create a profile row in the users table.",
-          variant: "destructive"
+          description: "Your user account exists but no profile was found in the database. Loading with basic information.",
+          variant: "warning"
         });
         
         // Create a minimal user for the session to continue

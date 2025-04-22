@@ -39,6 +39,12 @@ export const useAuth = (): AuthState & AuthActions => {
         clubs: []
       };
       
+      toast({
+        title: "Authentication successful",
+        description: "Loading your profile...",
+      });
+      
+      console.log('[useAuth] Returning basic user:', basicUser.id);
       return basicUser;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to sign in";

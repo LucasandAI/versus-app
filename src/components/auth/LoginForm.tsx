@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,6 +29,8 @@ const LoginForm: React.FC = () => {
   });
 
   const onSubmit = async (values: FormValues) => {
+    if (isLoading) return; // Prevent multiple submissions
+    
     setIsLoading(true);
     setError(null);
     
@@ -39,12 +40,14 @@ const LoginForm: React.FC = () => {
       
       if (user) {
         console.log('[LoginForm] Sign-in successful:', user.id);
+        // Show we're processing but let auth state listener handle navigation
         toast({
           title: 'Login successful',
           description: 'Welcome back!',
           variant: 'default',
         });
         // The navigation will be handled by the auth state change listener
+        // We'll keep isLoading true to prevent multiple submissions
       } else {
         setError("Login failed. Please try again.");
         setIsLoading(false);

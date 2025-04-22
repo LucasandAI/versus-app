@@ -21,12 +21,14 @@ export const useAuthSessionEffect = ({
   setAuthChecked,
   setAuthError,
 }: Props) => {
-  // Setup the auth session core
+  // Setup the initial loading state
   useEffect(() => {
     // Set initial loading state in the effect
+    // This ensures it only runs once
     setUserLoading(true);
   }, []); // Empty dependency array ensures this only runs once
   
+  // Setup the auth session core
   useAuthSessionCore({
     setCurrentUser,
     setCurrentView,
