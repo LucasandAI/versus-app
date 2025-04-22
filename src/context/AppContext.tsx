@@ -6,6 +6,7 @@ import { useClubManagement } from './app/useClubManagement';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useViewState } from '@/hooks/navigation/useViewState';
 import { supabase } from '@/integrations/supabase/client';
+import { ensureDivision } from '@/utils/club/leagueUtils';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -43,7 +44,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           id: membership.club.id,
           name: membership.club.name,
           logo: membership.club.logo || '/placeholder.svg',
-          division: membership.club.division,
+          division: ensureDivision(membership.club.division),
           tier: membership.club.tier || 1,
           elitePoints: membership.club.elite_points || 0,
           members: [],
@@ -100,7 +101,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  const value = {
+  const value: AppContextType = {
     currentUser,
     currentView,
     selectedClub,

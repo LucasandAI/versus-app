@@ -30,8 +30,9 @@ import {
   moreInProgressAchievements 
 } from './profile/data/achievements';
 import { supabase } from '@/integrations/supabase/client';
-import { Club, ClubMember, User } from '@/types';
+import { Club, ClubMember, Division, User } from '@/types';
 import { transformRawMatchesToMatchType } from '@/utils/club/matchHistoryUtils';
+import { ensureDivision } from '@/utils/club/leagueUtils';
 
 const UserProfile: React.FC = () => {
   const { currentUser, selectedUser, setCurrentUser, setSelectedUser, setCurrentView, setSelectedClub } = useApp();
@@ -72,7 +73,7 @@ const UserProfile: React.FC = () => {
         // Fetch user's clubs from Supabase via club_members join table
         const { data: memberships, error: clubsError } = await supabase
           .from('club_members')
-          .select('club_id, is_admin, club:clubs(id, name, logo, division, tier)')
+          .select('club_id, is_admin, club:clubs(id, name, logo, division, tier, elite_points)')
           .eq('user_id', selectedUser.id);
           
         if (clubsError) {
@@ -120,14 +121,17 @@ const UserProfile: React.FC = () => {
             // Transform match data
             const transformedMatches = transformRawMatchesToMatchType(matchHistory || [], membership.club.id);
             
+            // Determine correct division value
+            const divisionValue = ensureDivision(membership.club.division);
+            
             // Transform club data
             clubs.push({
               id: membership.club.id,
               name: membership.club.name,
               logo: membership.club.logo || '/placeholder.svg',
-              division: membership.club.division.toLowerCase(),
+              division: divisionValue,
               tier: membership.club.tier || 1,
-              elitePoints: 0, // Default since we don't have this column yet
+              elitePoints: membership.club.elite_points || 0,
               members: members,
               matchHistory: transformedMatches
             });

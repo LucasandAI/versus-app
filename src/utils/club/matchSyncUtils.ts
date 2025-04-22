@@ -1,5 +1,6 @@
+
 import { Club } from '@/types';
-import { calculateNewDivisionAndTier } from './leagueUtils';
+import { calculateNewDivisionAndTier, ensureDivision } from './leagueUtils';
 
 export const syncClubDivisionWithMatchHistory = (club: Club): Club => {
   if (!club.matchHistory || club.matchHistory.length === 0) {
@@ -20,14 +21,18 @@ export const syncClubDivisionWithMatchHistory = (club: Club): Club => {
   // If the latest match has league data, use it to update the club's division/tier
   if (latestMatch.leagueAfterMatch) {
     console.log("Using leagueAfterMatch from latest match:", latestMatch.leagueAfterMatch);
+    
+    // Ensure division is valid
+    const division = ensureDivision(latestMatch.leagueAfterMatch.division);
+    
     return {
       ...club,
-      division: latestMatch.leagueAfterMatch.division,
+      division,
       tier: latestMatch.leagueAfterMatch.tier || 1,
       // Include elite points if available
-      ...(latestMatch.leagueAfterMatch.elitePoints !== undefined && {
-        elitePoints: latestMatch.leagueAfterMatch.elitePoints
-      })
+      elitePoints: latestMatch.leagueAfterMatch.elitePoints !== undefined ? 
+        latestMatch.leagueAfterMatch.elitePoints : 
+        (division === 'elite' ? club.elitePoints : 0)
     };
   }
 
@@ -50,6 +55,8 @@ export const syncClubDivisionWithMatchHistory = (club: Club): Club => {
     ...club,
     division: newDivisionAndTier.division,
     tier: newDivisionAndTier.tier,
-    elitePoints: newDivisionAndTier.elitePoints || club.elitePoints
+    elitePoints: newDivisionAndTier.elitePoints !== undefined ? 
+      newDivisionAndTier.elitePoints : 
+      (club.division === 'elite' ? club.elitePoints : 0)
   };
 };

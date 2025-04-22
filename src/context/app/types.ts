@@ -1,3 +1,4 @@
+
 import { AppContextType, AppView, Club, User } from '@/types';
 
 export type { AppContextType, AppView, Club, User };
@@ -7,20 +8,20 @@ export const mockUser: User = {
   id: '1',
   name: 'John Runner',
   avatar: '/placeholder.svg',
-  stravaConnected: false,
   clubs: [
     {
       id: '1',
       name: 'Weekend Warriors',
       logo: '/placeholder.svg',
-      division: 'Silver',
+      division: 'silver',
       tier: 2,
+      elitePoints: 0,
       members: [
-        { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true },
-        { id: '2', name: 'Jane Sprinter', avatar: '/placeholder.svg', isAdmin: false },
-        { id: '3', name: 'Bob Marathon', avatar: '/placeholder.svg', isAdmin: false },
-        { id: '4', name: 'Emma Jogger', avatar: '/placeholder.svg', isAdmin: false },
-        { id: '5', name: 'Tom Walker', avatar: '/placeholder.svg', isAdmin: false },
+        { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true, distanceContribution: 0 },
+        { id: '2', name: 'Jane Sprinter', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 0 },
+        { id: '3', name: 'Bob Marathon', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 0 },
+        { id: '4', name: 'Emma Jogger', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 0 },
+        { id: '5', name: 'Tom Walker', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 0 },
       ],
       matchHistory: [], // Remove mock match history
       currentMatch: {
@@ -60,14 +61,15 @@ export const mockUser: User = {
       id: '2',
       name: 'Road Runners',
       logo: '/placeholder.svg',
-      division: 'Gold',
+      division: 'gold',
       tier: 1,
+      elitePoints: 0,
       members: [
-        { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true },
-        { id: '7', name: 'Alice Sprint', avatar: '/placeholder.svg', isAdmin: false },
-        { id: '8', name: 'Charlie Run', avatar: '/placeholder.svg', isAdmin: false },
-        { id: '11', name: 'Olivia Pace', avatar: '/placeholder.svg', isAdmin: false },
-        { id: '12', name: 'Paul Path', avatar: '/placeholder.svg', isAdmin: false },
+        { id: '1', name: 'John Runner', avatar: '/placeholder.svg', isAdmin: true, distanceContribution: 0 },
+        { id: '7', name: 'Alice Sprint', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 0 },
+        { id: '8', name: 'Charlie Run', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 0 },
+        { id: '11', name: 'Olivia Pace', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 0 },
+        { id: '12', name: 'Paul Path', avatar: '/placeholder.svg', isAdmin: false, distanceContribution: 0 },
       ],
       matchHistory: [], // Remove mock match history
       currentMatch: {

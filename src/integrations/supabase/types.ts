@@ -50,6 +50,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           division: string
+          elite_points: number | null
           id: string
           logo: string | null
           name: string
@@ -60,6 +61,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           division?: string
+          elite_points?: number | null
           id?: string
           logo?: string | null
           name: string
@@ -70,6 +72,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           division?: string
+          elite_points?: number | null
           id?: string
           logo?: string | null
           name?: string
@@ -183,18 +186,21 @@ export type Database = {
       users: {
         Row: {
           avatar: string | null
+          bio: string | null
           created_at: string
           id: string
           name: string
         }
         Insert: {
           avatar?: string | null
+          bio?: string | null
           created_at?: string
           id: string
           name: string
         }
         Update: {
           avatar?: string | null
+          bio?: string | null
           created_at?: string
           id?: string
           name?: string
