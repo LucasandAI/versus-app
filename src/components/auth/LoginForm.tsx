@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -29,6 +29,18 @@ const LoginForm: React.FC = () => {
     },
   });
 
+  // Reset loading state after 10 seconds to prevent getting stuck
+  useEffect(() => {
+    if (isLoading) {
+      const timeout = setTimeout(() => {
+        setIsLoading(false);
+        setError('Login is taking longer than expected. Please try again.');
+      }, 10000);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [isLoading]);
+
   const onSubmit = async (values: FormValues) => {
     if (isLoading) return; // Prevent multiple submissions
     
@@ -41,15 +53,10 @@ const LoginForm: React.FC = () => {
       
       if (user) {
         console.log('[LoginForm] Sign-in successful:', user.id);
-        toast({
-          title: 'Login successful',
-          description: 'Welcome back!',
-        });
         // The navigation will be handled by the auth state change listener
-        // Don't set isLoading to false here to prevent multiple submissions
       } else {
         console.error('[LoginForm] Login failed: No user returned');
-        setError("Login failed. Please try again.");
+        setError("Login failed. Please check your credentials and try again.");
         setIsLoading(false);
       }
     } catch (error) {
@@ -57,14 +64,6 @@ const LoginForm: React.FC = () => {
       setError(error instanceof Error ? error.message : 'Failed to sign in');
       setIsLoading(false);
     }
-    
-    // Set a timeout to reset isLoading in case we get stuck
-    setTimeout(() => {
-      if (isLoading) {
-        console.warn('[LoginForm] Login process taking too long, resetting button state');
-        setIsLoading(false);
-      }
-    }, 8000);
   };
 
   return (
@@ -117,13 +116,19 @@ const LoginForm: React.FC = () => {
             </div>
           )}
           
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={isLoading}
-          >
-            {isLoading ? 'Signing in...' : 'Sign In'}
-          </Button>
+          <div className="pt-2">
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={isLoading}
+            >
+              {isLoading ? 'Signing in...' : 'Sign In'}
+            </Button>
+          </div>
+          
+          <div className="text-center text-sm text-gray-500">
+            <p>Test credentials pre-filled for demo purposes</p>
+          </div>
         </form>
       </Form>
     </div>

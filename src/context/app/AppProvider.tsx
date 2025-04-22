@@ -29,22 +29,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   }, [authChecked, userLoading, currentUser, currentView]);
 
-  // Set a timeout to ensure we don't get stuck in loading state forever
+  // Set a shorter timeout (5s) to ensure we don't get stuck in loading state
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (!authChecked) {
+    if (!authChecked) {
+      const timeoutId = setTimeout(() => {
         console.warn('[AppProvider] Auth check timeout reached, forcing auth checked state');
         setAuthChecked(true);
         setUserLoading(false);
-        // Force to connect view if we time out
         setCurrentView('connect');
-      }
-    }, 15000); // 15 second timeout as a safety net
-    
-    return () => clearTimeout(timeoutId);
+      }, 5000); 
+      
+      return () => clearTimeout(timeoutId);
+    }
   }, [authChecked, setCurrentView]);
   
-  // Add another timeout to prevent getting stuck in user loading state
+  // Add another short timeout (5s) to prevent getting stuck in user loading state
   useEffect(() => {
     if (userLoading) {
       const timeoutId = setTimeout(() => {
@@ -63,7 +62,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           // If no user after timeout, go to connect
           setCurrentView('connect');
         }
-      }, 10000); // 10 second timeout for user loading
+      }, 5000);
       
       return () => clearTimeout(timeoutId);
     }
@@ -109,7 +108,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         console.log('[AppProvider] Sign-in returned user:', user.id);
         // Set the basic user immediately to improve perceived performance
         setCurrentUserWithUpdates(user);
-        // The full profile will be loaded by the auth session effect
         return user;
       } else {
         console.error('[AppProvider] Sign-in failed, no user returned');
@@ -142,18 +140,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     createClub
   };
 
-  if (!authChecked && userLoading) {
-    console.log('[AppProvider] Auth not checked yet and user is loading, showing loading screen');
+  // Only show loading screen when explicitly performing auth operations
+  if (userLoading && !currentUser) {
     return <div className="flex items-center justify-center min-h-screen">
       <div className="flex flex-col items-center gap-2">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-        <p>Loading authentication...</p>
+        <p>Signing in...</p>
       </div>
     </div>;
   }
 
   if (userLoading && currentUser) {
-    console.log('[AppProvider] User is loading and we have a currentUser, showing loading screen');
     return <div className="flex items-center justify-center min-h-screen">
       <div className="flex flex-col items-center gap-2">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
@@ -161,13 +158,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       </div>
     </div>;
   }
-
-  console.log('[AppProvider] Rendering app with:', { 
-    authChecked, 
-    userLoading, 
-    currentUser: currentUser ? 'exists' : 'null',
-    currentView 
-  });
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

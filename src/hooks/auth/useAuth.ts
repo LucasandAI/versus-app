@@ -31,12 +31,24 @@ export const useAuth = (): AuthState & AuthActions => {
 
       if (authError) {
         console.error('[useAuth] Auth error:', authError.message);
-        throw new Error(authError.message);
+        toast({
+          title: "Login failed",
+          description: authError.message || "Authentication error occurred",
+          variant: "destructive"
+        });
+        setError(authError.message);
+        return null;
       }
       
       if (!authData.user) {
         console.error('[useAuth] No user data returned');
-        throw new Error('No user data returned');
+        toast({
+          title: "Login failed",
+          description: "No user data returned",
+          variant: "destructive"
+        });
+        setError("No user data returned");
+        return null;
       }
       
       // Create a basic user object with what we know from auth
@@ -49,8 +61,8 @@ export const useAuth = (): AuthState & AuthActions => {
       };
       
       toast({
-        title: "Authentication successful",
-        description: "Loading your profile...",
+        title: "Login successful",
+        description: "Welcome back!",
       });
       
       console.log('[useAuth] Returning basic user:', basicUser.id);
@@ -75,8 +87,19 @@ export const useAuth = (): AuthState & AuthActions => {
     try {
       console.log('[useAuth] Signing out user');
       const { error } = await safeSupabase.auth.signOut();
-      if (error) throw new Error(error.message);
+      if (error) {
+        toast({
+          title: "Sign out failed",
+          description: error.message,
+          variant: "destructive"
+        });
+        throw error;
+      }
       setUser(null);
+      toast({
+        title: "Signed out",
+        description: "You have been signed out successfully"
+      });
       console.log('[useAuth] User signed out successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to sign out";

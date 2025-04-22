@@ -1,6 +1,6 @@
 
 import { useEffect } from 'react';
-import { useAuthSessionCore, AUTH_TIMEOUT } from './useAuthSessionCore';
+import { useAuthSessionCore } from './useAuthSessionCore';
 import { User, AppView } from '@/types';
 
 interface Props {
@@ -13,6 +13,8 @@ interface Props {
 
 /**
  * The main effect that manages authenticating the user.
+ * This hook does not set initial loading state to avoid showing a loading screen
+ * before the user attempts to authenticate.
  */
 export const useAuthSessionEffect = ({
   setCurrentUser,
@@ -21,9 +23,18 @@ export const useAuthSessionEffect = ({
   setAuthChecked,
   setAuthError,
 }: Props) => {
-  // Don't set initial loading state - we'll only show loading when the user tries to log in
+  useEffect(() => {
+    // Set initial state - we don't want to show loading until user attempts login
+    setAuthChecked(true);
+    setUserLoading(false);
+    
+    // This will only show the connect view if there's no stored session
+    setCurrentView('connect');
+    
+    console.log('[useAuthSessionEffect] Authentication effect initialized without loading state');
+  }, [setAuthChecked, setUserLoading, setCurrentView]);
   
-  // Setup the auth session core
+  // Setup the auth session core which will handle auth state changes
   useAuthSessionCore({
     setCurrentUser,
     setCurrentView,

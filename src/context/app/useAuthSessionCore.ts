@@ -5,8 +5,8 @@ import { AppView, User } from '@/types';
 import { useLoadCurrentUser } from './useLoadCurrentUser';
 import { toast } from '@/hooks/use-toast';
 
-// Timeout for authentication check (15 seconds)
-export const AUTH_TIMEOUT = 15000;
+// Timeout for authentication check (10 seconds)
+export const AUTH_TIMEOUT = 10000;
 
 interface AuthSessionCoreProps {
   setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>;
@@ -29,9 +29,10 @@ export const useAuthSessionCore = ({
     let isMounted = true;
     let authTimeoutId: ReturnType<typeof setTimeout>;
     
-    console.log('[useAuthSessionCore] Setting up auth session effect');
+    console.log('[useAuthSessionCore] Setting up auth session listener');
 
-    const handleAuthChange = async (event: string, session: any) => {
+    // First, set up the auth state change listener
+    const { data: { subscription } } = safeSupabase.auth.onAuthStateChange(async (event, session) => {
       console.log('[useAuthSessionCore] Auth state changed:', { event, userId: session?.user?.id });
       
       if (!isMounted) return;
@@ -39,7 +40,11 @@ export const useAuthSessionCore = ({
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         if (session?.user?.id) {
           try {
-            setUserLoading(true);
+            // Only set loading if user explicitly tried to sign in (event === 'SIGNED_IN')
+            if (event === 'SIGNED_IN') {
+              setUserLoading(true);
+            }
+            
             console.log('[useAuthSessionCore] Loading user profile for ID:', session.user.id);
             
             // Create a basic user first
@@ -54,28 +59,32 @@ export const useAuthSessionCore = ({
             // Set the basic user immediately for better UX
             setCurrentUser(basicUser);
             
-            // Then load the full profile
-            const userProfile = await loadCurrentUser(session.user.id);
-            if (isMounted) {
-              if (userProfile) {
-                console.log('[useAuthSessionCore] User profile loaded:', userProfile.id);
-                setCurrentUser(userProfile);
-              } else {
-                console.warn('[useAuthSessionCore] Using basic user profile');
+            // Fetch full user profile in the background
+            setTimeout(async () => {
+              if (!isMounted) return;
+              
+              try {
+                const userProfile = await loadCurrentUser(session.user.id);
+                if (isMounted && userProfile) {
+                  console.log('[useAuthSessionCore] User profile loaded:', userProfile.id);
+                  setCurrentUser(userProfile);
+                }
+              } catch (profileError) {
+                console.warn('[useAuthSessionCore] Error loading full profile, using basic user:', profileError);
+              } finally {
+                if (isMounted) {
+                  setUserLoading(false);
+                }
               }
-              
-              // Even with a basic user, proceed to home view
-              setCurrentView('home');
-              setUserLoading(false);
-              setAuthChecked(true);
-            }
+            }, 0);
+            
+            // Even with just the basic user, proceed to home view
+            setCurrentView('home');
+            setAuthChecked(true);
           } catch (error) {
-            console.error('[useAuthSessionCore] Error loading user profile:', error);
+            console.error('[useAuthSessionCore] Error in auth flow:', error);
             if (isMounted) {
-              setAuthError(error instanceof Error ? error.message : 'Failed to load user profile');
-              
-              // If we had errors loading the profile but auth succeeded, still show home with basic user
-              setCurrentView('home');
+              setAuthError(error instanceof Error ? error.message : 'Authentication error');
               setUserLoading(false);
               setAuthChecked(true);
             }
@@ -103,16 +112,35 @@ export const useAuthSessionCore = ({
           setUserLoading(false);
         }
       }
-    };
-
-    // Setup the auth state change listener
-    const { data: { subscription } } = safeSupabase.auth.onAuthStateChange(handleAuthChange);
+    });
     
-    // Skip automatic session check and mark auth as checked immediately
-    // This way we won't show a loading screen on initial app load
-    setAuthChecked(true);
-    setUserLoading(false);
-    setCurrentView('connect');
+    // Then, check for an existing session, but don't show loading screen
+    safeSupabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (!isMounted) return;
+      
+      console.log('[useAuthSessionCore] Initial session check:', { 
+        hasSession: !!session,
+        userId: session?.user?.id,
+        error: error?.message
+      });
+      
+      if (error) {
+        console.error('[useAuthSessionCore] Session check error:', error);
+        setAuthError(error.message);
+        setAuthChecked(true);
+        setUserLoading(false);
+        setCurrentView('connect');
+        return;
+      }
+      
+      if (!session) {
+        // No session found, staying on connect view
+        setAuthChecked(true);
+        setUserLoading(false);
+        setCurrentView('connect');
+      }
+      // If session exists, the onAuthStateChange handler will be triggered
+    });
 
     return () => {
       isMounted = false;

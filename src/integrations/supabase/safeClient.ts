@@ -1,17 +1,44 @@
 
 import { supabase } from './client';
+import { PostgrestError } from '@supabase/supabase-js';
 
-// This file provides a temporary workaround for type errors until 
-// the src/integrations/supabase/types.ts file is regenerated with the correct types.
-
-// Create a safer client that uses any types to avoid TypeScript errors
-// while still providing the Supabase client functionality
+/**
+ * Provides a safer Supabase client wrapper to handle API interactions
+ * with consistent error handling and improved type safety.
+ */
 export const safeSupabase = {
   from: (table: string) => {
-    // Cast to any to bypass type checking
     return supabase.from(table as any) as any;
   },
-  auth: supabase.auth,
+  auth: {
+    ...supabase.auth,
+    
+    // Wrap signInWithPassword to add better error handling
+    signInWithPassword: async (credentials: { email: string; password: string }) => {
+      try {
+        const response = await supabase.auth.signInWithPassword(credentials);
+        
+        if (response.error) {
+          console.error('[safeSupabase] Auth error:', response.error);
+        }
+        
+        return response;
+      } catch (error) {
+        console.error('[safeSupabase] Unexpected auth error:', error);
+        return {
+          data: { user: null, session: null },
+          error: error instanceof Error ? 
+            { message: error.message } as PostgrestError : 
+            { message: 'Unknown authentication error' } as PostgrestError
+        };
+      }
+    },
+    
+    // Pass through other auth methods directly
+    onAuthStateChange: supabase.auth.onAuthStateChange,
+    getSession: supabase.auth.getSession,
+    signOut: supabase.auth.signOut
+  },
   storage: supabase.storage
 };
 
