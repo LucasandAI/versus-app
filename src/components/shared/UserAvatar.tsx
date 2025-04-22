@@ -27,6 +27,11 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
     setImageError(false);
   }, [image]);
 
+  // For debugging
+  useEffect(() => {
+    console.log(`[UserAvatar] Rendering with image: ${image}`);
+  }, [image]);
+
   const getInitials = (name: string) => {
     // Handle empty or null names
     if (!name || name.trim() === '') return 'NA';
@@ -57,16 +62,22 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   };
 
   const handleImageError = () => {
+    console.log(`[UserAvatar] Error loading image: ${image}`);
     setImageError(true);
   };
 
   const handleImageLoad = () => {
+    console.log(`[UserAvatar] Successfully loaded image: ${image}`);
     setImageLoaded(true);
   };
 
-  // Updated condition to show image - only if there's a valid image URL that is not the placeholder
-  // and no error occurred during loading
-  const shouldShowImage = !!image && !imageError && image !== '/placeholder.svg';
+  // Clean up blob URLs to prevent memory leaks
+  const isValidUrl = (url?: string | null) => {
+    return url && typeof url === 'string' && url.trim() !== '' && url !== '/placeholder.svg';
+  };
+
+  // Show image if it's a valid URL and no error occurred
+  const shouldShowImage = isValidUrl(image) && !imageError;
   const initials = getInitials(name);
 
   return (
@@ -76,7 +87,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
     >
       {shouldShowImage ? (
         <AvatarImage 
-          src={image} 
+          src={image || ''} 
           alt={name} 
           className="object-cover" 
           onError={handleImageError}

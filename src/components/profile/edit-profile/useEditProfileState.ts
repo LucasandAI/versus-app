@@ -11,7 +11,7 @@ interface UseEditProfileStateProps {
 }
 
 export const useEditProfileState = ({ user, onOpenChange }: UseEditProfileStateProps) => {
-  const { setCurrentUser, setSelectedUser } = useApp();
+  const { setCurrentUser, setSelectedUser, refreshCurrentUser } = useApp();
   const [name, setName] = useState(user?.name || "");
   const [bio, setBio] = useState(user?.bio || "Strava Athlete");
   const [instagram, setInstagram] = useState(user?.instagram || "");
@@ -30,6 +30,8 @@ export const useEditProfileState = ({ user, onOpenChange }: UseEditProfileStateP
   // Only set form values from user data on initial load or when user changes
   useEffect(() => {
     if (user && !initialDataLoaded) {
+      console.log('[useEditProfileState] Setting initial data from user:', user.id);
+      console.log('[useEditProfileState] Avatar URL:', user.avatar);
       setName(user.name || "");
       setBio(user.bio || "Strava Athlete");
       setInstagram(user.instagram || "");
@@ -56,6 +58,7 @@ export const useEditProfileState = ({ user, onOpenChange }: UseEditProfileStateP
     const file = e.target.files?.[0];
     if (file) {
       const previewUrl = URL.createObjectURL(file);
+      console.log('[useEditProfileState] Local preview URL created:', previewUrl);
       setAvatar(previewUrl);
       setAvatarFile(file);
       setPreviewKey(Date.now());
@@ -84,11 +87,13 @@ export const useEditProfileState = ({ user, onOpenChange }: UseEditProfileStateP
     setIsSaving(true);
 
     try {
-      let avatarUrl = avatar;
+      let avatarUrl = user.avatar; // Start with current avatar, not local state
 
       if (avatarFile) {
+        console.log('[useEditProfileState] Uploading new avatar file');
         const uploadedUrl = await uploadAvatar(user.id, avatarFile);
         if (uploadedUrl) {
+          console.log('[useEditProfileState] New avatar URL:', uploadedUrl);
           avatarUrl = uploadedUrl;
         } else {
           toast({
@@ -100,6 +105,8 @@ export const useEditProfileState = ({ user, onOpenChange }: UseEditProfileStateP
       }
 
       const { safeSupabase } = await import('@/integrations/supabase/safeClient');
+      console.log('[useEditProfileState] Updating user profile with avatar:', avatarUrl);
+      
       const { error } = await safeSupabase
         .from('users')
         .update({
@@ -118,7 +125,7 @@ export const useEditProfileState = ({ user, onOpenChange }: UseEditProfileStateP
 
       if (error) throw error;
 
-      // Update local state
+      // Update local state first with the new data
       const updatedUser = {
         ...user,
         name,
@@ -132,10 +139,15 @@ export const useEditProfileState = ({ user, onOpenChange }: UseEditProfileStateP
         avatar: avatarUrl
       };
 
+      // Update current user and selected user states
       setCurrentUser(updatedUser);
       setSelectedUser(updatedUser);
 
-      // Trigger a refresh of user data
+      // Then refresh from the database to ensure everything is in sync
+      console.log('[useEditProfileState] Refreshing user data from database');
+      await refreshCurrentUser();
+      
+      // Trigger a refresh event for any components listening
       window.dispatchEvent(new CustomEvent('userDataUpdated'));
 
       toast({
@@ -146,7 +158,7 @@ export const useEditProfileState = ({ user, onOpenChange }: UseEditProfileStateP
       onOpenChange(false);
       return true;
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error('[useEditProfileState] Error updating profile:', error);
       toast({
         title: "Update Failed",
         description: "There was an error updating your profile. Please try again.",
