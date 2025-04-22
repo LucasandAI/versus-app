@@ -1,6 +1,5 @@
 
 import { supabase } from './client';
-import { PostgrestQueryBuilder } from '@supabase/supabase-js';
 
 // This file provides a temporary workaround for type errors until 
 // the src/integrations/supabase/types.ts file is regenerated with the correct types.
@@ -10,7 +9,7 @@ import { PostgrestQueryBuilder } from '@supabase/supabase-js';
 export const safeSupabase = {
   from: (table: string) => {
     // Cast to any to bypass type checking
-    return supabase.from(table) as any;
+    return supabase.from(table as any) as any;
   },
   auth: supabase.auth,
   storage: supabase.storage
