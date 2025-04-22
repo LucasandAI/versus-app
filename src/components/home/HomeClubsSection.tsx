@@ -27,33 +27,44 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
   onSearchClick
 }) => {
   const { currentUser } = useApp();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Track loading state based on initial render and clubs length
+  // Track loading state based on initial render and clubs data quality
   useEffect(() => {
-    // Set loading to true if we have a user but no clubs yet
-    if (currentUser && currentUser.clubs && currentUser.clubs.length === 0 && userClubs.length === 0) {
-      setIsLoading(true);
-      
-      // Add a short timeout to prevent flashing loading state for fast loads
-      const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 2000);
-      
-      return () => clearTimeout(timer);
+    // Define what makes a club "fully loaded"
+    const areClubsReady = userClubs.every(club => 
+      club && 
+      club.name && 
+      club.logo && 
+      club.members && 
+      Array.isArray(club.members)
+    );
+    
+    // If we have the user but clubs are loading/incomplete, show loading state
+    if (currentUser) {
+      if (clubsLoading || !areClubsReady) {
+        setIsLoading(true);
+      } else {
+        // Add a small delay to ensure everything renders correctly
+        const timer = setTimeout(() => {
+          setIsLoading(false);
+        }, 100);
+        
+        return () => clearTimeout(timer);
+      }
     } else {
-      setIsLoading(false);
+      setIsLoading(true);
     }
-  }, [currentUser, userClubs.length]);
+  }, [currentUser, userClubs, clubsLoading]);
   
-  // Make sure clubs have the correct member count displayed
-  const processedUserClubs = userClubs.map(club => {
-    // Ensure the members array exists
-    if (!club.members) {
-      club.members = [];
-    }
-    return club;
-  });
+  // Process clubs to ensure they have the necessary properties
+  const processedUserClubs = userClubs
+    .filter(club => club && club.name) // Only include clubs with name
+    .map(club => ({
+      ...club,
+      // Ensure the members array exists
+      members: club.members || []
+    }));
   
   const isAtClubCapacity = processedUserClubs.length >= 3;
 
@@ -61,12 +72,12 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
     <>
       <ClubList 
         userClubs={processedUserClubs}
-        loading={isLoading || clubsLoading}
+        loading={isLoading}
         onSelectUser={onSelectUser}
         onCreateClub={onCreateClub}
       />
 
-      {!isAtClubCapacity && (
+      {!isAtClubCapacity && !isLoading && (
         <FindClubsSection 
           clubs={availableClubs}
           isLoading={clubsLoading}
@@ -76,7 +87,7 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
         />
       )}
 
-      {isAtClubCapacity && (
+      {isAtClubCapacity && !isLoading && (
         <div className="mt-10 bg-white rounded-lg shadow-md p-6 text-center">
           <h3 className="font-medium mb-2">Club Limit Reached</h3>
           <p className="text-gray-500 text-sm mb-4">

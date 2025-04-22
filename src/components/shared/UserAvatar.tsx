@@ -71,9 +71,21 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
     setImageLoaded(true);
   };
 
-  // Check if image URL is valid
+  // Check if image URL is valid - improved validation
   const isValidUrl = (url?: string | null) => {
-    return url && typeof url === 'string' && url.trim() !== '' && url !== '/placeholder.svg';
+    if (!url || typeof url !== 'string' || url.trim() === '' || url === '/placeholder.svg') {
+      return false;
+    }
+    
+    // Basic URL validation for Supabase URLs
+    try {
+      // Check if it's a valid URL
+      new URL(url);
+      return true;
+    } catch (e) {
+      console.log(`[UserAvatar] Invalid URL: ${url}`);
+      return false;
+    }
   };
 
   // Show image if it's a valid URL and no error occurred
