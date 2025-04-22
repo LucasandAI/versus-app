@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Button } from "@/components/ui/button";
-import { UserPlus } from 'lucide-react';
+import { UserPlus, ArrowLeft } from 'lucide-react';
 import { Card } from './ui/card';
 import ClubInviteDialog from './admin/ClubInviteDialog';
 import EditProfileDialog from './profile/EditProfileDialog';
@@ -175,9 +175,15 @@ const UserProfile: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-50 pb-20">
-      <div className="w-full bg-green-500 py-4 px-6 text-white flex justify-center items-center">
-        <h1 className="text-xl font-semibold flex items-center">
-          {isCurrentUserProfile ? 'Profile' : `${selectedUser.name}'s Profile`}
+      <div className="w-full bg-green-500 py-4 px-6 text-white flex items-center">
+        <button 
+          onClick={() => setCurrentView('home')} 
+          className="mr-4 text-white hover:bg-green-600 rounded-full p-2 transition-colors"
+        >
+          <ArrowLeft className="h-6 w-6" />
+        </button>
+        <h1 className="text-xl font-semibold flex-1">
+          {currentUser?.id === selectedUser?.id ? 'Profile' : `${selectedUser.name}'s Profile`}
         </h1>
       </div>
 
