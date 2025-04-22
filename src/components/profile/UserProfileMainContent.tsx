@@ -1,0 +1,118 @@
+
+import React from "react";
+import { Card } from '../ui/card';
+import ProfileHeader from './ProfileHeader';
+import UserHeader from './UserHeader';
+import UserStats from './UserStats';
+import UserInviteSection from './UserInviteSection';
+import UserClubs from './UserClubs';
+import UserAchievements from './UserAchievements';
+import NoUserState from './states/NoUserState';
+import { getBestLeague } from './helpers/LeagueHelper';
+import { 
+  completedAchievements, 
+  inProgressAchievements, 
+  moreInProgressAchievements 
+} from './data/achievements';
+import { User, Club } from '@/types';
+
+interface UserProfileMainContentProps {
+  currentUser: User | null;
+  selectedUser: User | null;
+  setCurrentView: (view: string) => void;
+  setEditProfileOpen: (x: boolean) => void;
+  setLogoutDialogOpen: (x: boolean) => void;
+  loading: boolean;
+  weeklyDistance: number;
+  showInviteButton: boolean;
+  inviteDialogOpen: boolean;
+  setInviteDialogOpen: (v: boolean) => void;
+  showMoreAchievements: boolean;
+  setShowMoreAchievements: (show: boolean) => void;
+  editProfileOpen: boolean;
+  logoutDialogOpen: boolean;
+  adminClubs: Club[];
+}
+
+const UserProfileMainContent: React.FC<UserProfileMainContentProps> = ({
+  currentUser,
+  selectedUser,
+  setCurrentView,
+  setEditProfileOpen,
+  setLogoutDialogOpen,
+  loading,
+  weeklyDistance,
+  showInviteButton,
+  inviteDialogOpen,
+  setInviteDialogOpen,
+  showMoreAchievements,
+  setShowMoreAchievements,
+  editProfileOpen,
+  logoutDialogOpen,
+  adminClubs
+}) => {
+  if (!selectedUser) {
+    return <NoUserState onBackHome={() => setCurrentView('home')} />;
+  }
+
+  const isMobile = false; // You may want to inject this as a prop for actual useMobile
+  const isCurrentUserProfile = currentUser?.id === selectedUser?.id;
+  const bestLeague = getBestLeague(selectedUser.clubs);
+
+  return (
+    <div className="flex flex-col w-full min-h-screen bg-gray-50 pb-20">
+      <div className="w-full">
+        <ProfileHeader
+          currentUser={currentUser}
+          selectedUser={selectedUser}
+          onBackClick={() => setCurrentView('home')}
+        />
+      </div>
+      <div className="px-4 w-full max-w-screen-lg mx-auto">
+        <Card className={`w-full ${isMobile ? '' : 'max-w-md mx-auto'} mt-4 p-6 rounded-lg`}>
+          <UserHeader
+            user={selectedUser}
+            loading={loading}
+            isCurrentUserProfile={isCurrentUserProfile}
+            onEditProfile={() => setEditProfileOpen(true)}
+            onLogoutClick={() => setLogoutDialogOpen(true)}
+          />
+
+          <UserStats
+            loading={loading}
+            weeklyDistance={weeklyDistance}
+            bestLeague={bestLeague.league}
+            bestLeagueTier={bestLeague.tier}
+          />
+
+          <UserInviteSection 
+            showInviteButton={showInviteButton}
+            inviteDialogOpen={inviteDialogOpen}
+            setInviteDialogOpen={setInviteDialogOpen}
+            selectedUser={selectedUser}
+            adminClubs={adminClubs}
+          />
+        </Card>
+        <UserClubs
+          user={selectedUser}
+          loading={loading}
+          onClubClick={(club) => {
+            // setSelectedClub(club); // Parent should handle
+            setCurrentView('clubDetail');
+          }}
+        />
+        <UserAchievements
+          loading={loading}
+          isCurrentUserProfile={isCurrentUserProfile}
+          completedAchievements={completedAchievements}
+          inProgressAchievements={inProgressAchievements}
+          moreInProgressAchievements={moreInProgressAchievements}
+          showMoreAchievements={showMoreAchievements}
+          onToggleMoreAchievements={() => setShowMoreAchievements(!showMoreAchievements)}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default UserProfileMainContent;

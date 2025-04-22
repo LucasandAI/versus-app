@@ -1,0 +1,155 @@
+
+import { useEffect, useState } from 'react';
+import { useApp } from '@/context/AppContext';
+import { safeSupabase } from '@/integrations/supabase/safeClient';
+import { Club, ClubMember, User } from '@/types';
+import { transformRawMatchesToMatchType } from '@/utils/club/matchHistoryUtils';
+import { ensureDivision } from '@/utils/club/leagueUtils';
+
+export const useUserProfileStateLogic = () => {
+  const { currentUser, selectedUser, setCurrentUser, setSelectedUser } = useApp();
+  const [loading, setLoading] = useState(true);
+  const [weeklyDistance, setWeeklyDistance] = useState(0);
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      if (!selectedUser) return;
+      setLoading(true);
+      try {
+        // Fetch user data from Supabase
+        const { data: userData, error } = await safeSupabase
+          .from('users')
+          .select('id, name, avatar, bio')
+          .eq('id', selectedUser.id)
+          .single();
+
+        if (error || !userData) {
+          console.error('Error fetching user profile:', error);
+          setLoading(false);
+          return;
+        }
+
+        // Fetch user's clubs from Supabase via club_members join table
+        const { data: memberships, error: clubsError } = await safeSupabase
+          .from('club_members')
+          .select('club_id, is_admin')
+          .eq('user_id', selectedUser.id);
+
+        if (clubsError) {
+          console.error('Error fetching user clubs:', clubsError);
+        }
+
+        // Transform the clubs data
+        const clubs: Club[] = [];
+        if (memberships && memberships.length > 0) {
+          for (const membership of memberships) {
+            // Fetch club details
+            const { data: clubData, error: clubError } = await safeSupabase
+              .from('clubs')
+              .select('id, name, logo, division, tier, elite_points, bio')
+              .eq('id', membership.club_id)
+              .single();
+
+            if (clubError || !clubData) {
+              console.error('Error fetching club details:', clubError);
+              continue;
+            }
+
+            // Fetch club members
+            const { data: membersData, error: membersError } = await safeSupabase
+              .from('club_members')
+              .select('user_id, is_admin')
+              .eq('club_id', membership.club_id);
+
+            if (membersError) {
+              console.error('Error fetching club members:', membersError);
+              continue;
+            }
+
+            // Fetch members' user details
+            const members: ClubMember[] = [];
+            for (const member of membersData) {
+              const { data: memberUserData, error: memberUserError } = await safeSupabase
+                .from('users')
+                .select('id, name, avatar')
+                .eq('id', member.user_id)
+                .single();
+
+              if (memberUserError || !memberUserData) {
+                console.error('Error fetching member user data:', memberUserError);
+                continue;
+              }
+              members.push({
+                id: memberUserData.id,
+                name: memberUserData.name,
+                avatar: memberUserData.avatar || '/placeholder.svg',
+                isAdmin: member.is_admin,
+                distanceContribution: 0 // Default value
+              });
+            }
+
+            // Fetch match history
+            const { data: matchHistory, error: matchError } = await safeSupabase
+              .from('matches')
+              .select('*')
+              .or(`home_club_id.eq.${clubData.id},away_club_id.eq.${clubData.id}`)
+              .order('end_date', { ascending: false });
+
+            if (matchError) {
+              console.error('Error fetching match history:', matchError);
+            }
+
+            // Transform match data
+            const transformedMatches = transformRawMatchesToMatchType(matchHistory || [], clubData.id);
+
+            // Determine correct division value
+            const divisionValue = ensureDivision(clubData.division);
+
+            // Transform club data
+            clubs.push({
+              id: clubData.id,
+              name: clubData.name,
+              logo: clubData.logo || '/placeholder.svg',
+              division: divisionValue,
+              tier: clubData.tier || 1,
+              elitePoints: clubData.elite_points || 0,
+              members: members,
+              matchHistory: transformedMatches,
+              bio: clubData.bio
+            });
+          }
+        }
+
+        // Calculate weekly distance (placeholder logic)
+        const randomWeeklyDistance = Math.round((Math.random() * 50 + 20) * 10) / 10;
+        setWeeklyDistance(randomWeeklyDistance);
+
+        // Update the selected user with the fetched data
+        const updatedUser: User = {
+          id: userData.id,
+          name: userData.name || selectedUser.name,
+          avatar: userData.avatar || selectedUser.avatar,
+          bio: userData.bio,
+          clubs: clubs
+        };
+
+        setSelectedUser(updatedUser);
+
+        // If this is the current user, update currentUser as well
+        if (currentUser && currentUser.id === updatedUser.id) {
+          setCurrentUser(updatedUser);
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserData();
+    // React to changes in selectedUser
+  }, [selectedUser?.id]);
+
+  return { loading, weeklyDistance };
+};
+
