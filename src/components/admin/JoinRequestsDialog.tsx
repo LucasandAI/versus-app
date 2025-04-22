@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { Club } from '@/types';
+import React, { useEffect, useState } from 'react';
+import { Club, JoinRequest } from '@/types';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
 import JoinRequestItem from './join-requests/JoinRequestItem';
 import EmptyRequests from './join-requests/EmptyRequests';
 import { useJoinRequests } from '@/hooks/admin/useJoinRequests';
+import { supabase } from '@/integrations/supabase/client';
 
 interface JoinRequestsDialogProps {
   open: boolean;
@@ -23,6 +24,9 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
   onOpenChange, 
   club 
 }) => {
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  
   const {
     isLoading,
     error,
@@ -30,9 +34,28 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
     handleDeclineRequest
   } = useJoinRequests();
 
-  // Fetch join requests from local storage or other source
-  const joinRequests = [];  // This would be fetched from storage/API
   const isClubFull = club.members.length >= 5;
+  
+  // Fetch join requests from Supabase when dialog opens
+  useEffect(() => {
+    const fetchJoinRequests = async () => {
+      if (!open) return;
+      
+      setLoading(true);
+      try {
+        // Mock fetching join requests - in real app this would be a Supabase query
+        // This is just a placeholder since we don't have the join_requests table yet
+        const mockRequests: JoinRequest[] = [];
+        setJoinRequests(mockRequests);
+      } catch (error) {
+        console.error('Error fetching join requests:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchJoinRequests();
+  }, [open, club.id]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -53,14 +76,16 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
             </div>
           )}
 
-          {joinRequests.length > 0 ? (
+          {loading ? (
+            <div className="py-8 text-center text-gray-500">Loading requests...</div>
+          ) : joinRequests.length > 0 ? (
             <div className="space-y-4">
               {joinRequests.map(request => (
                 <JoinRequestItem
                   key={request.id}
                   request={request}
-                  onApprove={(req) => handleAcceptRequest(req, club)}
-                  onDeny={handleDeclineRequest}
+                  onApprove={() => handleAcceptRequest(request, club)}
+                  onDeny={() => handleDeclineRequest(request)}
                   isClubFull={isClubFull}
                 />
               ))}

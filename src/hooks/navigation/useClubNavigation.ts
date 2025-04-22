@@ -12,7 +12,7 @@ export const useClubNavigation = (): ClubNavigationResult => {
   const { setCurrentView, setSelectedClub } = useApp();
   const [isLoading, setIsLoading] = useState(false);
 
-  const navigateToClubDetail = async (clubId: string, initialClub?: Partial<Club>, thirdParam?: any) => {
+  const navigateToClubDetail = async (clubId: string, initialClub?: Partial<Club>, skipDataFetch?: boolean) => {
     setIsLoading(true);
     
     try {
@@ -30,6 +30,12 @@ export const useClubNavigation = (): ClubNavigationResult => {
         };
         setSelectedClub(tempClub);
         setCurrentView('clubDetail');
+      }
+      
+      // If skipDataFetch is true, don't fetch data (useful for cases where data is already available)
+      if (skipDataFetch) {
+        setIsLoading(false);
+        return;
       }
       
       // Fetch full club data

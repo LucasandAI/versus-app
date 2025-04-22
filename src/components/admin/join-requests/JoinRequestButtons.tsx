@@ -2,15 +2,12 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { ShieldCheck, ShieldX } from 'lucide-react';
+import { JoinRequest } from '@/types';
 
 interface JoinRequestButtonsProps {
-  request: {
-    id: string;
-    userId: string;
-    name: string;
-  };
-  onDeny: (request: any) => void;
-  onApprove: (request: any) => void;
+  request: JoinRequest;
+  onDeny: () => void;
+  onApprove: () => void;
   isClubFull: boolean;
 }
 
@@ -26,7 +23,7 @@ const JoinRequestButtons: React.FC<JoinRequestButtonsProps> = ({
         size="sm" 
         variant="outline"
         className="h-8"
-        onClick={() => onDeny(request)}
+        onClick={onDeny}
       >
         <ShieldX className="h-4 w-4 mr-1" />
         Deny
@@ -34,7 +31,7 @@ const JoinRequestButtons: React.FC<JoinRequestButtonsProps> = ({
       <Button 
         size="sm" 
         className="h-8"
-        onClick={() => onApprove(request)}
+        onClick={onApprove}
         disabled={isClubFull}
       >
         <ShieldCheck className="h-4 w-4 mr-1" />

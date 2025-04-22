@@ -135,7 +135,29 @@ export const useClubData = (clubId: string | undefined) => {
               };
             });
 
-            const enhancedMatch = {
+            // Handle league data correctly, ensuring we safely access JSON data
+            const leagueBeforeMatch = match.league_before_match ? {
+              division: ensureDivision(typeof match.league_before_match === 'object' && match.league_before_match?.division ? 
+                String(match.league_before_match.division) : 'bronze'),
+              tier: typeof match.league_before_match === 'object' && match.league_before_match?.tier ? 
+                Number(match.league_before_match.tier) : 1,
+              elitePoints: typeof match.league_before_match === 'object' && match.league_before_match?.elite_points ? 
+                Number(match.league_before_match.elite_points) : 0
+            } : undefined;
+            
+            const leagueAfterMatch = match.league_after_match ? {
+              division: ensureDivision(typeof match.league_after_match === 'object' && match.league_after_match?.division ? 
+                String(match.league_after_match.division) : 'bronze'),
+              tier: typeof match.league_after_match === 'object' && match.league_after_match?.tier ? 
+                Number(match.league_after_match.tier) : 1,
+              elitePoints: typeof match.league_after_match === 'object' && match.league_after_match?.elite_points ? 
+                Number(match.league_after_match.elite_points) : 0
+            } : undefined;
+
+            // Determine match status (either "active" or "completed")
+            const matchStatus = new Date(match.end_date) > new Date() ? 'active' : 'completed';
+
+            const enhancedMatch: Match = {
               id: match.id,
               homeClub: {
                 id: homeClubData.data.id,
@@ -153,18 +175,10 @@ export const useClubData = (clubId: string | undefined) => {
               },
               startDate: match.start_date,
               endDate: match.end_date,
-              status: new Date(match.end_date) > new Date() ? 'active' : 'completed',
+              status: matchStatus,
               winner: match.winner as 'home' | 'away' | 'draw' | undefined,
-              leagueBeforeMatch: match.league_before_match ? {
-                division: ensureDivision(match.league_before_match.division),
-                tier: match.league_before_match.tier || 1,
-                elitePoints: match.league_before_match.elite_points || 0
-              } : undefined,
-              leagueAfterMatch: match.league_after_match ? {
-                division: ensureDivision(match.league_after_match.division),
-                tier: match.league_after_match.tier || 1,
-                elitePoints: match.league_after_match.elite_points || 0
-              } : undefined
+              leagueBeforeMatch,
+              leagueAfterMatch
             };
             
             enhancedMatches.push(enhancedMatch);

@@ -1,4 +1,4 @@
-import { Club, ClubMatch, ClubMember, Division, Match } from '@/types';
+import { Club, ClubMember, Division, Match } from '@/types';
 import { ensureDivision } from './leagueUtils';
 
 // Helper function to generate a random date within last 3 months
