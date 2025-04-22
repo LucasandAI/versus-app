@@ -22,6 +22,13 @@ import UserAchievements from './profile/UserAchievements';
 import ProfileHeader from './profile/ProfileHeader';
 import UserInviteSection from './profile/UserInviteSection';
 import { useProfileState } from './profile/hooks/useProfileState';
+import NoUserState from './profile/states/NoUserState';
+import { getBestLeague } from './profile/helpers/LeagueHelper';
+import { 
+  completedAchievements, 
+  inProgressAchievements, 
+  moreInProgressAchievements 
+} from './profile/data/achievements';
 
 const UserProfile: React.FC = () => {
   const { currentUser, selectedUser, setCurrentUser, setSelectedUser, setCurrentView, setSelectedClub } = useApp();
@@ -39,17 +46,7 @@ const UserProfile: React.FC = () => {
   } = useProfileState();
 
   if (!selectedUser) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <p>No user selected</p>
-        <button
-          onClick={() => setCurrentView('home')}
-          className="mt-4 text-primary hover:underline"
-        >
-          Go back home
-        </button>
-      </div>
-    );
+    return <NoUserState onBackHome={() => setCurrentView('home')} />;
   }
 
   const adminClubs = currentUser?.clubs.filter(club => 
@@ -60,95 +57,13 @@ const UserProfile: React.FC = () => {
   
   const isCurrentUserProfile = currentUser?.id === selectedUser?.id;
   const showInviteButton = !isCurrentUserProfile && adminClubs.length > 0;
+  const bestLeague = getBestLeague(selectedUser.clubs);
 
   const handleLogout = () => {
     setCurrentUser(null);
     setCurrentView('connect');
     setLogoutDialogOpen(false);
   };
-
-  const getBestLeague = () => {
-    if (!selectedUser.clubs || selectedUser.clubs.length === 0) {
-      return { league: 'Bronze', tier: 5 };
-    }
-
-    const leagueRanking = {
-      'Elite': 0,
-      'Diamond': 1,
-      'Platinum': 2,
-      'Gold': 3,
-      'Silver': 4,
-      'Bronze': 5
-    };
-
-    return selectedUser.clubs.reduce((best, club) => {
-      const clubRank = leagueRanking[club.division];
-      const clubTier = club.tier || 5;
-      
-      if (clubRank < best.rank || (clubRank === best.rank && clubTier < best.tier)) {
-        return { 
-          league: club.division, 
-          tier: clubTier,
-          rank: clubRank
-        };
-      }
-      return best;
-    }, { league: 'Bronze', tier: 5, rank: 5 });
-  };
-
-  const bestLeague = getBestLeague();
-
-  const completedAchievements = [
-    { 
-      id: '1', 
-      name: 'First Victory', 
-      color: 'green',
-      description: 'Win your first club match against another club' 
-    },
-    { 
-      id: '2', 
-      name: 'Team Player', 
-      color: 'green',
-      description: 'Contribute at least 20% of your club\'s total distance in a match'
-    },
-    { 
-      id: '3', 
-      name: 'Global Explorer', 
-      color: 'green',
-      description: 'Log activities in 5 different countries'
-    }
-  ];
-
-  const inProgressAchievements = [
-    { 
-      id: '4', 
-      name: 'Ironman', 
-      description: 'Log activity every day of a match'
-    },
-    { 
-      id: '5', 
-      name: 'League Climber', 
-      description: 'Promote to the next league'
-    }
-  ];
-
-  const moreInProgressAchievements = [
-    {
-      id: '6',
-      name: 'Distance King',
-      description: 'Be the top contributor in your club for 3 consecutive matches'
-    },
-    {
-      id: '7',
-      name: 'Club Founder',
-      description: 'Create a club and recruit at least 5 members'
-    },
-    {
-      id: '8',
-      name: 'Social Butterfly',
-      description: 'Connect all your social media accounts to your profile'
-    }
-  ];
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-50 pb-20">
