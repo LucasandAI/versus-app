@@ -64,7 +64,9 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
     setImageLoaded(true);
   };
 
-  const shouldShowImage = image && !imageError && image !== '/placeholder.svg';
+  // Updated condition to show image - only if there's a valid image URL that is not the placeholder
+  // and no error occurred during loading
+  const shouldShowImage = !!image && !imageError && image !== '/placeholder.svg';
   const initials = getInitials(name);
 
   return (
