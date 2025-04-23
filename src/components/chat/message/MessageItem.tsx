@@ -27,8 +27,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
   // Get currentUser to determine if this user can delete the message
   const { currentUser } = useApp();
   
-  // Log message and current user information
-  console.log('MessageItem - message sender:', message.sender.id);
+  // Enhanced logging for message permission checking
+  console.log('MessageItem - checking permissions for message:', message.id);
+  console.log('MessageItem - message sender:', message.sender?.id);
   console.log('MessageItem - current user:', currentUser?.id);
   
   // Determine if the current user can delete this message (only if they are the sender)
@@ -65,6 +66,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
           isSupport={isSupport}
           onDeleteMessage={canDelete && onDeleteMessage ? () => {
             console.log('Delete button clicked for message:', message.id);
+            console.log('By user:', currentUser?.id);
             onDeleteMessage(message.id);
           } : undefined}
         />

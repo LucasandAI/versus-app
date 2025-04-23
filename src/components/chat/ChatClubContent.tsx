@@ -37,8 +37,6 @@ const ChatClubContent = ({
   // Handle deleting a message
   const handleDeleteMessage = async (messageId: string) => {
     try {
-      console.log(`Attempting to delete message with ID: ${messageId} by user ${currentUser?.id}`);
-      
       if (!currentUser?.id) {
         console.error('No current user found');
         toast({
@@ -49,17 +47,40 @@ const ChatClubContent = ({
         return;
       }
       
-      // Log extra debugging information
-      console.log('Current user details:', {
-        id: currentUser.id,
-        name: currentUser.name
-      });
+      // Get the message being deleted to validate sender
+      const messageToDelete = messages.find(msg => msg.id === messageId);
+      if (!messageToDelete) {
+        console.error(`Message with ID ${messageId} not found in local messages`);
+        toast({
+          title: "Error",
+          description: "Message not found",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Enhanced logging for debugging deletion issues
+      console.log("Deleting message:", messageId);
+      console.log("currentUser.id =", currentUser?.id);
+      console.log("message.sender_id =", messageToDelete.sender_id);
+      
+      // Check if the message belongs to the current user
+      if (messageToDelete.sender_id !== currentUser.id) {
+        console.error('Message sender ID does not match current user ID');
+        toast({
+          title: "Permission Denied",
+          description: "You can only delete your own messages",
+          variant: "destructive"
+        });
+        return;
+      }
       
       // Attempt to delete the message from Supabase
       const { data, error } = await supabase
         .from('club_chat_messages')
         .delete()
-        .match({ id: messageId, sender_id: currentUser.id })
+        .eq('id', messageId)
+        .eq('sender_id', currentUser.id)
         .select();
 
       if (error) {

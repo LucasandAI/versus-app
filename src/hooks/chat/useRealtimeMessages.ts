@@ -24,21 +24,31 @@ export const useRealtimeMessages = (open: boolean, setLocalClubMessages: React.D
               console.log(`Removing message ${deletedMessageId} from club ${clubId}`);
               
               setLocalClubMessages(prev => {
-                if (!prev[clubId]) return prev;
+                if (!prev[clubId]) {
+                  console.log(`No messages found for club ${clubId}`);
+                  return prev;
+                }
                 
                 const updatedClubMessages = prev[clubId].filter(msg => {
+                  // Handle both string and non-string IDs
                   const msgId = typeof msg.id === 'string' ? msg.id : 
                                (msg.id ? String(msg.id) : null);
-                  return msgId !== deletedMessageId;
+                  const result = msgId !== deletedMessageId;
+                  if (!result) {
+                    console.log(`Found message to delete: ${msgId}`);
+                  }
+                  return result;
                 });
                 
-                console.log(`Updated messages count after deletion: ${updatedClubMessages.length}`);
+                console.log(`Updated messages count after deletion: ${updatedClubMessages.length} (was ${prev[clubId].length})`);
                 
                 return {
                   ...prev,
                   [clubId]: updatedClubMessages
                 };
               });
+            } else {
+              console.warn('Delete event missing required data:', payload);
             }
           })
       .subscribe((status) => {
