@@ -4,7 +4,7 @@ import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
 import ChatDrawer from '../chat/ChatDrawer';
 import { useChatDrawerMessages } from '@/hooks/chat/useChatDrawerMessages';
-import { useRealtimeChat } from '@/hooks/chat/useRealtimeChat';
+import { useClubMessages } from '@/hooks/chat/useClubMessages';
 import { useApp } from '@/context/AppContext';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
 
@@ -24,8 +24,8 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
   const { isOpen, close } = useChatDrawerGlobal();
   const { currentUser } = useApp();
   
-  const { clubMessages } = useChatDrawerMessages(userClubs, isOpen);
-  useRealtimeChat(currentUser?.id, userClubs);
+  // Use our new hook for real-time club messages
+  const { clubMessages } = useClubMessages(userClubs, isOpen, setUnreadMessages);
 
   return (
     <ChatDrawer 
