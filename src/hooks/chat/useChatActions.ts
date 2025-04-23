@@ -105,6 +105,17 @@ export const useChatActions = () => {
 
   const deleteMessage = useCallback(async (messageId: string) => {
     try {
+      // Check if this is an optimistic message (has temp- prefix)
+      if (messageId.toString().startsWith('temp-')) {
+        console.log('[useChatActions] Skipping deletion of optimistic message:', messageId);
+        toast({
+          title: "Cannot Delete",
+          description: "This message is still being saved. Please try again later.",
+          variant: "warning"
+        });
+        return false;
+      }
+      
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !session?.user) {

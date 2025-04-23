@@ -60,7 +60,6 @@ export const useClubMessages = (
               const existingMessages = currentMessages[club.id] || [];
               
               // Check for duplicates to prevent double-adding messages
-              // Access payload.new.id directly since that's where the message ID is
               if (existingMessages.some(msg => msg.id === payload.new.id)) {
                 console.log(`[useClubMessages] Message ${payload.new.id} already exists, skipping`);
                 return currentMessages;
@@ -92,11 +91,20 @@ export const useClubMessages = (
         }, (payload) => {
           console.log(`[useClubMessages] Message deleted from club ${club.id}:`, payload);
           
+          // Update state to remove the deleted message
           setClubMessages(prev => {
             const existingMessages = prev[club.id] || [];
+            const updatedMessages = existingMessages.filter(msg => {
+              const msgId = typeof msg.id === 'string' ? msg.id : String(msg.id);
+              const payloadId = typeof payload.old.id === 'string' ? payload.old.id : String(payload.old.id);
+              return msgId !== payloadId;
+            });
+            
+            console.log(`[useClubMessages] Removed deleted message ${payload.old.id} from UI, remaining: ${updatedMessages.length}`);
+            
             return {
               ...prev,
-              [club.id]: existingMessages.filter(msg => msg.id !== payload.old.id)
+              [club.id]: updatedMessages
             };
           });
         });
