@@ -3,7 +3,6 @@ import React from 'react';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
 import ChatDrawer from '../chat/ChatDrawer';
-import { useChatDrawerMessages } from '@/hooks/chat/useChatDrawerMessages';
 import { useClubMessages } from '@/hooks/chat/useClubMessages';
 import { useApp } from '@/context/AppContext';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
@@ -24,8 +23,10 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
   const { isOpen, close } = useChatDrawerGlobal();
   const { currentUser } = useApp();
   
-  // Use our new hook for real-time club messages
+  // Use our hook for real-time club messages
   const { clubMessages } = useClubMessages(userClubs, isOpen, setUnreadMessages);
+
+  console.log('[ChatDrawerHandler] Rendering with clubMessages:', clubMessages);
 
   return (
     <ChatDrawer 

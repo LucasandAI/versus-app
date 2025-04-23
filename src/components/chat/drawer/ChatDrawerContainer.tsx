@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
@@ -50,12 +51,15 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   const handleMatchClick = (club: Club) => {
     console.log('[ChatDrawerContainer] Match clicked for club:', club.id);
   };
+
   const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
     console.log('[ChatDrawerContainer] User selected:', {
       userId,
       userName
     });
   };
+  
+  console.log('[ChatDrawerContainer] Rendering with messages:', messages);
   
   switch (activeTab) {
     case "clubs":
