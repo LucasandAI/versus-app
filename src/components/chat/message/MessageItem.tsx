@@ -36,6 +36,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
       )}
       
       <div className={`max-w-[70%] ${isUserMessage ? 'order-2' : 'order-1'}`}>
+        {/* Show sender name for non-user messages */}
         {!isUserMessage && (
           <button 
             className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left`}
@@ -69,4 +70,3 @@ const MessageItem: React.FC<MessageItemProps> = ({
 };
 
 export default MessageItem;
-

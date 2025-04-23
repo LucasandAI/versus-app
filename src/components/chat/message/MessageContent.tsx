@@ -30,6 +30,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
         {message.text}
       </div>
 
+      {/* Only show delete button if it's the user's message AND we have a delete handler AND it's not a support message */}
       {isUserMessage && onDeleteMessage && !isSupport && (
         <MessageDeleteButton onDelete={() => onDeleteMessage(message.id)} />
       )}
@@ -38,4 +39,3 @@ const MessageContent: React.FC<MessageContentProps> = ({
 };
 
 export default MessageContent;
-
