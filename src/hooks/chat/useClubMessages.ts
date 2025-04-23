@@ -60,6 +60,7 @@ export const useClubMessages = (
               const existingMessages = currentMessages[club.id] || [];
               
               // Check for duplicates to prevent double-adding messages
+              // FIX: Access id property directly on completeMessage, not on a nested object
               if (existingMessages.some(msg => msg.id === completeMessage.id)) {
                 console.log(`[useClubMessages] Message ${completeMessage.id} already exists, skipping`);
                 return currentMessages;
