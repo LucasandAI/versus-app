@@ -6,7 +6,7 @@ import { useApp } from '@/context/AppContext';
 import SupportOptions from './SupportOptions';
 import NewTicketDialog from './NewTicketDialog';
 import ChatTicketContent from '../../ChatTicketContent';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 
 interface SupportTabContentProps {
   supportTickets: SupportTicket[];
@@ -16,6 +16,7 @@ interface SupportTabContentProps {
   setSupportMessage: (message: string) => void;
   selectedTicket: SupportTicket | null;
   onSendMessage: (message: string) => void;
+  isSubmitting?: boolean;
 }
 
 const SupportTabContent: React.FC<SupportTabContentProps> = ({
@@ -25,7 +26,8 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
   supportMessage,
   setSupportMessage,
   selectedTicket,
-  onSendMessage
+  onSendMessage,
+  isSubmitting = false
 }) => {
   const [supportOptionsOpen, setSupportOptionsOpen] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
@@ -44,7 +46,7 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
   };
 
   const handleBackToTicketList = () => {
-    onSelectTicket(null);
+    onSelectTicket(null as any);
   };
 
   if (selectedTicket) {
@@ -77,10 +79,18 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
       <div className="flex justify-between items-center mb-4">
         <h2 className="font-semibold text-lg">Support Tickets</h2>
         <button 
-          className="bg-primary text-white px-4 py-2 rounded-md text-sm"
+          className="bg-primary text-white px-4 py-2 rounded-md text-sm flex items-center"
           onClick={handleOpenSupportOptions}
+          disabled={isSubmitting}
         >
-          New Ticket
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              Creating...
+            </>
+          ) : (
+            'New Ticket'
+          )}
         </button>
       </div>
       
@@ -120,6 +130,7 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
         onSubmit={handleSubmitSupportTicket}
         supportMessage={supportMessage}
         setSupportMessage={setSupportMessage}
+        isSubmitting={isSubmitting}
       />
     </div>
   );

@@ -6,6 +6,7 @@ import ChatDrawer from '../chat/ChatDrawer';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
+import { toast } from '@/hooks/use-toast';
 
 interface ChatDrawerHandlerProps {
   userClubs: Club[];
@@ -38,7 +39,7 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
     };
   }, []);
   
-  // Fetch club messages when drawer is opened
+  // Fetch club messages when drawer is opened or clubs change
   useEffect(() => {
     if (!userClubs.length) return;
     
@@ -88,32 +89,40 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
     
     fetchClubMessages();
     
-    // Set up a real-time listener for new messages
-    const channel = supabase
-      .channel('public:club_chat_messages')
+    // Enable realtime on club_chat_messages table
+    const channel = supabase.channel('public:club_chat_messages');
+    
+    // Subscribe to INSERT events on club_chat_messages
+    channel
       .on('postgres_changes', 
         { event: 'INSERT', schema: 'public', table: 'club_chat_messages' }, 
         payload => {
+          console.log('Real-time message received:', payload);
           const clubId = payload.new.club_id;
+          
+          // Only process messages for clubs the user is in
           const existingClub = userClubs.find(club => club.id === clubId);
           
           if (existingClub) {
+            const newMessage = {
+              id: payload.new.id,
+              text: payload.new.message,
+              sender: {
+                id: payload.new.sender_id,
+                name: "", // Will be populated in ChatMessages component
+                avatar: ""
+              },
+              timestamp: payload.new.timestamp,
+            };
+            
+            // Update state with the new message
             setClubMessages(prev => {
-              const newMessage = {
-                id: payload.new.id,
-                text: payload.new.message,
-                sender: {
-                  id: payload.new.sender_id,
-                  name: "", // Will be populated in ChatMessages component
-                  avatar: ""
-                },
-                timestamp: payload.new.timestamp,
-              };
-              
-              return {
+              const updatedMessages = {
                 ...prev,
                 [clubId]: [...(prev[clubId] || []), newMessage]
               };
+              console.log('Updated club messages state:', updatedMessages);
+              return updatedMessages;
             });
           }
         }
@@ -187,8 +196,10 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
     fetchSupportTickets();
     
     // Set up real-time listener for support tickets and messages
-    const channel = supabase
-      .channel('public:support')
+    const channel = supabase.channel('public:support');
+    
+    // Subscribe to INSERT events on support tables
+    channel
       .on('postgres_changes', 
         { event: 'INSERT', schema: 'public', table: 'support_tickets', filter: `user_id=eq.${currentUser.id}` }, 
         () => {

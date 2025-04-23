@@ -12,6 +12,7 @@ import DrawerHeader from './DrawerHeader';
 import DrawerContentComponent from './DrawerContent';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -37,7 +38,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const {
     supportMessage,
     setSupportMessage,
-    handleSubmitSupportTicket
+    handleSubmitSupportTicket,
+    isSubmitting
   } = useSupportTickets();
 
   const {
@@ -91,9 +93,19 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   }, [open]);
 
   const handleSubmitTicket = async () => {
-    const newTicket = await handleSubmitSupportTicket();
-    if (newTicket) {
-      handleSelectTicket(newTicket);
+    try {
+      const newTicket = await handleSubmitSupportTicket();
+      if (newTicket) {
+        setActiveTab("support");
+        handleSelectTicket(newTicket);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast({
+        title: "Support Ticket Error",
+        description: `Error submitting support ticket: ${errorMessage}`,
+        variant: "destructive"
+      });
     }
   };
 
@@ -123,8 +135,10 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             onSendMessage={async (message: string, clubId: string) => {
               if (!currentUser) return;
               try {
-                const newMessage = {
-                  id: `temp-${Date.now()}`,
+                // First add optimistic message to UI
+                const tempId = `temp-${Date.now()}`;
+                const optimisticMessage = {
+                  id: tempId,
                   text: message,
                   sender: {
                     id: currentUser.id,
@@ -134,20 +148,36 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
                   timestamp: new Date().toISOString()
                 };
                 
-                handleNewMessage(clubId, newMessage, open);
+                handleNewMessage(clubId, optimisticMessage, open);
 
-                await supabase.from('club_chat_messages').insert({
+                // Then save to database
+                const { data, error } = await supabase.from('club_chat_messages').insert({
                   message,
                   club_id: clubId,
                   sender_id: currentUser.id
-                });
+                }).select();
+
+                if (error) {
+                  console.error('Error sending club message:', error);
+                  toast({
+                    title: "Message Error",
+                    description: "Failed to send message. Please try again.",
+                    variant: "destructive"
+                  });
+                }
               } catch (error) {
                 console.error('Error sending club message:', error);
+                toast({
+                  title: "Message Error",
+                  description: "Failed to send message. Please try again.",
+                  variant: "destructive"
+                });
               }
             }}
             supportMessage={supportMessage}
             setSupportMessage={setSupportMessage}
             handleSubmitSupportTicket={handleSubmitTicket}
+            isSubmitting={isSubmitting}
           />
         </DrawerContent>
       </Drawer>

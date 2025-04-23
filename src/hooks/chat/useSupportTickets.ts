@@ -9,6 +9,7 @@ export const useSupportTickets = () => {
   const { currentUser } = useApp();
   const [supportMessage, setSupportMessage] = useState("");
   const [selectedSupportOption, setSelectedSupportOption] = useState<{id: string, label: string} | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmitSupportTicket = useCallback(async () => {
     if (!currentUser || !selectedSupportOption) {
@@ -17,7 +18,7 @@ export const useSupportTickets = () => {
         description: "Please select a support topic and enter a message",
         variant: "destructive"
       });
-      return;
+      return null;
     }
     
     if (!supportMessage.trim()) {
@@ -26,10 +27,18 @@ export const useSupportTickets = () => {
         description: "Please provide details before submitting.",
         variant: "destructive"
       });
-      return;
+      return null;
     }
 
+    setIsSubmitting(true);
+
     try {
+      console.log("Creating support ticket:", {
+        subject: selectedSupportOption.label,
+        user_id: currentUser.id
+      });
+      
+      // Step 1: Create the support ticket
       const { data: ticketData, error: ticketError } = await supabase
         .from('support_tickets')
         .insert({
@@ -39,10 +48,31 @@ export const useSupportTickets = () => {
         .select()
         .single();
 
-      if (ticketError || !ticketData) {
-        throw new Error(ticketError?.message || 'Failed to create support ticket');
+      if (ticketError) {
+        console.error("Support ticket creation error:", ticketError);
+        toast({
+          title: "Error Creating Ticket",
+          description: ticketError.message || "Failed to create support ticket",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return null;
       }
 
+      if (!ticketData) {
+        console.error("No ticket data returned after insert");
+        toast({
+          title: "Error",
+          description: "Failed to create support ticket - no data returned",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return null;
+      }
+
+      console.log("Ticket created successfully:", ticketData);
+
+      // Step 2: Add the user's initial message
       const { error: messageError } = await supabase
         .from('support_messages')
         .insert({
@@ -53,9 +83,17 @@ export const useSupportTickets = () => {
         });
 
       if (messageError) {
-        throw new Error(messageError.message);
+        console.error("Support message creation error:", messageError);
+        toast({
+          title: "Error Adding Message",
+          description: messageError.message || "Your ticket was created but we couldn't add your message",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return null;
       }
 
+      // Step 3: Add the auto-response message
       const { error: autoResponseError } = await supabase
         .from('support_messages')
         .insert({
@@ -66,9 +104,10 @@ export const useSupportTickets = () => {
         });
 
       if (autoResponseError) {
-        console.error('Failed to create auto-response:', autoResponseError);
+        console.error("Auto-response creation error:", autoResponseError);
       }
 
+      // Create the ticket object for the UI
       const newTicket: SupportTicket = {
         id: ticketData.id,
         subject: selectedSupportOption.label,
@@ -115,16 +154,19 @@ export const useSupportTickets = () => {
       
       setSupportMessage("");
       setSelectedSupportOption(null);
+      setIsSubmitting(false);
       
       return newTicket;
       
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       console.error('Error creating support ticket:', error);
       toast({
         title: "Error",
-        description: "Failed to create support ticket. Please try again.",
+        description: `Failed to create support ticket: ${errorMessage}`,
         variant: "destructive"
       });
+      setIsSubmitting(false);
       return null;
     }
   }, [currentUser, selectedSupportOption, supportMessage]);
@@ -134,6 +176,7 @@ export const useSupportTickets = () => {
     setSupportMessage,
     selectedSupportOption,
     setSelectedSupportOption,
-    handleSubmitSupportTicket
+    handleSubmitSupportTicket,
+    isSubmitting
   };
 };

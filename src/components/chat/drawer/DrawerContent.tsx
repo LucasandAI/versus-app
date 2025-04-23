@@ -24,6 +24,7 @@ interface DrawerContentProps {
   supportMessage: string;
   setSupportMessage: (message: string) => void;
   handleSubmitSupportTicket: () => void;
+  isSubmitting?: boolean;
 }
 
 const DrawerContent: React.FC<DrawerContentProps> = ({
@@ -44,6 +45,7 @@ const DrawerContent: React.FC<DrawerContentProps> = ({
   supportMessage,
   setSupportMessage,
   handleSubmitSupportTicket,
+  isSubmitting = false
 }) => {
   return (
     <div className="flex-1 overflow-auto">
@@ -74,6 +76,7 @@ const DrawerContent: React.FC<DrawerContentProps> = ({
           supportMessage={supportMessage}
           setSupportMessage={setSupportMessage}
           onSendMessage={(message) => handleNewMessage(selectedTicket?.id || '', { text: message }, true)}
+          isSubmitting={isSubmitting}
         />
       )}
     </div>
