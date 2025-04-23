@@ -14,6 +14,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim() && currentUser?.id) {
+      // Using currentUser.id for consistency
       onSendMessage(message);
       setMessage('');
     }
@@ -34,7 +35,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
       <button 
         type="submit"
         className="ml-2 p-2 rounded-full bg-primary text-white flex items-center justify-center"
-        disabled={!message.trim() || !currentUser}
+        disabled={!message.trim() || !currentUser?.id}
       >
         <Send className="h-5 w-5" />
       </button>

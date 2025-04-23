@@ -41,11 +41,12 @@ const ChatClubContent = ({
 
       console.log('Attempting to delete message:', messageId, 'by user:', currentUser.id);
       
+      // Explicitly using currentUser.id from users table for the permission check
       const { data, error } = await supabase
         .from('club_chat_messages')
         .delete()
         .eq('id', messageId)
-        .eq('sender_id', currentUser.id)
+        .eq('sender_id', currentUser.id) // Using currentUser.id for consistency
         .select();
 
       if (error) {

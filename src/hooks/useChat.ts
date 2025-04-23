@@ -36,7 +36,7 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     updateUnreadCount
   );
 
-  // Modified to ensure we're using currentUser.id for new messages
+  // Updated to explicitly use currentUser.id for new messages instead of session.user.id
   const sendMessageToClub = useCallback(async (clubId: string, messageText: string) => {
     if (!currentUser?.id) {
       console.error('Cannot send message: No user ID found');
@@ -49,10 +49,13 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     }
 
     try {
+      // Explicitly using currentUser.id from the users table
+      console.log('[useChat] Sending message as user:', currentUser.id);
+      
       const { data, error } = await supabase
         .from('club_chat_messages')
         .insert({
-          sender_id: currentUser.id, // Using currentUser.id from users table
+          sender_id: currentUser.id, // Explicitly using currentUser.id from users table, not session.user.id
           club_id: clubId,
           message: messageText
         })

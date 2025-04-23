@@ -27,7 +27,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const { currentUser } = useApp();
   
   // Determine if the current user can delete this message
-  // (if they are the sender by currentUser.id)
+  // Explicitly using currentUser.id from users table
   const canDelete = currentUser && currentUser.id === message.sender.id;
   
   // Enhanced logging for debugging
