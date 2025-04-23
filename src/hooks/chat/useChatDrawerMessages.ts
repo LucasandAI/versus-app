@@ -6,17 +6,14 @@ import { toast } from '@/hooks/use-toast';
 
 export const useChatDrawerMessages = (userClubs: Club[], isOpen: boolean) => {
   const [clubMessages, setClubMessages] = useState<Record<string, any[]>>({});
-  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    if (!userClubs.length) return;
+    if (!userClubs.length || !isOpen) return;
     
-    // Always fetch initial messages when the component mounts or clubs change
+    console.log('[ChatDrawerMessages] Fetching messages for clubs:', userClubs.length);
+    
     const fetchClubMessages = async () => {
-      setIsLoading(true);
       try {
-        console.log('[ChatDrawerMessages] Fetching messages for clubs:', userClubs.length);
-        
         const messagesPromises = userClubs.map(async (club) => {
           const { data, error } = await supabase
             .from('club_chat_messages')
@@ -57,17 +54,13 @@ export const useChatDrawerMessages = (userClubs: Club[], isOpen: boolean) => {
           description: "Failed to load chat messages",
           variant: "destructive"
         });
-      } finally {
-        setIsLoading(false);
       }
     };
     
     fetchClubMessages();
-  }, [userClubs]);
+  }, [userClubs, isOpen]);
 
   return {
-    clubMessages,
-    setClubMessages,
-    isLoading
+    clubMessages
   };
 };

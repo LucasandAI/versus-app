@@ -6,92 +6,73 @@ export const useRealtimeMessages = (open: boolean, setLocalClubMessages: React.D
   useEffect(() => {
     if (!open) return;
 
-    console.log('[useRealtimeMessages] Setting up real-time message subscription');
+    console.log('[useRealtimeMessages] Setting up real-time message subscriptions');
     
-    const channel = supabase.channel('club-messages')
+    // Channel for message deletions
+    const messageDeleteChannel = supabase.channel('club-message-deletions');
+    messageDeleteChannel
       .on('postgres_changes', 
-          { event: '*', schema: 'public', table: 'club_chat_messages' },
-          async (payload) => {
-            console.log('[useRealtimeMessages] Message event received:', { 
-              event: payload.eventType, 
-              data: payload 
-            });
+          { event: 'DELETE', schema: 'public', table: 'club_chat_messages' },
+          (payload) => {
+            console.log('[useRealtimeMessages] Message deletion event received:', payload);
             
-            if (payload.eventType === 'DELETE' && payload.old) {
+            if (payload.old && payload.old.id && payload.old.club_id) {
               const deletedMessageId = payload.old.id;
               const clubId = payload.old.club_id;
               
-              console.log('[useRealtimeMessages] Handling delete for message:', deletedMessageId);
               setLocalClubMessages(prev => {
                 if (!prev[clubId]) return prev;
                 
-                const updatedMessages = prev[clubId].filter(msg => String(msg.id) !== String(deletedMessageId));
-                console.log(`[useRealtimeMessages] Updated club ${clubId} messages after deletion:`, 
-                  { before: prev[clubId].length, after: updatedMessages.length });
+                const updatedClubMessages = prev[clubId].filter(msg => {
+                  const msgId = typeof msg.id === 'string' ? msg.id : 
+                              (msg.id ? String(msg.id) : null);
+                  const deleteId = typeof deletedMessageId === 'string' ? deletedMessageId : 
+                                  String(deletedMessageId);
+                  
+                  return msgId !== deleteId;
+                });
                 
                 return {
                   ...prev,
-                  [clubId]: updatedMessages
+                  [clubId]: updatedClubMessages
                 };
               });
             }
+          })
+      .subscribe();
+    
+    // Channel for message insertions
+    const messageInsertChannel = supabase.channel('club-message-insertions');
+    messageInsertChannel
+      .on('postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'club_chat_messages' },
+          (payload) => {
+            console.log('[useRealtimeMessages] Message insert event received:', payload);
             
-            if (payload.eventType === 'INSERT' && payload.new) {
-              const newMessage = payload.new;
-              const clubId = newMessage.club_id;
+            if (payload.new && payload.new.id && payload.new.club_id) {
+              const newMessageId = payload.new.id;
+              const clubId = payload.new.club_id;
               
-              console.log('[useRealtimeMessages] Handling insert for club:', clubId);
-              
-              try {
-                // Fetch sender info
-                const { data: senderData, error } = await supabase
-                  .from('users')
-                  .select('id, name, avatar')
-                  .eq('id', newMessage.sender_id)
-                  .maybeSingle();
-                  
-                if (error) {
-                  console.error('[useRealtimeMessages] Error fetching sender info:', error);
+              setLocalClubMessages(prev => {
+                const clubMessages = prev[clubId] || [];
+                
+                // Check if message already exists in the array
+                if (clubMessages.some(msg => String(msg.id) === String(newMessageId))) {
+                  return prev;
                 }
                 
-                const messageWithSender = {
-                  ...newMessage,
-                  sender: senderData || {
-                    id: newMessage.sender_id,
-                    name: 'Unknown',
-                    avatar: null
-                  }
+                return {
+                  ...prev,
+                  [clubId]: [...clubMessages, payload.new]
                 };
-                
-                console.log('[useRealtimeMessages] Prepared new message with sender:', messageWithSender);
-                
-                setLocalClubMessages(prev => {
-                  const clubMessages = prev[clubId] || [];
-                  
-                  // Check if message already exists
-                  if (clubMessages.some(msg => String(msg.id) === String(newMessage.id))) {
-                    console.log('[useRealtimeMessages] Message already exists, skipping');
-                    return prev;
-                  }
-                  
-                  console.log(`[useRealtimeMessages] Adding new message to club ${clubId}`);
-                  return {
-                    ...prev,
-                    [clubId]: [...clubMessages, messageWithSender]
-                  };
-                });
-              } catch (err) {
-                console.error('[useRealtimeMessages] Error processing new message:', err);
-              }
+              });
             }
           })
-      .subscribe((status) => {
-        console.log(`[useRealtimeMessages] Subscription status: ${status}`);
-      });
+      .subscribe();
       
     return () => {
-      console.log('[useRealtimeMessages] Cleaning up subscription');
-      supabase.removeChannel(channel);
+      supabase.removeChannel(messageDeleteChannel);
+      supabase.removeChannel(messageInsertChannel);
     };
   }, [open, setLocalClubMessages]);
 };

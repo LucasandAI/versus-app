@@ -4,10 +4,9 @@ import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
 import ChatDrawer from '../chat/ChatDrawer';
 import { useChatDrawerMessages } from '@/hooks/chat/useChatDrawerMessages';
-import { useRealtimeMessages } from '@/hooks/chat/useRealtimeMessages';
+import { useRealtimeChat } from '@/hooks/chat/useRealtimeChat';
 import { useApp } from '@/context/AppContext';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
-import { useChatActions } from '@/hooks/chat/useChatActions';
 
 interface ChatDrawerHandlerProps {
   userClubs: Club[];
@@ -25,18 +24,8 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
   const { isOpen, close } = useChatDrawerGlobal();
   const { currentUser } = useApp();
   
-  const { clubMessages, setClubMessages } = useChatDrawerMessages(userClubs, isOpen);
-  const { sendMessageToClub } = useChatActions();
-  
-  // Pass setClubMessages to useRealtimeMessages
-  useRealtimeMessages(isOpen, setClubMessages);
-
-  const handleSendMessage = async (message: string, clubId?: string) => {
-    if (!clubId || !message.trim()) return;
-    
-    console.log('[ChatDrawerHandler] Sending message to club:', { clubId });
-    await sendMessageToClub(clubId, message);
-  };
+  const { clubMessages } = useChatDrawerMessages(userClubs, isOpen);
+  useRealtimeChat(currentUser?.id, userClubs);
 
   return (
     <ChatDrawer 
@@ -48,7 +37,6 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
       supportTickets={supportTickets}
       clubMessages={clubMessages}
       onNewMessage={setUnreadMessages}
-      onSendMessage={handleSendMessage}
     />
   );
 };
