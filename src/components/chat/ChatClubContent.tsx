@@ -37,22 +37,47 @@ const ChatClubContent = ({
   // Handle deleting a message
   const handleDeleteMessage = async (messageId: string) => {
     try {
-      console.log(`Attempting to delete message with ID: ${messageId}`);
+      console.log(`Attempting to delete message with ID: ${messageId} by user ${currentUser?.id}`);
+      
+      if (!currentUser?.id) {
+        console.error('No current user found');
+        toast({
+          title: "Error",
+          description: "You must be logged in to delete messages",
+          variant: "destructive"
+        });
+        return;
+      }
       
       // Attempt to delete the message from Supabase
       const { data, error } = await supabase
         .from('club_chat_messages')
         .delete()
-        .eq('id', messageId)
-        .eq('sender_id', currentUser?.id) // Ensure only the sender can delete their own messages
+        .match({ id: messageId, sender_id: currentUser.id })
         .select();
 
       if (error) {
         console.error('Supabase delete error:', error);
-        throw error;
+        toast({
+          title: "Error",
+          description: "Failed to delete message: " + error.message,
+          variant: "destructive"
+        });
+        return;
       }
 
       console.log('Delete operation response:', data);
+      
+      // If data is empty array, the message might not exist or belong to this user
+      if (!data || data.length === 0) {
+        console.warn('No message was deleted. Message may not exist or you may not have permission.');
+        toast({
+          title: "Warning",
+          description: "No message was deleted. You can only delete your own messages.",
+          variant: "destructive"
+        });
+        return;
+      }
       
       toast({
         title: "Message deleted",

@@ -58,7 +58,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
           message={message}
           isUserMessage={isUserMessage}
           isSupport={isSupport}
-          onDeleteMessage={canDelete && onDeleteMessage ? () => onDeleteMessage(message.id) : undefined}
+          onDeleteMessage={canDelete && onDeleteMessage ? () => {
+            console.log('Delete button clicked for message:', message.id);
+            onDeleteMessage(message.id);
+          } : undefined}
         />
         
         <p className="text-xs text-gray-500 mt-1">{formatTime(message.timestamp)}</p>

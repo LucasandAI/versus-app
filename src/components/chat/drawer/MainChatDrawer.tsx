@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { ChatProvider } from '@/context/ChatContext';
@@ -177,7 +178,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
 
     console.log('Setting up real-time message deletion listener');
     
-    const messageDeleteChannel = supabase.channel('message-deletions');
+    // Create a channel specifically for message deletions
+    const messageDeleteChannel = supabase.channel('club-message-deletions');
     
     messageDeleteChannel
       .on('postgres_changes', 
@@ -191,14 +193,17 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
               
               console.log(`Removing message ${deletedMessageId} from club ${clubId}`);
               
+              // Update the local state by removing the deleted message
               setLocalClubMessages(prev => {
                 if (!prev[clubId]) return prev;
                 
-                const updatedClubMessages = prev[clubId].filter(msg => 
-                  msg.id !== deletedMessageId
-                );
+                const updatedClubMessages = prev[clubId].filter(msg => {
+                  // Check for both id formats (string and direct object properties)
+                  const msgId = msg.id || (msg.id ? msg.id : null);
+                  return msgId !== deletedMessageId;
+                });
                 
-                console.log(`Updated messages count: ${updatedClubMessages.length}`);
+                console.log(`Updated messages count after deletion: ${updatedClubMessages.length}`);
                 
                 return {
                   ...prev,
@@ -207,7 +212,9 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
               });
             }
           })
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`Subscription status for message deletions: ${status}`);
+      });
       
     return () => {
       console.log('Removing real-time message deletion listener');
