@@ -199,7 +199,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
                 
                 const updatedClubMessages = prev[clubId].filter(msg => {
                   // Check for both id formats (string and direct object properties)
-                  const msgId = msg.id || (msg.id ? msg.id : null);
+                  const msgId = typeof msg.id === 'string' ? msg.id : 
+                               (msg.id ? String(msg.id) : null);
                   return msgId !== deletedMessageId;
                 });
                 

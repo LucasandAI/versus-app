@@ -79,6 +79,7 @@ const ChatClubContent = ({
         return;
       }
       
+      // Successful deletion
       toast({
         title: "Message deleted",
         description: "Your message has been removed from the chat"
