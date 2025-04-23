@@ -5,9 +5,8 @@ import { SupportTicket } from '@/types/chat';
 import { useApp } from '@/context/AppContext';
 import { useChatInteractions } from '@/hooks/chat/useChatInteractions';
 import { useChatMessages } from '@/hooks/chat/useChatMessages';
-import ChatSidebar from '../ChatSidebar';
-import ChatClubContent from '../ChatClubContent';
-import ChatTicketContent from '../ChatTicketContent';
+import ChatSidebarContent from './chat-content/ChatSidebarContent';
+import ChatMainContent from './chat-content/ChatMainContent';
 import ChatEmpty from '../ChatEmpty';
 
 interface ChatDrawerContentProps {
@@ -52,11 +51,11 @@ const ChatDrawerContent = ({
 
   return (
     <div className="flex h-full" key={refreshKey}>
-      <ChatSidebar 
+      <ChatSidebarContent
         clubs={currentUser?.clubs || []}
         selectedClub={selectedLocalClub}
         selectedTicket={selectedTicket}
-        supportTickets={[]} // Don't show support tickets in club chat tab
+        supportTickets={localSupportTickets}
         onSelectClub={onSelectClub}
         onSelectTicket={onSelectTicket}
         onDeleteChat={deleteChat}
@@ -64,24 +63,18 @@ const ChatDrawerContent = ({
         onSelectUser={handleSelectUser}
       />
       
-      {selectedLocalClub && (
-        <ChatClubContent 
-          club={selectedLocalClub}
-          messages={messages[selectedLocalClub.id] || []}
-          onMatchClick={() => handleMatchClick(selectedLocalClub)}
+      {(selectedLocalClub || selectedTicket) ? (
+        <ChatMainContent
+          selectedClub={selectedLocalClub}
+          selectedTicket={selectedTicket}
+          messages={messages}
+          onMatchClick={handleMatchClick}
           onSelectUser={handleSelectUser}
-          onSendMessage={(message) => onSendMessage(message, selectedLocalClub.id)}
+          onSendMessage={selectedTicket ? handleSendMessage : onSendMessage}
         />
+      ) : (
+        <ChatEmpty />
       )}
-
-      {selectedTicket && (
-        <ChatTicketContent 
-          ticket={selectedTicket}
-          onSendMessage={handleSendMessage}
-        />
-      )}
-      
-      {!selectedLocalClub && !selectedTicket && <ChatEmpty />}
     </div>
   );
 };
