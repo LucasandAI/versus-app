@@ -39,9 +39,14 @@ export const useClubMessages = (
           });
 
           // Update unread count if message is from another user
-          if (payload.new.sender_id !== supabase.auth.getUser()?.data?.user?.id) {
-            setUnreadMessages?.(prevCount => (prevCount || 0) + 1);
-          }
+          // Fixed TypeScript error: We need to get user synchronously
+          const currentUser = supabase.auth.getUser().then(response => response.data?.user);
+          currentUser.then(user => {
+            if (payload.new.sender_id !== user?.id && setUnreadMessages) {
+              // Fixed TypeScript error: Use explicit number type for the callback
+              setUnreadMessages((prevCount: number) => prevCount + 1);
+            }
+          });
         })
         .on('postgres_changes', {
           event: 'DELETE',
