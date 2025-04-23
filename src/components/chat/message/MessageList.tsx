@@ -35,18 +35,24 @@ const MessageList: React.FC<MessageListProps> = ({
           No messages yet. Start the conversation!
         </div>
       ) : (
-        messages.map((message: any) => (
-          <MessageItem
-            key={message.id}
-            message={message}
-            clubMembers={clubMembers}
-            isSupport={isSupport}
-            onDeleteMessage={onDeleteMessage}
-            onSelectUser={onSelectUser}
-            formatTime={formatTime}
-            currentUserAvatar={currentUserAvatar}
-          />
-        ))
+        messages.map((message: ChatMessage) => {
+          // Check if the message was sent by the current user
+          const isUserMessage = currentUserAvatar && message.sender && 
+            clubMembers.some(member => member.id === message.sender.id);
+          
+          return (
+            <MessageItem
+              key={message.id}
+              message={message}
+              isUserMessage={isUserMessage}
+              isSupport={isSupport}
+              onDeleteMessage={onDeleteMessage}
+              onSelectUser={onSelectUser}
+              formatTime={formatTime}
+              currentUserAvatar={currentUserAvatar}
+            />
+          );
+        })
       )}
       <div ref={messagesEndRef} />
     </>

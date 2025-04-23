@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageList from './message/MessageList';
 import { useMessageUser } from './message/useMessageUser';
 import { useMessageNormalization } from './message/useMessageNormalization';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ChatMessagesProps {
   messages: ChatMessage[] | any[];
@@ -25,6 +26,15 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   onSelectUser,
 }) => {
   const { currentUserId, currentUserAvatar } = useMessageUser();
+  const [currentUserInClub, setCurrentUserInClub] = useState<boolean>(false);
+  
+  useEffect(() => {
+    // Check if current user is in the club members list
+    if (currentUserId && clubMembers.length > 0) {
+      const isInClub = clubMembers.some(member => String(member.id) === String(currentUserId));
+      setCurrentUserInClub(isInClub);
+    }
+  }, [currentUserId, clubMembers]);
   
   const getMemberName = (senderId: string) => {
     if (currentUserId && String(senderId) === String(currentUserId)) return 'You';
