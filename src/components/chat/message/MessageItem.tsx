@@ -4,7 +4,6 @@ import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
 import MessageContent from './MessageContent';
 import { useApp } from '@/context/AppContext';
-import { supabase } from '@/integrations/supabase/client';
 
 interface MessageItemProps {
   message: ChatMessage;
@@ -26,32 +25,16 @@ const MessageItem: React.FC<MessageItemProps> = ({
   currentUserAvatar,
 }) => {
   const { currentUser } = useApp();
-  const [sessionUserId, setSessionUserId] = useState<string | null>(null);
   
-  // Get session user ID on component mount
-  useEffect(() => {
-    const getSessionId = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user) {
-        setSessionUserId(data.session.user.id);
-      }
-    };
-    
-    getSessionId();
-  }, []);
-  
-  // Determine if the current user can delete this message 
-  // (if they are the sender by either currentUser.id or sessionUserId)
-  const canDelete = 
-    (currentUser && currentUser.id === message.sender.id) || 
-    (sessionUserId && sessionUserId === message.sender.id);
+  // Determine if the current user can delete this message
+  // (if they are the sender by currentUser.id)
+  const canDelete = currentUser && currentUser.id === message.sender.id;
   
   // Enhanced logging for debugging
   console.log('MessageItem:', {
     messageId: message.id,
     senderId: message.sender.id, 
     currentUserId: currentUser?.id,
-    sessionUserId: sessionUserId,
     canDelete: canDelete
   });
 
@@ -86,7 +69,6 @@ const MessageItem: React.FC<MessageItemProps> = ({
           onDeleteMessage={canDelete && onDeleteMessage ? () => {
             console.log('Delete button clicked for message:', message.id);
             console.log('By user:', currentUser?.id);
-            console.log('Session user:', sessionUserId);
             console.log('Message sender:', message.sender.id);
             onDeleteMessage(message.id);
           } : undefined}

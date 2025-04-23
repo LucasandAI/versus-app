@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Send } from 'lucide-react';
+import { useApp } from '@/context/AppContext';
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
@@ -8,10 +9,11 @@ interface ChatInputProps {
 
 const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
   const [message, setMessage] = useState('');
+  const { currentUser } = useApp();
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (message.trim()) {
+    if (message.trim() && currentUser?.id) {
       onSendMessage(message);
       setMessage('');
     }
@@ -32,7 +34,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
       <button 
         type="submit"
         className="ml-2 p-2 rounded-full bg-primary text-white flex items-center justify-center"
-        disabled={!message.trim()}
+        disabled={!message.trim() || !currentUser}
       >
         <Send className="h-5 w-5" />
       </button>
