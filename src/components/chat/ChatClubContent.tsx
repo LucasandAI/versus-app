@@ -29,19 +29,7 @@ const ChatClubContent = ({
 
   const handleDeleteMessage = async (messageId: string) => {
     try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) {
-        console.error('Session check error:', sessionError);
-        toast({
-          title: "Error",
-          description: "Could not verify user session",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      const sessionUserId = session?.user?.id;
-      if (!sessionUserId) {
+      if (!currentUser?.id) {
         console.error('No authenticated user found');
         toast({
           title: "Error",
@@ -51,11 +39,13 @@ const ChatClubContent = ({
         return;
       }
 
+      console.log('Attempting to delete message:', messageId, 'by user:', currentUser.id);
+      
       const { data, error } = await supabase
         .from('club_chat_messages')
         .delete()
         .eq('id', messageId)
-        .eq('sender_id', sessionUserId)
+        .eq('sender_id', currentUser.id)
         .select();
 
       if (error) {

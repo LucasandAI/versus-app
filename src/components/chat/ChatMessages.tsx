@@ -3,7 +3,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { ChatMessage } from '@/types/chat';
 import MessageItem from './message/MessageItem';
-import { supabase } from '@/integrations/supabase/client';
 
 interface ChatMessagesProps {
   messages: ChatMessage[] | any[];
@@ -26,20 +25,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
 }) => {
   const { currentUser } = useApp();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [sessionUserId, setSessionUserId] = useState<string | null>(null);
-  
-  useEffect(() => {
-    // Get session user ID on component mount
-    const getSessionId = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user) {
-        setSessionUserId(data.session.user.id);
-        console.log('Session User ID:', data.session.user.id);
-      }
-    };
-    
-    getSessionId();
-  }, []);
   
   useEffect(() => {
     scrollToBottom();
@@ -55,9 +40,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   };
 
   const isCurrentUser = (senderId: string) => {
-    console.log(`Comparing message sender ID: ${senderId} with current user ID: ${currentUser?.id} and session ID: ${sessionUserId}`);
-    // Check both current user ID and session user ID
-    return senderId === currentUser?.id || (sessionUserId && senderId === sessionUserId);
+    console.log(`Comparing message sender ID: ${senderId} with current user ID: ${currentUser?.id}`);
+    return senderId === currentUser?.id;
   };
   
   const getMemberName = (senderId: string) => {
