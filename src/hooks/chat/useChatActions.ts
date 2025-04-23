@@ -19,7 +19,6 @@ export const useChatActions = () => {
         .insert({
           club_id: clubId,
           message: messageText,
-          timestamp: new Date().toISOString() // Explicitly set timestamp
         })
         .select(`
           id, 

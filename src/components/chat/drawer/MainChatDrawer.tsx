@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Drawer, DrawerContent as UIDrawerContent } from '@/components/ui/drawer';
 import { ChatProvider } from '@/context/ChatContext';
@@ -34,18 +35,9 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const { currentUser } = useApp();
   const [activeTab, setActiveTab] = useState<"clubs"|"dm"|"support">("clubs");
   const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>(supportTickets);
-  const [localClubMessages, setLocalClubMessages] = useState<Record<string, any[]>>(clubMessages);
-
-  // Add the new useEffect to sync clubMessages
-  useEffect(() => {
-    if (open && Object.keys(clubMessages).length > 0) {
-      console.log('[MainChatDrawer] Received updated clubMessages:', Object.keys(clubMessages).length);
-      setLocalClubMessages(clubMessages);
-    }
-  }, [clubMessages, open]);
 
   // Use the club messages hook directly instead of local state
-  const { clubMessages: liveClubMessages, setClubMessages } = useClubMessages(clubs, open, onNewMessage);
+  const { clubMessages: localClubMessages, setClubMessages } = useClubMessages(clubs, open, onNewMessage);
 
   const {
     supportMessage,
