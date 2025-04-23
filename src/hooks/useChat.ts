@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from 'react';
-import { useApp } from '@/context/AppContext';
 import { useLocalStorage } from './chat/useLocalStorage';
 import { useMessages } from './chat/useMessages';
 import { useUnreadNotifications } from './chat/useUnreadNotifications';
@@ -8,7 +7,6 @@ import { useChatActions } from './chat/useChatActions';
 import { useChatDeletion } from './chat/useChatDeletion';
 
 export const useChat = (open: boolean, onNewMessage?: (count: number) => void) => {
-  const { currentUser } = useApp();
   const [refreshKey, setRefreshKey] = useState(Date.now());
   const [supportTickets, setSupportTickets] = useState<Record<string, any>>({});
   
@@ -21,7 +19,9 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
 
   const { unreadMessages, updateUnreadCount } = useUnreadNotifications(open, onNewMessage);
   const { messages, setMessages, handleNewMessage } = useMessages(saveMessages, updateUnreadCount);
-  const { sendMessageToClub } = useChatActions(currentUser);
+  
+  // Remove the currentUser parameter since useChatActions no longer expects it
+  const { sendMessageToClub } = useChatActions();
   const { deleteChat } = useChatDeletion(saveMessages, saveSupportTickets, saveUnreadMessages);
 
   // Load data from localStorage on mount
