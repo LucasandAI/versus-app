@@ -6,7 +6,7 @@ export const useRealtimeMessages = (open: boolean, setLocalClubMessages: React.D
   useEffect(() => {
     if (!open) return;
 
-    console.log('Setting up real-time message subscriptions');
+    console.log('[useRealtimeMessages] Setting up real-time message subscriptions');
     
     // Channel for message deletions
     const messageDeleteChannel = supabase.channel('club-message-deletions');
@@ -14,17 +14,17 @@ export const useRealtimeMessages = (open: boolean, setLocalClubMessages: React.D
       .on('postgres_changes', 
           { event: 'DELETE', schema: 'public', table: 'club_chat_messages' },
           (payload) => {
-            console.log('Message deletion event received:', payload);
+            console.log('[useRealtimeMessages] Message deletion event received:', payload);
             
             if (payload.old && payload.old.id && payload.old.club_id) {
               const deletedMessageId = payload.old.id;
               const clubId = payload.old.club_id;
               
-              console.log(`Removing message ${deletedMessageId} from club ${clubId}`);
+              console.log(`[useRealtimeMessages] Removing message ${deletedMessageId} from club ${clubId}`);
               
               setLocalClubMessages(prev => {
                 if (!prev[clubId]) {
-                  console.log(`No messages found for club ${clubId}`);
+                  console.log(`[useRealtimeMessages] No messages found for club ${clubId}`);
                   return prev;
                 }
                 
@@ -37,7 +37,7 @@ export const useRealtimeMessages = (open: boolean, setLocalClubMessages: React.D
                   return msgId !== deleteId;
                 });
                 
-                console.log(`Updated messages count after deletion: ${updatedClubMessages.length} (was ${prev[clubId].length})`);
+                console.log(`[useRealtimeMessages] Updated messages count after deletion: ${updatedClubMessages.length} (was ${prev[clubId].length})`);
                 
                 return {
                   ...prev,
@@ -45,11 +45,11 @@ export const useRealtimeMessages = (open: boolean, setLocalClubMessages: React.D
                 };
               });
             } else {
-              console.warn('Delete event missing required data:', payload);
+              console.warn('[useRealtimeMessages] Delete event missing required data:', payload);
             }
           })
       .subscribe((status) => {
-        console.log(`Subscription status for message deletions: ${status}`);
+        console.log(`[useRealtimeMessages] Subscription status for message deletions: ${status}`);
       });
     
     // Channel for message insertions
@@ -58,7 +58,7 @@ export const useRealtimeMessages = (open: boolean, setLocalClubMessages: React.D
       .on('postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'club_chat_messages' },
           async (payload) => {
-            console.log('Message insert event received:', payload);
+            console.log('[useRealtimeMessages] Message insert event received:', payload);
             
             if (payload.new && payload.new.id && payload.new.club_id) {
               const newMessageId = payload.new.id;
@@ -69,28 +69,26 @@ export const useRealtimeMessages = (open: boolean, setLocalClubMessages: React.D
                 const { data: messageWithSender, error } = await supabase
                   .from('club_chat_messages')
                   .select(`
-                    *,
+                    id, message, timestamp, sender_id, club_id,
                     sender:sender_id(id, name, avatar)
                   `)
                   .eq('id', newMessageId)
                   .single();
                   
                 if (error) {
-                  console.error('Error fetching message with sender:', error);
+                  console.error('[useRealtimeMessages] Error fetching message with sender:', error);
                   return;
                 }
                 
                 if (messageWithSender) {
-                  console.log(`Adding new message to club ${clubId}:`, messageWithSender);
-                  console.log('Sender ID for new message:', messageWithSender.sender_id);
-                  console.log('Sender data:', messageWithSender.sender);
+                  console.log('[useRealtimeMessages] Adding new message to club:', messageWithSender);
                   
                   setLocalClubMessages(prev => {
                     const clubMessages = prev[clubId] || [];
                     
                     // Check if message already exists in the array
                     if (clubMessages.some(msg => String(msg.id) === String(newMessageId))) {
-                      console.log(`Message ${newMessageId} already exists in club ${clubId}`);
+                      console.log(`[useRealtimeMessages] Message ${newMessageId} already exists in club ${clubId}`);
                       return prev;
                     }
                     
@@ -101,18 +99,18 @@ export const useRealtimeMessages = (open: boolean, setLocalClubMessages: React.D
                   });
                 }
               } catch (fetchError) {
-                console.error('Error in real-time message fetch:', fetchError);
+                console.error('[useRealtimeMessages] Error in real-time message fetch:', fetchError);
               }
             } else {
-              console.warn('Insert event missing required data:', payload);
+              console.warn('[useRealtimeMessages] Insert event missing required data:', payload);
             }
           })
       .subscribe((status) => {
-        console.log(`Subscription status for message insertions: ${status}`);
+        console.log(`[useRealtimeMessages] Subscription status for message insertions: ${status}`);
       });
       
     return () => {
-      console.log('Removing real-time message listeners');
+      console.log('[useRealtimeMessages] Removing real-time message listeners');
       supabase.removeChannel(messageDeleteChannel);
       supabase.removeChannel(messageInsertChannel);
     };

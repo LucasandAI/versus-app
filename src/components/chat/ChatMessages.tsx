@@ -30,15 +30,16 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   // Get the current user ID directly from Supabase session
   useEffect(() => {
     const getCurrentUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.id) {
-        setCurrentUserId(session.user.id);
+      const { data } = await supabase.auth.getSession();
+      
+      if (data.session?.user?.id) {
+        setCurrentUserId(data.session.user.id);
         
         // Fetch user avatar if available
         const { data: userData } = await supabase
           .from('users')
           .select('avatar')
-          .eq('id', session.user.id)
+          .eq('id', data.session.user.id)
           .single();
           
         if (userData?.avatar) {
@@ -71,7 +72,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     const userIdStr = String(currentUserId);
     const senderIdStr = String(senderId);
     
-    console.log(`Comparing message sender ID: ${senderIdStr} with current user ID: ${userIdStr}`);
+    console.log(`[ChatMessages] Comparing message sender ID: ${senderIdStr} with current user ID: ${userIdStr}`);
     return senderIdStr === userIdStr;
   };
   
@@ -83,8 +84,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
 
   // Function to normalize messages from different sources
   const normalizeMessage = (message: any): ChatMessage => {
-    console.log('Normalizing message:', message);
-    
     // Handle messages with sender object from join query
     if (message.sender && typeof message.sender === 'object') {
       return {
@@ -102,7 +101,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     
     // If it's from Supabase club_chat_messages table
     if (message.message !== undefined && message.sender_id !== undefined) {
-      console.log('Normalizing message from Supabase:', {
+      console.log('[ChatMessages] Normalizing message from Supabase:', {
         id: message.id,
         sender_id: message.sender_id,
         message: message.message
@@ -125,7 +124,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     
     // If it's already in the expected format
     if (message.text !== undefined && message.sender !== undefined) {
-      console.log('Message already normalized:', message.id);
       // Ensure sender id is consistently a string for comparisons
       return {
         ...message,
@@ -137,7 +135,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     }
     
     // Fallback to prevent errors
-    console.error("Unknown message format:", message);
+    console.error("[ChatMessages] Unknown message format:", message);
     return {
       id: message.id || `unknown-${Date.now()}`,
       text: message.message || message.text || "Unknown message",
@@ -152,9 +150,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   };
 
   if (!Array.isArray(messages)) {
-    console.error("Messages is not an array:", messages);
+    console.error("[ChatMessages] Messages is not an array:", messages);
     return (
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 bg-white">
         <div className="h-full flex items-center justify-center text-gray-500 text-sm">
           No messages yet. Start the conversation!
         </div>
@@ -162,10 +160,10 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     );
   }
 
-  console.log("Rendering messages:", messages.length);
+  console.log("[ChatMessages] Rendering messages:", messages.length);
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white">
       {messages.length === 0 ? (
         <div className="h-full flex items-center justify-center text-gray-500 text-sm">
           No messages yet. Start the conversation!
@@ -175,8 +173,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
           const normalizedMessage = normalizeMessage(message);
           const isUserMessage = isCurrentUser(normalizedMessage.sender.id);
           
-          console.log("Message after normalization:", {
+          console.log("[ChatMessages] Message after normalization:", {
             id: normalizedMessage.id,
+            text: normalizedMessage.text,
             senderId: normalizedMessage.sender.id,
             isUserMessage,
             currentUserId

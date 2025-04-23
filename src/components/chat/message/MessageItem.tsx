@@ -30,9 +30,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
   // Get the current user ID directly from Supabase session
   useEffect(() => {
     const getCurrentUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.id) {
-        setCurrentUserId(session.user.id);
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user?.id) {
+        setCurrentUserId(data.session.user.id);
       }
     };
     
@@ -41,22 +41,26 @@ const MessageItem: React.FC<MessageItemProps> = ({
   
   // Determine if the current user can delete this message
   // Convert both IDs to string for consistent comparison
-  const canDelete = currentUserId && String(currentUserId) === String(message.sender.id);
+  const canDelete = currentUserId && 
+    message.sender && 
+    message.sender.id && 
+    String(currentUserId) === String(message.sender.id);
   
   // Enhanced logging for debugging
-  console.log('MessageItem:', {
+  console.log('[MessageItem]', {
     messageId: message.id,
-    senderId: message.sender.id, 
+    senderId: message.sender?.id, 
     currentUserId,
     isUserMessage,
-    canDelete
+    canDelete,
+    messageText: message.text
   });
 
   return (
     <div className={`flex ${isUserMessage ? 'justify-end' : 'justify-start'} group`}>
       {!isUserMessage && (
         <UserAvatar 
-          name={message.sender.name} 
+          name={message.sender.name || "Unknown"} 
           image={message.sender.avatar} 
           size="sm" 
           className={`mr-2 flex-shrink-0 ${!isSupport ? 'cursor-pointer' : ''}`}
@@ -71,7 +75,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
             className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left`}
             onClick={!isSupport && onSelectUser ? () => onSelectUser(message.sender.id, message.sender.name, message.sender.avatar) : undefined}
           >
-            {message.sender.name}
+            {message.sender.name || "Unknown"}
             {message.isSupport && <span className="ml-1 text-blue-500">(Support)</span>}
           </button>
         )}
@@ -81,9 +85,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
           isUserMessage={isUserMessage}
           isSupport={isSupport}
           onDeleteMessage={canDelete && onDeleteMessage ? () => {
-            console.log('Delete button clicked for message:', message.id);
-            console.log('By user:', currentUserId);
-            console.log('Message sender:', message.sender.id);
+            console.log('[MessageItem] Delete button clicked for message:', message.id);
             onDeleteMessage(message.id);
           } : undefined}
         />

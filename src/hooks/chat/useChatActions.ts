@@ -17,24 +17,19 @@ export const useChatActions = (currentUser: User | null) => {
           description: "You must be logged in to send messages",
           variant: "destructive"
         });
-        return;
+        return null;
       }
       
       const authUserId = sessionData.session.user.id;
       
-      // Log attempt to send message with the authenticated user ID from the current session
-      console.log('[useChat] Attempting to send message:', {
-        clubId,
-        authUserId,
-        messageText
-      });
+      console.log('[useChatActions] Sending message with user ID:', authUserId);
       
       const { data: insertedMessage, error: insertError } = await supabase
         .from('club_chat_messages')
         .insert({
           club_id: clubId,
           message: messageText,
-          sender_id: authUserId // Using the authenticated user ID directly from the session
+          sender_id: authUserId
         })
         .select();
 
@@ -45,32 +40,16 @@ export const useChatActions = (currentUser: User | null) => {
           description: "Failed to send message",
           variant: "destructive"
         });
-        return;
+        return null;
       }
 
-      // Then fetch the complete message with sender data joined
-      if (insertedMessage && insertedMessage.length > 0) {
-        const { data: messageWithSender, error: fetchError } = await supabase
-          .from('club_chat_messages')
-          .select(`
-            *,
-            sender:sender_id(id, name, avatar)
-          `)
-          .eq('id', insertedMessage[0].id)
-          .single();
-
-        if (fetchError) {
-          console.error('Error fetching sent message with sender:', fetchError);
-          return insertedMessage;
-        }
-        
-        console.log('Message sent successfully with sender data:', messageWithSender);
-        return messageWithSender;
-      }
-
-      return insertedMessage;
+      console.log('[useChatActions] Message inserted successfully:', insertedMessage);
+      
+      // Return the inserted message data
+      return insertedMessage && insertedMessage.length > 0 ? insertedMessage[0] : null;
     } catch (error) {
       console.error('Exception sending message:', error);
+      return null;
     }
   }, []);
 

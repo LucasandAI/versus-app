@@ -8,12 +8,18 @@ interface ChatInputProps {
 
 const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
   const [message, setMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (message.trim()) {
-      onSendMessage(message);
-      setMessage('');
+    if (message.trim() && !isSending) {
+      setIsSending(true);
+      try {
+        await onSendMessage(message);
+        setMessage('');
+      } finally {
+        setIsSending(false);
+      }
     }
   };
   
@@ -28,11 +34,12 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
         onChange={(e) => setMessage(e.target.value)}
         placeholder="Type a message..."
         className="flex-1 border rounded-full py-2 px-4 focus:outline-none focus:ring-1 focus:ring-primary"
+        disabled={isSending}
       />
       <button 
         type="submit"
         className="ml-2 p-2 rounded-full bg-primary text-white flex items-center justify-center"
-        disabled={!message.trim()}
+        disabled={!message.trim() || isSending}
       >
         <Send className="h-5 w-5" />
       </button>

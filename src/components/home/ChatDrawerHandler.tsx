@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Club } from '@/types';
 import { SupportTicket, ChatMessage } from '@/types/chat';
@@ -40,35 +41,33 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
   
   // Fetch club messages when drawer is opened or clubs change
   useEffect(() => {
-    if (!userClubs.length) return;
+    if (!userClubs.length || !isOpen) return;
+    
+    console.log('[ChatDrawerHandler] Fetching messages for clubs:', userClubs.length);
     
     const fetchClubMessages = async () => {
       try {
         const messagesPromises = userClubs.map(async (club) => {
           const { data, error } = await supabase
             .from('club_chat_messages')
-            .select('id, message, timestamp, sender_id, club_id')
+            .select(`
+              id, 
+              message, 
+              timestamp, 
+              sender_id, 
+              club_id,
+              sender:sender_id(id, name, avatar)
+            `)
             .eq('club_id', club.id)
             .order('timestamp', { ascending: true });
               
           if (error) {
-            console.error(`Error fetching messages for club ${club.id}:`, error);
+            console.error(`[ChatDrawerHandler] Error fetching messages for club ${club.id}:`, error);
             return [club.id, []];
           }
           
-          // Convert Supabase data shape to ChatMessage shape
-          const messages = (data || []).map(msg => ({
-            id: msg.id,
-            text: msg.message,
-            sender: {
-              id: msg.sender_id,
-              name: "", // Will be populated in ChatMessages component
-              avatar: ""
-            },
-            timestamp: msg.timestamp,
-          }));
-          
-          return [club.id, messages];
+          console.log(`[ChatDrawerHandler] Fetched ${data?.length || 0} messages for club ${club.id}`);
+          return [club.id, data || []];
         });
         
         const messagesResults = await Promise.all(messagesPromises);
@@ -80,65 +79,18 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
           }
         });
         
-        console.log("Initial club messages loaded:", clubMessagesMap);
         setClubMessages(clubMessagesMap);
       } catch (error) {
-        console.error('Error fetching club messages:', error);
+        console.error('[ChatDrawerHandler] Error fetching club messages:', error);
       }
     };
     
     fetchClubMessages();
-    
-    // Set up a separate channel for each club to listen for new messages
-    const channels = userClubs.map(club => {
-      const channel = supabase.channel(`club-messages-${club.id}`);
-      
-      channel
-        .on('postgres_changes', 
-          { event: 'INSERT', schema: 'public', table: 'club_chat_messages', filter: `club_id=eq.${club.id}` }, 
-          payload => {
-            console.log(`New message received for club ${club.id}:`, payload);
-            
-            if (payload.new) {
-              const newMessage = {
-                id: payload.new.id,
-                text: payload.new.message,
-                sender: {
-                  id: payload.new.sender_id,
-                  name: "", // Will be populated in ChatMessages component
-                  avatar: ""
-                },
-                timestamp: payload.new.timestamp,
-              };
-              
-              // Update state with the new message
-              setClubMessages(prev => {
-                const updatedMessages = {
-                  ...prev,
-                  [club.id]: [...(prev[club.id] || []), newMessage]
-                };
-                console.log(`Updated messages for club ${club.id}:`, updatedMessages[club.id]);
-                return updatedMessages;
-              });
-            }
-          }
-        )
-        .subscribe();
-        
-      console.log(`Subscribed to real-time updates for club ${club.id}`);
-      return channel;
-    });
-    
-    return () => {
-      channels.forEach(channel => {
-        supabase.removeChannel(channel);
-      });
-    };
-  }, [userClubs]);
+  }, [userClubs, isOpen]);
   
   // Fetch support tickets
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !isOpen) return;
     
     const fetchSupportTickets = async () => {
       try {
@@ -149,7 +101,7 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
           .eq('user_id', currentUser.id);
         
         if (ticketsError) {
-          console.error('Error fetching support tickets:', ticketsError);
+          console.error('[ChatDrawerHandler] Error fetching support tickets:', ticketsError);
           return;
         }
         
@@ -163,7 +115,7 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
               .order('timestamp', { ascending: true });
             
             if (messagesError) {
-              console.error(`Error fetching messages for ticket ${ticket.id}:`, messagesError);
+              console.error(`[ChatDrawerHandler] Error fetching messages for ticket ${ticket.id}:`, messagesError);
               return null;
             }
             
@@ -191,35 +143,68 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
         const validTickets = ticketsWithMessages.filter(Boolean) as SupportTicket[];
         setFetchedSupportTickets(validTickets);
       } catch (error) {
-        console.error('Error in fetchSupportTickets:', error);
+        console.error('[ChatDrawerHandler] Error in fetchSupportTickets:', error);
       }
     };
     
     fetchSupportTickets();
+  }, [currentUser, isOpen, refreshTrigger]);
+
+  // Function to send a message to a club
+  const handleSendClubMessage = async (message: string, clubId?: string) => {
+    if (!clubId) return;
     
-    // Set up real-time listener for support tickets and messages
-    const channel = supabase.channel('public:support');
-    
-    // Subscribe to INSERT events on support tables
-    channel
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'support_tickets', filter: `user_id=eq.${currentUser.id}` }, 
-        () => {
-          fetchSupportTickets();
-        }
-      )
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'support_messages' }, 
-        () => {
-          fetchSupportTickets();
-        }
-      )
-      .subscribe();
-    
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [currentUser, refreshTrigger]);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to send messages",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const { data: messageData, error } = await supabase
+        .from('club_chat_messages')
+        .insert({
+          club_id: clubId,
+          message: message,
+          sender_id: sessionData.session.user.id
+        })
+        .select(`
+          id, 
+          message, 
+          timestamp, 
+          sender_id, 
+          club_id,
+          sender:sender_id(id, name, avatar)
+        `)
+        .single();
+        
+      if (error) {
+        console.error('[ChatDrawerHandler] Error sending message:', error);
+        toast({
+          title: "Error",
+          description: "Failed to send message: " + error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      console.log('[ChatDrawerHandler] Message sent successfully:', messageData);
+      
+      // Update local state
+      if (messageData) {
+        setClubMessages(prev => ({
+          ...prev,
+          [clubId]: [...(prev[clubId] || []), messageData]
+        }));
+      }
+    } catch (error) {
+      console.error('[ChatDrawerHandler] Error in handleSendClubMessage:', error);
+    }
+  };
 
   return (
     <ChatDrawer 

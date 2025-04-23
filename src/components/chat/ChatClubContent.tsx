@@ -42,7 +42,7 @@ const ChatClubContent = ({
       
       const authUserId = sessionData.session.user.id;
       
-      console.log('Attempting to delete message:', messageId, 'by user:', authUserId);
+      console.log('[ChatClubContent] Attempting to delete message:', messageId, 'by user:', authUserId);
       
       // Delete the message (RLS will check if sender_id = auth.uid())
       const { data, error } = await supabase
@@ -90,8 +90,12 @@ const ChatClubContent = ({
     }
   };
 
+  const handleSendMessage = async (message: string) => {
+    await onSendMessage(message);
+  };
+
   return (
-    <div className="flex-1 flex flex-col h-full">
+    <div className="flex-1 flex flex-col h-full bg-white">
       <ChatHeader 
         club={club}
         onMatchClick={onMatchClick}
@@ -106,7 +110,7 @@ const ChatClubContent = ({
         onSelectUser={onSelectUser}
       />
       
-      <ChatInput onSendMessage={onSendMessage} />
+      <ChatInput onSendMessage={handleSendMessage} />
     </div>
   );
 };
