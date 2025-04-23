@@ -53,7 +53,9 @@ const ChatDrawerContent: React.FC<ChatDrawerContentProps> = ({
   return (
     <SupportTabContent
       selectedTicket={selectedTicket}
-      onSendMessage={onSendMessage}
+      onSendMessage={(message: string) => {
+        onSendMessage(message).catch(console.error);
+      }}
       markTicketAsRead={markTicketAsRead}
       supportMessage={supportMessage}
       setSupportMessage={setSupportMessage}
