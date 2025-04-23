@@ -2,8 +2,9 @@
 import { useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { User } from '@/types';
 
-export const useChatActions = (currentUser: any | null) => {
+export const useChatActions = (currentUser: User | null) => {
   const sendMessageToClub = useCallback(async (clubId: string, messageText: string) => {
     if (!currentUser?.id) {
       console.error('Cannot send message: No user ID found');
@@ -21,7 +22,7 @@ export const useChatActions = (currentUser: any | null) => {
       const { data, error } = await supabase
         .from('club_chat_messages')
         .insert({
-          sender_id: currentUser.id,
+          sender_id: currentUser.id,  // Explicitly using currentUser.id from users table
           club_id: clubId,
           message: messageText
         })
@@ -38,6 +39,7 @@ export const useChatActions = (currentUser: any | null) => {
       }
 
       console.log('Message sent successfully:', data);
+      return data;
     } catch (error) {
       console.error('Exception sending message:', error);
     }

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { ChatMessage } from '@/types/chat';
@@ -55,12 +54,10 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
 
   // Function to normalize messages from different sources
   const normalizeMessage = (message: any): ChatMessage => {
-    // Debug logging for message normalization
     console.log('Normalizing message:', message);
     
     // If it's from Supabase club_chat_messages table
     if (message.message !== undefined && message.sender_id !== undefined) {
-      // Log message data to help with debugging
       console.log('Normalizing message from Supabase:', {
         id: message.id,
         sender_id: message.sender_id,

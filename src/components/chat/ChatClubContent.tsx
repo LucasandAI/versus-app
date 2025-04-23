@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Club } from '@/types';
 import ChatHeader from './ChatHeader';
@@ -46,7 +45,7 @@ const ChatClubContent = ({
         .from('club_chat_messages')
         .delete()
         .eq('id', messageId)
-        .eq('sender_id', currentUser.id) // Using currentUser.id for consistency
+        .eq('sender_id', currentUser.id)
         .select();
 
       if (error) {
