@@ -4,6 +4,7 @@ import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { ChatProvider } from '@/context/ChatContext';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
+import { toast } from '@/hooks/use-toast'; // Added missing toast import
 import { useChat } from '@/hooks/chat/useChat';
 import { useChatDrawerState } from '@/hooks/chat/useChatDrawerState';
 import { useChatMessages } from '@/hooks/chat/useChatMessages';
@@ -113,7 +114,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             unreadMessages={unreadMessages}
             handleNewMessage={handleNewMessage}
             markTicketAsRead={markTicketAsRead}
-            onSendMessage={handleSendClubMessage}
+            onSendMessage={handleSendMessage} // Fixed: changed from handleSendClubMessage to handleSendMessage
             supportMessage={supportMessage}
             setSupportMessage={setSupportMessage}
             handleSubmitSupportTicket={handleSubmitTicket}
