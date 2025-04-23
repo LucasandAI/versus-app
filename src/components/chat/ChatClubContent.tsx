@@ -6,7 +6,6 @@ import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import { useNavigation } from '@/hooks/useNavigation';
 import { useChatActions } from '@/hooks/chat/useChatActions';
-import { toast } from '@/hooks/use-toast';
 
 interface ChatClubContentProps {
   club: Club;
@@ -29,23 +28,10 @@ const ChatClubContent = ({
 
   const handleDeleteMessage = async (messageId: string) => {
     console.log('[ChatClubContent] Deleting message:', messageId);
-    
-    // Skip temporary messages
-    if (messageId.toString().startsWith('temp-')) {
-      toast({
-        title: "Cannot Delete",
-        description: "This message is still being saved. Please try again later.",
-        variant: "warning"
-      });
-      return;
-    }
-    
     const success = await deleteMessage(messageId);
     
     if (!success) {
       console.log('[ChatClubContent] Failed to delete message');
-    } else {
-      console.log('[ChatClubContent] Message deleted successfully');
     }
   };
 
