@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Drawer, DrawerContent as UIDrawerContent } from '@/components/ui/drawer';
 import { ChatProvider } from '@/context/ChatContext';
@@ -63,15 +62,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     deleteChat,
   } = chat;
 
-  // Get support message handler
-  const { handleSendMessage: handleSendSupportMessage } = useChatMessages(
-    selectedTicket,
-    handleSelectTicket,
-    handleNewMessage,
-    currentUser
-  );
-
-  // Extract club message handler directly from chat
   const handleSendClubMessage = chat.sendMessageToClub;
 
   useSupportTicketEffects(open, setLocalSupportTickets);
@@ -121,7 +111,10 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             unreadMessages={unreadMessages}
             handleNewMessage={handleNewMessage}
             markTicketAsRead={markTicketAsRead}
-            onSendMessage={activeTab === "support" ? handleSendSupportMessage : handleSendClubMessage}
+            onSendMessage={activeTab === "support" ? 
+              (message) => console.log("Support message:", message) : 
+              handleSendClubMessage
+            }
             supportMessage={supportMessage}
             setSupportMessage={setSupportMessage}
             handleSubmitSupportTicket={handleSubmitTicket}
