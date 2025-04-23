@@ -1,18 +1,18 @@
 
 import * as React from "react"
-import * as Drawer from "vaul"
+import { Drawer as VaulDrawer } from "vaul"
 import { cn } from "@/lib/utils"
 
-const DrawerRoot = Drawer.Root
+const DrawerRoot = VaulDrawer.Root
 
-const DrawerTrigger = Drawer.Trigger
+const DrawerTrigger = VaulDrawer.Trigger
 
 // Fix to prevent black background
 const DrawerOverlay = React.forwardRef<
-  React.ElementRef<typeof Drawer.Overlay>,
-  React.ComponentPropsWithoutRef<typeof Drawer.Overlay>
+  React.ElementRef<typeof VaulDrawer.Overlay>,
+  React.ComponentPropsWithoutRef<typeof VaulDrawer.Overlay>
 >(({ className, ...props }, ref) => (
-  <Drawer.Overlay 
+  <VaulDrawer.Overlay 
     ref={ref} 
     className={cn("fixed inset-0 z-50 bg-black/40", className)} 
     {...props} 
@@ -21,12 +21,12 @@ const DrawerOverlay = React.forwardRef<
 DrawerOverlay.displayName = "DrawerOverlay"
 
 const DrawerContent = React.forwardRef<
-  React.ElementRef<typeof Drawer.Content>,
-  React.ComponentPropsWithoutRef<typeof Drawer.Content>
+  React.ElementRef<typeof VaulDrawer.Content>,
+  React.ComponentPropsWithoutRef<typeof VaulDrawer.Content>
 >(({ className, children, ...props }, ref) => (
-  <Drawer.Portal>
+  <VaulDrawer.Portal>
     <DrawerOverlay />
-    <Drawer.Content
+    <VaulDrawer.Content
       ref={ref}
       className={cn(
         "fixed bottom-0 left-0 right-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] bg-white",
@@ -36,8 +36,8 @@ const DrawerContent = React.forwardRef<
     >
       <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
       {children}
-    </Drawer.Content>
-  </Drawer.Portal>
+    </VaulDrawer.Content>
+  </VaulDrawer.Portal>
 ))
 DrawerContent.displayName = "DrawerContent"
 
@@ -91,7 +91,7 @@ const DrawerDescription = React.forwardRef<
 ))
 DrawerDescription.displayName = "DrawerDescription"
 
-const DrawerClose = Drawer.Close
+const DrawerClose = VaulDrawer.Close
 
 export {
   DrawerRoot as Drawer,
