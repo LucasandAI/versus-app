@@ -40,6 +40,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   };
 
   const isCurrentUser = (senderId: string) => {
+    // Enhanced logging to debug user ID comparisons
+    console.log(`Comparing message sender ID: ${senderId} with current user ID: ${currentUser?.id}`);
     return senderId === currentUser?.id || senderId === 'currentUser';
   };
   
@@ -61,6 +63,13 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     
     // If it's from Supabase club_chat_messages table
     if (message.message !== undefined) {
+      // Log message data to help with debugging
+      console.log('Normalizing message:', {
+        id: message.id,
+        sender_id: message.sender_id,
+        message: message.message
+      });
+      
       return {
         id: message.id,
         text: message.message,

@@ -27,8 +27,13 @@ const MessageItem: React.FC<MessageItemProps> = ({
   // Get currentUser to determine if this user can delete the message
   const { currentUser } = useApp();
   
+  // Log message and current user information
+  console.log('MessageItem - message sender:', message.sender.id);
+  console.log('MessageItem - current user:', currentUser?.id);
+  
   // Determine if the current user can delete this message (only if they are the sender)
   const canDelete = currentUser && currentUser.id === message.sender.id;
+  console.log('MessageItem - canDelete:', canDelete);
 
   return (
     <div className={`flex ${isUserMessage ? 'justify-end' : 'justify-start'} group`}>

@@ -49,6 +49,12 @@ const ChatClubContent = ({
         return;
       }
       
+      // Log extra debugging information
+      console.log('Current user details:', {
+        id: currentUser.id,
+        name: currentUser.name
+      });
+      
       // Attempt to delete the message from Supabase
       const { data, error } = await supabase
         .from('club_chat_messages')

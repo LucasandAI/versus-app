@@ -35,7 +35,11 @@ export const useAuthSessionCore = ({
     const { data } = safeSupabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return;
       
-      console.log('[useAuthSessionCore] Auth state changed:', { event, userId: session?.user?.id });
+      console.log('[useAuthSessionCore] Auth state changed:', { 
+        event, 
+        userId: session?.user?.id,
+        userEmail: session?.user?.email
+      });
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         if (session?.user?.id) {
@@ -47,7 +51,7 @@ export const useAuthSessionCore = ({
             
             console.log('[useAuthSessionCore] Loading user profile for ID:', session.user.id);
             
-            // Create a basic user first
+            // Create a basic user first with session details
             const basicUser: User = {
               id: session.user.id,
               name: session.user.email || 'User',
@@ -69,6 +73,13 @@ export const useAuthSessionCore = ({
                 if (isMounted && userProfile) {
                   console.log('[useAuthSessionCore] User profile loaded:', userProfile.id);
                   setCurrentUser(userProfile);
+                  
+                  // Log additional user information for debugging
+                  console.log('[useAuthSessionCore] Updated user context with:', {
+                    id: userProfile.id,
+                    name: userProfile.name,
+                    clubsCount: userProfile.clubs?.length || 0
+                  });
                 }
               } catch (profileError) {
                 console.warn('[useAuthSessionCore] Error loading full profile, using basic user:', profileError);
@@ -126,6 +137,7 @@ export const useAuthSessionCore = ({
         console.log('[useAuthSessionCore] Initial session check:', { 
           hasSession: !!session,
           userId: session?.user?.id,
+          userEmail: session?.user?.email,
           error: error?.message
         });
         
