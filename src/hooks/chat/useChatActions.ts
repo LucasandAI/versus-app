@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,7 +5,10 @@ import { supabase } from '@/integrations/supabase/client';
 export const useChatActions = () => {
   const sendMessageToClub = useCallback(async (clubId: string, messageText: string) => {
     try {
-      // Fetch the current authenticated user directly from Supabase
+      // Try to refresh the session before getting it
+      await supabase.auth.refreshSession();
+      
+      // Now get the refreshed session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !session?.user) {
@@ -21,6 +23,20 @@ export const useChatActions = () => {
       
       const userId = session.user.id;
       console.log('✅ Session:', userId);
+      
+      // Get user info directly to confirm
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      console.log('⚡ Double check user:', userData?.user?.id, 'Error:', userError?.message);
+      
+      if (!userData?.user?.id) {
+        console.error('[useChatActions] User ID mismatch or missing');
+        toast({
+          title: "Session Error",
+          description: "Your session appears to be incomplete. Please refresh the page.",
+          variant: "destructive"
+        });
+        return null;
+      }
       
       console.log('[useChatActions] Sending message to club', { 
         clubId, 

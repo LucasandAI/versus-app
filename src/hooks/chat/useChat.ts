@@ -46,6 +46,9 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     }
     
     try {
+      // Attempt to refresh the session first
+      await supabase.auth.refreshSession();
+      
       // Verify user is authenticated
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !sessionData?.session) {
@@ -57,6 +60,14 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
         });
         return;
       }
+      
+      // Also check user directly
+      const { data: userData } = await supabase.auth.getUser();
+      console.log('[useChat] Auth checks:', { 
+        sessionUserId: sessionData.session.user.id,
+        directUserId: userData?.user?.id,
+        idsMatch: sessionData.session.user.id === userData?.user?.id
+      });
       
       console.log('[useChat] Sending message to club:', { 
         clubId, 
