@@ -5,16 +5,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/types';
 
 export const useChatActions = (_currentUser: User | null) => {
-  // IMPORTANT: We're removing the dependency on currentUser from props
-  // and only using the auth session from Supabase
-  
   const sendMessageToClub = useCallback(async (clubId: string, messageText: string) => {
     try {
-      // Always get the current session for every operation
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !sessionData.session) {
-        console.error('[useChatActions] Auth session error:', sessionError || 'No authenticated session');
         toast({
           title: "Authentication Error",
           description: "You must be logged in to send messages",
@@ -23,18 +18,21 @@ export const useChatActions = (_currentUser: User | null) => {
         return null;
       }
       
-      // Log the current user ID from the session for debugging
-      console.log('[useChatActions] Current authenticated user ID:', sessionData.session.user.id);
-      
-      // Let the RLS policy handle the auth.uid() check, but explicitly set sender_id too
       const { data: insertedMessage, error: insertError } = await supabase
         .from('club_chat_messages')
         .insert({
           club_id: clubId,
           message: messageText,
-          sender_id: sessionData.session.user.id // Explicitly set to match auth.uid()
+          sender_id: sessionData.session.user.id
         })
-        .select();
+        .select(`
+          id, 
+          message, 
+          timestamp, 
+          sender_id,
+          sender:sender_id(id, name, avatar)
+        `)
+        .single();
 
       if (insertError) {
         console.error('[useChatActions] Error sending message:', insertError);
@@ -46,8 +44,7 @@ export const useChatActions = (_currentUser: User | null) => {
         return null;
       }
 
-      console.log('[useChatActions] Message inserted successfully:', insertedMessage);
-      return insertedMessage && insertedMessage.length > 0 ? insertedMessage[0] : null;
+      return insertedMessage;
     } catch (error) {
       console.error('[useChatActions] Exception sending message:', error);
       toast({
@@ -59,14 +56,11 @@ export const useChatActions = (_currentUser: User | null) => {
     }
   }, []);
 
-  // Update delete message function to also use current session
   const deleteMessage = useCallback(async (messageId: string) => {
     try {
-      // Always get current session to ensure we're authenticated
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !sessionData.session) {
-        console.error('[useChatActions] Auth session error:', sessionError || 'No authenticated session');
         toast({
           title: "Authentication Error", 
           description: "You must be logged in to delete messages",
@@ -75,10 +69,6 @@ export const useChatActions = (_currentUser: User | null) => {
         return false;
       }
       
-      console.log('[useChatActions] Deleting message:', messageId, 'as user:', sessionData.session.user.id);
-      
-      // Delete message - the RLS policy will check if sender_id = auth.uid()
-      // or if the user is a club admin
       const { error: deleteError } = await supabase
         .from('club_chat_messages')
         .delete()
@@ -87,7 +77,7 @@ export const useChatActions = (_currentUser: User | null) => {
       if (deleteError) {
         console.error('[useChatActions] Error deleting message:', deleteError);
         
-        // Message for permission denied (typically from RLS)
+        // Specific message for permission denied (typically from RLS)
         if (deleteError.code === '42501') {
           toast({
             title: "Permission Denied",
@@ -104,7 +94,6 @@ export const useChatActions = (_currentUser: User | null) => {
         return false;
       }
       
-      console.log('[useChatActions] Message deleted successfully');
       return true;
     } catch (error) {
       console.error('[useChatActions] Exception deleting message:', error);

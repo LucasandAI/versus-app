@@ -20,13 +20,8 @@ export const useRealtimeMessages = (open: boolean, setLocalClubMessages: React.D
               const deletedMessageId = payload.old.id;
               const clubId = payload.old.club_id;
               
-              console.log(`[useRealtimeMessages] Removing message ${deletedMessageId} from club ${clubId}`);
-              
               setLocalClubMessages(prev => {
-                if (!prev[clubId]) {
-                  console.log(`[useRealtimeMessages] No messages found for club ${clubId}`);
-                  return prev;
-                }
+                if (!prev[clubId]) return prev;
                 
                 const updatedClubMessages = prev[clubId].filter(msg => {
                   const msgId = typeof msg.id === 'string' ? msg.id : 
@@ -37,80 +32,45 @@ export const useRealtimeMessages = (open: boolean, setLocalClubMessages: React.D
                   return msgId !== deleteId;
                 });
                 
-                console.log(`[useRealtimeMessages] Updated messages count after deletion: ${updatedClubMessages.length} (was ${prev[clubId].length})`);
-                
                 return {
                   ...prev,
                   [clubId]: updatedClubMessages
                 };
               });
-            } else {
-              console.warn('[useRealtimeMessages] Delete event missing required data:', payload);
             }
           })
-      .subscribe((status) => {
-        console.log(`[useRealtimeMessages] Subscription status for message deletions: ${status}`);
-      });
+      .subscribe();
     
     // Channel for message insertions
     const messageInsertChannel = supabase.channel('club-message-insertions');
     messageInsertChannel
       .on('postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'club_chat_messages' },
-          async (payload) => {
+          (payload) => {
             console.log('[useRealtimeMessages] Message insert event received:', payload);
             
             if (payload.new && payload.new.id && payload.new.club_id) {
               const newMessageId = payload.new.id;
               const clubId = payload.new.club_id;
               
-              // Fetch the complete message with sender details
-              try {
-                const { data: messageWithSender, error } = await supabase
-                  .from('club_chat_messages')
-                  .select(`
-                    id, message, timestamp, sender_id, club_id,
-                    sender:sender_id(id, name, avatar)
-                  `)
-                  .eq('id', newMessageId)
-                  .single();
-                  
-                if (error) {
-                  console.error('[useRealtimeMessages] Error fetching message with sender:', error);
-                  return;
+              setLocalClubMessages(prev => {
+                const clubMessages = prev[clubId] || [];
+                
+                // Check if message already exists in the array
+                if (clubMessages.some(msg => String(msg.id) === String(newMessageId))) {
+                  return prev;
                 }
                 
-                if (messageWithSender) {
-                  console.log('[useRealtimeMessages] Adding new message to club:', messageWithSender);
-                  
-                  setLocalClubMessages(prev => {
-                    const clubMessages = prev[clubId] || [];
-                    
-                    // Check if message already exists in the array
-                    if (clubMessages.some(msg => String(msg.id) === String(newMessageId))) {
-                      console.log(`[useRealtimeMessages] Message ${newMessageId} already exists in club ${clubId}`);
-                      return prev;
-                    }
-                    
-                    return {
-                      ...prev,
-                      [clubId]: [...clubMessages, messageWithSender]
-                    };
-                  });
-                }
-              } catch (fetchError) {
-                console.error('[useRealtimeMessages] Error in real-time message fetch:', fetchError);
-              }
-            } else {
-              console.warn('[useRealtimeMessages] Insert event missing required data:', payload);
+                return {
+                  ...prev,
+                  [clubId]: [...clubMessages, payload.new]
+                };
+              });
             }
           })
-      .subscribe((status) => {
-        console.log(`[useRealtimeMessages] Subscription status for message insertions: ${status}`);
-      });
+      .subscribe();
       
     return () => {
-      console.log('[useRealtimeMessages] Removing real-time message listeners');
       supabase.removeChannel(messageDeleteChannel);
       supabase.removeChannel(messageInsertChannel);
     };
