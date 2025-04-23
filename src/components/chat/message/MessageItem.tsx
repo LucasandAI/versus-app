@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
 import MessageContent from './MessageContent';
@@ -27,15 +27,16 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const { currentUser } = useApp();
   
   // Determine if the current user can delete this message
-  // Explicitly using currentUser.id from users table
-  const canDelete = currentUser && currentUser.id === message.sender.id;
+  // Convert both IDs to string for consistent comparison
+  const canDelete = currentUser && String(currentUser.id) === String(message.sender.id);
   
   // Enhanced logging for debugging
   console.log('MessageItem:', {
     messageId: message.id,
     senderId: message.sender.id, 
     currentUserId: currentUser?.id,
-    canDelete: canDelete
+    isUserMessage,
+    canDelete
   });
 
   return (
@@ -79,7 +80,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
       
       {isUserMessage && (
         <UserAvatar 
-          name={message.sender.name}
+          name={currentUser?.name || "You"}
           image={currentUserAvatar} 
           size="sm" 
           className="ml-2 flex-shrink-0"

@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+
+import React, { useEffect, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import { ChatMessage } from '@/types/chat';
 import MessageItem from './message/MessageItem';
@@ -38,14 +39,21 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  // Enhanced isCurrentUser check to handle different format possibilities
   const isCurrentUser = (senderId: string) => {
-    console.log(`Comparing message sender ID: ${senderId} with current user ID: ${currentUser?.id}`);
-    return senderId === currentUser?.id;
+    if (!currentUser?.id || !senderId) return false;
+    
+    // Convert both IDs to string for consistent comparison
+    const currentUserId = String(currentUser.id);
+    const messageSenderId = String(senderId);
+    
+    console.log(`Comparing message sender ID: ${messageSenderId} with current user ID: ${currentUserId}`);
+    return messageSenderId === currentUserId;
   };
   
   const getMemberName = (senderId: string) => {
     if (isCurrentUser(senderId)) return currentUser?.name || 'You';
-    const member = clubMembers.find(m => m.id === senderId);
+    const member = clubMembers.find(m => String(m.id) === String(senderId));
     return member ? member.name : 'Unknown Member';
   };
 
@@ -55,6 +63,21 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   // Function to normalize messages from different sources
   const normalizeMessage = (message: any): ChatMessage => {
     console.log('Normalizing message:', message);
+    
+    // Handle messages with sender object from join query
+    if (message.sender && typeof message.sender === 'object') {
+      return {
+        id: message.id,
+        text: message.message || message.text,
+        sender: {
+          id: message.sender.id,
+          name: message.sender.name || getMemberName(message.sender.id),
+          avatar: message.sender.avatar || '/placeholder.svg'
+        },
+        timestamp: message.timestamp || message.created_at || new Date().toISOString(),
+        isSupport: message.isSupport || false
+      };
+    }
     
     // If it's from Supabase club_chat_messages table
     if (message.message !== undefined && message.sender_id !== undefined) {
@@ -70,9 +93,11 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
         sender: {
           id: message.sender_id,
           name: getMemberName(message.sender_id),
-          avatar: clubMembers.find(m => m.id === message.sender_id)?.avatar || '/placeholder.svg'
+          avatar: isCurrentUser(message.sender_id) ? currentUserAvatar : (
+            clubMembers.find(m => String(m.id) === String(message.sender_id))?.avatar || '/placeholder.svg'
+          )
         },
-        timestamp: message.timestamp,
+        timestamp: message.timestamp || message.created_at || new Date().toISOString(),
         isSupport: false
       };
     }
@@ -80,7 +105,14 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     // If it's already in the expected format
     if (message.text !== undefined && message.sender !== undefined) {
       console.log('Message already normalized:', message.id);
-      return message as ChatMessage;
+      // Ensure sender id is consistently a string for comparisons
+      return {
+        ...message,
+        sender: {
+          ...message.sender,
+          id: String(message.sender.id)
+        }
+      };
     }
     
     // Fallback to prevent errors
@@ -89,11 +121,11 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
       id: message.id || `unknown-${Date.now()}`,
       text: message.message || message.text || "Unknown message",
       sender: {
-        id: message.sender_id || message.sender?.id || "unknown",
+        id: String(message.sender_id || message.sender?.id || "unknown"),
         name: getMemberName(message.sender_id || message.sender?.id || "unknown"),
         avatar: message.sender?.avatar || '/placeholder.svg'
       },
-      timestamp: message.timestamp || new Date().toISOString(),
+      timestamp: message.timestamp || message.created_at || new Date().toISOString(),
       isSupport: false
     };
   };
@@ -121,6 +153,13 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
         messages.map((message: any) => {
           const normalizedMessage = normalizeMessage(message);
           const isUserMessage = isCurrentUser(normalizedMessage.sender.id);
+          
+          console.log("Message after normalization:", {
+            id: normalizedMessage.id,
+            senderId: normalizedMessage.sender.id,
+            isUserMessage,
+            currentUserId: currentUser?.id
+          });
           
           return (
             <MessageItem
