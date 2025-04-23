@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
@@ -6,7 +5,6 @@ import ChatDrawerContent from './ChatDrawerContent';
 import ChatSidebar from '../ChatSidebar';
 import DMSearchPanel from './dm/DMSearchPanel';
 import SupportTabContent from './support/SupportTabContent';
-
 interface ChatDrawerContainerProps {
   activeTab: "clubs" | "dm" | "support";
   clubs: Club[];
@@ -27,7 +25,6 @@ interface ChatDrawerContainerProps {
   handleSubmitSupportTicket?: () => Promise<void>;
   isSubmitting?: boolean;
 }
-
 const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   activeTab,
   clubs,
@@ -51,59 +48,29 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   const handleMatchClick = (club: Club) => {
     console.log('[ChatDrawerContainer] Match clicked for club:', club.id);
   };
-
   const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
-    console.log('[ChatDrawerContainer] User selected:', { userId, userName });
+    console.log('[ChatDrawerContainer] User selected:', {
+      userId,
+      userName
+    });
   };
-
   switch (activeTab) {
     case "clubs":
-      return (
-        <div className="flex h-full w-full">
-          <div className="w-1/3 border-r">
-            <ChatSidebar
-              clubs={clubs}
-              selectedClub={selectedLocalClub}
-              selectedTicket={selectedTicket}
-              supportTickets={localSupportTickets}
-              onSelectClub={onSelectClub}
-              onSelectTicket={onSelectTicket}
-              onDeleteChat={deleteChat}
-              unreadCounts={unreadMessages}
-              onSelectUser={handleSelectUser}
-            />
+      return <div className="flex h-full w-full">
+          <div className="w-1/1 border-r">
+            <ChatSidebar clubs={clubs} selectedClub={selectedLocalClub} selectedTicket={selectedTicket} supportTickets={localSupportTickets} onSelectClub={onSelectClub} onSelectTicket={onSelectTicket} onDeleteChat={deleteChat} unreadCounts={unreadMessages} onSelectUser={handleSelectUser} />
           </div>
           
           <div className="w-2/3">
-            <ChatDrawerContent
-              selectedClub={selectedLocalClub}
-              selectedTicket={selectedTicket}
-              messages={messages}
-              onMatchClick={handleMatchClick}
-              onSelectUser={handleSelectUser}
-              onSendMessage={onSendMessage}
-            />
+            <ChatDrawerContent selectedClub={selectedLocalClub} selectedTicket={selectedTicket} messages={messages} onMatchClick={handleMatchClick} onSelectUser={handleSelectUser} onSendMessage={onSendMessage} />
           </div>
-        </div>
-      );
+        </div>;
     case "dm":
       return <DMSearchPanel />;
     case "support":
-      return (
-        <SupportTabContent
-          supportTickets={localSupportTickets}
-          selectedTicket={selectedTicket}
-          onSelectTicket={onSelectTicket}
-          supportMessage={supportMessage}
-          setSupportMessage={setSupportMessage}
-          handleSubmitSupportTicket={handleSubmitSupportTicket}
-          isSubmitting={isSubmitting}
-          onSendMessage={onSendMessage}
-        />
-      );
+      return <SupportTabContent supportTickets={localSupportTickets} selectedTicket={selectedTicket} onSelectTicket={onSelectTicket} supportMessage={supportMessage} setSupportMessage={setSupportMessage} handleSubmitSupportTicket={handleSubmitSupportTicket} isSubmitting={isSubmitting} onSendMessage={onSendMessage} />;
     default:
       return null;
   }
 };
-
 export default ChatDrawerContainer;
