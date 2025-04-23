@@ -13,7 +13,6 @@ interface ChatClubContentProps {
   onMatchClick: () => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   onSendMessage: (message: string) => void;
-  setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
 }
 
 const ChatClubContent = ({ 
@@ -21,8 +20,7 @@ const ChatClubContent = ({
   messages,
   onMatchClick,
   onSelectUser,
-  onSendMessage,
-  setClubMessages
+  onSendMessage
 }: ChatClubContentProps) => {
   const { navigateToClub } = useNavigation();
   const [isSending, setIsSending] = useState(false);
@@ -30,10 +28,9 @@ const ChatClubContent = ({
 
   const handleDeleteMessage = async (messageId: string) => {
     console.log('[ChatClubContent] Deleting message:', messageId);
-    // Pass setClubMessages to deleteMessage for optimistic UI updates
-    const success = await deleteMessage(messageId, setClubMessages, club.id);
+    const success = await deleteMessage(messageId);
     
-    if (!success && !messageId.startsWith('temp-')) {
+    if (!success) {
       console.log('[ChatClubContent] Failed to delete message');
     }
   };

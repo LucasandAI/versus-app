@@ -9,26 +9,24 @@ import ChatTicketContent from '../../ChatTicketContent';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 
 interface SupportTabContentProps {
-  supportTickets?: SupportTicket[];
-  onSelectTicket?: (ticket: SupportTicket) => void;
-  handleSubmitSupportTicket: () => Promise<void>;
+  supportTickets: SupportTicket[];
+  onSelectTicket: (ticket: SupportTicket) => void;
+  handleSubmitSupportTicket: () => void;
   supportMessage: string;
   setSupportMessage: (message: string) => void;
   selectedTicket: SupportTicket | null;
   onSendMessage: (message: string) => void;
-  markTicketAsRead: (ticketId: string) => void;
   isSubmitting?: boolean;
 }
 
 const SupportTabContent: React.FC<SupportTabContentProps> = ({
-  supportTickets = [],
-  onSelectTicket = () => {},
+  supportTickets,
+  onSelectTicket,
   handleSubmitSupportTicket,
   supportMessage,
   setSupportMessage,
   selectedTicket,
   onSendMessage,
-  markTicketAsRead,
   isSubmitting = false
 }) => {
   const [supportOptionsOpen, setSupportOptionsOpen] = React.useState(false);
@@ -48,9 +46,7 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
   };
 
   const handleBackToTicketList = () => {
-    if (onSelectTicket) {
-      onSelectTicket(null as any);
-    }
+    onSelectTicket(null as any);
   };
 
   if (selectedTicket) {
@@ -107,7 +103,7 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
           {supportTickets.map((ticket) => (
             <li 
               key={ticket.id} 
-              onClick={() => onSelectTicket && onSelectTicket(ticket)}
+              onClick={() => onSelectTicket(ticket)}
               className="p-3 border rounded-md cursor-pointer hover:bg-gray-50 transition"
             >
               <div className="font-medium">{ticket.subject}</div>

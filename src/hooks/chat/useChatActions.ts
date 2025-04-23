@@ -103,29 +103,8 @@ export const useChatActions = () => {
     }
   }, [currentUser]);
 
-  const deleteMessage = useCallback(async (messageId: string, setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>, clubId?: string) => {
+  const deleteMessage = useCallback(async (messageId: string) => {
     try {
-      console.log('[useChatActions] Deleting message', { messageId, clubId });
-      
-      // Handle optimistic deletion from UI first
-      if (setClubMessages && clubId) {
-        setClubMessages(prevMessages => {
-          const clubMessages = prevMessages[clubId] || [];
-          return {
-            ...prevMessages,
-            [clubId]: clubMessages.filter(msg => msg.id !== messageId)
-          };
-        });
-        console.log('[useChatActions] Message removed from local state');
-      }
-      
-      // For temporary messages (optimistic ones), we just removed them from state and don't need to delete from DB
-      if (messageId.startsWith('temp-')) {
-        console.log('[useChatActions] Skipping server deletion for optimistic message');
-        return true;
-      }
-      
-      // For permanent messages, proceed with server deletion
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !session?.user) {
@@ -136,6 +115,8 @@ export const useChatActions = () => {
         });
         return false;
       }
+      
+      console.log('[useChatActions] Deleting message', { messageId, userId: session.user.id });
       
       const { error: deleteError } = await supabase
         .from('club_chat_messages')
@@ -162,7 +143,7 @@ export const useChatActions = () => {
         return false;
       }
       
-      console.log('[useChatActions] Message deleted successfully from database');
+      console.log('[useChatActions] Message deleted successfully');
       return true;
     } catch (error) {
       console.error('[useChatActions] Exception deleting message:', error);

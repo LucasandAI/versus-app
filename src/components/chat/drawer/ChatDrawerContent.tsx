@@ -1,66 +1,38 @@
 
 import React from 'react';
 import { Club } from '@/types';
-import { SupportTicket } from '@/types/chat';
-import ChatTabContent from './chat-content/ChatMainContent';
-import DMSearchPanel from './dm/DMSearchPanel';
-import SupportTabContent from './support/SupportTabContent';
+import ChatEmpty from '../ChatEmpty';
+import ChatMainContent from './chat-content/ChatMainContent';
 
 interface ChatDrawerContentProps {
-  activeTab: 'clubs' | 'dm' | 'support';
   selectedClub: Club | null;
-  selectedTicket: SupportTicket | null;
+  selectedTicket: any | null;
   messages: Record<string, any[]>;
-  handleNewMessage: (chatId: string, message: any, isOpen: boolean) => void;
-  markTicketAsRead: (ticketId: string) => void;
-  onSendMessage: (message: string, clubId?: string) => Promise<any>;
-  supportMessage: string;
-  setSupportMessage: (message: string) => void;
-  handleSubmitSupportTicket: () => Promise<void>;
-  isSubmitting: boolean;
-  setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
+  onMatchClick: (club: Club) => void;
+  onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
+  onSendMessage: (message: string, clubId?: string) => void;
 }
 
 const ChatDrawerContent: React.FC<ChatDrawerContentProps> = ({
-  activeTab,
   selectedClub,
   selectedTicket,
   messages,
-  handleNewMessage,
-  markTicketAsRead,
+  onMatchClick,
+  onSelectUser,
   onSendMessage,
-  supportMessage,
-  setSupportMessage,
-  handleSubmitSupportTicket,
-  isSubmitting,
-  setClubMessages
 }) => {
-  if (activeTab === 'clubs') {
-    return (
-      <ChatTabContent
-        selectedClub={selectedClub}
-        messages={selectedClub ? messages[selectedClub.id] || [] : []}
-        onSendMessage={(message) => selectedClub ? onSendMessage(message, selectedClub.id) : Promise.resolve(null)}
-        setClubMessages={setClubMessages}
-      />
-    );
+  if (!selectedClub && !selectedTicket) {
+    return <ChatEmpty />;
   }
-
-  if (activeTab === 'dm') {
-    return <DMSearchPanel />;
-  }
-
+  
   return (
-    <SupportTabContent
+    <ChatMainContent
+      selectedClub={selectedClub}
       selectedTicket={selectedTicket}
-      onSendMessage={(message: string) => {
-        onSendMessage(message).catch(console.error);
-      }}
-      markTicketAsRead={markTicketAsRead}
-      supportMessage={supportMessage}
-      setSupportMessage={setSupportMessage}
-      handleSubmitSupportTicket={handleSubmitSupportTicket}
-      isSubmitting={isSubmitting}
+      messages={messages}
+      onMatchClick={onMatchClick}
+      onSelectUser={onSelectUser}
+      onSendMessage={onSendMessage}
     />
   );
 };

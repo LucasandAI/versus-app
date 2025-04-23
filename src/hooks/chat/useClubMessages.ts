@@ -92,20 +92,11 @@ export const useClubMessages = (
         }, (payload) => {
           console.log(`[useClubMessages] Message deleted from club ${club.id}:`, payload);
           
-          // This is now a backup mechanism as we're primarily using optimistic updates
           setClubMessages(prev => {
             const existingMessages = prev[club.id] || [];
-            const filteredMessages = existingMessages.filter(msg => msg.id !== payload.old.id);
-            
-            if (existingMessages.length === filteredMessages.length) {
-              // No message was removed, nothing changed
-              return prev;
-            }
-            
-            console.log(`[useClubMessages] Removed deleted message ${payload.old.id} from state via realtime event`);
             return {
               ...prev,
-              [club.id]: filteredMessages
+              [club.id]: existingMessages.filter(msg => msg.id !== payload.old.id)
             };
           });
         });

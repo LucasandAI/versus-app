@@ -26,7 +26,7 @@ interface ChatSidebarProps {
   onSelectTicket: (ticket: SupportTicket) => void;
   onDeleteChat?: (chatId: string, isTicket?: boolean) => void;
   unreadCounts?: Record<string, number>;
-  onSelectUser?: (userId: string, userName: string, userAvatar?: string) => void; // Made optional with ?
+  onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
 }
 
 const ChatSidebar: React.FC<ChatSidebarProps> = ({ 

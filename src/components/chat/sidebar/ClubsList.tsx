@@ -1,14 +1,17 @@
+
 import React from 'react';
 import { Club } from '@/types';
+import UserAvatar from '../../shared/UserAvatar';
+import ClubMembersPopover from './ClubMembersPopover';
 
 interface ClubsListProps {
   clubs: Club[];
   selectedClub: Club | null;
   onSelectClub: (club: Club) => void;
-  onDeleteChat?: (chatId: string, isTicket?: boolean) => void;
-  unreadCounts?: Record<string, number>;
-  onSelectUser?: (userId: string, userName: string, userAvatar?: string) => void;
-  setChatToDelete?: (chat: {id: string, name: string, isTicket: boolean} | null) => void;
+  onDeleteChat?: (chatId: string, isTicket: boolean) => void;
+  unreadCounts: Record<string, number>;
+  onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
+  setChatToDelete: (data: {id: string, name: string, isTicket: boolean} | null) => void;
 }
 
 const ClubsList: React.FC<ClubsListProps> = ({
@@ -16,9 +19,9 @@ const ClubsList: React.FC<ClubsListProps> = ({
   selectedClub,
   onSelectClub,
   onDeleteChat,
-  unreadCounts = {},
-  onSelectUser = () => {},
-  setChatToDelete
+  unreadCounts,
+  onSelectUser,
+  setChatToDelete,
 }) => {
   const MAX_MEMBERS = 5;
 

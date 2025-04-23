@@ -64,14 +64,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   } = chat;
 
   const handleSendClubMessage = async (message: string, clubId?: string) => {
-    if (!clubId) return null;
+    if (!clubId) return;
     return chat.sendMessageToClub(message, clubId, setClubMessages);
-  };
-
-  // Create a handler for support messages that returns a Promise
-  const handleSendSupportMessage = async (message: string) => {
-    console.log("Support message:", message);
-    return null; // Return null as a Promise result
   };
 
   useSupportTicketEffects(open, setLocalSupportTickets);
@@ -122,14 +116,13 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             handleNewMessage={handleNewMessage}
             markTicketAsRead={markTicketAsRead}
             onSendMessage={activeTab === "support" ? 
-              handleSendSupportMessage : 
+              (message) => console.log("Support message:", message) : 
               handleSendClubMessage
             }
             supportMessage={supportMessage}
             setSupportMessage={setSupportMessage}
             handleSubmitSupportTicket={handleSubmitTicket}
             isSubmitting={isSubmitting}
-            setClubMessages={setClubMessages}
           />
         </UIDrawerContent>
       </Drawer>

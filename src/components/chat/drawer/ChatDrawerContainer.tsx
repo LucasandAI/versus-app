@@ -2,12 +2,13 @@
 import React from 'react';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
-import ChatSidebarContent from './ChatSidebarContent';
+import ChatSidebar from '../ChatSidebar';
+import DMSearchPanel from './dm/DMSearchPanel';
+import SupportTabContent from './support/SupportTabContent';
 import ChatDrawerContent from './ChatDrawerContent';
-import { useChatInteractions } from '@/hooks/chat/useChatInteractions';
 
 interface ChatDrawerContainerProps {
-  activeTab: 'clubs' | 'dm' | 'support';
+  activeTab: "clubs" | "dm" | "support";
   clubs: Club[];
   selectedLocalClub: Club | null;
   selectedTicket: SupportTicket | null;
@@ -16,16 +17,15 @@ interface ChatDrawerContainerProps {
   onSelectTicket: (ticket: SupportTicket) => void;
   refreshKey: number;
   messages: Record<string, any[]>;
+  deleteChat: (chatId: string, isTicket: boolean) => void;
   unreadMessages: Record<string, number>;
-  deleteChat: (chatId: string, isTicket?: boolean) => void;
   handleNewMessage: (chatId: string, message: any, isOpen: boolean) => void;
   markTicketAsRead: (ticketId: string) => void;
-  onSendMessage: (message: string, clubId?: string) => Promise<any>;
-  supportMessage: string;
-  setSupportMessage: (message: string) => void;
-  handleSubmitSupportTicket: () => Promise<void>;
-  isSubmitting: boolean;
-  setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
+  onSendMessage: (message: string, clubId?: string) => void;
+  supportMessage?: string;
+  setSupportMessage?: (message: string) => void;
+  handleSubmitSupportTicket?: () => Promise<void>;
+  isSubmitting?: boolean;
 }
 
 const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
@@ -38,56 +38,77 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   onSelectTicket,
   refreshKey,
   messages,
-  unreadMessages,
   deleteChat,
+  unreadMessages,
   handleNewMessage,
   markTicketAsRead,
   onSendMessage,
   supportMessage,
   setSupportMessage,
   handleSubmitSupportTicket,
-  isSubmitting,
-  setClubMessages
+  isSubmitting
 }) => {
-  const { handleSelectUser } = useChatInteractions();
-  
-  return (
-    <div className="flex flex-1 h-full overflow-hidden">
-      {/* Sidebar */}
-      <div className="w-1/3 h-full border-r border-gray-200 overflow-y-auto">
-        <ChatSidebarContent
-          activeTab={activeTab}
-          clubs={clubs}
-          onSelectClub={onSelectClub}
-          selectedClub={selectedLocalClub}
-          supportTickets={localSupportTickets}
-          onSelectTicket={onSelectTicket}
-          selectedTicket={selectedTicket}
-          refreshKey={refreshKey}
-          unreadMessages={unreadMessages}
-          onSelectUser={handleSelectUser}
-        />
-      </div>
+  const handleMatchClick = (club: Club) => {
+    console.log('[ChatDrawerContainer] Match clicked for club:', club.id);
+  };
 
-      {/* Main Content Area */}
-      <div className="w-2/3 h-full overflow-hidden flex flex-col">
-        <ChatDrawerContent
-          activeTab={activeTab}
-          selectedClub={selectedLocalClub}
-          selectedTicket={selectedTicket}
-          messages={messages}
-          handleNewMessage={handleNewMessage}
-          markTicketAsRead={markTicketAsRead}
-          onSendMessage={onSendMessage}
-          supportMessage={supportMessage}
-          setSupportMessage={setSupportMessage}
-          handleSubmitSupportTicket={handleSubmitSupportTicket}
-          isSubmitting={isSubmitting}
-          setClubMessages={setClubMessages}
+  const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
+    console.log('[ChatDrawerContainer] User selected:', {
+      userId,
+      userName
+    });
+  };
+  
+  console.log('[ChatDrawerContainer] Rendering with messages:', messages);
+  
+  switch (activeTab) {
+    case "clubs":
+      return (
+        <div className="flex h-full w-full">
+          <div className="w-[240px] border-r">
+            <ChatSidebar 
+              clubs={clubs} 
+              selectedClub={selectedLocalClub} 
+              selectedTicket={selectedTicket} 
+              supportTickets={localSupportTickets} 
+              onSelectClub={onSelectClub} 
+              onSelectTicket={onSelectTicket} 
+              onDeleteChat={deleteChat} 
+              unreadCounts={unreadMessages} 
+              onSelectUser={handleSelectUser} 
+            />
+          </div>
+          
+          <div className="flex-1">
+            <ChatDrawerContent 
+              selectedClub={selectedLocalClub} 
+              selectedTicket={selectedTicket} 
+              messages={messages} 
+              onMatchClick={handleMatchClick} 
+              onSelectUser={handleSelectUser} 
+              onSendMessage={onSendMessage} 
+            />
+          </div>
+        </div>
+      );
+    case "dm":
+      return <DMSearchPanel />;
+    case "support":
+      return (
+        <SupportTabContent 
+          supportTickets={localSupportTickets} 
+          selectedTicket={selectedTicket} 
+          onSelectTicket={onSelectTicket} 
+          supportMessage={supportMessage} 
+          setSupportMessage={setSupportMessage} 
+          handleSubmitSupportTicket={handleSubmitSupportTicket} 
+          isSubmitting={isSubmitting} 
+          onSendMessage={onSendMessage} 
         />
-      </div>
-    </div>
-  );
+      );
+    default:
+      return null;
+  }
 };
 
 export default ChatDrawerContainer;
