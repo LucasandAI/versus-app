@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Club } from '@/types';
 import ChatHeader from './ChatHeader';
 import ChatMessages from './ChatMessages';
@@ -20,6 +20,16 @@ const ChatClubContent = ({
   onSelectUser,
   onSendMessage
 }: ChatClubContentProps) => {
+  // Scroll ref to move to bottom on new messages
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  console.log(`Rendering ChatClubContent for club: ${club.name}, messages:`, messages);
+
   return (
     <div className="flex-1 flex flex-col h-full">
       <ChatHeader 
@@ -30,10 +40,11 @@ const ChatClubContent = ({
       
       <ChatMessages 
         messages={messages} 
-        clubMembers={club.members}
+        clubMembers={club.members || []}
       />
       
       <ChatInput onSendMessage={onSendMessage} />
+      <div ref={messagesEndRef} />
     </div>
   );
 };

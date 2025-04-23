@@ -81,6 +81,7 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
           }
         });
         
+        console.log("Initial club messages loaded:", clubMessagesMap);
         setClubMessages(clubMessagesMap);
       } catch (error) {
         console.error('Error fetching club messages:', error);
@@ -89,48 +90,50 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
     
     fetchClubMessages();
     
-    // Enable realtime on club_chat_messages table
-    const channel = supabase.channel('public:club_chat_messages');
-    
-    // Subscribe to INSERT events on club_chat_messages
-    channel
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'club_chat_messages' }, 
-        payload => {
-          console.log('Real-time message received:', payload);
-          const clubId = payload.new.club_id;
-          
-          // Only process messages for clubs the user is in
-          const existingClub = userClubs.find(club => club.id === clubId);
-          
-          if (existingClub) {
-            const newMessage = {
-              id: payload.new.id,
-              text: payload.new.message,
-              sender: {
-                id: payload.new.sender_id,
-                name: "", // Will be populated in ChatMessages component
-                avatar: ""
-              },
-              timestamp: payload.new.timestamp,
-            };
+    // Set up a separate channel for each club to listen for new messages
+    const channels = userClubs.map(club => {
+      const channel = supabase.channel(`club-messages-${club.id}`);
+      
+      channel
+        .on('postgres_changes', 
+          { event: 'INSERT', schema: 'public', table: 'club_chat_messages', filter: `club_id=eq.${club.id}` }, 
+          payload => {
+            console.log(`New message received for club ${club.id}:`, payload);
             
-            // Update state with the new message
-            setClubMessages(prev => {
-              const updatedMessages = {
-                ...prev,
-                [clubId]: [...(prev[clubId] || []), newMessage]
+            if (payload.new) {
+              const newMessage = {
+                id: payload.new.id,
+                text: payload.new.message,
+                sender: {
+                  id: payload.new.sender_id,
+                  name: "", // Will be populated in ChatMessages component
+                  avatar: ""
+                },
+                timestamp: payload.new.timestamp,
               };
-              console.log('Updated club messages state:', updatedMessages);
-              return updatedMessages;
-            });
+              
+              // Update state with the new message
+              setClubMessages(prev => {
+                const updatedMessages = {
+                  ...prev,
+                  [club.id]: [...(prev[club.id] || []), newMessage]
+                };
+                console.log(`Updated messages for club ${club.id}:`, updatedMessages[club.id]);
+                return updatedMessages;
+              });
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
+        
+      console.log(`Subscribed to real-time updates for club ${club.id}`);
+      return channel;
+    });
     
     return () => {
-      supabase.removeChannel(channel);
+      channels.forEach(channel => {
+        supabase.removeChannel(channel);
+      });
     };
   }, [userClubs]);
   

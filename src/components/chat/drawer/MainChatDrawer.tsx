@@ -34,6 +34,12 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const { currentUser } = useApp();
   const [activeTab, setActiveTab] = useState<"clubs"|"dm"|"support">("clubs");
   const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>(supportTickets);
+  const [localClubMessages, setLocalClubMessages] = useState<Record<string, any[]>>(clubMessages);
+
+  // Update local messages whenever props change
+  useEffect(() => {
+    setLocalClubMessages(clubMessages);
+  }, [clubMessages]);
 
   const {
     supportMessage,
@@ -109,6 +115,69 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     }
   };
 
+  const handleSendClubMessage = async (message: string, clubId: string) => {
+    if (!currentUser || !message.trim()) return;
+    
+    try {
+      // First add optimistic message to UI immediately for better UX
+      const tempId = `temp-${Date.now()}`;
+      const optimisticMessage = {
+        id: tempId,
+        text: message,
+        sender: {
+          id: currentUser.id,
+          name: currentUser.name || 'You',
+          avatar: currentUser.avatar || '/placeholder.svg'
+        },
+        timestamp: new Date().toISOString()
+      };
+      
+      // Update local state immediately with optimistic message
+      setLocalClubMessages(prev => {
+        const updatedMessages = {
+          ...prev,
+          [clubId]: [...(prev[clubId] || []), optimisticMessage]
+        };
+        console.log("Updated local messages with optimistic update:", updatedMessages[clubId]);
+        return updatedMessages;
+      });
+
+      // Then save to database
+      const { data, error } = await supabase.from('club_chat_messages').insert({
+        message,
+        club_id: clubId,
+        sender_id: currentUser.id
+      }).select();
+
+      if (error) {
+        console.error('Error sending club message:', error);
+        toast({
+          title: "Message Error",
+          description: "Failed to send message. Please try again.",
+          variant: "destructive"
+        });
+        
+        // Remove optimistic message on error
+        setLocalClubMessages(prev => {
+          const filteredMessages = (prev[clubId] || []).filter(msg => msg.id !== tempId);
+          return {
+            ...prev,
+            [clubId]: filteredMessages
+          };
+        });
+      } else {
+        console.log("Message sent successfully:", data);
+      }
+    } catch (error) {
+      console.error('Error sending club message:', error);
+      toast({
+        title: "Message Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <ChatProvider>
       <Drawer open={open} onOpenChange={onOpenChange}>
@@ -127,53 +196,12 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             onSelectClub={handleSelectClub}
             onSelectTicket={handleSelectTicket}
             refreshKey={refreshKey}
-            messages={clubMessages || messages}
+            messages={localClubMessages || messages}
             deleteChat={deleteChat}
             unreadMessages={unreadMessages}
             handleNewMessage={handleNewMessage}
             markTicketAsRead={markTicketAsRead}
-            onSendMessage={async (message: string, clubId: string) => {
-              if (!currentUser) return;
-              try {
-                // First add optimistic message to UI
-                const tempId = `temp-${Date.now()}`;
-                const optimisticMessage = {
-                  id: tempId,
-                  text: message,
-                  sender: {
-                    id: currentUser.id,
-                    name: currentUser.name,
-                    avatar: currentUser.avatar || '/placeholder.svg'
-                  },
-                  timestamp: new Date().toISOString()
-                };
-                
-                handleNewMessage(clubId, optimisticMessage, open);
-
-                // Then save to database
-                const { data, error } = await supabase.from('club_chat_messages').insert({
-                  message,
-                  club_id: clubId,
-                  sender_id: currentUser.id
-                }).select();
-
-                if (error) {
-                  console.error('Error sending club message:', error);
-                  toast({
-                    title: "Message Error",
-                    description: "Failed to send message. Please try again.",
-                    variant: "destructive"
-                  });
-                }
-              } catch (error) {
-                console.error('Error sending club message:', error);
-                toast({
-                  title: "Message Error",
-                  description: "Failed to send message. Please try again.",
-                  variant: "destructive"
-                });
-              }
-            }}
+            onSendMessage={handleSendClubMessage}
             supportMessage={supportMessage}
             setSupportMessage={setSupportMessage}
             handleSubmitSupportTicket={handleSubmitTicket}
