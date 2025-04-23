@@ -1,10 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageList from './message/MessageList';
 import { useMessageUser } from './message/useMessageUser';
 import { useMessageNormalization } from './message/useMessageNormalization';
-import { supabase } from '@/integrations/supabase/client';
 
 interface ChatMessagesProps {
   messages: ChatMessage[] | any[];
@@ -25,11 +24,19 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   onDeleteMessage,
   onSelectUser,
 }) => {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const { currentUserId, currentUserAvatar } = useMessageUser();
   const [currentUserInClub, setCurrentUserInClub] = useState<boolean>(false);
   
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   useEffect(() => {
-    // Check if current user is in the club members list
+    scrollToBottom();
+  }, [messages]);
+  
+  useEffect(() => {
     if (currentUserId && clubMembers.length > 0) {
       const isInClub = clubMembers.some(member => String(member.id) === String(currentUserId));
       setCurrentUserInClub(isInClub);
@@ -52,7 +59,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   if (!Array.isArray(messages)) {
     console.error("[ChatMessages] Messages is not an array:", messages);
     return (
-      <div className="flex-1 overflow-y-auto p-4 bg-white">
+      <div className="flex-1 overflow-y-auto p-4">
         <div className="h-full flex items-center justify-center text-gray-500 text-sm">
           No messages yet. Start the conversation!
         </div>
@@ -63,9 +70,10 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const normalizedMessages = messages.map(message => normalizeMessage(message));
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white">
+    <div className="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col-reverse">
+      <div ref={messagesEndRef} />
       <MessageList
-        messages={normalizedMessages}
+        messages={normalizedMessages.reverse()}
         clubMembers={clubMembers}
         isSupport={isSupport}
         onDeleteMessage={onDeleteMessage}

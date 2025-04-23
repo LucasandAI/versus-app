@@ -6,7 +6,6 @@ import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import { useNavigation } from '@/hooks/useNavigation';
 import { useChatActions } from '@/hooks/chat/useChatActions';
-import { useApp } from '@/context/AppContext';
 
 interface ChatClubContentProps {
   club: Club;
@@ -53,7 +52,7 @@ const ChatClubContent = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full">
       <ChatHeader 
         club={club}
         onMatchClick={onMatchClick}
@@ -61,18 +60,22 @@ const ChatClubContent = ({
         onClubClick={handleClubClick}
       />
       
-      <ChatMessages 
-        messages={messages} 
-        clubMembers={club.members || []}
-        onDeleteMessage={handleDeleteMessage}
-        onSelectUser={onSelectUser}
-      />
+      <div className="flex-1 overflow-hidden flex flex-col">
+        <ChatMessages 
+          messages={messages} 
+          clubMembers={club.members || []}
+          onDeleteMessage={handleDeleteMessage}
+          onSelectUser={onSelectUser}
+        />
+      </div>
       
-      <ChatInput 
-        onSendMessage={handleSendMessage} 
-        isSending={isSending}
-        placeholder="Type a message..."
-      />
+      <div className="mt-auto border-t">
+        <ChatInput 
+          onSendMessage={handleSendMessage} 
+          isSending={isSending}
+          placeholder="Type a message..."
+        />
+      </div>
     </div>
   );
 };

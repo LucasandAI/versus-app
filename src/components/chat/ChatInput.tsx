@@ -39,7 +39,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   return (
     <form 
       onSubmit={handleSubmit}
-      className="border-t p-3 flex items-center"
+      className="p-3 bg-white flex items-center gap-2"
     >
       <input
         type="text"
@@ -52,7 +52,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
       />
       <button 
         type="submit"
-        className="ml-2 p-2 rounded-full bg-primary text-white flex items-center justify-center disabled:opacity-50"
+        className="p-2 rounded-full bg-primary text-white flex items-center justify-center disabled:opacity-50 flex-shrink-0"
         disabled={!message.trim() || isSending}
       >
         {isSending ? (
