@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
@@ -62,7 +61,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
     case "clubs":
       return (
         <div className="flex h-full w-full">
-          <div className="w-1/3 border-r">
+          <div className="w-[240px] border-r">
             <ChatSidebar 
               clubs={clubs} 
               selectedClub={selectedLocalClub} 
@@ -76,7 +75,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
             />
           </div>
           
-          <div className="w-2/3 flex-grow">
+          <div className="flex-1">
             <ChatDrawerContent 
               selectedClub={selectedLocalClub} 
               selectedTicket={selectedTicket} 
@@ -109,4 +108,3 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
 };
 
 export default ChatDrawerContainer;
-
