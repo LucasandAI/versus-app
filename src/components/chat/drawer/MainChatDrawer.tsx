@@ -123,6 +123,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             setSupportMessage={setSupportMessage}
             handleSubmitSupportTicket={handleSubmitTicket}
             isSubmitting={isSubmitting}
+            setClubMessages={setClubMessages}
           />
         </UIDrawerContent>
       </Drawer>
