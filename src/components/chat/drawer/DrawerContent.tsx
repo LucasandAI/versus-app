@@ -2,9 +2,9 @@
 import React from 'react';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
+import ChatDrawerContent from './chat-content/ChatMainContent';
 import DMSearchPanel from './dm/DMSearchPanel';
 import SupportTabContent from './support/SupportTabContent';
-import ChatDrawerContent from './ChatDrawerContent';
 
 interface DrawerContentProps {
   activeTab: "clubs" | "dm" | "support";
@@ -13,17 +13,17 @@ interface DrawerContentProps {
   selectedTicket: SupportTicket | null;
   localSupportTickets: SupportTicket[];
   onSelectClub: (club: Club) => void;
-  onSelectTicket: (ticket: SupportTicket | null) => void;
+  onSelectTicket: (ticket: SupportTicket) => void;
   refreshKey: number;
   messages: Record<string, any[]>;
   deleteChat: (chatId: string, isTicket: boolean) => void;
   unreadMessages: Record<string, number>;
-  handleNewMessage: (clubId: string, message: any, isOpen: boolean) => void;
+  handleNewMessage: (chatId: string, message: any, isOpen: boolean) => void;
   markTicketAsRead: (ticketId: string) => void;
   onSendMessage: (message: string, clubId?: string) => void;
-  supportMessage: string;
-  setSupportMessage: (message: string) => void;
-  handleSubmitSupportTicket: () => void;
+  supportMessage?: string;
+  setSupportMessage?: (message: string) => void;
+  handleSubmitSupportTicket?: () => Promise<void>;
   isSubmitting?: boolean;
 }
 
@@ -45,55 +45,46 @@ const DrawerContent: React.FC<DrawerContentProps> = ({
   supportMessage,
   setSupportMessage,
   handleSubmitSupportTicket,
-  isSubmitting = false
+  isSubmitting
 }) => {
-  // Debug log to verify we have the correct club 
-  console.log('[DrawerContent] Selected club:', selectedLocalClub?.id, 
-    'Rendering with activeTab:', activeTab);
-  
-  return (
-    <div className="flex-1 overflow-auto">
-      {activeTab === "clubs" && (
-        <ChatDrawerContent 
-          clubs={clubs}
-          selectedLocalClub={selectedLocalClub}
-          selectedTicket={null}
-          localSupportTickets={[]}
-          onSelectClub={onSelectClub}
-          onSelectTicket={onSelectTicket}
-          refreshKey={refreshKey}
+  const handleMatchClick = (club: Club) => {
+    console.log('[DrawerContent] Match clicked for club:', club.id);
+  };
+
+  const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
+    console.log('[DrawerContent] User selected:', { userId, userName });
+  };
+
+  switch (activeTab) {
+    case "clubs":
+      return (
+        <ChatDrawerContent
+          selectedClub={selectedLocalClub}
+          selectedTicket={selectedTicket}
           messages={messages}
-          deleteChat={deleteChat}
-          unreadMessages={unreadMessages}
-          handleNewMessage={handleNewMessage}
-          markTicketAsRead={markTicketAsRead}
-          onSendMessage={(message) => {
-            console.log('[DrawerContent] Sending message to club:', 
-              selectedLocalClub?.id, message.substring(0, 20));
-            
-            if (selectedLocalClub && selectedLocalClub.id) {
-              onSendMessage(message, selectedLocalClub.id);
-            } else {
-              console.error('[DrawerContent] Cannot send message: No club selected');
-            }
-          }}
+          onMatchClick={handleMatchClick}
+          onSelectUser={handleSelectUser}
+          onSendMessage={onSendMessage}
         />
-      )}
-      {activeTab === "dm" && <DMSearchPanel />}
-      {activeTab === "support" && (
+      );
+    case "dm":
+      return <DMSearchPanel />;
+    case "support":
+      return (
         <SupportTabContent
           supportTickets={localSupportTickets}
           selectedTicket={selectedTicket}
           onSelectTicket={onSelectTicket}
-          handleSubmitSupportTicket={handleSubmitSupportTicket}
           supportMessage={supportMessage}
           setSupportMessage={setSupportMessage}
-          onSendMessage={(message) => handleNewMessage(selectedTicket?.id || '', { text: message }, true)}
+          handleSubmitSupportTicket={handleSubmitSupportTicket}
           isSubmitting={isSubmitting}
+          onSendMessage={onSendMessage}
         />
-      )}
-    </div>
-  );
+      );
+    default:
+      return null;
+  }
 };
 
 export default DrawerContent;

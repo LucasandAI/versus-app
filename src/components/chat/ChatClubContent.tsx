@@ -43,6 +43,7 @@ const ChatClubContent = ({
   };
 
   const handleSendMessage = async (message: string) => {
+    console.log('[ChatClubContent] Sending message for club:', club.id);
     setIsSending(true);
     try {
       await onSendMessage(message);
@@ -70,6 +71,7 @@ const ChatClubContent = ({
       <ChatInput 
         onSendMessage={handleSendMessage} 
         isSending={isSending}
+        placeholder="Type a message..."
       />
     </div>
   );

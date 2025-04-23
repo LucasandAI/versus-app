@@ -17,10 +17,22 @@ const ChatInput: React.FC<ChatInputProps> = ({
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (message.trim() && !isSending) {
       console.log('[ChatInput] Submitting message:', message.substring(0, 20));
-      await onSendMessage(message);
-      setMessage('');
+      try {
+        await onSendMessage(message);
+        setMessage('');
+      } catch (error) {
+        console.error('[ChatInput] Error sending message:', error);
+      }
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
     }
   };
   
@@ -33,13 +45,14 @@ const ChatInput: React.FC<ChatInputProps> = ({
         type="text"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
+        onKeyPress={handleKeyPress}
         placeholder={placeholder}
         className="flex-1 border rounded-full py-2 px-4 focus:outline-none focus:ring-1 focus:ring-primary"
         disabled={isSending}
       />
       <button 
         type="submit"
-        className="ml-2 p-2 rounded-full bg-primary text-white flex items-center justify-center"
+        className="ml-2 p-2 rounded-full bg-primary text-white flex items-center justify-center disabled:opacity-50"
         disabled={!message.trim() || isSending}
       >
         {isSending ? (

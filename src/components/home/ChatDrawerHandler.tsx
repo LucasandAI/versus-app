@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Club } from '@/types';
 import { SupportTicket, ChatMessage } from '@/types/chat';
@@ -27,7 +26,6 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
   const [fetchedSupportTickets, setFetchedSupportTickets] = useState<SupportTicket[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   
-  // Listen for supportTicketCreated events
   useEffect(() => {
     const handleSupportTicketCreated = () => {
       setRefreshTrigger(prev => prev + 1);
@@ -39,7 +37,6 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
     };
   }, []);
   
-  // Fetch club messages when drawer is opened or clubs change
   useEffect(() => {
     if (!userClubs.length || !isOpen) return;
     
@@ -88,13 +85,11 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
     fetchClubMessages();
   }, [userClubs, isOpen]);
   
-  // Fetch support tickets
   useEffect(() => {
     if (!currentUser || !isOpen) return;
     
     const fetchSupportTickets = async () => {
       try {
-        // Get the user's support tickets
         const { data: ticketsData, error: ticketsError } = await supabase
           .from('support_tickets')
           .select('*')
@@ -105,7 +100,6 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
           return;
         }
         
-        // Fetch messages for each ticket
         const ticketsWithMessages = await Promise.all(
           (ticketsData || []).map(async (ticket) => {
             const { data: messagesData, error: messagesError } = await supabase
@@ -150,7 +144,6 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
     fetchSupportTickets();
   }, [currentUser, isOpen, refreshTrigger]);
 
-  // Function to send a message to a club - this will be passed to ChatDrawer
   const handleSendClubMessage = async (message: string, clubId?: string) => {
     if (!clubId) {
       console.log('[ChatDrawerHandler] No clubId provided for message');
@@ -173,6 +166,8 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
         return;
       }
       
+      console.log('[Chat Debug] About to insert message:', { clubId, message });
+      
       const { data: messageData, error } = await supabase
         .from('club_chat_messages')
         .insert({
@@ -188,6 +183,8 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
           sender:sender_id(id, name, avatar)
         `)
         .single();
+      
+      console.log('[Chat Debug] Insert result:', { data: messageData, error });
         
       if (error) {
         console.error('[ChatDrawerHandler] Error sending message:', error);
@@ -201,7 +198,6 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
       
       console.log('[ChatDrawerHandler] Message sent successfully:', messageData);
       
-      // Update local state
       if (messageData) {
         setClubMessages(prev => ({
           ...prev,
