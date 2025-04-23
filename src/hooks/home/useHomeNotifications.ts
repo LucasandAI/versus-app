@@ -30,12 +30,17 @@ export const useHomeNotifications = () => {
     
     const loadNotifications = async () => {
       try {
-        // Eventually pull from Supabase notifications table
-        const savedNotifications = localStorage.getItem('notifications');
-        if (savedNotifications) {
-          setNotifications(JSON.parse(savedNotifications));
-        } else {
+        // Load notifications from Supabase
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          console.error("Error loading notifications from Supabase:", error);
           setNotifications([]);
+        } else {
+          setNotifications(data || []);
         }
       } catch (error) {
         console.error("Error loading notifications:", error);
@@ -65,17 +70,73 @@ export const useHomeNotifications = () => {
     };
   }, []);
 
-  // Add the missing methods that HomeView.tsx needs
-  const handleMarkAsRead = (id: string) => {
-    handleNotification(id, 'read');
+  // Add the methods needed by HomeView.tsx
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      // Update in Supabase
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', id);
+        
+      if (error) {
+        console.error("Error marking notification as read:", error);
+        return;
+      }
+      
+      // Update local state
+      setNotifications(prevNotifications => 
+        prevNotifications.map(notification => 
+          notification.id === id ? { ...notification, read: true } : notification
+        )
+      );
+    } catch (error) {
+      console.error("Error in handleMarkAsRead:", error);
+    }
   };
 
-  const handleDeclineInvite = (id: string) => {
-    handleNotification(id, 'delete');
+  const handleDeclineInvite = async (id: string) => {
+    try {
+      // Delete from Supabase
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', id);
+        
+      if (error) {
+        console.error("Error declining invitation:", error);
+        return;
+      }
+      
+      // Update local state
+      setNotifications(prevNotifications => 
+        prevNotifications.filter(notification => notification.id !== id)
+      );
+    } catch (error) {
+      console.error("Error in handleDeclineInvite:", error);
+    }
   };
 
-  const handleClearAllNotifications = () => {
-    markAllNotificationsAsRead();
+  const handleClearAllNotifications = async () => {
+    try {
+      // Update all notifications to read in Supabase
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .is('read', false);
+        
+      if (error) {
+        console.error("Error marking all notifications as read:", error);
+        return;
+      }
+      
+      // Update local state
+      setNotifications(prevNotifications => 
+        prevNotifications.map(notification => ({ ...notification, read: true }))
+      );
+    } catch (error) {
+      console.error("Error in handleClearAllNotifications:", error);
+    }
   };
 
   return {

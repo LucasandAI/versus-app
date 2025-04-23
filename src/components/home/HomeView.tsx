@@ -37,6 +37,7 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
     notifications,
     setNotifications,
     unreadMessages,
+    setUnreadMessages,
     handleMarkAsRead,
     handleDeclineInvite,
     handleClearAllNotifications

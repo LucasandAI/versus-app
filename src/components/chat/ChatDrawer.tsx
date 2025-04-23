@@ -54,7 +54,7 @@ const ChatDrawer = ({
       // First, add message to the UI immediately for better UX
       const newMessage = {
         id: `temp-${Date.now()}`,
-        text: message, // Changed from 'message' to 'text' to match ChatMessage type
+        text: message, // Using text instead of message to match ChatMessage type
         sender_id: currentUser.id,
         club_id: clubId,
         timestamp: new Date().toISOString(),

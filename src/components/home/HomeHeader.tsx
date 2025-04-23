@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';  // Corrected import
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '../shared/UserAvatar';
 import Button from '../shared/Button';
@@ -15,7 +15,7 @@ interface HomeHeaderProps {
   onUserClick: (userId: string, name: string) => void;
   onJoinClub: (clubId: string, clubName: string) => void;
   onDeclineInvite: (id: string) => void;
-  onOpenChat?: () => void; // Added this prop with optional type
+  onOpenChat?: () => void; 
 }
 
 const HomeHeader: React.FC<HomeHeaderProps> = ({
@@ -32,10 +32,13 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   const { openChatDrawer } = useChatDrawer();
 
   const handleOpenChat = () => {
+    // Ensure we trigger the chat drawer to open
+    openChatDrawer();
+    console.log('Opening chat drawer');
+    
+    // Also call the provided callback if it exists
     if (onOpenChat) {
       onOpenChat();
-    } else {
-      openChatDrawer();
     }
   };
 

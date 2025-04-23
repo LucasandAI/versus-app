@@ -92,6 +92,17 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, clubMembers, isSu
     };
   };
 
+  if (!Array.isArray(messages)) {
+    console.error("Messages is not an array:", messages);
+    return (
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="h-full flex items-center justify-center text-gray-500 text-sm">
+          No messages yet. Start the conversation!
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
       {messages.length === 0 ? (
