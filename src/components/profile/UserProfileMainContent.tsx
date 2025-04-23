@@ -15,6 +15,8 @@ import {
   moreInProgressAchievements 
 } from './data/achievements';
 import { User, Club } from '@/types';
+import { useNavigation } from '@/hooks/useNavigation';
+import { useApp } from '@/context/AppContext';
 
 interface UserProfileMainContentProps {
   currentUser: User | null;
@@ -51,6 +53,9 @@ const UserProfileMainContent: React.FC<UserProfileMainContentProps> = ({
   logoutDialogOpen,
   adminClubs
 }) => {
+  const { setSelectedClub } = useApp();
+  const { navigateToClub } = useNavigation();
+  
   if (!selectedUser) {
     return <NoUserState onBackHome={() => setCurrentView('home')} />;
   }
@@ -58,6 +63,13 @@ const UserProfileMainContent: React.FC<UserProfileMainContentProps> = ({
   const isMobile = false; // You may want to inject this as a prop for actual useMobile
   const isCurrentUserProfile = currentUser?.id === selectedUser?.id;
   const bestLeague = getBestLeague(selectedUser.clubs);
+
+  const handleClubClick = (club: Club) => {
+    // Set the selected club in global state 
+    setSelectedClub(club);
+    // Change view to club detail
+    setCurrentView('clubDetail');
+  };
 
   return (
     <div className="flex flex-col w-full min-h-screen bg-gray-50 pb-20">
@@ -96,10 +108,7 @@ const UserProfileMainContent: React.FC<UserProfileMainContentProps> = ({
         <UserClubs
           user={selectedUser}
           loading={loading}
-          onClubClick={(club) => {
-            // setSelectedClub(club); // Parent should handle
-            setCurrentView('clubDetail');
-          }}
+          onClubClick={handleClubClick}
         />
         <UserAchievements
           loading={loading}

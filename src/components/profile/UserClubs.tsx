@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from "@/components/ui/skeleton";
 import UserAvatar from '@/components/shared/UserAvatar';
 import { formatLeagueWithTier } from '@/lib/format';
+import { useNavigation } from '@/hooks/useNavigation';
 
 interface UserClubsProps {
   user: User;
@@ -14,6 +15,16 @@ interface UserClubsProps {
 }
 
 const UserClubs: React.FC<UserClubsProps> = ({ user, loading, onClubClick }) => {
+  const { navigateToClub } = useNavigation();
+
+  const handleClubClick = (club: Club) => {
+    // Use the navigation hook to properly navigate to the club
+    navigateToClub(club);
+    
+    // Also call the passed handler for backward compatibility
+    onClubClick(club);
+  };
+  
   return (
     <Card className="w-full max-w-md mx-auto mt-4 p-6 rounded-lg">
       <div className="flex items-center mb-4">
@@ -32,7 +43,7 @@ const UserClubs: React.FC<UserClubsProps> = ({ user, loading, onClubClick }) => 
             <div 
               key={club.id} 
               className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-              onClick={() => onClubClick(club)}
+              onClick={() => handleClubClick(club)}
             >
               <UserAvatar 
                 name={club.name} 
