@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Club, User } from '@/types';
 import { ShieldAlert } from 'lucide-react';
@@ -114,9 +115,9 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({ club, currentUser }
 
       <div className="border-t pt-4 mt-4">
         <Button
-          variant="destructive"
+          variant="primary"
           size="sm"
-          className="w-full flex items-center gap-2"
+          className="w-full flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white"
           onClick={() => setDeleteDialogOpen(true)}
         >
           <Trash className="h-4 w-4" />
