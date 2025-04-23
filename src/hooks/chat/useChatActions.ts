@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +10,9 @@ export const useChatActions = () => {
         clubId, 
         messageLength: messageText.length 
       });
+      
+      // Add debug log before insert attempt
+      console.log('[Chat Debug] About to insert message:', { clubId, messageText });
 
       const { data: insertedMessage, error: insertError } = await supabase
         .from('club_chat_messages')
@@ -25,6 +29,9 @@ export const useChatActions = () => {
           sender:sender_id(id, name, avatar)
         `)
         .single();
+      
+      // Add debug log after insert attempt
+      console.log('[Chat Debug] Insert result:', { data: insertedMessage, error: insertError });
 
       if (insertError) {
         console.error('[useChatActions] Error sending message:', insertError);
