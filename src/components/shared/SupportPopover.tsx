@@ -1,52 +1,15 @@
-
 import React, { useState } from 'react';
-import { HelpCircle, MessageSquare, AlertCircle, Flag } from 'lucide-react';
+import { HelpCircle } from 'lucide-react';
 import { 
   Popover, 
   PopoverContent, 
   PopoverTrigger 
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { useApp } from '@/context/AppContext';
-
-interface SupportOption {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-  description: string;
-}
-
-const supportOptions: SupportOption[] = [
-  {
-    id: 'contact',
-    label: 'Contact Support',
-    icon: <MessageSquare className="h-4 w-4" />,
-    description: 'Get help with a general question or issue'
-  },
-  {
-    id: 'bug',
-    label: 'Report a Bug',
-    icon: <AlertCircle className="h-4 w-4" />,
-    description: "Tell us if something isn't working correctly"
-  },
-  {
-    id: 'report',
-    label: 'Report a Cheater',
-    icon: <Flag className="h-4 w-4" />,
-    description: 'Report suspicious activities or cheating'
-  }
-];
+import { SupportOptionsList, type SupportOption } from './support/SupportOptionsList';
+import SupportDialog from './support/SupportDialog';
 
 interface SupportPopoverProps {
   onCreateSupportChat?: (ticketId: string, subject: string, message: string) => void;
@@ -77,7 +40,6 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
       return;
     }
 
-    // Create a support chat
     createSupportChat(selectedOption!, message);
     
     toast({
@@ -101,7 +63,6 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
       timestamp: new Date().toISOString()
     });
     
-    // Prepare ticket for storage with proper structure
     const newTicket = {
       id: ticketId,
       subject: subject,
@@ -132,32 +93,23 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
       ]
     };
     
-    // Store the ticket in localStorage
     const existingTickets = localStorage.getItem('supportTickets');
     const tickets = existingTickets ? JSON.parse(existingTickets) : [];
     tickets.push(newTicket);
     localStorage.setItem('supportTickets', JSON.stringify(tickets));
     
-    // Update unread messages to show notification in chat icon
     const unreadMessages = localStorage.getItem('unreadMessages');
     const unreadMap = unreadMessages ? JSON.parse(unreadMessages) : {};
-    unreadMap[ticketId] = 1; // Set 1 unread message for the auto-response
+    unreadMap[ticketId] = 1;
     localStorage.setItem('unreadMessages', JSON.stringify(unreadMap));
     
-    // Dispatch multiple events to ensure all components are notified
-    // Trigger standard unread messages event
     window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
-    
-    // Also trigger the supportTicketCreated event with count information
     window.dispatchEvent(new CustomEvent('supportTicketCreated', { 
       detail: { ticketId, count: 1 }
     }));
-    
-    // Ensure immediate UI update for chat notifications
     const event = new CustomEvent('notificationsUpdated');
     window.dispatchEvent(event);
     
-    // If the callback exists, use it to create a support chat
     if (onCreateSupportChat) {
       onCreateSupportChat(ticketId, subject, messageContent);
     }
@@ -177,49 +129,18 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-56 p-0" align="end">
-          <div className="p-2">
-            {supportOptions.map((option) => (
-              <button
-                key={option.id}
-                className="w-full text-left flex items-center gap-2 py-2 px-3 hover:bg-gray-100 rounded-md"
-                onClick={() => handleOptionClick(option)}
-              >
-                <span className="flex-shrink-0 text-gray-500">{option.icon}</span>
-                <div>
-                  <p className="text-sm font-medium">{option.label}</p>
-                  <p className="text-xs text-gray-500">{option.description}</p>
-                </div>
-              </button>
-            ))}
-          </div>
+          <SupportOptionsList onOptionClick={handleOptionClick} />
         </PopoverContent>
       </Popover>
 
-      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {selectedOption?.label}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Please provide details about your {selectedOption?.label.toLowerCase()}.
-              Our team will review your submission and open a support chat to assist you.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="grid gap-4 py-4">
-            <textarea 
-              className="w-full min-h-[100px] p-2 border rounded-md" 
-              placeholder={`Describe your ${selectedOption?.label.toLowerCase()} in detail...`}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setMessage('')}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSubmit}>Submit</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <SupportDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        selectedOption={selectedOption}
+        message={message}
+        onMessageChange={setMessage}
+        onSubmit={handleSubmit}
+      />
     </>
   );
 };
