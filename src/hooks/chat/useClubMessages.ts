@@ -34,7 +34,7 @@ export const useClubMessages = (
           table: 'club_chat_messages',
           filter: `club_id=eq.${club.id}`
         }, (payload) => {
-          console.log(`[Realtime] New club message:`, payload);
+          console.log(`[Realtime] New club message received:`, payload);
           
           // Immediately update the UI with the new message
           setClubMessages(prev => {
@@ -45,11 +45,43 @@ export const useClubMessages = (
               return prev;
             }
             
-            console.log(`[useClubMessages] Adding new message to club ${club.id}:`, payload.new);
-            return {
-              ...prev,
-              [club.id]: [...existingMessages, payload.new]
+            // Fetch the sender information to include with the message
+            const fetchSender = async () => {
+              try {
+                const { data: sender, error } = await supabase
+                  .from('users')
+                  .select('id, name, avatar')
+                  .eq('id', payload.new.sender_id)
+                  .single();
+                
+                if (error) {
+                  console.error('[useClubMessages] Error fetching sender:', error);
+                  return;
+                }
+                
+                // Create a complete message object with sender information
+                const completeMessage = {
+                  ...payload.new,
+                  sender
+                };
+                
+                // Update state with the complete message
+                setClubMessages(currentMessages => {
+                  const clubMessages = currentMessages[club.id] || [];
+                  return {
+                    ...currentMessages,
+                    [club.id]: [...clubMessages, completeMessage]
+                  };
+                });
+              } catch (error) {
+                console.error('[useClubMessages] Error processing new message:', error);
+              }
             };
+            
+            fetchSender();
+            
+            // Return previous state while we fetch the sender asynchronously
+            return prev;
           });
 
           // Handle unread count in a separate async function

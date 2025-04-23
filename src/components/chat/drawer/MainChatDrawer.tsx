@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Drawer, DrawerContent as UIDrawerContent } from '@/components/ui/drawer';
 import { ChatProvider } from '@/context/ChatContext';
@@ -34,7 +35,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const [activeTab, setActiveTab] = useState<"clubs"|"dm"|"support">("clubs");
   const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>(supportTickets);
 
-  // Use the club messages hook directly
+  // Use the club messages hook directly to handle real-time messages
   const { clubMessages: localClubMessages, setClubMessages } = useClubMessages(clubs, open, onNewMessage);
 
   const {

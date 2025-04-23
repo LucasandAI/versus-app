@@ -11,6 +11,12 @@ export const useChatActions = () => {
         messageLength: messageText.length 
       });
       
+      // Get current user for sender info
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
+      
       // Add debug log before insert attempt
       console.log('[Chat Debug] About to insert message:', { clubId, messageText });
 
