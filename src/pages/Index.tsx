@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { AppProvider, useApp } from '@/context/AppContext';
 import ConnectScreen from '@/components/ConnectScreen';
@@ -57,15 +56,12 @@ const AppContent: React.FC = () => {
     window.addEventListener('focus', handleUnreadMessagesUpdated);
     window.addEventListener('notificationsUpdated', handleUnreadMessagesUpdated);
     
-    const checkInterval = setInterval(handleUnreadMessagesUpdated, 1000);
-    
     return () => {
       window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
       window.removeEventListener('supportTicketCreated', handleSupportTicketCreated as EventListener);
       window.removeEventListener('chatDrawerClosed', handleUnreadMessagesUpdated);
       window.removeEventListener('focus', handleUnreadMessagesUpdated);
       window.removeEventListener('notificationsUpdated', handleUnreadMessagesUpdated);
-      clearInterval(checkInterval);
     };
   }, []);
 

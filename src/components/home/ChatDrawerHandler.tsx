@@ -40,7 +40,7 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
   
   // Fetch club messages when drawer is opened
   useEffect(() => {
-    if (!isOpen || !userClubs.length) return;
+    if (!userClubs.length) return;
     
     const fetchClubMessages = async () => {
       try {
@@ -123,11 +123,11 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isOpen, userClubs]);
+  }, [userClubs]);
   
   // Fetch support tickets
   useEffect(() => {
-    if (!currentUser || !isOpen) return;
+    if (!currentUser) return;
     
     const fetchSupportTickets = async () => {
       try {
@@ -206,7 +206,7 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentUser, isOpen, refreshTrigger]);
+  }, [currentUser, refreshTrigger]);
 
   return (
     <ChatDrawer 

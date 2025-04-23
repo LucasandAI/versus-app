@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from '@/hooks/use-toast';
+import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
 
 interface ChatDrawerProps {
   open: boolean;
@@ -54,6 +55,7 @@ const ChatDrawer = ({
   clubMessages = {}
 }: ChatDrawerProps) => {
   const { currentUser } = useApp();
+  const { close: closeDrawer } = useChatDrawerGlobal();
   const [activeTab, setActiveTab] = useState<"clubs"|"dm"|"support">("clubs");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [supportMessage, setSupportMessage] = useState("");
@@ -115,14 +117,12 @@ const ChatDrawer = ({
       const newMessage = {
         id: `temp-${Date.now()}`,
         text: message,
-        sender_id: currentUser.id,
-        club_id: clubId,
-        timestamp: new Date().toISOString(),
         sender: {
           id: currentUser.id,
           name: currentUser.name,
           avatar: currentUser.avatar || '/placeholder.svg'
-        }
+        },
+        timestamp: new Date().toISOString()
       };
       
       // Update local state immediately for real-time appearance
@@ -207,24 +207,58 @@ const ChatDrawer = ({
         description: "Your support request has been submitted successfully."
       });
 
-      // Switch to support tab and close dialog
-      setActiveTab("support");
+      // Close the dialog first
+      setDialogOpen(false);
       
+      // Reset form
+      setSupportMessage("");
+      setSelectedSupportOption(null);
+
       // Refresh to show the new ticket
       const event = new CustomEvent('supportTicketCreated', { 
         detail: { ticketId: ticketData.id }
       });
       window.dispatchEvent(event);
       
-      // Reset form and close dialog
-      setSupportMessage("");
-      setSelectedSupportOption(null);
-      setDialogOpen(false);
+      // Switch to support tab
+      setActiveTab("support");
     } catch (error) {
       console.error('Error creating support ticket:', error);
       toast({
         title: "Error",
         description: "Failed to create support ticket. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Function to handle support ticket selection
+  const handleSendSupportMessage = async (message: string) => {
+    if (!currentUser || !selectedTicket) return;
+    
+    try {
+      // Add message to Supabase
+      const { error } = await supabase
+        .from('support_messages')
+        .insert({
+          ticket_id: selectedTicket.id,
+          sender_id: currentUser.id,
+          text: message,
+          is_support: false
+        });
+        
+      if (error) {
+        throw error;
+      }
+      
+      // We don't need to update local state as the realtime subscription will handle that
+      // This ensures consistency between what's in the DB and what's shown to the user
+      
+    } catch (error) {
+      console.error('Error sending support message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
         variant: "destructive"
       });
     }
@@ -253,7 +287,7 @@ const ChatDrawer = ({
                 clubs={clubs}
                 selectedLocalClub={selectedLocalClub}
                 selectedTicket={null}
-                localSupportTickets={[]}
+                localSupportTickets={[]} // Don't show support tickets in club chat tab
                 onSelectClub={handleSelectClub}
                 onSelectTicket={handleSelectTicket}
                 refreshKey={refreshKey}
@@ -271,7 +305,10 @@ const ChatDrawer = ({
             {activeTab === "support" && (
               <SupportPanel 
                 tickets={supportTickets} 
+                selectedTicket={selectedTicket}
+                onSelectTicket={handleSelectTicket}
                 onCreateSupportTicket={handleOpenSupportOptions}
+                onSendMessage={handleSendSupportMessage}
               />
             )}
           </div>
@@ -357,41 +394,128 @@ const DmSearchPanel = () => {
 // --- Support Tickets Panel inside drawer
 const SupportPanel: React.FC<{ 
   tickets: SupportTicket[]; 
+  selectedTicket: SupportTicket | null;
+  onSelectTicket: (ticket: SupportTicket) => void;
   onCreateSupportTicket: () => void;
-}> = ({ tickets, onCreateSupportTicket }) => (
-  <div className="p-4 overflow-auto h-full">
-    <div className="flex justify-between items-center mb-4">
-      <h2 className="font-semibold text-lg">Support Tickets</h2>
-      <Button 
-        size="sm" 
-        className="flex items-center gap-1" 
-        onClick={onCreateSupportTicket}
-      >
-        New Ticket
-      </Button>
-    </div>
-    <ul>
+  onSendMessage: (message: string) => void;
+}> = ({ tickets, selectedTicket, onSelectTicket, onCreateSupportTicket, onSendMessage }) => {
+  if (selectedTicket) {
+    return (
+      <div className="h-full flex flex-col">
+        <div className="border-b p-3">
+          <h3 className="font-medium">{selectedTicket.subject}</h3>
+          <p className="text-xs text-gray-500">
+            Created {new Date(selectedTicket.createdAt).toLocaleDateString()}
+          </p>
+          <button
+            onClick={() => onSelectTicket(null as unknown as SupportTicket)}
+            className="text-xs text-blue-500 mt-1"
+          >
+            « Back to tickets
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-auto p-4 space-y-4">
+          {selectedTicket.messages.map((msg) => (
+            <div 
+              key={msg.id}
+              className={`flex ${msg.sender.id === 'support' || msg.isSupport ? 'justify-start' : 'justify-end'}`}
+            >
+              {(msg.sender.id === 'support' || msg.isSupport) && (
+                <div className="bg-blue-100 text-blue-800 h-8 w-8 rounded-full flex items-center justify-center mr-2">
+                  S
+                </div>
+              )}
+              
+              <div className={`max-w-[70%]`}>
+                <div 
+                  className={`rounded-lg p-3 text-sm break-words ${
+                    msg.sender.id === 'support' || msg.isSupport
+                      ? 'bg-blue-100 text-blue-800'
+                      : 'bg-primary text-white'
+                  }`}
+                >
+                  {msg.text}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <div className="p-3 border-t">
+          <div className="flex">
+            <input 
+              className="flex-1 border rounded-l-md px-3 py-2 focus:outline-none"
+              placeholder="Type your message..."
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  const input = e.target as HTMLInputElement;
+                  if (input.value.trim()) {
+                    onSendMessage(input.value);
+                    input.value = '';
+                  }
+                }
+              }}
+            />
+            <button 
+              className="bg-primary text-white px-4 py-2 rounded-r-md"
+              onClick={(e) => {
+                const input = e.currentTarget.previousSibling as HTMLInputElement;
+                if (input.value.trim()) {
+                  onSendMessage(input.value);
+                  input.value = '';
+                }
+              }}
+            >
+              Send
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 overflow-auto h-full">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="font-semibold text-lg">Support Tickets</h2>
+        <Button 
+          size="sm" 
+          className="flex items-center gap-1" 
+          onClick={onCreateSupportTicket}
+        >
+          New Ticket
+        </Button>
+      </div>
+      
       {tickets && tickets.length === 0 ? (
-        <li className="text-gray-500 text-sm">No support tickets yet.</li>
+        <div className="text-gray-500 text-sm py-4 text-center">
+          No support tickets yet. Click "New Ticket" to create one.
+        </div>
       ) : (
-        tickets.map((ticket) => (
-          <li key={ticket.id} className="mb-4 pb-2 border-b last:border-none">
-            <strong>{ticket.subject}</strong>
-            <div className="text-xs text-gray-500">ID: {ticket.id}</div>
-            <ul className="mt-2 space-y-1">
-              {ticket.messages.map((msg) => (
-                <li key={msg.id} className="bg-gray-50 rounded p-2">
-                  <span className="font-semibold text-xs">{msg.sender.name}:</span>{" "}
-                  <span>{msg.text}</span>
-                  <span className="block text-[11px] text-muted-foreground">{msg.timestamp}</span>
-                </li>
-              ))}
-            </ul>
-          </li>
-        ))
+        <ul className="space-y-2">
+          {tickets.map((ticket) => (
+            <li 
+              key={ticket.id} 
+              onClick={() => onSelectTicket(ticket)}
+              className="p-3 border rounded-md cursor-pointer hover:bg-gray-50 transition"
+            >
+              <div className="font-medium">{ticket.subject}</div>
+              <div className="text-xs text-gray-500">
+                Created: {new Date(ticket.createdAt).toLocaleDateString()} 
+                • {ticket.messages.length} message{ticket.messages.length !== 1 ? 's' : ''}
+              </div>
+              <div className="text-xs text-blue-500 mt-1">Click to view conversation</div>
+            </li>
+          ))}
+        </ul>
       )}
-    </ul>
-  </div>
-);
+    </div>
+  );
+};
 
 export default ChatDrawer;
