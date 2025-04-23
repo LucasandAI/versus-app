@@ -2,7 +2,7 @@
 import React from 'react';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
-import ChatDrawerContent from './chat-content/ChatMainContent';
+import ChatDrawerContent from './ChatDrawerContent';
 import DMSearchPanel from './dm/DMSearchPanel';
 import SupportTabContent from './support/SupportTabContent';
 
@@ -58,14 +58,28 @@ const DrawerContent: React.FC<DrawerContentProps> = ({
   switch (activeTab) {
     case "clubs":
       return (
-        <ChatDrawerContent
-          selectedClub={selectedLocalClub}
-          selectedTicket={selectedTicket}
-          messages={messages}
-          onMatchClick={handleMatchClick}
-          onSelectUser={handleSelectUser}
-          onSendMessage={onSendMessage}
-        />
+        <div className="flex h-full">
+          <ChatSidebarContent
+            clubs={clubs}
+            selectedClub={selectedLocalClub}
+            selectedTicket={selectedTicket}
+            supportTickets={localSupportTickets}
+            onSelectClub={onSelectClub}
+            onSelectTicket={onSelectTicket}
+            onDeleteChat={deleteChat}
+            unreadCounts={unreadMessages}
+            onSelectUser={handleSelectUser}
+          />
+          
+          <ChatDrawerContent
+            selectedClub={selectedLocalClub}
+            selectedTicket={selectedTicket}
+            messages={messages}
+            onMatchClick={handleMatchClick}
+            onSelectUser={handleSelectUser}
+            onSendMessage={onSendMessage}
+          />
+        </div>
       );
     case "dm":
       return <DMSearchPanel />;

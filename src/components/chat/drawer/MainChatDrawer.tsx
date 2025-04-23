@@ -4,7 +4,7 @@ import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { ChatProvider } from '@/context/ChatContext';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
-import { toast } from '@/hooks/use-toast'; // Added missing toast import
+import { toast } from '@/hooks/use-toast';
 import { useChat } from '@/hooks/chat/useChat';
 import { useChatDrawerState } from '@/hooks/chat/useChatDrawerState';
 import { useChatMessages } from '@/hooks/chat/useChatMessages';
@@ -12,7 +12,7 @@ import { useSupportTickets } from '@/hooks/chat/useSupportTickets';
 import { useRealtimeMessages } from '@/hooks/chat/useRealtimeMessages';
 import { useSupportTicketEffects } from '@/hooks/chat/useSupportTicketEffects';
 import DrawerHeader from './DrawerHeader';
-import DrawerContentComponent from './DrawerContent';
+import DrawerContent from './DrawerContent';
 import { useApp } from '@/context/AppContext';
 
 interface MainChatDrawerProps {
@@ -62,6 +62,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     handleNewMessage,
     markTicketAsRead,
     deleteChat,
+    sendMessageToClub
   } = useChat(open, onNewMessage);
 
   const { handleSendMessage } = useChatMessages(
@@ -90,6 +91,21 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       });
     }
   };
+  
+  const handleSendClubMessage = async (message: string, clubId?: string) => {
+    if (!clubId || !message.trim()) return;
+    
+    try {
+      await sendMessageToClub(clubId, message);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast({
+        title: "Message Error",
+        description: `Error sending message: ${errorMessage}`,
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <ChatProvider>
@@ -100,7 +116,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             setActiveTab={setActiveTab} 
           />
           
-          <DrawerContentComponent 
+          <DrawerContent 
             activeTab={activeTab}
             clubs={clubs}
             selectedLocalClub={selectedLocalClub}
@@ -114,7 +130,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             unreadMessages={unreadMessages}
             handleNewMessage={handleNewMessage}
             markTicketAsRead={markTicketAsRead}
-            onSendMessage={handleSendMessage} // Fixed: changed from handleSendClubMessage to handleSendMessage
+            onSendMessage={activeTab === "clubs" ? handleSendClubMessage : handleSendMessage}
             supportMessage={supportMessage}
             setSupportMessage={setSupportMessage}
             handleSubmitSupportTicket={handleSubmitTicket}
