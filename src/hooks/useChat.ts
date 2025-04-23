@@ -2,12 +2,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocalStorage } from './chat/useLocalStorage';
 import { useMessages } from './chat/useMessages';
-import { useSupportTickets } from './chat/useSupportTickets';
 import { ChatStateData } from '@/types/chat-state';
 
 export const useChat = (open: boolean, onNewMessage?: (count: number) => void) => {
   const [unreadMessages, setUnreadMessages] = useState<Record<string, number>>({});
   const [refreshKey, setRefreshKey] = useState(Date.now());
+  const [supportTickets, setSupportTickets] = useState<Record<string, any>>({});
   
   const {
     loadFromStorage,
@@ -32,10 +32,47 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     updateUnreadCount
   );
 
-  const { supportTickets, setSupportTickets, createSupportTicket } = useSupportTickets(
-    saveSupportTickets,
-    updateUnreadCount
-  );
+  const createSupportTicket = useCallback((ticketId: string, subject: string, message: string, userId: string, userName: string, userAvatar?: string) => {
+    const newTicket = {
+      id: ticketId,
+      subject: subject,
+      createdAt: new Date().toISOString(),
+      messages: [
+        {
+          id: Date.now().toString(),
+          text: message,
+          sender: {
+            id: userId,
+            name: userName,
+            avatar: userAvatar || '/placeholder.svg'
+          },
+          timestamp: new Date().toISOString(),
+          isSupport: false
+        },
+        {
+          id: 'support-' + Date.now() + '-response',
+          text: `Thank you for contacting support about "${subject}". A support agent will review your request and respond shortly.`,
+          sender: {
+            id: 'support',
+            name: 'Support Team',
+            avatar: '/placeholder.svg'
+          },
+          timestamp: new Date(Date.now() + 1000).toISOString(),
+          isSupport: true
+        }
+      ]
+    };
+    
+    setSupportTickets(prev => {
+      const updated = { ...prev, [ticketId]: newTicket };
+      saveSupportTickets(updated);
+      return updated;
+    });
+    
+    updateUnreadCount(ticketId, 1);
+    
+    return newTicket;
+  }, [saveSupportTickets, updateUnreadCount]);
 
   // Load data from localStorage on mount
   useEffect(() => {
@@ -63,7 +100,7 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
       window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
       window.removeEventListener('supportTicketCreated', handleNotificationsUpdated);
     };
-  }, [loadFromStorage, setMessages, setSupportTickets]);
+  }, [loadFromStorage, setMessages]);
 
   // Update notification count when unread messages change
   useEffect(() => {
