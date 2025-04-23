@@ -3,7 +3,8 @@ import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
 import MessageContent from './MessageContent';
-import { useApp } from '@/context/AppContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect } from 'react';
 
 interface MessageItemProps {
   message: ChatMessage;
@@ -24,17 +25,29 @@ const MessageItem: React.FC<MessageItemProps> = ({
   formatTime,
   currentUserAvatar,
 }) => {
-  const { currentUser } = useApp();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  
+  // Get the current user ID directly from Supabase session
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        setCurrentUserId(session.user.id);
+      }
+    };
+    
+    getCurrentUser();
+  }, []);
   
   // Determine if the current user can delete this message
   // Convert both IDs to string for consistent comparison
-  const canDelete = currentUser && String(currentUser.id) === String(message.sender.id);
+  const canDelete = currentUserId && String(currentUserId) === String(message.sender.id);
   
   // Enhanced logging for debugging
   console.log('MessageItem:', {
     messageId: message.id,
     senderId: message.sender.id, 
-    currentUserId: currentUser?.id,
+    currentUserId,
     isUserMessage,
     canDelete
   });
@@ -69,7 +82,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
           isSupport={isSupport}
           onDeleteMessage={canDelete && onDeleteMessage ? () => {
             console.log('Delete button clicked for message:', message.id);
-            console.log('By user:', currentUser?.id);
+            console.log('By user:', currentUserId);
             console.log('Message sender:', message.sender.id);
             onDeleteMessage(message.id);
           } : undefined}
@@ -80,7 +93,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
       
       {isUserMessage && (
         <UserAvatar 
-          name={currentUser?.name || "You"}
+          name={message.sender.name || "You"}
           image={currentUserAvatar} 
           size="sm" 
           className="ml-2 flex-shrink-0"

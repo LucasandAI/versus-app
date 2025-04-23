@@ -7,11 +7,11 @@ import { User } from '@/types';
 export const useChatActions = (currentUser: User | null) => {
   const sendMessageToClub = useCallback(async (clubId: string, messageText: string) => {
     try {
-      // Get the authenticated user directly from Supabase
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      // Get the current auth session directly
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
-      if (authError || !user) {
-        console.error('Authentication error:', authError || 'No authenticated user found');
+      if (sessionError || !sessionData.session?.user) {
+        console.error('Authentication error:', sessionError || 'No authenticated session found');
         toast({
           title: "Error",
           description: "You must be logged in to send messages",
@@ -20,9 +20,9 @@ export const useChatActions = (currentUser: User | null) => {
         return;
       }
       
-      const authUserId = user.id;
+      const authUserId = sessionData.session.user.id;
       
-      // Log attempt to send message with the authenticated user ID
+      // Log attempt to send message with the authenticated user ID from the current session
       console.log('[useChat] Attempting to send message:', {
         clubId,
         authUserId,
@@ -34,7 +34,7 @@ export const useChatActions = (currentUser: User | null) => {
         .insert({
           club_id: clubId,
           message: messageText,
-          sender_id: authUserId // Using the authenticated user ID directly
+          sender_id: authUserId // Using the authenticated user ID directly from the session
         })
         .select();
 

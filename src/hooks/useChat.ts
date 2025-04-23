@@ -31,11 +31,16 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     setSupportTickets(data.supportTickets);
   }, [loadFromStorage, setMessages]);
 
+  const refreshChats = () => {
+    setRefreshKey(Date.now());
+  };
+
   return {
     messages,
     supportTickets,
     unreadMessages,
     refreshKey,
+    refreshChats,
     handleNewMessage,
     sendMessageToClub,
     setUnreadMessages: updateUnreadCount,

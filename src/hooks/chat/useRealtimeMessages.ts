@@ -65,38 +65,44 @@ export const useRealtimeMessages = (open: boolean, setLocalClubMessages: React.D
               const clubId = payload.new.club_id;
               
               // Fetch the complete message with sender details
-              const { data: messageWithSender, error } = await supabase
-                .from('club_chat_messages')
-                .select(`
-                  *,
-                  sender:sender_id(id, name, avatar)
-                `)
-                .eq('id', newMessageId)
-                .single();
-                
-              if (error) {
-                console.error('Error fetching message with sender:', error);
-                return;
-              }
-              
-              console.log(`Adding new message to club ${clubId}:`, messageWithSender);
-              console.log('Sender ID for new message:', messageWithSender.sender_id);
-              console.log('Sender data:', messageWithSender.sender);
-              
-              setLocalClubMessages(prev => {
-                const clubMessages = prev[clubId] || [];
-                
-                // Check if message already exists in the array
-                if (clubMessages.some(msg => String(msg.id) === String(newMessageId))) {
-                  console.log(`Message ${newMessageId} already exists in club ${clubId}`);
-                  return prev;
+              try {
+                const { data: messageWithSender, error } = await supabase
+                  .from('club_chat_messages')
+                  .select(`
+                    *,
+                    sender:sender_id(id, name, avatar)
+                  `)
+                  .eq('id', newMessageId)
+                  .single();
+                  
+                if (error) {
+                  console.error('Error fetching message with sender:', error);
+                  return;
                 }
                 
-                return {
-                  ...prev,
-                  [clubId]: [...clubMessages, messageWithSender]
-                };
-              });
+                if (messageWithSender) {
+                  console.log(`Adding new message to club ${clubId}:`, messageWithSender);
+                  console.log('Sender ID for new message:', messageWithSender.sender_id);
+                  console.log('Sender data:', messageWithSender.sender);
+                  
+                  setLocalClubMessages(prev => {
+                    const clubMessages = prev[clubId] || [];
+                    
+                    // Check if message already exists in the array
+                    if (clubMessages.some(msg => String(msg.id) === String(newMessageId))) {
+                      console.log(`Message ${newMessageId} already exists in club ${clubId}`);
+                      return prev;
+                    }
+                    
+                    return {
+                      ...prev,
+                      [clubId]: [...clubMessages, messageWithSender]
+                    };
+                  });
+                }
+              } catch (fetchError) {
+                console.error('Error in real-time message fetch:', fetchError);
+              }
             } else {
               console.warn('Insert event missing required data:', payload);
             }

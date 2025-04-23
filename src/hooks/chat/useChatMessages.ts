@@ -1,8 +1,7 @@
 
 import { useCallback, useEffect } from 'react';
-import { useApp } from '@/context/AppContext';
-import { SupportTicket } from '@/types/chat';
 import { supabase } from '@/integrations/supabase/client';
+import { SupportTicket } from '@/types/chat';
 
 export const useChatMessages = (
   selectedTicket: SupportTicket | null,
@@ -25,20 +24,20 @@ export const useChatMessages = (
           filter: `ticket_id=eq.${selectedTicket.id}`,
         },
         (payload) => {
-          if (payload.new && currentUser) {
+          if (payload.new) {
             // Format the new message
             const newMessage = {
               id: payload.new.id,
               text: payload.new.text,
               sender: {
                 id: payload.new.sender_id,
-                name: payload.new.sender_id === currentUser.id 
-                  ? currentUser.name 
+                name: payload.new.sender_id === payload.new.sender_id 
+                  ? 'You'
                   : payload.new.sender_id === 'system'
                   ? 'Support Team'
                   : 'Support Agent',
-                avatar: payload.new.sender_id === currentUser.id
-                  ? currentUser.avatar || '/placeholder.svg'
+                avatar: payload.new.sender_id === payload.new.sender_id
+                  ? currentUser?.avatar || '/placeholder.svg'
                   : '/placeholder.svg'
               },
               timestamp: payload.new.timestamp,
@@ -87,17 +86,26 @@ export const useChatMessages = (
   }, [selectedTicket, currentUser, onSelectTicket]);
 
   const handleSendMessage = useCallback(async (message: string) => {
-    if (!currentUser || !message.trim() || !selectedTicket) return;
+    if (!message.trim() || !selectedTicket) return;
 
     try {
+      // Get the current auth session directly
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.user?.id) {
+        console.error('Cannot send message: No authenticated user found');
+        return;
+      }
+      
+      const authUserId = sessionData.session.user.id;
+      
       // First update the UI immediately for better user experience
       const optimisticMessage = {
         id: `temp-${Date.now()}`,
         text: message,
         sender: {
-          id: currentUser.id,
-          name: currentUser.name,
-          avatar: currentUser.avatar || '/placeholder.svg'
+          id: authUserId,
+          name: 'You',
+          avatar: currentUser?.avatar || '/placeholder.svg'
         },
         timestamp: new Date().toISOString(),
         isSupport: false
@@ -115,7 +123,7 @@ export const useChatMessages = (
         .from('support_messages')
         .insert({
           text: message,
-          sender_id: currentUser.id,
+          sender_id: authUserId,
           ticket_id: selectedTicket.id,
           is_support: false
         });
@@ -126,7 +134,7 @@ export const useChatMessages = (
     } catch (error) {
       console.error('Error in handleSendMessage for support ticket:', error);
     }
-  }, [currentUser, selectedTicket, onSelectTicket]);
+  }, [selectedTicket, currentUser, onSelectTicket]);
 
   return {
     handleSendMessage

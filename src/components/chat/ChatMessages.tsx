@@ -1,6 +1,6 @@
 
-import React, { useEffect, useRef } from 'react';
-import { useApp } from '@/context/AppContext';
+import React, { useEffect, useRef, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
 import MessageItem from './message/MessageItem';
 
@@ -23,8 +23,32 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   onDeleteMessage,
   onSelectUser
 }) => {
-  const { currentUser } = useApp();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserAvatar, setCurrentUserAvatar] = useState<string>('/placeholder.svg');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Get the current user ID directly from Supabase session
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        setCurrentUserId(session.user.id);
+        
+        // Fetch user avatar if available
+        const { data: userData } = await supabase
+          .from('users')
+          .select('avatar')
+          .eq('id', session.user.id)
+          .single();
+          
+        if (userData?.avatar) {
+          setCurrentUserAvatar(userData.avatar);
+        }
+      }
+    };
+    
+    getCurrentUser();
+  }, []);
   
   useEffect(() => {
     scrollToBottom();
@@ -39,26 +63,23 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Enhanced isCurrentUser check to handle different format possibilities
+  // Enhanced isCurrentUser check that uses the session user ID directly
   const isCurrentUser = (senderId: string) => {
-    if (!currentUser?.id || !senderId) return false;
+    if (!currentUserId || !senderId) return false;
     
     // Convert both IDs to string for consistent comparison
-    const currentUserId = String(currentUser.id);
-    const messageSenderId = String(senderId);
+    const userIdStr = String(currentUserId);
+    const senderIdStr = String(senderId);
     
-    console.log(`Comparing message sender ID: ${messageSenderId} with current user ID: ${currentUserId}`);
-    return messageSenderId === currentUserId;
+    console.log(`Comparing message sender ID: ${senderIdStr} with current user ID: ${userIdStr}`);
+    return senderIdStr === userIdStr;
   };
   
   const getMemberName = (senderId: string) => {
-    if (isCurrentUser(senderId)) return currentUser?.name || 'You';
+    if (isCurrentUser(senderId)) return 'You';
     const member = clubMembers.find(m => String(m.id) === String(senderId));
     return member ? member.name : 'Unknown Member';
   };
-
-  // Get current user's avatar
-  const currentUserAvatar = currentUser?.avatar || '/placeholder.svg';
 
   // Function to normalize messages from different sources
   const normalizeMessage = (message: any): ChatMessage => {
@@ -158,7 +179,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
             id: normalizedMessage.id,
             senderId: normalizedMessage.sender.id,
             isUserMessage,
-            currentUserId: currentUser?.id
+            currentUserId
           });
           
           return (

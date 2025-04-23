@@ -7,7 +7,6 @@ import ChatInput from './ChatInput';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useNavigation } from '@/hooks/useNavigation';
-import { useApp } from '@/context/AppContext';
 
 interface ChatClubContentProps {
   club: Club;
@@ -25,12 +24,14 @@ const ChatClubContent = ({
   onSendMessage
 }: ChatClubContentProps) => {
   const { navigateToClub } = useNavigation();
-  const { currentUser } = useApp();
 
   const handleDeleteMessage = async (messageId: string) => {
     try {
-      if (!currentUser?.id) {
-        console.error('No authenticated user found');
+      // Get the current auth session directly
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData.session?.user) {
+        console.error('Authentication error:', sessionError || 'No authenticated session found');
         toast({
           title: "Error",
           description: "You must be logged in to delete messages",
@@ -38,15 +39,16 @@ const ChatClubContent = ({
         });
         return;
       }
-
-      console.log('Attempting to delete message:', messageId, 'by user:', currentUser.id);
       
-      // Convert both IDs to string for consistent comparison when checking permissions
+      const authUserId = sessionData.session.user.id;
+      
+      console.log('Attempting to delete message:', messageId, 'by user:', authUserId);
+      
+      // Delete the message (RLS will check if sender_id = auth.uid())
       const { data, error } = await supabase
         .from('club_chat_messages')
         .delete()
         .eq('id', messageId)
-        .eq('sender_id', currentUser.id) // Using currentUser.id consistently
         .select();
 
       if (error) {
