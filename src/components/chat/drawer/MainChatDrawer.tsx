@@ -37,9 +37,13 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>(supportTickets);
   const [localClubMessages, setLocalClubMessages] = useState<Record<string, any[]>>(clubMessages);
 
+  // Update local messages whenever clubMessages prop changes
   useEffect(() => {
-    setLocalClubMessages(clubMessages);
-  }, [clubMessages]);
+    if (open && Object.keys(clubMessages).length > 0) {
+      console.log('[MainChatDrawer] Received updated clubMessages:', Object.keys(clubMessages).length);
+      setLocalClubMessages(clubMessages);
+    }
+  }, [clubMessages, open]);
 
   const {
     supportMessage,
@@ -97,6 +101,11 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     }
   };
   
+  // Debug log to see messages being passed to container
+  console.log('[MainChatDrawer] Rendering with active tab:', activeTab, 
+    'selectedClub:', selectedLocalClub?.id,
+    'messages count:', Object.keys(localClubMessages).length);
+  
   return (
     <ChatProvider>
       <Drawer open={open} onOpenChange={onOpenChange}>
@@ -115,7 +124,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             onSelectClub={handleSelectClub}
             onSelectTicket={handleSelectTicket}
             refreshKey={refreshKey}
-            messages={localClubMessages || messages}
+            messages={localClubMessages}
             deleteChat={deleteChat}
             unreadMessages={unreadMessages}
             handleNewMessage={handleNewMessage}

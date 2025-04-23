@@ -34,7 +34,7 @@ export const useClubMessages = (
           table: 'club_chat_messages',
           filter: `club_id=eq.${club.id}`
         }, (payload) => {
-          console.log(`[useClubMessages] Received new message for club ${club.id}:`, payload);
+          console.log(`[Realtime] New club message:`, payload);
           
           // Immediately update the UI with the new message
           setClubMessages(prev => {
@@ -45,7 +45,7 @@ export const useClubMessages = (
               return prev;
             }
             
-            console.log(`[useClubMessages] Adding new message to club ${club.id}`);
+            console.log(`[useClubMessages] Adding new message to club ${club.id}:`, payload.new);
             return {
               ...prev,
               [club.id]: [...existingMessages, payload.new]
@@ -78,9 +78,15 @@ export const useClubMessages = (
           });
         });
 
-      // Subscribe to the channel with status logging
+      // Subscribe to the channel with enhanced status logging
       channel.subscribe((status) => {
-        console.log(`[useClubMessages] Channel status for club ${club.id}:`, status);
+        if (status === 'SUBSCRIBED') {
+          console.log(`[useClubMessages] Successfully subscribed to club ${club.id} messages`);
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error(`[useClubMessages] Error subscribing to club ${club.id} messages`);
+        } else {
+          console.log(`[useClubMessages] Channel status for club ${club.id}:`, status);
+        }
       });
 
       return channel;

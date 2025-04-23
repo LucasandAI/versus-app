@@ -8,7 +8,13 @@ export const useRealtimeChat = (
   userClubs: Club[]
 ) => {
   useEffect(() => {
-    if (!currentUserId) return;
+    if (!currentUserId || userClubs.length === 0) {
+      console.log('[useRealtimeChat] No current user ID or clubs, not setting up subscription');
+      return;
+    }
+    
+    const clubIds = userClubs.map(club => club.id);
+    console.log('[useRealtimeChat] Setting up global subscription for clubs:', clubIds);
     
     // Subscribe to club messages for the user's clubs
     const channel = supabase
@@ -19,12 +25,15 @@ export const useRealtimeChat = (
           event: 'INSERT', 
           schema: 'public', 
           table: 'club_chat_messages',
-          filter: `club_id=in.(${userClubs.map(club => `'${club.id}'`).join(',')})` 
+          filter: clubIds.length > 0 ? `club_id=in.(${clubIds.map(id => `'${id}'`).join(',')})` : undefined
         },
         (payload) => {
+          console.log('[useRealtimeChat] New message received:', payload);
+          
           if (payload.new.sender_id !== currentUserId) {
             // Update unread count if the message is not from current user
             const clubId = payload.new.club_id;
+            console.log('[useRealtimeChat] Dispatching unread message event for club:', clubId);
             
             // Dispatch event to update unread messages
             const event = new CustomEvent('unreadMessagesUpdated', { 
@@ -34,9 +43,12 @@ export const useRealtimeChat = (
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[useRealtimeChat] Subscription status:', status);
+      });
 
     return () => {
+      console.log('[useRealtimeChat] Cleaning up global subscription');
       supabase.removeChannel(channel);
     };
   }, [currentUserId, userClubs]);

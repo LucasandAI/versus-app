@@ -26,7 +26,8 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
     const clubMessages = messages[selectedClub.id] || [];
     console.log('[ChatMainContent] Rendering club messages:', { 
       clubId: selectedClub.id, 
-      messageCount: clubMessages.length 
+      messageCount: clubMessages.length,
+      messageIds: clubMessages.map(m => m.id).join(', ')
     });
     
     return (
