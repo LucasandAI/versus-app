@@ -47,8 +47,9 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     
     try {
       // Verify user is authenticated
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData?.session) {
+        console.error('[useChat] No valid session found:', sessionError);
         toast({
           title: "Authentication Error",
           description: "You must be logged in to send messages",
@@ -57,13 +58,19 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
         return;
       }
       
-      console.log('[useChat] Sending message to club:', { clubId, message: message.substring(0, 20) });
+      console.log('[useChat] Sending message to club:', { 
+        clubId, 
+        userId: sessionData.session.user.id,
+        message: message.substring(0, 20) + (message.length > 20 ? '...' : '') 
+      });
       
       // Use the sendMessageToClub function from useChatActions
       const result = await sendMessageToClub(clubId, message);
       
       if (result) {
         console.log('[useChat] Message sent successfully. The UI will be updated via realtime subscription.');
+      } else {
+        console.error('[useChat] Failed to send message - no result returned');
       }
     } catch (error) {
       console.error('[useChat] Error sending message:', error);

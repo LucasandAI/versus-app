@@ -7,19 +7,20 @@ export const useChatActions = () => {
   const sendMessageToClub = useCallback(async (clubId: string, messageText: string) => {
     try {
       // Fetch the current authenticated user directly from Supabase
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (userError || !user) {
+      if (sessionError || !session?.user) {
+        console.error('[useChatActions] No valid session found:', sessionError);
         toast({
           title: "Authentication Error",
           description: "You must be logged in to send messages",
           variant: "destructive"
         });
-        console.error('[useChatActions] User authentication error:', userError);
         return null;
       }
       
-      const userId = user.id;
+      const userId = session.user.id;
+      console.log('✅ Session:', userId);
       
       console.log('[useChatActions] Sending message to club', { 
         clubId, 
@@ -45,13 +46,25 @@ export const useChatActions = () => {
         `)
         .single();
 
+      console.log('[Insert Response]', { data: insertedMessage, insertError });
+
       if (insertError) {
         console.error('[useChatActions] Error sending message:', insertError);
-        toast({
-          title: "Message Send Error",
-          description: insertError.message || "Failed to send message",
-          variant: "destructive"
-        });
+        
+        // Check if it's an RLS permission issue
+        if (insertError.code === '42501') {
+          toast({
+            title: "Permission Error",
+            description: "You don't have permission to send messages in this club",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Message Send Error",
+            description: insertError.message || "Failed to send message",
+            variant: "destructive"
+          });
+        }
         return null;
       }
 
@@ -70,9 +83,9 @@ export const useChatActions = () => {
 
   const deleteMessage = useCallback(async (messageId: string) => {
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (userError || !user) {
+      if (sessionError || !session?.user) {
         toast({
           title: "Authentication Error", 
           description: "You must be logged in to delete messages",
@@ -81,13 +94,13 @@ export const useChatActions = () => {
         return false;
       }
       
-      console.log('[useChatActions] Deleting message', { messageId, userId: user.id });
+      console.log('[useChatActions] Deleting message', { messageId, userId: session.user.id });
       
       const { error: deleteError } = await supabase
         .from('club_chat_messages')
         .delete()
         .eq('id', messageId)
-        .eq('sender_id', user.id);  // Ensure user can only delete their own messages
+        .eq('sender_id', session.user.id);  // Ensure user can only delete their own messages
       
       if (deleteError) {
         console.error('[useChatActions] Error deleting message:', deleteError);
