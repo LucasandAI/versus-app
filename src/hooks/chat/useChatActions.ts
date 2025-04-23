@@ -5,25 +5,11 @@ import { supabase } from '@/integrations/supabase/client';
 export const useChatActions = () => {
   const sendMessageToClub = useCallback(async (clubId: string, messageText: string) => {
     try {
-      // Only verify the session exists before attempting insert
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        console.error('[useChatActions] No valid session found');
-        toast({
-          title: "Authentication Error",
-          description: "You must be logged in to send messages",
-          variant: "destructive"
-        });
-        return null;
-      }
-
       console.log('[useChatActions] Sending message to club:', { 
         clubId, 
         messageLength: messageText.length 
       });
 
-      // Let RLS handle authorization and sender_id assignment
       const { data: insertedMessage, error: insertError } = await supabase
         .from('club_chat_messages')
         .insert({

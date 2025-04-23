@@ -41,21 +41,21 @@ export type Database = {
           club_id: string | null
           id: string
           message: string
-          sender_id: string
+          sender_id: string | null
           timestamp: string
         }
         Insert: {
           club_id?: string | null
           id?: string
           message: string
-          sender_id: string
+          sender_id?: string | null
           timestamp?: string
         }
         Update: {
           club_id?: string | null
           id?: string
           message?: string
-          sender_id?: string
+          sender_id?: string | null
           timestamp?: string
         }
         Relationships: [
