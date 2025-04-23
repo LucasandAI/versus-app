@@ -33,11 +33,15 @@ export const useRealtimeMessages = (open: boolean, setLocalClubMessages: React.D
                   // Handle both string and non-string IDs
                   const msgId = typeof msg.id === 'string' ? msg.id : 
                                (msg.id ? String(msg.id) : null);
-                  const result = msgId !== deletedMessageId;
-                  if (!result) {
-                    console.log(`Found message to delete: ${msgId}`);
+                  const deleteId = typeof deletedMessageId === 'string' ? deletedMessageId : 
+                                  String(deletedMessageId);
+                  
+                  // Log the comparison for debugging
+                  if (msgId === deleteId) {
+                    console.log(`Found message to delete: ${msgId} matches ${deleteId}`);
+                    return false;
                   }
-                  return result;
+                  return true;
                 });
                 
                 console.log(`Updated messages count after deletion: ${updatedClubMessages.length} (was ${prev[clubId].length})`);

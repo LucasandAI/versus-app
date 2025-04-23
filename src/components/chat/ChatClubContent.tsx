@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import { Club } from '@/types';
 import ChatHeader from './ChatHeader';
@@ -66,26 +67,35 @@ const ChatClubContent = ({
         return;
       }
 
-      console.log("Deleting message:", messageId);
-      console.log("Session user ID =", sessionUserId);
-      console.log("Message sender_id =", messageToDelete.sender_id);
-
-      if (messageToDelete.sender_id !== sessionUserId) {
-        console.error('Message sender ID does not match session user ID');
-        toast({
-          title: "Permission Denied",
-          description: "You can only delete your own messages",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      const { data, error } = await supabase
+      // Debug logging - add more context about the IDs we're comparing
+      console.log("Attempting message deletion...");
+      console.log("Message ID:", messageId);
+      console.log("Session user ID:", sessionUserId);
+      console.log("Current user ID:", currentUser?.id);
+      console.log("Message sender_id:", messageToDelete.sender_id);
+      
+      // First try to delete using sessionUserId
+      console.log("Attempting deletion with session user ID");
+      let { data, error } = await supabase
         .from('club_chat_messages')
         .delete()
         .eq('id', messageId)
         .eq('sender_id', sessionUserId)
         .select();
+
+      // If that fails and we have a currentUser ID, try with that instead
+      if ((!data || data.length === 0) && currentUser?.id && currentUser.id !== sessionUserId) {
+        console.log("Session ID deletion failed, trying with currentUser ID");
+        const secondAttempt = await supabase
+          .from('club_chat_messages')
+          .delete()
+          .eq('id', messageId)
+          .eq('sender_id', currentUser.id)
+          .select();
+        
+        data = secondAttempt.data;
+        error = secondAttempt.error;
+      }
 
       if (error) {
         console.error('Supabase delete error:', error);
@@ -96,14 +106,20 @@ const ChatClubContent = ({
         });
         return;
       }
-
+      
       console.log('Delete operation response:', data);
       
       if (!data || data.length === 0) {
-        console.warn('No message was deleted. Message may not exist or you may not have permission.');
+        console.warn('No message was deleted. Likely ID mismatch or permission issue.');
+        
+        // Log additional details about the message for debugging
+        if (messageToDelete) {
+          console.log('Message details:', messageToDelete);
+        }
+        
         toast({
           title: "Warning",
-          description: "No message was deleted. You can only delete your own messages.",
+          description: "Could not delete message. ID mismatch between sender and your account.",
           variant: "destructive"
         });
         return;

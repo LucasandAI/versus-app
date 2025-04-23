@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
 import MessageContent from './MessageContent';
 import { useApp } from '@/context/AppContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MessageItemProps {
   message: ChatMessage;
@@ -24,17 +25,35 @@ const MessageItem: React.FC<MessageItemProps> = ({
   formatTime,
   currentUserAvatar,
 }) => {
-  // Get currentUser to determine if this user can delete the message
   const { currentUser } = useApp();
+  const [sessionUserId, setSessionUserId] = useState<string | null>(null);
   
-  // Enhanced logging for message permission checking
-  console.log('MessageItem - checking permissions for message:', message.id);
-  console.log('MessageItem - message sender:', message.sender?.id);
-  console.log('MessageItem - current user:', currentUser?.id);
+  // Get session user ID on component mount
+  useEffect(() => {
+    const getSessionId = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) {
+        setSessionUserId(data.session.user.id);
+      }
+    };
+    
+    getSessionId();
+  }, []);
   
-  // Determine if the current user can delete this message (only if they are the sender)
-  const canDelete = currentUser && currentUser.id === message.sender.id;
-  console.log('MessageItem - canDelete:', canDelete);
+  // Determine if the current user can delete this message 
+  // (if they are the sender by either currentUser.id or sessionUserId)
+  const canDelete = 
+    (currentUser && currentUser.id === message.sender.id) || 
+    (sessionUserId && sessionUserId === message.sender.id);
+  
+  // Enhanced logging for debugging
+  console.log('MessageItem:', {
+    messageId: message.id,
+    senderId: message.sender.id, 
+    currentUserId: currentUser?.id,
+    sessionUserId: sessionUserId,
+    canDelete: canDelete
+  });
 
   return (
     <div className={`flex ${isUserMessage ? 'justify-end' : 'justify-start'} group`}>
@@ -67,6 +86,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
           onDeleteMessage={canDelete && onDeleteMessage ? () => {
             console.log('Delete button clicked for message:', message.id);
             console.log('By user:', currentUser?.id);
+            console.log('Session user:', sessionUserId);
+            console.log('Message sender:', message.sender.id);
             onDeleteMessage(message.id);
           } : undefined}
         />
