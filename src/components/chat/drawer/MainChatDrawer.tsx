@@ -7,7 +7,6 @@ import { SupportTicket } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
 import { useChat } from '@/hooks/chat/useChat';
 import { useChatDrawerState } from '@/hooks/chat/useChatDrawerState';
-import { useChatMessages } from '@/hooks/chat/useChatMessages';
 import { useSupportTickets } from '@/hooks/chat/useSupportTickets';
 import { useClubMessages } from '@/hooks/chat/useClubMessages';
 import { useSupportTicketEffects } from '@/hooks/chat/useSupportTicketEffects';
@@ -36,7 +35,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const [activeTab, setActiveTab] = useState<"clubs"|"dm"|"support">("clubs");
   const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>(supportTickets);
 
-  // Use the club messages hook directly instead of local state
+  // Use the club messages hook directly
   const { clubMessages: localClubMessages, setClubMessages } = useClubMessages(clubs, open, onNewMessage);
 
   const {
