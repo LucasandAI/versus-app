@@ -8,78 +8,15 @@ export const useRealtimeMessages = (open: boolean, setLocalClubMessages: React.D
 
     console.log('[useRealtimeMessages] Setting up real-time message subscriptions');
     
-    // Single channel for all message events
-    const channel = supabase.channel('club-messages-channel')
-      // Handle message insertions
-      .on('postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'club_chat_messages' },
-          (payload) => {
-            console.log('[useRealtimeMessages] Message insert event received:', payload);
-            
-            if (payload.new && payload.new.club_id) {
-              const clubId = payload.new.club_id;
-              
-              // Update messages for the specific club
-              setLocalClubMessages(prev => {
-                const clubMessages = [...(prev[clubId] || [])];
-                
-                // Check if message already exists in the array
-                const messageExists = clubMessages.some(msg => 
-                  String(msg.id) === String(payload.new.id)
-                );
-                
-                if (!messageExists) {
-                  // Fetch sender information to include with the message
-                  const fetchSenderInfo = async () => {
-                    try {
-                      const { data, error } = await supabase
-                        .from('users')
-                        .select('id, name, avatar')
-                        .eq('id', payload.new.sender_id)
-                        .single();
-                        
-                      if (!error && data) {
-                        const enrichedMessage = {
-                          ...payload.new,
-                          sender: data
-                        };
-                        
-                        setLocalClubMessages(current => ({
-                          ...current,
-                          [clubId]: [...(current[clubId] || []), enrichedMessage]
-                        }));
-                      } else {
-                        // Fall back to just adding the message without sender info
-                        setLocalClubMessages(current => ({
-                          ...current,
-                          [clubId]: [...(current[clubId] || []), payload.new]
-                        }));
-                      }
-                    } catch (error) {
-                      console.error('[useRealtimeMessages] Error fetching sender info:', error);
-                      
-                      // Still add the message even if we can't get sender info
-                      setLocalClubMessages(current => ({
-                        ...current,
-                        [clubId]: [...(current[clubId] || []), payload.new]
-                      }));
-                    }
-                  };
-                  
-                  fetchSenderInfo();
-                }
-                
-                return prev;
-              });
-            }
-          })
-      // Handle message deletions
+    // Channel for message deletions
+    const messageDeleteChannel = supabase.channel('club-message-deletions');
+    messageDeleteChannel
       .on('postgres_changes', 
           { event: 'DELETE', schema: 'public', table: 'club_chat_messages' },
           (payload) => {
             console.log('[useRealtimeMessages] Message deletion event received:', payload);
             
-            if (payload.old && payload.old.club_id) {
+            if (payload.old && payload.old.id && payload.old.club_id) {
               const deletedMessageId = payload.old.id;
               const clubId = payload.old.club_id;
               
@@ -102,13 +39,40 @@ export const useRealtimeMessages = (open: boolean, setLocalClubMessages: React.D
               });
             }
           })
-      .subscribe((status) => {
-        console.log('[useRealtimeMessages] Subscription status:', status);
-      });
+      .subscribe();
+    
+    // Channel for message insertions
+    const messageInsertChannel = supabase.channel('club-message-insertions');
+    messageInsertChannel
+      .on('postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'club_chat_messages' },
+          (payload) => {
+            console.log('[useRealtimeMessages] Message insert event received:', payload);
+            
+            if (payload.new && payload.new.id && payload.new.club_id) {
+              const newMessageId = payload.new.id;
+              const clubId = payload.new.club_id;
+              
+              setLocalClubMessages(prev => {
+                const clubMessages = prev[clubId] || [];
+                
+                // Check if message already exists in the array
+                if (clubMessages.some(msg => String(msg.id) === String(newMessageId))) {
+                  return prev;
+                }
+                
+                return {
+                  ...prev,
+                  [clubId]: [...clubMessages, payload.new]
+                };
+              });
+            }
+          })
+      .subscribe();
       
     return () => {
-      console.log('[useRealtimeMessages] Cleaning up subscriptions');
-      supabase.removeChannel(channel);
+      supabase.removeChannel(messageDeleteChannel);
+      supabase.removeChannel(messageInsertChannel);
     };
   }, [open, setLocalClubMessages]);
 };
