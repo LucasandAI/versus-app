@@ -44,6 +44,10 @@ export const useChatActions = () => {
         messageLength: messageText.length 
       });
       
+      // NEW DEBUG LOGGING
+      console.log('[DEBUG] Final session before insert:', session);
+      console.log('[DEBUG] Final user ID before insert:', session?.user?.id);
+      
       // Insert the message
       const { data: insertedMessage, error: insertError } = await supabase
         .from('club_chat_messages')
