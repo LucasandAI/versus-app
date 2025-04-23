@@ -6,11 +6,10 @@ import { useMessages } from './useMessages';
 import { useUnreadNotifications } from './useUnreadNotifications';
 import { useChatActions } from './useChatActions';
 import { useChatDeletion } from './useChatDeletion';
-import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 export const useChat = (open: boolean, onNewMessage?: (count: number) => void) => {
-  const { currentUser } = useApp();
   const [refreshKey, setRefreshKey] = useState(Date.now());
   const [supportTickets, setSupportTickets] = useState<Record<string, any>>({});
   
@@ -24,8 +23,8 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
   const { unreadMessages, updateUnreadCount } = useUnreadNotifications(open, onNewMessage);
   const { messages, setMessages, handleNewMessage } = useMessages(saveMessages, updateUnreadCount);
   
-  // We still pass currentUser here but it's not used for sender_id anymore
-  const { sendMessageToClub } = useChatActions(currentUser);
+  // Get chat actions without passing currentUser
+  const { sendMessageToClub } = useChatActions();
   const { deleteChat } = useChatDeletion(saveMessages, saveSupportTickets, saveUnreadMessages);
 
   // Load data from localStorage on mount
@@ -47,6 +46,19 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     }
     
     try {
+      // Verify user is authenticated
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to send messages",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      console.log('[useChat] Sending message to club:', { clubId, message: message.substring(0, 20) });
+      
       // Use the sendMessageToClub function from useChatActions
       const result = await sendMessageToClub(clubId, message);
       

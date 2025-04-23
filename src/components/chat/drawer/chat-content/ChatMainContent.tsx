@@ -23,10 +23,16 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   onSendMessage,
 }) => {
   if (selectedClub) {
+    const clubMessages = messages[selectedClub.id] || [];
+    console.log('[ChatMainContent] Rendering club messages:', { 
+      clubId: selectedClub.id, 
+      messageCount: clubMessages.length 
+    });
+    
     return (
       <ChatClubContent 
         club={selectedClub}
-        messages={messages[selectedClub.id] || []}
+        messages={clubMessages}
         onMatchClick={() => onMatchClick(selectedClub)}
         onSelectUser={onSelectUser}
         onSendMessage={(message) => onSendMessage(message, selectedClub.id)}

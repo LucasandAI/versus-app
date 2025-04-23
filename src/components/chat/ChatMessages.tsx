@@ -33,13 +33,15 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
       const { data } = await supabase.auth.getSession();
       
       if (data.session?.user?.id) {
-        setCurrentUserId(data.session.user.id);
+        const userId = data.session.user.id;
+        console.log('[ChatMessages] Current user ID from session:', userId);
+        setCurrentUserId(userId);
         
         // Fetch user avatar if available
         const { data: userData } = await supabase
           .from('users')
           .select('avatar')
-          .eq('id', data.session.user.id)
+          .eq('id', userId)
           .single();
           
         if (userData?.avatar) {
@@ -72,8 +74,13 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     const userIdStr = String(currentUserId);
     const senderIdStr = String(senderId);
     
-    console.log(`[ChatMessages] Comparing message sender ID: ${senderIdStr} with current user ID: ${userIdStr}`);
-    return senderIdStr === userIdStr;
+    const result = senderIdStr === userIdStr;
+    console.log(`[ChatMessages] Is current user? ${result}`, { 
+      messageSenderId: senderIdStr, 
+      currentUserId: userIdStr 
+    });
+    
+    return result;
   };
   
   const getMemberName = (senderId: string) => {

@@ -4,22 +4,17 @@ import { Send } from 'lucide-react';
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
+  isSending?: boolean;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
+const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isSending = false }) => {
   const [message, setMessage] = useState('');
-  const [isSending, setIsSending] = useState(false);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim() && !isSending) {
-      setIsSending(true);
-      try {
-        await onSendMessage(message);
-        setMessage('');
-      } finally {
-        setIsSending(false);
-      }
+      await onSendMessage(message);
+      setMessage('');
     }
   };
   
@@ -41,7 +36,11 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
         className="ml-2 p-2 rounded-full bg-primary text-white flex items-center justify-center"
         disabled={!message.trim() || isSending}
       >
-        <Send className="h-5 w-5" />
+        {isSending ? (
+          <span className="animate-pulse">...</span>
+        ) : (
+          <Send className="h-5 w-5" />
+        )}
       </button>
     </form>
   );

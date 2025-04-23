@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Club } from '@/types';
 import ChatHeader from './ChatHeader';
 import ChatMessages from './ChatMessages';
@@ -24,16 +24,13 @@ const ChatClubContent = ({
   onSendMessage
 }: ChatClubContentProps) => {
   const { navigateToClub } = useNavigation();
-  const { currentUser } = useApp();
-  
-  // currentUser is still passed but not used for sender_id checks anymore
-  const { deleteMessage } = useChatActions(currentUser);
+  const [isSending, setIsSending] = useState(false);
+  const { deleteMessage } = useChatActions();
 
   const handleDeleteMessage = async (messageId: string) => {
     console.log('[ChatClubContent] Deleting message:', messageId);
     const success = await deleteMessage(messageId);
     
-    // No need to show a toast here as the useChatActions hook already handles that
     if (!success) {
       console.log('[ChatClubContent] Failed to delete message');
     }
@@ -46,7 +43,12 @@ const ChatClubContent = ({
   };
 
   const handleSendMessage = async (message: string) => {
-    await onSendMessage(message);
+    setIsSending(true);
+    try {
+      await onSendMessage(message);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -65,7 +67,10 @@ const ChatClubContent = ({
         onSelectUser={onSelectUser}
       />
       
-      <ChatInput onSendMessage={handleSendMessage} />
+      <ChatInput 
+        onSendMessage={handleSendMessage} 
+        isSending={isSending}
+      />
     </div>
   );
 };

@@ -25,32 +25,28 @@ const MessageItem: React.FC<MessageItemProps> = ({
   formatTime,
   currentUserAvatar,
 }) => {
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [canDelete, setCanDelete] = useState(false);
   
-  // Get the current user ID directly from Supabase session
+  // Determine if the current user can delete this message
   useEffect(() => {
-    const getCurrentUser = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user?.id) {
-        setCurrentUserId(data.session.user.id);
+    const checkDeletePermission = async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) return;
+      
+      const currentUserId = sessionData.session.user.id;
+      const messageSenderId = message.sender?.id;
+      
+      if (currentUserId && messageSenderId) {
+        setCanDelete(String(currentUserId) === String(messageSenderId));
       }
     };
     
-    getCurrentUser();
-  }, []);
+    checkDeletePermission();
+  }, [message.sender?.id]);
   
-  // Determine if the current user can delete this message
-  // Convert both IDs to string for consistent comparison
-  const canDelete = currentUserId && 
-    message.sender && 
-    message.sender.id && 
-    String(currentUserId) === String(message.sender.id);
-  
-  // Enhanced logging for debugging
   console.log('[MessageItem]', {
     messageId: message.id,
-    senderId: message.sender?.id, 
-    currentUserId,
+    senderId: message.sender?.id,
     isUserMessage,
     canDelete,
     messageText: message.text

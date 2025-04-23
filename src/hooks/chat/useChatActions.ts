@@ -2,9 +2,8 @@
 import { useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { User } from '@/types';
 
-export const useChatActions = (_currentUser: User | null) => {
+export const useChatActions = () => {
   const sendMessageToClub = useCallback(async (clubId: string, messageText: string) => {
     try {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -18,18 +17,24 @@ export const useChatActions = (_currentUser: User | null) => {
         return null;
       }
       
+      const userId = sessionData.session.user.id;
+      
+      console.log('[useChatActions] Sending message to club', { clubId, userId });
+      
+      // Insert the message
       const { data: insertedMessage, error: insertError } = await supabase
         .from('club_chat_messages')
         .insert({
           club_id: clubId,
           message: messageText,
-          sender_id: sessionData.session.user.id
+          sender_id: userId
         })
         .select(`
           id, 
           message, 
           timestamp, 
           sender_id,
+          club_id,
           sender:sender_id(id, name, avatar)
         `)
         .single();
@@ -44,6 +49,7 @@ export const useChatActions = (_currentUser: User | null) => {
         return null;
       }
 
+      console.log('[useChatActions] Message sent successfully:', insertedMessage);
       return insertedMessage;
     } catch (error) {
       console.error('[useChatActions] Exception sending message:', error);
@@ -68,6 +74,8 @@ export const useChatActions = (_currentUser: User | null) => {
         });
         return false;
       }
+      
+      console.log('[useChatActions] Deleting message', { messageId, userId: sessionData.session.user.id });
       
       const { error: deleteError } = await supabase
         .from('club_chat_messages')
@@ -94,6 +102,7 @@ export const useChatActions = (_currentUser: User | null) => {
         return false;
       }
       
+      console.log('[useChatActions] Message deleted successfully');
       return true;
     } catch (error) {
       console.error('[useChatActions] Exception deleting message:', error);
