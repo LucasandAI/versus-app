@@ -11,6 +11,7 @@ interface ChatDrawerProps {
   onNewMessage?: (count: number) => void;
   supportTickets?: SupportTicket[];
   clubMessages?: Record<string, any[]>;
+  onSendMessage?: (message: string, clubId?: string) => Promise<void> | void;
 }
 
 const ChatDrawer: React.FC<ChatDrawerProps> = (props) => {
