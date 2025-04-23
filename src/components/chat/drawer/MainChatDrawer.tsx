@@ -6,6 +6,7 @@ import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
 import { useChat } from '@/hooks/chat/useChat';
 import { useChatDrawerState } from '@/hooks/chat/useChatDrawerState';
+import { useChatMessages } from '@/hooks/chat/useChatMessages';
 import ChatDrawerHeader from './ChatDrawerHeader';
 import ChatDrawerContent from './ChatDrawerContent';
 import DMSearchPanel from './dm/DMSearchPanel';
@@ -54,6 +55,13 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     markTicketAsRead,
     deleteChat,
   } = useChat(open, onNewMessage);
+
+  const { handleSendMessage } = useChatMessages(
+    selectedTicket,
+    handleSelectTicket,
+    handleNewMessage,
+    currentUser
+  );
 
   const handleSubmitSupportTicket = async () => {
     if (!currentUser) return;
