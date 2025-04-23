@@ -8,8 +8,6 @@ export const useRealtimeMessages = (open: boolean, setLocalClubMessages: React.D
 
     console.log('[useRealtimeMessages] Setting up real-time message subscription');
     
-    // Remove the non-existent setPresence call
-    
     const channel = supabase.channel('club-messages')
       .on('postgres_changes', 
           { event: '*', schema: 'public', table: 'club_chat_messages' },

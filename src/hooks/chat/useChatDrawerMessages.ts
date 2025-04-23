@@ -71,4 +71,3 @@ export const useChatDrawerMessages = (userClubs: Club[], isOpen: boolean) => {
     isLoading
   };
 };
-
