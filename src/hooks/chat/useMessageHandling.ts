@@ -1,7 +1,6 @@
 
 import { useState, useCallback } from 'react';
 import { ChatMessage } from '@/types/chat';
-import { useLocalStorage } from './useLocalStorage';
 
 export const useMessageHandling = (
   saveMessages: (messages: Record<string, ChatMessage[]>) => void,
