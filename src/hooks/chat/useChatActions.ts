@@ -17,8 +17,11 @@ export const useChatActions = (currentUser: User | null) => {
     }
 
     try {
-      // Ensure we're using the user ID from the users table (currentUser.id)
-      console.log('[useChat] Sending message as user:', currentUser.id);
+      // Enhanced logging to verify the user ID we're using
+      console.log('[useChat] Sending message as user:', currentUser);
+      console.log('[useChat] User ID used for message:', currentUser.id);
+      console.log('[useChat] Message text:', messageText);
+      console.log('[useChat] Club ID:', clubId);
       
       // First insert the message with the correct user ID
       const { data: insertedMessage, error: insertError } = await supabase

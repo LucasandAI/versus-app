@@ -14,7 +14,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim() && currentUser?.id) {
-      // Using currentUser.id for consistency
+      console.log('Sending message as user ID:', currentUser.id);
       onSendMessage(message);
       setMessage('');
     }

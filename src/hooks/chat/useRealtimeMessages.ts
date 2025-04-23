@@ -80,6 +80,8 @@ export const useRealtimeMessages = (open: boolean, setLocalClubMessages: React.D
               }
               
               console.log(`Adding new message to club ${clubId}:`, messageWithSender);
+              console.log('Sender ID for new message:', messageWithSender.sender_id);
+              console.log('Sender data:', messageWithSender.sender);
               
               setLocalClubMessages(prev => {
                 const clubMessages = prev[clubId] || [];
