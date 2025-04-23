@@ -11,6 +11,7 @@ import HomeNotificationsHandler from './HomeNotificationsHandler';
 import { useClubActions } from '@/hooks/home/useClubActions';
 import { useSupportActions } from '@/hooks/home/useSupportActions';
 import { useHomeNotifications } from '@/hooks/home/useHomeNotifications';
+import { useChatDrawer } from '@/hooks/home/useChatDrawer';
 import { toast } from '@/hooks/use-toast';
 
 interface HomeViewProps {
@@ -19,6 +20,8 @@ interface HomeViewProps {
 
 const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   const { setCurrentView, setSelectedClub, setSelectedUser, currentUser, refreshCurrentUser } = useApp();
+  const { openChatDrawer } = useChatDrawer();
+  
   const {
     searchDialogOpen,
     setSearchDialogOpen,
@@ -86,7 +89,7 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
           onUserClick={handleSelectUser}
           onJoinClub={handleJoinClub}
           onDeclineInvite={handleDeclineInvite}
-          onOpenChat={() => {}}
+          onOpenChat={openChatDrawer}
         />
 
         <HomeClubsSection 

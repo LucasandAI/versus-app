@@ -41,6 +41,7 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
             return [club.id, []];
           }
           
+          // Ensure we always return an array, even if data is null or undefined
           return [club.id, data || []];
         });
         
@@ -48,7 +49,10 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
         const clubMessagesMap: Record<string, any[]> = {};
         
         messagesResults.forEach(([clubId, messages]) => {
-          clubMessagesMap[clubId as string] = messages;
+          // Ensure that clubId is a string and messages is always an array
+          if (typeof clubId === 'string') {
+            clubMessagesMap[clubId] = Array.isArray(messages) ? messages : [];
+          }
         });
         
         setClubMessages(clubMessagesMap);

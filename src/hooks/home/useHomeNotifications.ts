@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { handleNotification, markAllNotificationsAsRead } from '@/utils/notification-actions';
 
 export const useHomeNotifications = () => {
   const [unreadMessages, setUnreadMessages] = useState<number>(0);
@@ -64,10 +65,26 @@ export const useHomeNotifications = () => {
     };
   }, []);
 
+  // Add the missing methods that HomeView.tsx needs
+  const handleMarkAsRead = (id: string) => {
+    handleNotification(id, 'read');
+  };
+
+  const handleDeclineInvite = (id: string) => {
+    handleNotification(id, 'delete');
+  };
+
+  const handleClearAllNotifications = () => {
+    markAllNotificationsAsRead();
+  };
+
   return {
     unreadMessages,
     setUnreadMessages,
     notifications,
     setNotifications,
+    handleMarkAsRead,
+    handleDeclineInvite,
+    handleClearAllNotifications
   };
 };

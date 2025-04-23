@@ -15,6 +15,7 @@ interface HomeHeaderProps {
   onUserClick: (userId: string, name: string) => void;
   onJoinClub: (clubId: string, clubName: string) => void;
   onDeclineInvite: (id: string) => void;
+  onOpenChat?: () => void; // Added this prop with optional type
 }
 
 const HomeHeader: React.FC<HomeHeaderProps> = ({
@@ -25,9 +26,18 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   onUserClick,
   onJoinClub,
   onDeclineInvite,
+  onOpenChat
 }) => {
   const { setCurrentView, currentUser } = useApp();
   const { openChatDrawer } = useChatDrawer();
+
+  const handleOpenChat = () => {
+    if (onOpenChat) {
+      onOpenChat();
+    } else {
+      openChatDrawer();
+    }
+  };
 
   return (
     <div className="flex items-center justify-between mb-6">
@@ -43,7 +53,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
         />
         <Button 
           variant="link"
-          onClick={openChatDrawer}
+          onClick={handleOpenChat}
           className="text-primary hover:bg-gray-100 rounded-full p-2"
           icon={<MessageCircle className="h-5 w-5" />}
           badge={unreadMessages}
