@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
@@ -10,13 +11,22 @@ export const useClubMessages = (
 ) => {
   const [clubMessages, setClubMessages] = useState<Record<string, any[]>>({});
 
+  // Effect to handle real-time subscriptions and initial message loading
   useEffect(() => {
-    if (!userClubs.length || !isOpen) return;
+    if (!userClubs.length) return;
     
-    console.log('[useClubMessages] Setting up real-time subscriptions for clubs:', userClubs.length);
+    // Only set up subscriptions when the drawer is open
+    if (!isOpen) {
+      console.log('[useClubMessages] Chat drawer is closed, not setting up subscriptions');
+      return;
+    }
+    
+    console.log('[useClubMessages] Chat drawer opened, setting up subscriptions for clubs:', userClubs.length);
     
     // Create channels for each club
     const channels = userClubs.map(club => {
+      console.log(`[useClubMessages] Creating channel for club ${club.id}`);
+      
       const channel = supabase.channel(`club-messages-${club.id}`)
         .on('postgres_changes', {
           event: 'INSERT',
@@ -76,10 +86,14 @@ export const useClubMessages = (
       return channel;
     });
     
-    // Fetch initial messages for each club
+    // Fetch initial messages for each club EVERY time the drawer is opened
     const fetchClubMessages = async () => {
+      console.log('[useClubMessages] Fetching fresh messages for all clubs on drawer open');
+      
       try {
         const messagesPromises = userClubs.map(async (club) => {
+          console.log(`[useClubMessages] Fetching messages for club ${club.id}`);
+          
           const { data, error } = await supabase
             .from('club_chat_messages')
             .select(`
@@ -98,6 +112,7 @@ export const useClubMessages = (
             return [club.id, []];
           }
           
+          console.log(`[useClubMessages] Successfully fetched ${data?.length || 0} messages for club ${club.id}`);
           return [club.id, data || []];
         });
         
@@ -110,7 +125,10 @@ export const useClubMessages = (
           }
         });
         
+        // Set the messages in state with the fresh data
         setClubMessages(clubMessagesMap);
+        console.log('[useClubMessages] Updated clubMessages state with fresh data:', 
+          Object.keys(clubMessagesMap).map(key => `${key}: ${clubMessagesMap[key]?.length || 0} messages`));
       } catch (error) {
         console.error('[useClubMessages] Error fetching club messages:', error);
         toast({
@@ -121,16 +139,17 @@ export const useClubMessages = (
       }
     };
     
+    // Always fetch fresh messages when the drawer opens
     fetchClubMessages();
 
-    // Cleanup subscriptions
+    // Cleanup subscriptions when drawer closes or component unmounts
     return () => {
       console.log('[useClubMessages] Cleaning up subscriptions');
       channels.forEach(channel => {
         supabase.removeChannel(channel);
       });
     };
-  }, [userClubs, isOpen, setUnreadMessages]);
+  }, [userClubs, isOpen, setUnreadMessages]); // Re-run when isOpen changes
 
   return {
     clubMessages,
