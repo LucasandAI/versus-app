@@ -2,21 +2,44 @@
 import { useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useApp } from '@/context/AppContext';
 
 export const useChatActions = () => {
+  const { currentUser } = useApp();
+
   const sendMessageToClub = useCallback(async (clubId: string, messageText: string) => {
     try {
-      console.log('[useChatActions] Sending message to club:', { 
-        clubId, 
-        messageLength: messageText.length 
-      });
-      
-      // Get current user for sender info
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      if (!currentUser) {
         throw new Error('Not authenticated');
       }
       
+      // Create optimistic message
+      const optimisticMessage = {
+        id: `temp-${Date.now()}`,
+        message: messageText,
+        club_id: clubId,
+        sender_id: currentUser.id,
+        timestamp: new Date().toISOString(),
+        sender: {
+          id: currentUser.id,
+          name: currentUser.name,
+          avatar: currentUser.avatar
+        }
+      };
+      
+      console.log('[useChatActions] Created optimistic message:', optimisticMessage);
+      
+      // Update local state with optimistic message through real-time channel
+      const channel = supabase.channel(`club-messages-${clubId}`);
+      channel.send({
+        type: 'broadcast',
+        event: 'message',
+        payload: { 
+          new: optimisticMessage,
+          eventType: 'INSERT'
+        }
+      });
+
       // Add debug log before insert attempt
       console.log('[Chat Debug] About to insert message:', { clubId, messageText });
 
@@ -25,7 +48,7 @@ export const useChatActions = () => {
         .insert({
           club_id: clubId,
           message: messageText,
-          sender_id: user.id
+          sender_id: currentUser.id
         })
         .select(`
           id, 
@@ -70,7 +93,7 @@ export const useChatActions = () => {
       });
       return null;
     }
-  }, []);
+  }, [currentUser]);
 
   const deleteMessage = useCallback(async (messageId: string) => {
     try {
@@ -130,3 +153,4 @@ export const useChatActions = () => {
     deleteMessage
   };
 };
+
