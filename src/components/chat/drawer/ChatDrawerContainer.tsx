@@ -59,27 +59,31 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   switch (activeTab) {
     case "clubs":
       return (
-        <div className="flex h-full">
-          <ChatSidebar
-            clubs={clubs}
-            selectedClub={selectedLocalClub}
-            selectedTicket={selectedTicket}
-            supportTickets={localSupportTickets}
-            onSelectClub={onSelectClub}
-            onSelectTicket={onSelectTicket}
-            onDeleteChat={deleteChat}
-            unreadCounts={unreadMessages}
-            onSelectUser={handleSelectUser}
-          />
+        <div className="flex h-full w-full">
+          <div className="w-1/3 border-r">
+            <ChatSidebar
+              clubs={clubs}
+              selectedClub={selectedLocalClub}
+              selectedTicket={selectedTicket}
+              supportTickets={localSupportTickets}
+              onSelectClub={onSelectClub}
+              onSelectTicket={onSelectTicket}
+              onDeleteChat={deleteChat}
+              unreadCounts={unreadMessages}
+              onSelectUser={handleSelectUser}
+            />
+          </div>
           
-          <ChatDrawerContent
-            selectedClub={selectedLocalClub}
-            selectedTicket={selectedTicket}
-            messages={messages}
-            onMatchClick={handleMatchClick}
-            onSelectUser={handleSelectUser}
-            onSendMessage={onSendMessage}
-          />
+          <div className="w-2/3">
+            <ChatDrawerContent
+              selectedClub={selectedLocalClub}
+              selectedTicket={selectedTicket}
+              messages={messages}
+              onMatchClick={handleMatchClick}
+              onSelectUser={handleSelectUser}
+              onSendMessage={onSendMessage}
+            />
+          </div>
         </div>
       );
     case "dm":

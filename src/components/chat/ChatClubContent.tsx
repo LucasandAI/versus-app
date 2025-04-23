@@ -52,7 +52,7 @@ const ChatClubContent = ({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
       <ChatHeader 
         club={club}
         onMatchClick={onMatchClick}
@@ -60,7 +60,7 @@ const ChatClubContent = ({
         onClubClick={handleClubClick}
       />
       
-      <div className="flex-1 overflow-hidden flex flex-col">
+      <div className="flex-1 overflow-y-auto">
         <ChatMessages 
           messages={messages} 
           clubMembers={club.members || []}
@@ -69,7 +69,7 @@ const ChatClubContent = ({
         />
       </div>
       
-      <div className="mt-auto border-t">
+      <div className="sticky bottom-0 left-0 right-0 bg-white border-t">
         <ChatInput 
           onSendMessage={handleSendMessage} 
           isSending={isSending}

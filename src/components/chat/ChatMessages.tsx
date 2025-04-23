@@ -59,7 +59,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   if (!Array.isArray(messages)) {
     console.error("[ChatMessages] Messages is not an array:", messages);
     return (
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 p-4">
         <div className="h-full flex items-center justify-center text-gray-500 text-sm">
           No messages yet. Start the conversation!
         </div>
@@ -70,7 +70,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const normalizedMessages = messages.map(message => normalizeMessage(message));
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col-reverse">
+    <div className="p-4 space-y-4 flex flex-col-reverse min-h-full">
       <div ref={messagesEndRef} />
       <MessageList
         messages={normalizedMessages.reverse()}
