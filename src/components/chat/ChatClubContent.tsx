@@ -7,6 +7,7 @@ import ChatInput from './ChatInput';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useNavigation } from '@/hooks/useNavigation';
+import { useApp } from '@/context/AppContext';
 
 interface ChatClubContentProps {
   club: Club;
@@ -24,6 +25,7 @@ const ChatClubContent = ({
   onSendMessage
 }: ChatClubContentProps) => {
   const { navigateToClub } = useNavigation();
+  const { currentUser } = useApp();
   // Scroll ref to move to bottom on new messages
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -32,12 +34,15 @@ const ChatClubContent = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Handle deleting a message
   const handleDeleteMessage = async (messageId: string) => {
     try {
+      // Attempt to delete the message from Supabase
       const { error } = await supabase
         .from('club_chat_messages')
         .delete()
-        .eq('id', messageId);
+        .eq('id', messageId)
+        .eq('sender_id', currentUser?.id); // Ensure only the sender can delete their own messages
 
       if (error) {
         throw error;
@@ -47,6 +52,9 @@ const ChatClubContent = ({
         title: "Message deleted",
         description: "Your message has been removed from the chat"
       });
+      
+      // Note: We don't need to update messages state locally because the real-time subscription 
+      // in MainChatDrawer will handle removing the message from the UI for all users
     } catch (error) {
       console.error('Error deleting message:', error);
       toast({

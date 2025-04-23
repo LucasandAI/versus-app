@@ -184,6 +184,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
 
     const messageDeleteChannel = supabase.channel('message-deletions');
     
+    // Subscribe to DELETE events for club_chat_messages
     messageDeleteChannel
       .on('postgres_changes', 
           { event: 'DELETE', schema: 'public', table: 'club_chat_messages' },

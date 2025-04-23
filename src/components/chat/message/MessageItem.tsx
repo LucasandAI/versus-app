@@ -3,6 +3,7 @@ import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
 import MessageContent from './MessageContent';
+import { useApp } from '@/context/AppContext';
 
 interface MessageItemProps {
   message: ChatMessage;
@@ -23,6 +24,12 @@ const MessageItem: React.FC<MessageItemProps> = ({
   formatTime,
   currentUserAvatar,
 }) => {
+  // Get currentUser to determine if this user can delete the message
+  const { currentUser } = useApp();
+  
+  // Determine if the current user can delete this message (only if they are the sender)
+  const canDelete = currentUser && currentUser.id === message.sender.id;
+
   return (
     <div className={`flex ${isUserMessage ? 'justify-end' : 'justify-start'} group`}>
       {!isUserMessage && (
@@ -51,7 +58,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
           message={message}
           isUserMessage={isUserMessage}
           isSupport={isSupport}
-          onDeleteMessage={onDeleteMessage}
+          onDeleteMessage={canDelete ? onDeleteMessage : undefined}
         />
         
         <p className="text-xs text-gray-500 mt-1">{formatTime(message.timestamp)}</p>

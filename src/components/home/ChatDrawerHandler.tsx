@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Club } from '@/types';
 import { SupportTicket, ChatMessage } from '@/types/chat';
