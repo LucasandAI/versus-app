@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 import { Club } from '@/types';
 import ChatHeader from './ChatHeader';
@@ -26,28 +25,14 @@ const ChatClubContent = ({
 }: ChatClubContentProps) => {
   const { navigateToClub } = useNavigation();
   const { currentUser } = useApp();
-  // Scroll ref to move to bottom on new messages
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Handle deleting a message
   const handleDeleteMessage = async (messageId: string) => {
     try {
-      if (!currentUser?.id) {
-        console.error('No current user found');
-        toast({
-          title: "Error",
-          description: "You must be logged in to delete messages",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      // Get the message being deleted to validate sender
       const messageToDelete = messages.find(msg => msg.id === messageId);
       if (!messageToDelete) {
         console.error(`Message with ID ${messageId} not found in local messages`);
@@ -58,15 +43,35 @@ const ChatClubContent = ({
         });
         return;
       }
-      
-      // Enhanced logging for debugging deletion issues
+
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.error('Session check error:', sessionError);
+        toast({
+          title: "Error",
+          description: "Could not verify user session",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const sessionUserId = session?.user?.id;
+      if (!sessionUserId) {
+        console.error('No authenticated user found');
+        toast({
+          title: "Error",
+          description: "You must be logged in to delete messages",
+          variant: "destructive"
+        });
+        return;
+      }
+
       console.log("Deleting message:", messageId);
-      console.log("currentUser.id =", currentUser?.id);
-      console.log("message.sender_id =", messageToDelete.sender_id);
-      
-      // Check if the message belongs to the current user
-      if (messageToDelete.sender_id !== currentUser.id) {
-        console.error('Message sender ID does not match current user ID');
+      console.log("Session user ID =", sessionUserId);
+      console.log("Message sender_id =", messageToDelete.sender_id);
+
+      if (messageToDelete.sender_id !== sessionUserId) {
+        console.error('Message sender ID does not match session user ID');
         toast({
           title: "Permission Denied",
           description: "You can only delete your own messages",
@@ -74,13 +79,12 @@ const ChatClubContent = ({
         });
         return;
       }
-      
-      // Attempt to delete the message from Supabase
+
       const { data, error } = await supabase
         .from('club_chat_messages')
         .delete()
         .eq('id', messageId)
-        .eq('sender_id', currentUser.id)
+        .eq('sender_id', sessionUserId)
         .select();
 
       if (error) {
@@ -95,7 +99,6 @@ const ChatClubContent = ({
 
       console.log('Delete operation response:', data);
       
-      // If data is empty array, the message might not exist or belong to this user
       if (!data || data.length === 0) {
         console.warn('No message was deleted. Message may not exist or you may not have permission.');
         toast({
@@ -106,7 +109,6 @@ const ChatClubContent = ({
         return;
       }
       
-      // Successful deletion
       toast({
         title: "Message deleted",
         description: "Your message has been removed from the chat"
