@@ -69,8 +69,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
 
   const userClubs = currentUser?.clubs || [];
 
-  // --- NOTE: SupportPopover removed from homepage! --- 
-
   return (
     <ChatDrawerProvider>
       <div className="pb-20 pt-6">
@@ -119,7 +117,7 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
           open={createClubDialogOpen}
           onOpenChange={setCreateClubDialogOpen}
         />
-        {/* (No SupportPopover here anymore) */}
+        {/* Removed SupportPopover */}
       </div>
     </ChatDrawerProvider>
   );

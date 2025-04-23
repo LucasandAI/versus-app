@@ -7,7 +7,6 @@ import ClubDetail from '@/components/ClubDetail';
 import Leaderboard from '@/components/Leaderboard';
 import UserProfile from '@/components/UserProfile';
 import Navigation from '@/components/Navigation';
-import SupportPopover from '@/components/shared/SupportPopover';
 import { Toaster } from '@/components/ui/toaster';
 
 const AppContent: React.FC = () => {
@@ -102,32 +101,10 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const handleCreateSupportChat = (ticketId: string, subject: string, message: string) => {
-    setChatNotifications(prev => prev + 1);
-    
-    const unreadMessages = localStorage.getItem('unreadMessages');
-    if (unreadMessages) {
-      try {
-        const unreadMap = JSON.parse(unreadMessages);
-        const totalUnread = Object.values(unreadMap).reduce(
-          (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 
-          0
-        );
-        setChatNotifications(Number(totalUnread));
-      } catch (error) {
-        console.error("[Index] Error parsing unread messages:", error);
-      }
-    }
-    
-    const event = new CustomEvent('unreadMessagesUpdated');
-    window.dispatchEvent(event);
-  };
-
   return (
     <>
       {renderView()}
       {currentUser && currentView !== 'connect' && <Navigation />}
-      {currentUser && <SupportPopover onCreateSupportChat={handleCreateSupportChat} />}
       <Toaster />
     </>
   );

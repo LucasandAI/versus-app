@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { ChatProvider } from '@/context/ChatContext';
 import { Club } from '@/types';
@@ -10,6 +10,19 @@ import ChatDrawerHeader from './drawer/ChatDrawerHeader';
 import ChatDrawerContent from './drawer/ChatDrawerContent';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
+import { HelpCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from '@/hooks/use-toast';
 
 interface ChatDrawerProps {
   open: boolean;
@@ -36,6 +49,10 @@ const ChatDrawer = ({
 }: ChatDrawerProps) => {
   const { currentUser } = useApp();
   const [activeTab, setActiveTab] = useState<"clubs"|"dm"|"support">("clubs");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [supportMessage, setSupportMessage] = useState("");
+  const [selectedSupportOption, setSelectedSupportOption] = useState<{id: string, label: string} | null>(null);
+  
   const {
     selectedLocalClub,
     selectedTicket,
@@ -50,8 +67,39 @@ const ChatDrawer = ({
     refreshKey, 
     handleNewMessage,
     markTicketAsRead,
-    deleteChat
+    deleteChat,
+    createSupportTicket
   } = useChat(open, onNewMessage);
+
+  // Clear unread messages when drawer opens
+  useEffect(() => {
+    if (open) {
+      // Reset unread messages when drawer is opened
+      const updatedUnread = {...unreadMessages};
+      let changed = false;
+      
+      Object.keys(updatedUnread).forEach(key => {
+        if (updatedUnread[key] > 0) {
+          updatedUnread[key] = 0;
+          changed = true;
+        }
+      });
+      
+      if (changed) {
+        // Save to localStorage
+        localStorage.setItem('unreadMessages', JSON.stringify(updatedUnread));
+        
+        // Dispatch event to update other components
+        const event = new CustomEvent('unreadMessagesUpdated');
+        window.dispatchEvent(event);
+        
+        // Update UI if callback exists
+        if (onNewMessage) {
+          onNewMessage(0);
+        }
+      }
+    }
+  }, [open, unreadMessages, onNewMessage]);
 
   // Handler for sending group message
   const handleSendClubMessage = async (message: string, clubId: string) => {
@@ -79,6 +127,90 @@ const ChatDrawer = ({
       });
     } catch (error) {
       console.error('Error in handleSendClubMessage:', error);
+    }
+  };
+
+  const handleCreateSupportTicket = () => {
+    if (!selectedSupportOption) return;
+    setDialogOpen(true);
+  };
+
+  const handleSubmitSupportTicket = async () => {
+    if (!supportMessage.trim() || !selectedSupportOption || !currentUser) {
+      toast({
+        title: "Message Required",
+        description: "Please provide details before submitting.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Create ticket in Supabase
+      const { data: ticketData, error: ticketError } = await supabase
+        .from('support_tickets')
+        .insert({
+          subject: selectedSupportOption.label,
+          user_id: currentUser.id
+        })
+        .select()
+        .single();
+
+      if (ticketError || !ticketData) {
+        throw new Error(ticketError?.message || 'Failed to create support ticket');
+      }
+
+      // Add the first message to the ticket
+      const { error: messageError } = await supabase
+        .from('support_messages')
+        .insert({
+          ticket_id: ticketData.id,
+          sender_id: currentUser.id,
+          text: supportMessage,
+          is_support: false
+        });
+
+      if (messageError) {
+        throw new Error(messageError.message || 'Failed to create support message');
+      }
+
+      // Add automated response
+      const { error: autoResponseError } = await supabase
+        .from('support_messages')
+        .insert({
+          ticket_id: ticketData.id,
+          sender_id: 'system',
+          text: `Thank you for contacting support about "${selectedSupportOption.label}". A support agent will review your request and respond shortly.`,
+          is_support: true
+        });
+
+      if (autoResponseError) {
+        console.error('Failed to create auto-response:', autoResponseError);
+      }
+
+      toast({
+        title: "Support Ticket Created",
+        description: "Your support request has been submitted successfully."
+      });
+
+      // Switch to support tab and refresh
+      setActiveTab("support");
+      const event = new CustomEvent('supportTicketCreated', { 
+        detail: { ticketId: ticketData.id, count: 0 }
+      });
+      window.dispatchEvent(event);
+
+      // Reset form
+      setSupportMessage("");
+      setSelectedSupportOption(null);
+      setDialogOpen(false);
+    } catch (error) {
+      console.error('Error creating support ticket:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create support ticket. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -121,11 +253,47 @@ const ChatDrawer = ({
               <DmSearchPanel />
             )}
             {activeTab === "support" && (
-              <SupportPanel tickets={supportTickets} />
+              <SupportPanel 
+                tickets={supportTickets} 
+                onCreateSupportTicket={() => {
+                  setSelectedSupportOption({
+                    id: 'contact',
+                    label: 'Contact Support'
+                  });
+                  setDialogOpen(true);
+                }}
+              />
             )}
           </div>
         </DrawerContent>
       </Drawer>
+
+      {/* Support Ticket Dialog */}
+      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {selectedSupportOption?.label || "Create Support Ticket"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Please provide details about your issue.
+              Our team will review your submission and respond in the support chat.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="grid gap-4 py-4">
+            <textarea 
+              className="w-full min-h-[100px] p-2 border rounded-md" 
+              placeholder="Describe your issue in detail..."
+              value={supportMessage}
+              onChange={(e) => setSupportMessage(e.target.value)}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSupportMessage('')}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSubmitSupportTicket}>Submit</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ChatProvider>
   );
 };
@@ -150,9 +318,22 @@ const DmSearchPanel = () => {
 };
 
 // --- Support Tickets Panel inside drawer
-const SupportPanel: React.FC<{ tickets: SupportTicket[] }> = ({ tickets }) => (
+const SupportPanel: React.FC<{ 
+  tickets: SupportTicket[]; 
+  onCreateSupportTicket: () => void;
+}> = ({ tickets, onCreateSupportTicket }) => (
   <div className="p-4 overflow-auto h-full">
-    <h2 className="font-semibold mb-2 text-lg">Support Tickets</h2>
+    <div className="flex justify-between items-center mb-4">
+      <h2 className="font-semibold text-lg">Support Tickets</h2>
+      <Button 
+        size="sm" 
+        className="flex items-center gap-1" 
+        onClick={onCreateSupportTicket}
+      >
+        <HelpCircle className="h-4 w-4" />
+        New Ticket
+      </Button>
+    </div>
     <ul>
       {tickets && tickets.length === 0 ? (
         <li className="text-gray-500 text-sm">No support tickets yet.</li>
@@ -174,7 +355,6 @@ const SupportPanel: React.FC<{ tickets: SupportTicket[] }> = ({ tickets }) => (
         ))
       )}
     </ul>
-    {/* Submit support ticket button could go here */}
   </div>
 );
 
