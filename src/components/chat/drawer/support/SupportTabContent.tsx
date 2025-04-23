@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { SupportTicket } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
@@ -5,6 +6,7 @@ import { useApp } from '@/context/AppContext';
 import SupportOptions from './SupportOptions';
 import NewTicketDialog from './NewTicketDialog';
 import ChatTicketContent from '../../ChatTicketContent';
+import { ArrowLeft } from 'lucide-react';
 
 interface SupportTabContentProps {
   supportTickets: SupportTicket[];
@@ -41,12 +43,32 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
     setDialogOpen(true);
   };
 
+  const handleBackToTicketList = () => {
+    onSelectTicket(null);
+  };
+
   if (selectedTicket) {
     return (
-      <ChatTicketContent 
-        ticket={selectedTicket} 
-        onSendMessage={onSendMessage} 
-      />
+      <div className="flex flex-col h-full">
+        <div className="border-b p-3 flex items-center">
+          <button 
+            onClick={handleBackToTicketList}
+            className="mr-3 p-1 rounded-full hover:bg-gray-100"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <div>
+            <h3 className="font-semibold">{selectedTicket.subject}</h3>
+            <p className="text-xs text-gray-500">
+              Created {new Date(selectedTicket.createdAt).toLocaleDateString()}
+            </p>
+          </div>
+        </div>
+        <ChatTicketContent 
+          ticket={selectedTicket} 
+          onSendMessage={onSendMessage} 
+        />
+      </div>
     );
   }
 

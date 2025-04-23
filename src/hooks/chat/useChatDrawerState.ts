@@ -110,7 +110,7 @@ export const useChatDrawerState = (open: boolean, supportTickets: SupportTicket[
     setSelectedTicket(null);
   };
 
-  const handleSelectTicket = (ticket: SupportTicket) => {
+  const handleSelectTicket = (ticket: SupportTicket | null) => {
     setSelectedTicket(ticket);
     setSelectedLocalClub(null);
   };

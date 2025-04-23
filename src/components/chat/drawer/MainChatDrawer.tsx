@@ -39,54 +39,27 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const [activeTab, setActiveTab] = useState<"clubs"|"dm"|"support">("clubs");
   const [supportMessage, setSupportMessage] = useState("");
   const [selectedSupportOption, setSelectedSupportOption] = useState<{id: string, label: string} | null>(null);
+  const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>(supportTickets);
 
   // Load tickets from storage when drawer opens
   useEffect(() => {
-    if (open) {
+    const loadStoredTickets = () => {
       try {
         const storedTickets = localStorage.getItem('supportTickets');
         if (storedTickets) {
           const parsedTickets = JSON.parse(storedTickets);
-          // Refresh support tickets but maintain selection
-          if (selectedTicket) {
-            const updatedSelectedTicket = parsedTickets.find((t: SupportTicket) => t.id === selectedTicket.id);
-            if (updatedSelectedTicket) {
-              handleSelectTicket(updatedSelectedTicket);
-            }
-          }
+          setLocalSupportTickets(parsedTickets);
         }
       } catch (error) {
         console.error("Error parsing support tickets:", error);
       }
-    }
-  }, [open]);
-
-  const {
-    selectedLocalClub,
-    selectedTicket,
-    handleSelectClub,
-    handleSelectTicket,
-  } = useChatDrawerState(open, supportTickets);
-
-  // Ensure real-time updates to messages
-  useEffect(() => {
-    const handleTicketUpdated = () => {
-      try {
-        if (selectedTicket) {
-          const storedTickets = localStorage.getItem('supportTickets');
-          if (storedTickets) {
-            const parsedTickets = JSON.parse(storedTickets);
-            const updatedTicket = parsedTickets.find((t: SupportTicket) => t.id === selectedTicket.id);
-            if (updatedTicket) {
-              handleSelectTicket(updatedTicket);
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error updating selected ticket:", error);
-      }
     };
-
+    
+    if (open) {
+      loadStoredTickets();
+    }
+    
+    const handleTicketUpdated = () => loadStoredTickets();
     window.addEventListener('supportTicketCreated', handleTicketUpdated);
     window.addEventListener('notificationsUpdated', handleTicketUpdated);
     
@@ -94,7 +67,14 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       window.removeEventListener('supportTicketCreated', handleTicketUpdated);
       window.removeEventListener('notificationsUpdated', handleTicketUpdated);
     };
-  }, [selectedTicket]);
+  }, [open]);
+
+  const {
+    selectedLocalClub,
+    selectedTicket,
+    handleSelectClub,
+    handleSelectTicket,
+  } = useChatDrawerState(open, localSupportTickets);
 
   const { 
     messages, 
@@ -112,19 +92,31 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     currentUser
   );
 
-  const handleSubmitSupportTicket = async (e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
+  const handleSubmitSupportTicket = async () => {
+    if (!currentUser || !selectedSupportOption) {
+      toast({
+        title: "Error",
+        description: "Please select a support topic and enter a message",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!supportMessage.trim()) {
+      toast({
+        title: "Message Required",
+        description: "Please provide details about your issue",
+        variant: "destructive"
+      });
+      return;
     }
 
-    if (!currentUser) return;
-
     try {
+      // Create the ticket in Supabase
       const { data: ticketData, error: ticketError } = await supabase
         .from('support_tickets')
         .insert({
-          subject: selectedSupportOption?.label,
+          subject: selectedSupportOption.label,
           user_id: currentUser.id
         })
         .select()
@@ -134,6 +126,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
         throw new Error(ticketError?.message || 'Failed to create support ticket');
       }
 
+      // Add the initial message
       const { error: messageError } = await supabase
         .from('support_messages')
         .insert({
@@ -147,12 +140,13 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
         throw new Error(messageError.message);
       }
 
+      // Add auto-response
       const { error: autoResponseError } = await supabase
         .from('support_messages')
         .insert({
           ticket_id: ticketData.id,
           sender_id: 'system',
-          text: `Thank you for contacting support about "${selectedSupportOption?.label}". A support agent will review your request and respond shortly.`,
+          text: `Thank you for contacting support about "${selectedSupportOption.label}". A support agent will review your request and respond shortly.`,
           is_support: true
         });
 
@@ -160,36 +154,61 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
         console.error('Failed to create auto-response:', autoResponseError);
       }
 
+      // Create a new ticket object for the UI
+      const newTicket: SupportTicket = {
+        id: ticketData.id,
+        subject: selectedSupportOption.label,
+        createdAt: new Date().toISOString(),
+        messages: [
+          {
+            id: Date.now().toString(),
+            text: supportMessage,
+            sender: {
+              id: currentUser.id,
+              name: currentUser.name,
+              avatar: currentUser.avatar || '/placeholder.svg'
+            },
+            timestamp: new Date().toISOString(),
+            isSupport: false
+          },
+          {
+            id: 'auto-' + Date.now(),
+            text: `Thank you for contacting support about "${selectedSupportOption.label}". A support agent will review your request and respond shortly.`,
+            sender: {
+              id: 'system',
+              name: 'Support Team',
+              avatar: '/placeholder.svg'
+            },
+            timestamp: new Date(Date.now() + 1000).toISOString(),
+            isSupport: true
+          }
+        ]
+      };
+
+      // Update local state and storage
+      setLocalSupportTickets(prev => [newTicket, ...prev]);
+      
+      const existingTickets = localStorage.getItem('supportTickets');
+      const storedTickets = existingTickets ? JSON.parse(existingTickets) : [];
+      localStorage.setItem('supportTickets', JSON.stringify([newTicket, ...storedTickets]));
+
+      // Notify the system
+      window.dispatchEvent(new CustomEvent('supportTicketCreated', { 
+        detail: { ticketId: ticketData.id }
+      }));
+      
+      // Show success message and reset form
       toast({
         title: "Support Ticket Created",
         description: "Your support request has been submitted successfully."
       });
-
+      
       setSupportMessage("");
       setSelectedSupportOption(null);
-
-      const event = new CustomEvent('supportTicketCreated', { 
-        detail: { ticketId: ticketData.id }
-      });
-      window.dispatchEvent(event);
       
-      setActiveTab("support");
-
-      // Fetch the newly created ticket to select it
-      try {
-        setTimeout(() => {
-          const storedTickets = localStorage.getItem('supportTickets');
-          if (storedTickets) {
-            const parsedTickets = JSON.parse(storedTickets);
-            const newTicket = parsedTickets.find((t: SupportTicket) => t.id === ticketData.id);
-            if (newTicket) {
-              handleSelectTicket(newTicket);
-            }
-          }
-        }, 500);
-      } catch (error) {
-        console.error("Error selecting new ticket:", error);
-      }
+      // Select the newly created ticket
+      handleSelectTicket(newTicket);
+      
     } catch (error) {
       console.error('Error creating support ticket:', error);
       toast({
@@ -252,7 +271,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             {activeTab === "dm" && <DMSearchPanel />}
             {activeTab === "support" && (
               <SupportTabContent
-                supportTickets={supportTickets}
+                supportTickets={localSupportTickets}
                 selectedTicket={selectedTicket}
                 onSelectTicket={handleSelectTicket}
                 handleSubmitSupportTicket={handleSubmitSupportTicket}

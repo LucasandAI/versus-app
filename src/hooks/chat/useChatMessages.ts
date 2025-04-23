@@ -15,7 +15,7 @@ export const useChatMessages = (
     
     // Set up a real-time subscription to the support_messages table
     const channel = supabase
-      .channel('public:support_messages')
+      .channel(`support_messages_${selectedTicket.id}`)
       .on(
         'postgres_changes',
         {
@@ -87,65 +87,44 @@ export const useChatMessages = (
   }, [selectedTicket, currentUser, onSelectTicket]);
 
   const handleSendMessage = useCallback(async (message: string) => {
-    if (!currentUser || !message.trim()) return;
+    if (!currentUser || !message.trim() || !selectedTicket) return;
 
-    if (selectedTicket) {
-      // Handle sending support ticket message
-      try {
-        const newMessage = {
-          id: Date.now().toString(),
+    try {
+      // First update the UI immediately for better user experience
+      const optimisticMessage = {
+        id: `temp-${Date.now()}`,
+        text: message,
+        sender: {
+          id: currentUser.id,
+          name: currentUser.name,
+          avatar: currentUser.avatar || '/placeholder.svg'
+        },
+        timestamp: new Date().toISOString(),
+        isSupport: false
+      };
+      
+      const updatedTicket = {
+        ...selectedTicket,
+        messages: [...selectedTicket.messages, optimisticMessage]
+      };
+      
+      onSelectTicket(updatedTicket);
+      
+      // Then send to Supabase
+      const { error } = await supabase
+        .from('support_messages')
+        .insert({
           text: message,
-          sender: {
-            id: currentUser.id,
-            name: currentUser.name,
-            avatar: currentUser.avatar || '/placeholder.svg'
-          },
-          timestamp: new Date().toISOString(),
-          isSupport: false
-        };
+          sender_id: currentUser.id,
+          ticket_id: selectedTicket.id,
+          is_support: false
+        });
         
-        // First update the UI immediately for better user experience
-        const updatedTicket = {
-          ...selectedTicket,
-          messages: [...selectedTicket.messages, newMessage]
-        };
-        
-        onSelectTicket(updatedTicket);
-        
-        // Then store in Supabase
-        const { error } = await supabase
-          .from('support_messages')
-          .insert({
-            text: message,
-            sender_id: currentUser.id,
-            ticket_id: selectedTicket.id,
-            is_support: false
-          });
-          
-        if (error) {
-          console.error('Error sending support message:', error);
-        } else {
-          // Update localStorage to ensure persistence
-          try {
-            const storedTickets = localStorage.getItem('supportTickets');
-            if (storedTickets) {
-              const parsedTickets = JSON.parse(storedTickets);
-              const updatedTickets = parsedTickets.map((t: SupportTicket) => 
-                t.id === selectedTicket.id ? updatedTicket : t
-              );
-              localStorage.setItem('supportTickets', JSON.stringify(updatedTickets));
-              
-              // Notify other components
-              const event = new CustomEvent('notificationsUpdated');
-              window.dispatchEvent(event);
-            }
-          } catch (error) {
-            console.error('Error updating localStorage tickets:', error);
-          }
-        }
-      } catch (error) {
-        console.error('Error in handleSendMessage for support ticket:', error);
+      if (error) {
+        console.error('Error sending support message:', error);
       }
+    } catch (error) {
+      console.error('Error in handleSendMessage for support ticket:', error);
     }
   }, [currentUser, selectedTicket, onSelectTicket]);
 
