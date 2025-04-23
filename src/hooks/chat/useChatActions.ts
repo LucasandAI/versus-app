@@ -82,7 +82,6 @@ export const useChatActions = () => {
       if (deleteError) {
         console.error('[useChatActions] Error deleting message:', deleteError);
         
-        // Specific message for permission denied (typically from RLS)
         if (deleteError.code === '42501') {
           toast({
             title: "Permission Denied",
