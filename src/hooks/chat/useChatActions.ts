@@ -6,21 +6,26 @@ import { User } from '@/types';
 
 export const useChatActions = (currentUser: User | null) => {
   const sendMessageToClub = useCallback(async (clubId: string, messageText: string) => {
-    if (!currentUser?.id) {
-      console.error('Cannot send message: No user ID found');
-      toast({
-        title: "Error",
-        description: "You must be logged in to send messages",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
-      // Log attempt to send message
+      // Get the authenticated user directly from Supabase
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('Authentication error:', authError || 'No authenticated user found');
+        toast({
+          title: "Error",
+          description: "You must be logged in to send messages",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const authUserId = user.id;
+      
+      // Log attempt to send message with the authenticated user ID
       console.log('[useChat] Attempting to send message:', {
         clubId,
-        userId: currentUser.id,
+        authUserId,
         messageText
       });
       
@@ -29,7 +34,7 @@ export const useChatActions = (currentUser: User | null) => {
         .insert({
           club_id: clubId,
           message: messageText,
-          sender_id: currentUser.id // This must match auth.uid() due to RLS policy
+          sender_id: authUserId // Using the authenticated user ID directly
         })
         .select();
 
@@ -67,7 +72,7 @@ export const useChatActions = (currentUser: User | null) => {
     } catch (error) {
       console.error('Exception sending message:', error);
     }
-  }, [currentUser]);
+  }, []);
 
   return {
     sendMessageToClub
