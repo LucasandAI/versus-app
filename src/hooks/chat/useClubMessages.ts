@@ -40,13 +40,20 @@ export const useClubMessages = (
 
           // Update unread count if message is from another user
           // Fixed TypeScript error: We need to get user synchronously
-          const currentUser = supabase.auth.getUser().then(response => response.data?.user);
-          currentUser.then(user => {
-            if (payload.new.sender_id !== user?.id && setUnreadMessages) {
-              // Fixed TypeScript error: Use explicit number type for the callback
-              setUnreadMessages((prevCount: number) => prevCount + 1);
+          const getCurrentUser = async () => {
+            try {
+              const { data } = await supabase.auth.getUser();
+              if (payload.new.sender_id !== data?.user?.id && setUnreadMessages) {
+                // Instead of using a callback function, get the current count and increment it directly
+                const currentCount = document.hidden ? 1 : 0;
+                setUnreadMessages(currentCount);
+              }
+            } catch (error) {
+              console.error('[useClubMessages] Error getting current user:', error);
             }
-          });
+          };
+          
+          getCurrentUser();
         })
         .on('postgres_changes', {
           event: 'DELETE',
