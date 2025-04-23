@@ -1,11 +1,11 @@
 
 import React from 'react';
-import { MessageCircle } from 'lucide-react';  // Corrected import
+import { MessageCircle } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '../shared/UserAvatar';
 import Button from '../shared/Button';
 import NotificationPopover from '../shared/NotificationPopover';
-import { useChatDrawer } from '@/hooks/home/useChatDrawer';
+import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
 
 interface HomeHeaderProps {
   notifications: any[];
@@ -15,7 +15,6 @@ interface HomeHeaderProps {
   onUserClick: (userId: string, name: string) => void;
   onJoinClub: (clubId: string, clubName: string) => void;
   onDeclineInvite: (id: string) => void;
-  onOpenChat?: () => void; 
 }
 
 const HomeHeader: React.FC<HomeHeaderProps> = ({
@@ -26,21 +25,9 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   onUserClick,
   onJoinClub,
   onDeclineInvite,
-  onOpenChat
 }) => {
   const { setCurrentView, currentUser } = useApp();
-  const { openChatDrawer } = useChatDrawer();
-
-  const handleOpenChat = () => {
-    // Ensure we trigger the chat drawer to open
-    openChatDrawer();
-    console.log('Opening chat drawer');
-    
-    // Also call the provided callback if it exists
-    if (onOpenChat) {
-      onOpenChat();
-    }
-  };
+  const { open } = useChatDrawerGlobal();
 
   return (
     <div className="flex items-center justify-between mb-6">
@@ -56,7 +43,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
         />
         <Button 
           variant="link"
-          onClick={handleOpenChat}
+          onClick={open}
           className="text-primary hover:bg-gray-100 rounded-full p-2"
           icon={<MessageCircle className="h-5 w-5" />}
           badge={unreadMessages}
