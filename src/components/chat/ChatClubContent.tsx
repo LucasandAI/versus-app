@@ -25,6 +25,8 @@ const ChatClubContent = ({
 }: ChatClubContentProps) => {
   const { navigateToClub } = useNavigation();
   const { currentUser } = useApp();
+  
+  // currentUser is still passed but not used for sender_id checks anymore
   const { deleteMessage } = useChatActions(currentUser);
 
   const handleDeleteMessage = async (messageId: string) => {

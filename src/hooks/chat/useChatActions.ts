@@ -4,10 +4,13 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/types';
 
-export const useChatActions = (currentUser: User | null) => {
+export const useChatActions = (_currentUser: User | null) => {
+  // IMPORTANT: We're removing the dependency on currentUser from props
+  // and only using the auth session from Supabase
+  
   const sendMessageToClub = useCallback(async (clubId: string, messageText: string) => {
     try {
-      // Get the current session - this is what matters for RLS, not currentUser from props
+      // Always get the current session for every operation
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !sessionData.session) {
@@ -20,17 +23,16 @@ export const useChatActions = (currentUser: User | null) => {
         return null;
       }
       
-      // This will work with RLS because auth.uid() comes from the session token
-      console.log('[useChatActions] Sending message to club:', clubId);
+      // Log the current user ID from the session for debugging
+      console.log('[useChatActions] Current authenticated user ID:', sessionData.session.user.id);
       
+      // Let the RLS policy handle the auth.uid() check, but explicitly set sender_id too
       const { data: insertedMessage, error: insertError } = await supabase
         .from('club_chat_messages')
         .insert({
           club_id: clubId,
           message: messageText,
-          // We don't need to explicitly set sender_id as the auth.uid() - RLS will validate this
-          // But we set it anyway to be explicit
-          sender_id: sessionData.session.user.id
+          sender_id: sessionData.session.user.id // Explicitly set to match auth.uid()
         })
         .select();
 
@@ -57,10 +59,10 @@ export const useChatActions = (currentUser: User | null) => {
     }
   }, []);
 
-  // Add a dedicated function for deleting messages
+  // Update delete message function to also use current session
   const deleteMessage = useCallback(async (messageId: string) => {
     try {
-      // Get current session to ensure we're authenticated
+      // Always get current session to ensure we're authenticated
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !sessionData.session) {
@@ -73,7 +75,7 @@ export const useChatActions = (currentUser: User | null) => {
         return false;
       }
       
-      console.log('[useChatActions] Deleting message:', messageId);
+      console.log('[useChatActions] Deleting message:', messageId, 'as user:', sessionData.session.user.id);
       
       // Delete message - the RLS policy will check if sender_id = auth.uid()
       // or if the user is a club admin

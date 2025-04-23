@@ -23,6 +23,8 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
 
   const { unreadMessages, updateUnreadCount } = useUnreadNotifications(open, onNewMessage);
   const { messages, setMessages, handleNewMessage } = useMessages(saveMessages, updateUnreadCount);
+  
+  // We still pass currentUser here but it's not used for sender_id anymore
   const { sendMessageToClub } = useChatActions(currentUser);
   const { deleteChat } = useChatDeletion(saveMessages, saveSupportTickets, saveUnreadMessages);
 
