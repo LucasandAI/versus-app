@@ -28,32 +28,25 @@ export const useClubMessages = (
           console.log(`[useClubMessages] New message for club ${club.id}:`, payload);
           
           setClubMessages(prev => {
-            const clubMessages = prev[club.id] || [];
-            if (clubMessages.some(msg => msg.id === payload.new.id)) {
+            const existingMessages = prev[club.id] || [];
+            // Don't add if message already exists
+            if (existingMessages.some(msg => msg.id === payload.new.id)) {
               return prev;
             }
             return {
               ...prev,
-              [club.id]: [...clubMessages, payload.new]
+              [club.id]: [...existingMessages, payload.new]
             };
           });
 
-          // Update unread count if message is from another user
-          // Fixed TypeScript error: We need to get user synchronously
-          const getCurrentUser = async () => {
-            try {
-              const { data } = await supabase.auth.getUser();
-              if (payload.new.sender_id !== data?.user?.id && setUnreadMessages) {
-                // Instead of using a callback function, get the current count and increment it directly
-                const currentCount = document.hidden ? 1 : 0;
-                setUnreadMessages(currentCount);
-              }
-            } catch (error) {
-              console.error('[useClubMessages] Error getting current user:', error);
+          // Handle unread count
+          const updateUnreadCount = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (payload.new.sender_id !== user?.id && setUnreadMessages && document.hidden) {
+              setUnreadMessages(1);
             }
           };
-          
-          getCurrentUser();
+          updateUnreadCount();
         })
         .on('postgres_changes', {
           event: 'DELETE',
@@ -64,14 +57,18 @@ export const useClubMessages = (
           console.log(`[useClubMessages] Message deleted from club ${club.id}:`, payload);
           
           setClubMessages(prev => {
-            const clubMessages = prev[club.id] || [];
+            const existingMessages = prev[club.id] || [];
             return {
               ...prev,
-              [club.id]: clubMessages.filter(msg => msg.id !== payload.old.id)
+              [club.id]: existingMessages.filter(msg => msg.id !== payload.old.id)
             };
           });
-        })
-        .subscribe();
+        });
+
+      // Subscribe to the channel
+      channel.subscribe((status) => {
+        console.log(`[useClubMessages] Channel status for club ${club.id}:`, status);
+      });
 
       return channel;
     });
