@@ -36,7 +36,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
         onMatchClick={() => onMatchClick(selectedClub)}
         onSelectUser={onSelectUser}
         onSendMessage={(message) => {
-          console.log('[ChatMainContent] Sending message:', { 
+          console.log('[ChatMainContent] Sending club message to:', { 
             clubId: selectedClub.id, 
             messageLength: message.length 
           });
@@ -50,7 +50,10 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
     return (
       <ChatTicketContent 
         ticket={selectedTicket}
-        onSendMessage={onSendMessage}
+        onSendMessage={(message) => {
+          console.log('[ChatMainContent] Sending support ticket message');
+          onSendMessage(message);
+        }}
       />
     );
   }

@@ -55,6 +55,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     handleSelectTicket,
   } = useChatDrawerState(open, localSupportTickets);
 
+  // Use both hooks for chat functionality
+  const chat = useChat(open, onNewMessage);
   const { 
     messages, 
     unreadMessages, 
@@ -62,15 +64,18 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     handleNewMessage,
     markTicketAsRead,
     deleteChat,
-    sendMessageToClub
-  } = useChat(open, onNewMessage);
+  } = chat;
 
-  const { handleSendMessage } = useChatMessages(
+  // Get support message handler
+  const { handleSendMessage: handleSendSupportMessage } = useChatMessages(
     selectedTicket,
     handleSelectTicket,
     handleNewMessage,
     currentUser
   );
+
+  // Extract club message handler directly from chat
+  const handleSendClubMessage = chat.sendMessageToClub;
 
   useRealtimeMessages(open, setLocalClubMessages);
   useSupportTicketEffects(open, setLocalSupportTickets);
@@ -92,21 +97,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     }
   };
   
-  const handleSendClubMessage = async (message: string, clubId?: string) => {
-    if (!clubId || !message.trim()) return;
-    
-    try {
-      await sendMessageToClub(clubId, message);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      toast({
-        title: "Message Error",
-        description: `Error sending message: ${errorMessage}`,
-        variant: "destructive"
-      });
-    }
-  };
-
   return (
     <ChatProvider>
       <Drawer open={open} onOpenChange={onOpenChange}>
@@ -130,7 +120,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             unreadMessages={unreadMessages}
             handleNewMessage={handleNewMessage}
             markTicketAsRead={markTicketAsRead}
-            onSendMessage={activeTab === "clubs" ? handleSendClubMessage : handleSendMessage}
+            onSendMessage={activeTab === "support" ? handleSendSupportMessage : handleSendClubMessage}
             supportMessage={supportMessage}
             setSupportMessage={setSupportMessage}
             handleSubmitSupportTicket={handleSubmitTicket}
