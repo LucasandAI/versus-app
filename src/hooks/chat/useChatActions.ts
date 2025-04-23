@@ -1,19 +1,15 @@
 import { useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { createClient } from '@supabase/supabase-js';
 
 export const useChatActions = () => {
   const sendMessageToClub = useCallback(async (clubId: string, messageText: string) => {
     try {
-      // Try to refresh the session before getting it
-      await supabase.auth.refreshSession();
+      // Only verify the session exists before attempting insert
+      const { data: { session } } = await supabase.auth.getSession();
       
-      // Now get the refreshed session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !session?.user) {
-        console.error('[useChatActions] No valid session found:', sessionError);
+      if (!session) {
+        console.error('[useChatActions] No valid session found');
         toast({
           title: "Authentication Error",
           description: "You must be logged in to send messages",
@@ -21,57 +17,18 @@ export const useChatActions = () => {
         });
         return null;
       }
-      
-      const userId = session.user.id;
-      console.log('✅ Session:', userId);
-      
-      // Get user info directly to confirm
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      console.log('⚡ Double check user:', userData?.user?.id, 'Error:', userError?.message);
 
-      if (!userData?.user?.id) {
-        console.error('[useChatActions] User ID mismatch or missing');
-        toast({
-          title: "Session Error",
-          description: "Your session appears to be incomplete. Please refresh the page.",
-          variant: "destructive"
-        });
-        return null;
-      }
-      
-      console.log('[useChatActions] Sending message to club', { 
+      console.log('[useChatActions] Sending message to club:', { 
         clubId, 
-        userId, 
         messageLength: messageText.length 
       });
-      
-      // NEW DEBUG LOGGING
-      console.log('[DEBUG] Final session before insert:', session);
-      console.log('[DEBUG] Final user ID before insert:', session?.user?.id);
-      console.log('[DEBUG] Access token:', session?.access_token);
-      
-      // Create a new client with the access token for this request
-      const SUPABASE_URL = "https://goxpejofxjvcilfoyrxs.supabase.co";
-      const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdveHBlam9meGp2Y2lsZm95cnhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUzNDc0NDgsImV4cCI6MjA2MDkyMzQ0OH0.Giew8VRVChAks1ooUc3N3oTbMDjFVTzGnr9IExIirYs";
-      
-      const clientWithAuth = createClient(SUPABASE_URL, SUPABASE_KEY, {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          storage: localStorage
-        },
-        global: {
-          headers: { Authorization: `Bearer ${session.access_token}` }
-        }
-      });
 
-      // Insert the message using the authenticated client
-      const { data: insertedMessage, error: insertError } = await clientWithAuth
+      // Let RLS handle authorization and sender_id assignment
+      const { data: insertedMessage, error: insertError } = await supabase
         .from('club_chat_messages')
         .insert({
           club_id: clubId,
           message: messageText,
-          sender_id: userId
         })
         .select(`
           id, 
@@ -83,12 +40,9 @@ export const useChatActions = () => {
         `)
         .single();
 
-      console.log('[Insert Response]', { data: insertedMessage, insertError });
-
       if (insertError) {
         console.error('[useChatActions] Error sending message:', insertError);
         
-        // Check if it's an RLS permission issue
         if (insertError.code === '42501') {
           toast({
             title: "Permission Error",
