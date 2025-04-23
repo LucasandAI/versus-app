@@ -7,7 +7,7 @@ import { useApp } from '@/context/AppContext';
 export const useChatActions = () => {
   const { currentUser } = useApp();
 
-  const sendMessageToClub = useCallback(async (clubId: string, messageText: string) => {
+  const sendMessageToClub = useCallback(async (clubId: string, messageText: string, setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>) => {
     try {
       if (!currentUser) {
         throw new Error('Not authenticated');
@@ -29,16 +29,24 @@ export const useChatActions = () => {
       
       console.log('[useChatActions] Created optimistic message:', optimisticMessage);
       
-      // Update local state with optimistic message through real-time channel
-      const channel = supabase.channel(`club-messages-${clubId}`);
-      channel.send({
-        type: 'broadcast',
-        event: 'message',
-        payload: { 
-          new: optimisticMessage,
-          eventType: 'INSERT'
-        }
-      });
+      // Directly update local state with optimistic message if setClubMessages is provided
+      if (setClubMessages) {
+        setClubMessages(prevMessages => {
+          const clubMessages = prevMessages[clubId] || [];
+          
+          // Check if message already exists to prevent duplicates
+          if (clubMessages.some(msg => msg.id === optimisticMessage.id)) {
+            return prevMessages;
+          }
+          
+          console.log('[MainChatDrawer] Updated local messages with optimistic update:', [optimisticMessage]);
+          
+          return {
+            ...prevMessages,
+            [clubId]: [...clubMessages, optimisticMessage]
+          };
+        });
+      }
 
       // Add debug log before insert attempt
       console.log('[Chat Debug] About to insert message:', { clubId, messageText });
@@ -153,4 +161,3 @@ export const useChatActions = () => {
     deleteMessage
   };
 };
-

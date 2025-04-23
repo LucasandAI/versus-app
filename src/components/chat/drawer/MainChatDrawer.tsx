@@ -63,7 +63,10 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     deleteChat,
   } = chat;
 
-  const handleSendClubMessage = chat.sendMessageToClub;
+  const handleSendClubMessage = async (message: string, clubId?: string) => {
+    if (!clubId) return;
+    return chat.sendMessageToClub(message, clubId, setClubMessages);
+  };
 
   useSupportTicketEffects(open, setLocalSupportTickets);
 

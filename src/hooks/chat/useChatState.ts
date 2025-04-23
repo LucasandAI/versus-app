@@ -31,7 +31,7 @@ export const useChatState = (open: boolean, onNewMessage?: (count: number) => vo
     setSupportTickets(data.supportTickets);
   }, [loadFromStorage, setMessages]);
 
-  const handleSendClubMessage = async (message: string, clubId: string) => {
+  const handleSendClubMessage = async (message: string, clubId: string, setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>) => {
     if (!message.trim() || !clubId) {
       console.log('[useChatState] Cannot send empty message or missing clubId');
       return;
@@ -42,7 +42,7 @@ export const useChatState = (open: boolean, onNewMessage?: (count: number) => vo
       messagePreview: message.substring(0, 20) + (message.length > 20 ? '...' : '') 
     });
     
-    const result = await sendMessageToClub(clubId, message);
+    const result = await sendMessageToClub(clubId, message, setClubMessages);
     
     if (result) {
       console.log('[useChatState] Message sent successfully');
