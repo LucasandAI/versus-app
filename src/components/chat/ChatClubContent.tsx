@@ -37,24 +37,27 @@ const ChatClubContent = ({
   // Handle deleting a message
   const handleDeleteMessage = async (messageId: string) => {
     try {
+      console.log(`Attempting to delete message with ID: ${messageId}`);
+      
       // Attempt to delete the message from Supabase
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('club_chat_messages')
         .delete()
         .eq('id', messageId)
-        .eq('sender_id', currentUser?.id); // Ensure only the sender can delete their own messages
+        .eq('sender_id', currentUser?.id) // Ensure only the sender can delete their own messages
+        .select();
 
       if (error) {
+        console.error('Supabase delete error:', error);
         throw error;
       }
 
+      console.log('Delete operation response:', data);
+      
       toast({
         title: "Message deleted",
         description: "Your message has been removed from the chat"
       });
-      
-      // Note: We don't need to update messages state locally because the real-time subscription 
-      // in MainChatDrawer will handle removing the message from the UI for all users
     } catch (error) {
       console.error('Error deleting message:', error);
       toast({
@@ -70,8 +73,6 @@ const ChatClubContent = ({
       navigateToClub(club);
     }
   };
-
-  console.log(`Rendering ChatClubContent for club: ${club.name}, messages:`, messages);
 
   return (
     <div className="flex-1 flex flex-col h-full">

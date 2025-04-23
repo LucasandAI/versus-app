@@ -58,7 +58,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
           message={message}
           isUserMessage={isUserMessage}
           isSupport={isSupport}
-          onDeleteMessage={canDelete ? onDeleteMessage : undefined}
+          onDeleteMessage={canDelete && onDeleteMessage ? () => onDeleteMessage(message.id) : undefined}
         />
         
         <p className="text-xs text-gray-500 mt-1">{formatTime(message.timestamp)}</p>

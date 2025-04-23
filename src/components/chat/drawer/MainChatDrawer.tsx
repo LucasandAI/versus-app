@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { ChatProvider } from '@/context/ChatContext';
@@ -36,7 +35,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>(supportTickets);
   const [localClubMessages, setLocalClubMessages] = useState<Record<string, any[]>>(clubMessages);
 
-  // Update local messages whenever props change
   useEffect(() => {
     setLocalClubMessages(clubMessages);
   }, [clubMessages]);
@@ -119,7 +117,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     if (!currentUser || !message.trim()) return;
     
     try {
-      // First add optimistic message to UI immediately for better UX
       const tempId = `temp-${Date.now()}`;
       const optimisticMessage = {
         id: tempId,
@@ -132,7 +129,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
         timestamp: new Date().toISOString()
       };
       
-      // Update local state immediately with optimistic message
       setLocalClubMessages(prev => {
         const updatedMessages = {
           ...prev,
@@ -142,7 +138,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
         return updatedMessages;
       });
 
-      // Then save to database
       const { data, error } = await supabase.from('club_chat_messages').insert({
         message,
         club_id: clubId,
@@ -157,7 +152,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
           variant: "destructive"
         });
         
-        // Remove optimistic message on error
         setLocalClubMessages(prev => {
           const filteredMessages = (prev[clubId] || []).filter(msg => msg.id !== tempId);
           return {
@@ -178,30 +172,33 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     }
   };
 
-  // Listen for real-time message deletions
   useEffect(() => {
     if (!open) return;
 
+    console.log('Setting up real-time message deletion listener');
+    
     const messageDeleteChannel = supabase.channel('message-deletions');
     
-    // Subscribe to DELETE events for club_chat_messages
     messageDeleteChannel
       .on('postgres_changes', 
           { event: 'DELETE', schema: 'public', table: 'club_chat_messages' },
           (payload) => {
-            console.log('Message deleted:', payload);
+            console.log('Message deletion event received:', payload);
             
-            // Get the deleted message ID from payload.old
             if (payload.old && payload.old.id && payload.old.club_id) {
               const deletedMessageId = payload.old.id;
               const clubId = payload.old.club_id;
               
-              // Remove the message from local state
+              console.log(`Removing message ${deletedMessageId} from club ${clubId}`);
+              
               setLocalClubMessages(prev => {
-                const clubMessages = prev[clubId] || [];
-                const updatedClubMessages = clubMessages.filter(msg => 
+                if (!prev[clubId]) return prev;
+                
+                const updatedClubMessages = prev[clubId].filter(msg => 
                   msg.id !== deletedMessageId
                 );
+                
+                console.log(`Updated messages count: ${updatedClubMessages.length}`);
                 
                 return {
                   ...prev,
@@ -213,6 +210,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       .subscribe();
       
     return () => {
+      console.log('Removing real-time message deletion listener');
       supabase.removeChannel(messageDeleteChannel);
     };
   }, [open]);
