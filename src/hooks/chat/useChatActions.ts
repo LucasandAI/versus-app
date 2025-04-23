@@ -17,19 +17,19 @@ export const useChatActions = (currentUser: User | null) => {
     }
 
     try {
-      // Enhanced logging to verify the user ID we're using
-      console.log('[useChat] Sending message as user:', currentUser);
-      console.log('[useChat] User ID used for message:', currentUser.id);
-      console.log('[useChat] Message text:', messageText);
-      console.log('[useChat] Club ID:', clubId);
+      // Log attempt to send message
+      console.log('[useChat] Attempting to send message:', {
+        clubId,
+        userId: currentUser.id,
+        messageText
+      });
       
-      // First insert the message with the correct user ID
       const { data: insertedMessage, error: insertError } = await supabase
         .from('club_chat_messages')
         .insert({
-          sender_id: currentUser.id, // Using the consistent user ID from users table
           club_id: clubId,
-          message: messageText
+          message: messageText,
+          sender_id: currentUser.id // This must match auth.uid() due to RLS policy
         })
         .select();
 
@@ -63,7 +63,6 @@ export const useChatActions = (currentUser: User | null) => {
         return messageWithSender;
       }
 
-      console.log('Message sent successfully:', insertedMessage);
       return insertedMessage;
     } catch (error) {
       console.error('Exception sending message:', error);
