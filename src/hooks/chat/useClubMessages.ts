@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
@@ -25,21 +24,25 @@ export const useClubMessages = (
           table: 'club_chat_messages',
           filter: `club_id=eq.${club.id}`
         }, (payload) => {
-          console.log(`[useClubMessages] New message for club ${club.id}:`, payload);
+          console.log(`[useClubMessages] Received new message for club ${club.id}:`, payload);
           
+          // Immediately update the UI with the new message
           setClubMessages(prev => {
             const existingMessages = prev[club.id] || [];
-            // Don't add if message already exists
+            // Don't add if message already exists (prevent duplicates)
             if (existingMessages.some(msg => msg.id === payload.new.id)) {
+              console.log(`[useClubMessages] Message ${payload.new.id} already exists, skipping`);
               return prev;
             }
+            
+            console.log(`[useClubMessages] Adding new message to club ${club.id}`);
             return {
               ...prev,
               [club.id]: [...existingMessages, payload.new]
             };
           });
 
-          // Handle unread count
+          // Handle unread count in a separate async function
           const updateUnreadCount = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (payload.new.sender_id !== user?.id && setUnreadMessages && document.hidden) {
@@ -65,7 +68,7 @@ export const useClubMessages = (
           });
         });
 
-      // Subscribe to the channel
+      // Subscribe to the channel with status logging
       channel.subscribe((status) => {
         console.log(`[useClubMessages] Channel status for club ${club.id}:`, status);
       });
