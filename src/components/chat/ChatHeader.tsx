@@ -10,14 +10,20 @@ interface ChatHeaderProps {
   club: Club;
   onMatchClick: () => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
+  onClubClick?: () => void;
 }
 
-const ChatHeader: React.FC<ChatHeaderProps> = ({ club, onMatchClick, onSelectUser }) => {
+const ChatHeader: React.FC<ChatHeaderProps> = ({ club, onMatchClick, onSelectUser, onClubClick }) => {
   const currentMatch = club.currentMatch;
 
   return (
     <div className="border-b p-3">
-      <h3 className="font-medium">{club.name}</h3>
+      <h3 
+        className={`font-medium ${onClubClick ? 'cursor-pointer hover:text-primary' : ''}`}
+        onClick={onClubClick}
+      >
+        {club.name}
+      </h3>
       
       {currentMatch && (
         <div 

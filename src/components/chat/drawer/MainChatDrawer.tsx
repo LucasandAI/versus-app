@@ -178,6 +178,44 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     }
   };
 
+  // Listen for real-time message deletions
+  useEffect(() => {
+    if (!open) return;
+
+    const messageDeleteChannel = supabase.channel('message-deletions');
+    
+    messageDeleteChannel
+      .on('postgres_changes', 
+          { event: 'DELETE', schema: 'public', table: 'club_chat_messages' },
+          (payload) => {
+            console.log('Message deleted:', payload);
+            
+            // Get the deleted message ID from payload.old
+            if (payload.old && payload.old.id && payload.old.club_id) {
+              const deletedMessageId = payload.old.id;
+              const clubId = payload.old.club_id;
+              
+              // Remove the message from local state
+              setLocalClubMessages(prev => {
+                const clubMessages = prev[clubId] || [];
+                const updatedClubMessages = clubMessages.filter(msg => 
+                  msg.id !== deletedMessageId
+                );
+                
+                return {
+                  ...prev,
+                  [clubId]: updatedClubMessages
+                };
+              });
+            }
+          })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(messageDeleteChannel);
+    };
+  }, [open]);
+
   return (
     <ChatProvider>
       <Drawer open={open} onOpenChange={onOpenChange}>

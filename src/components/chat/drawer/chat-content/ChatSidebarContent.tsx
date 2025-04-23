@@ -35,7 +35,12 @@ const ChatSidebarContent: React.FC<ChatSidebarContentProps> = ({
       supportTickets={supportTickets}
       onSelectClub={onSelectClub}
       onSelectTicket={onSelectTicket}
-      onDeleteChat={onDeleteChat}
+      onDeleteChat={(chatId, isTicket) => {
+        // Only allow deletion of support tickets, not club chats
+        if (isTicket && onDeleteChat) {
+          onDeleteChat(chatId, isTicket);
+        }
+      }}
       unreadCounts={unreadCounts}
       onSelectUser={onSelectUser}
     />

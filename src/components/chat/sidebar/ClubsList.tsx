@@ -2,7 +2,6 @@
 import React from 'react';
 import { Club } from '@/types';
 import UserAvatar from '../../shared/UserAvatar';
-import { Trash2 } from 'lucide-react';
 import ClubMembersPopover from './ClubMembersPopover';
 
 interface ClubsListProps {
@@ -63,18 +62,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
                 />
               </div>
             </button>
-            {onDeleteChat && (
-              <button 
-                className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 bg-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-gray-100"
-                onClick={() => setChatToDelete({
-                  id: club.id,
-                  name: club.name,
-                  isTicket: false
-                })}
-              >
-                <Trash2 className="h-3 w-3 text-gray-500 hover:text-red-500" />
-              </button>
-            )}
+            {/* Remove delete button for club chats */}
           </div>
         ))}
         

@@ -6,6 +6,7 @@ import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useNavigation } from '@/hooks/useNavigation';
 
 interface ChatClubContentProps {
   club: Club;
@@ -22,6 +23,7 @@ const ChatClubContent = ({
   onSelectUser,
   onSendMessage
 }: ChatClubContentProps) => {
+  const { navigateToClub } = useNavigation();
   // Scroll ref to move to bottom on new messages
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -55,6 +57,12 @@ const ChatClubContent = ({
     }
   };
 
+  const handleClubClick = () => {
+    if (club && club.id) {
+      navigateToClub(club);
+    }
+  };
+
   console.log(`Rendering ChatClubContent for club: ${club.name}, messages:`, messages);
 
   return (
@@ -63,12 +71,14 @@ const ChatClubContent = ({
         club={club}
         onMatchClick={onMatchClick}
         onSelectUser={onSelectUser}
+        onClubClick={handleClubClick}
       />
       
       <ChatMessages 
         messages={messages} 
         clubMembers={club.members || []}
         onDeleteMessage={handleDeleteMessage}
+        onSelectUser={onSelectUser}
       />
       
       <ChatInput onSendMessage={onSendMessage} />

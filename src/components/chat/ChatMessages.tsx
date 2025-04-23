@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import { Trash2 } from 'lucide-react';
 import UserAvatar from '../shared/UserAvatar';
@@ -27,13 +28,15 @@ interface ChatMessagesProps {
   }>;
   isSupport?: boolean;
   onDeleteMessage?: (messageId: string) => void;
+  onSelectUser?: (userId: string, userName: string, userAvatar?: string) => void;
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({ 
   messages, 
   clubMembers, 
   isSupport = false,
-  onDeleteMessage 
+  onDeleteMessage,
+  onSelectUser
 }) => {
   const { currentUser } = useApp();
   const { navigateToUserProfile, navigateToClub } = useNavigation();
@@ -65,9 +68,11 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const handleUserClick = (senderId: string) => {
     if (isCurrentUser(senderId) || isSupport) return;
     
-    const member = clubMembers.find(m => m.id === senderId);
-    if (member) {
-      navigateToUserProfile(member.id, member.name, member.avatar || '/placeholder.svg');
+    if (onSelectUser) {
+      const member = clubMembers.find(m => m.id === senderId);
+      if (member) {
+        onSelectUser(member.id, member.name, member.avatar || '/placeholder.svg');
+      }
     }
   };
 
@@ -129,16 +134,16 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
             name={normalizedMessage.sender.name} 
             image={normalizedMessage.sender.avatar} 
             size="sm" 
-            className={`mr-2 flex-shrink-0 ${!isSupport && 'cursor-pointer'}`}
-            onClick={!isSupport ? () => handleUserClick(normalizedMessage.sender.id) : undefined}
+            className={`mr-2 flex-shrink-0 ${!isSupport ? 'cursor-pointer' : ''}`}
+            onClick={!isSupport && onSelectUser ? () => handleUserClick(normalizedMessage.sender.id) : undefined}
           />
         )}
         
         <div className={`max-w-[70%] ${isUserMessage ? 'order-2' : 'order-1'}`}>
           {!isUserMessage && (
             <button 
-              className={`text-xs text-gray-500 mb-1 ${!isSupport && 'cursor-pointer hover:text-primary'} text-left`}
-              onClick={!isSupport ? () => handleUserClick(normalizedMessage.sender.id) : undefined}
+              className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left`}
+              onClick={!isSupport && onSelectUser ? () => handleUserClick(normalizedMessage.sender.id) : undefined}
             >
               {normalizedMessage.sender.name}
               {normalizedMessage.isSupport && <span className="ml-1 text-blue-500">(Support)</span>}
