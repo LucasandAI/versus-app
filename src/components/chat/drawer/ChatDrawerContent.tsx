@@ -23,6 +23,7 @@ interface ChatDrawerContentProps {
   unreadMessages: Record<string, number>;
   handleNewMessage: (clubId: string, message: any, isOpen: boolean) => void;
   markTicketAsRead: (ticketId: string) => void;
+  onSendMessage: (message: string, clubId: string) => void;
 }
 
 const ChatDrawerContent = ({
@@ -38,6 +39,7 @@ const ChatDrawerContent = ({
   unreadMessages,
   handleNewMessage,
   markTicketAsRead,
+  onSendMessage,
 }: ChatDrawerContentProps) => {
   const { currentUser } = useApp();
   const { handleMatchClick, handleSelectUser } = useChatInteractions();
@@ -68,7 +70,7 @@ const ChatDrawerContent = ({
           messages={messages[selectedLocalClub.id] || []}
           onMatchClick={() => handleMatchClick(selectedLocalClub)}
           onSelectUser={handleSelectUser}
-          onSendMessage={(message) => handleSendMessage(message, selectedLocalClub.id)}
+          onSendMessage={(message) => onSendMessage(message, selectedLocalClub.id)}
         />
       )}
 

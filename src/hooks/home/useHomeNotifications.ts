@@ -1,59 +1,20 @@
 
-import { useState, useCallback, useEffect } from 'react';
-import { Notification } from '@/types';
-import { handleNotification } from '@/lib/notificationUtils';
-import { toast } from "@/hooks/use-toast";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useHomeNotifications = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState<number>(0);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
-  const handleMarkAsRead = useCallback((id: string) => {
-    console.log("Marking notification as read:", id);
-    const updatedNotifications = handleNotification(id, 'read');
-    
-    if (updatedNotifications) {
-      setNotifications(updatedNotifications);
-    }
-  }, []);
-
-  const handleDeclineInvite = useCallback((id: string) => {
-    console.log("Declining invitation:", id);
-    const updatedNotifications = handleNotification(id, 'delete');
-    
-    if (updatedNotifications) {
-      setNotifications(updatedNotifications);
-      
-      toast({
-        title: "Invitation Declined",
-        description: "The club invitation has been declined."
-      });
-    }
-  }, []);
-
-  const handleClearAllNotifications = useCallback(() => {
-    console.log("Clearing all notifications");
-    localStorage.setItem('notifications', JSON.stringify([]));
-    setNotifications([]);
-    
-    const event = new CustomEvent('notificationsUpdated');
-    window.dispatchEvent(event);
-    
-    toast({
-      title: "Notifications Cleared",
-      description: "All notifications have been cleared."
-    });
-  }, []);
-
-  // Load unread chat message counts from localStorage
   useEffect(() => {
-    const handleUnreadMessagesUpdated = () => {
+    const loadUnreadCounts = () => {
+      // Load from localStorage for now until we implement Supabase
       const unreadMessages = localStorage.getItem('unreadMessages');
       if (unreadMessages) {
         try {
           const unreadMap = JSON.parse(unreadMessages);
           const totalUnread = Object.values(unreadMap).reduce(
-            (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0),
+            (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 
             0
           );
           setUnreadMessages(Number(totalUnread));
@@ -65,25 +26,48 @@ export const useHomeNotifications = () => {
         setUnreadMessages(0);
       }
     };
-
-    // Initial load
-    handleUnreadMessagesUpdated();
     
-    // Set up listeners
-    window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
+    const loadNotifications = async () => {
+      try {
+        // Eventually pull from Supabase notifications table
+        const savedNotifications = localStorage.getItem('notifications');
+        if (savedNotifications) {
+          setNotifications(JSON.parse(savedNotifications));
+        } else {
+          setNotifications([]);
+        }
+      } catch (error) {
+        console.error("Error loading notifications:", error);
+        setNotifications([]);
+      }
+    };
+    
+    loadUnreadCounts();
+    loadNotifications();
+    
+    const handleMessagesUpdated = () => {
+      loadUnreadCounts();
+    };
+    
+    const handleNotificationsUpdated = () => {
+      loadNotifications();
+    };
+    
+    window.addEventListener('unreadMessagesUpdated', handleMessagesUpdated);
+    window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
+    window.addEventListener('chatDrawerClosed', handleMessagesUpdated);
     
     return () => {
-      window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
+      window.removeEventListener('unreadMessagesUpdated', handleMessagesUpdated);
+      window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
+      window.removeEventListener('chatDrawerClosed', handleMessagesUpdated);
     };
   }, []);
 
   return {
-    notifications,
-    setNotifications,
     unreadMessages,
     setUnreadMessages,
-    handleMarkAsRead,
-    handleDeclineInvite,
-    handleClearAllNotifications
+    notifications,
+    setNotifications,
   };
 };

@@ -3,15 +3,17 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
-import ChatDrawer from './chat/ChatDrawer';
 import SupportPopover from './shared/SupportPopover';
 import CreateClubDialog from './club/CreateClubDialog';
 import SearchClubDialog from './club/SearchClubDialog';
 import HomeHeader from './home/HomeHeader';
 import HomeClubsSection from './home/HomeClubsSection';
 import HomeNotifications from './home/HomeNotifications';
+import ChatDrawerHandler from './home/ChatDrawerHandler';
 import { useClubActions } from '@/hooks/home/useClubActions';
 import { useSupportActions } from '@/hooks/home/useSupportActions';
+import { useHomeNotifications } from '@/hooks/home/useHomeNotifications';
+import { useChatDrawer } from '@/hooks/home/useChatDrawer';
 
 interface HomeViewProps {
   chatNotifications?: number;
@@ -21,7 +23,7 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   const { setCurrentView, setSelectedClub, setSelectedUser, currentUser } = useApp();
   const [unreadMessages, setUnreadMessages] = useState(chatNotifications);
   const [notifications, setNotifications] = useState<any[]>([]);
-  const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
+  const { chatDrawerOpen, setChatDrawerOpen } = useChatDrawer();
 
   const {
     searchDialogOpen,
@@ -34,6 +36,7 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   } = useClubActions();
 
   const { supportTickets, handleCreateSupportTicket } = useSupportActions();
+  const { setUnreadMessages: updateUnreadMessages } = useHomeNotifications();
 
   useEffect(() => {
     const handleUserDataUpdate = () => {
@@ -62,10 +65,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
       clubs: []
     });
     setCurrentView('profile');
-  };
-
-  const handleOpenChat = () => {
-    setChatDrawerOpen(true);
   };
 
   const handleMarkNotificationAsRead = (id: string) => {
@@ -105,13 +104,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   const userClubs = currentUser?.clubs || [];
   const isAtClubCapacity = userClubs.length >= 3;
 
-  console.log('HomeView rendering with clubs:', userClubs.map(c => c.name));
-  
-  // Log club members to help debug the issue
-  userClubs.forEach(club => {
-    console.log(`Club ${club.name} has ${club.members?.length || 0} members`);
-  });
-
   return (
     <div className="pb-20 pt-6">
       <div className="container-mobile">
@@ -128,7 +120,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
           onUserClick={handleSelectUser}
           onJoinClub={handleJoinClub}
           onDeclineInvite={handleDeclineInvite}
-          onOpenChat={handleOpenChat}
         />
 
         <HomeClubsSection 
@@ -142,18 +133,11 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
         />
       </div>
 
-      <ChatDrawer 
-        open={chatDrawerOpen} 
-        onOpenChange={(open) => {
-          setChatDrawerOpen(open);
-          if (!open) {
-            const event = new CustomEvent('chatDrawerClosed');
-            window.dispatchEvent(event);
-          }
-        }} 
-        clubs={userClubs}
-        onNewMessage={(count) => setUnreadMessages(count)} 
+      <ChatDrawerHandler 
+        userClubs={userClubs}
+        onSelectUser={handleSelectUser}
         supportTickets={supportTickets}
+        setUnreadMessages={updateUnreadMessages}
       />
 
       <SearchClubDialog

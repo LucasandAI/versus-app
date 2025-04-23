@@ -5,6 +5,7 @@ import { useApp } from '@/context/AppContext';
 import UserAvatar from '../shared/UserAvatar';
 import Button from '../shared/Button';
 import NotificationPopover from '../shared/NotificationPopover';
+import { useChatDrawer } from '@/hooks/home/useChatDrawer';
 
 interface HomeHeaderProps {
   notifications: any[];
@@ -14,7 +15,6 @@ interface HomeHeaderProps {
   onUserClick: (userId: string, name: string) => void;
   onJoinClub: (clubId: string, clubName: string) => void;
   onDeclineInvite: (id: string) => void;
-  onOpenChat: () => void;
 }
 
 const HomeHeader: React.FC<HomeHeaderProps> = ({
@@ -25,9 +25,9 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   onUserClick,
   onJoinClub,
   onDeclineInvite,
-  onOpenChat,
 }) => {
   const { setCurrentView, currentUser } = useApp();
+  const { openChatDrawer } = useChatDrawer();
 
   return (
     <div className="flex items-center justify-between mb-6">
@@ -43,7 +43,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
         />
         <Button 
           variant="link"
-          onClick={onOpenChat}
+          onClick={openChatDrawer}
           className="text-primary hover:bg-gray-100 rounded-full p-2"
           icon={<MessageCircle className="h-5 w-5" />}
           badge={unreadMessages}
