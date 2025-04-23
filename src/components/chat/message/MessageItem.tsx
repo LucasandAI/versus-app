@@ -1,9 +1,9 @@
+
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
 import MessageContent from './MessageContent';
 import { useApp } from '@/context/AppContext';
-import { supabase } from '@/integrations/supabase/client';
 
 interface MessageItemProps {
   message: ChatMessage;
@@ -24,16 +24,16 @@ const MessageItem: React.FC<MessageItemProps> = ({
   formatTime,
   currentUserAvatar,
 }) => {
+  // Get currentUser to determine if this user can delete the message
   const { currentUser } = useApp();
   
-  const canDelete = message.sender.id === currentUser?.id;
+  // Log message and current user information
+  console.log('MessageItem - message sender:', message.sender.id);
+  console.log('MessageItem - current user:', currentUser?.id);
   
-  console.log('MessageItem - Permissions:', {
-    messageId: message.id,
-    senderId: message.sender.id,
-    currentUserId: currentUser?.id,
-    canDelete: canDelete
-  });
+  // Determine if the current user can delete this message (only if they are the sender)
+  const canDelete = currentUser && currentUser.id === message.sender.id;
+  console.log('MessageItem - canDelete:', canDelete);
 
   return (
     <div className={`flex ${isUserMessage ? 'justify-end' : 'justify-start'} group`}>
@@ -48,6 +48,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
       )}
       
       <div className={`max-w-[70%] ${isUserMessage ? 'order-2' : 'order-1'}`}>
+        {/* Show sender name for non-user messages */}
         {!isUserMessage && (
           <button 
             className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left`}

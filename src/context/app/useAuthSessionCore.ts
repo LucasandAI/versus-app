@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { safeSupabase } from '@/integrations/supabase/safeClient';
 import { AppView, User } from '@/types';
@@ -30,7 +31,8 @@ export const useAuthSessionCore = ({
     
     console.log('[useAuthSessionCore] Setting up auth session listener');
 
-    const { data } = safeSupabase.auth.onAuthStateChange(async (event, session) => {
+    // First, set up the auth state change listener
+    const { data } = safeSupabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return;
       
       console.log('[useAuthSessionCore] Auth state changed:', { 
@@ -42,11 +44,14 @@ export const useAuthSessionCore = ({
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         if (session?.user?.id) {
           try {
+            // Only set loading if user explicitly tried to sign in (event === 'SIGNED_IN')
             if (event === 'SIGNED_IN') {
               setUserLoading(true);
             }
             
-            // Set immediate basic user state with session data
+            console.log('[useAuthSessionCore] Loading user profile for ID:', session.user.id);
+            
+            // Create a basic user first with session details
             const basicUser: User = {
               id: session.user.id,
               name: session.user.email || 'User',
@@ -55,25 +60,53 @@ export const useAuthSessionCore = ({
               clubs: []
             };
             
+            // Set the basic user immediately for better UX
             setCurrentUser(basicUser);
-            setCurrentView('home');
             
-            // Load full profile in background
-            const userProfile = await loadCurrentUser(session.user.id);
-            if (isMounted && userProfile) {
-              console.log('[useAuthSessionCore] Setting full user profile:', userProfile.id);
-              setCurrentUser(userProfile);
-            }
+            // Fetch full user profile in the background
+            // Using setTimeout to avoid potential deadlocks with Supabase auth
+            setTimeout(async () => {
+              if (!isMounted) return;
+              
+              try {
+                const userProfile = await loadCurrentUser(session.user.id);
+                if (isMounted && userProfile) {
+                  console.log('[useAuthSessionCore] User profile loaded:', userProfile.id);
+                  setCurrentUser(userProfile);
+                  
+                  // Log additional user information for debugging
+                  console.log('[useAuthSessionCore] Updated user context with:', {
+                    id: userProfile.id,
+                    name: userProfile.name,
+                    clubsCount: userProfile.clubs?.length || 0
+                  });
+                }
+              } catch (profileError) {
+                console.warn('[useAuthSessionCore] Error loading full profile, using basic user:', profileError);
+              } finally {
+                if (isMounted) {
+                  setUserLoading(false);
+                }
+              }
+            }, 0);
+            
+            // Even with just the basic user, proceed to home view
+            setCurrentView('home');
+            setAuthChecked(true);
           } catch (error) {
             console.error('[useAuthSessionCore] Error in auth flow:', error);
             if (isMounted) {
               setAuthError(error instanceof Error ? error.message : 'Authentication error');
-            }
-          } finally {
-            if (isMounted) {
               setUserLoading(false);
               setAuthChecked(true);
             }
+          }
+        } else {
+          console.warn('[useAuthSessionCore] Session exists but no user ID');
+          if (isMounted) {
+            setAuthChecked(true);
+            setUserLoading(false);
+            setCurrentView('connect');
           }
         }
       } else if (event === 'SIGNED_OUT') {
@@ -84,9 +117,15 @@ export const useAuthSessionCore = ({
           setAuthChecked(true);
           setUserLoading(false);
         }
+      } else {
+        console.log('[useAuthSessionCore] Other auth event:', event);
+        if (isMounted) {
+          setAuthChecked(true);
+          setUserLoading(false);
+        }
       }
     });
-
+    
     // Then, check for an existing session, but don't show loading screen
     // Using setTimeout to avoid potential deadlocks with the auth state change listener
     setTimeout(() => {
