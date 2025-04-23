@@ -3,10 +3,11 @@ import React from 'react';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
 import ChatDrawerContent from './ChatDrawerContent';
+import ChatSidebar from '../ChatSidebar';
 import DMSearchPanel from './dm/DMSearchPanel';
 import SupportTabContent from './support/SupportTabContent';
 
-interface DrawerContentProps {
+interface ChatDrawerContainerProps {
   activeTab: "clubs" | "dm" | "support";
   clubs: Club[];
   selectedLocalClub: Club | null;
@@ -27,7 +28,7 @@ interface DrawerContentProps {
   isSubmitting?: boolean;
 }
 
-const DrawerContent: React.FC<DrawerContentProps> = ({
+const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   activeTab,
   clubs,
   selectedLocalClub,
@@ -48,18 +49,18 @@ const DrawerContent: React.FC<DrawerContentProps> = ({
   isSubmitting
 }) => {
   const handleMatchClick = (club: Club) => {
-    console.log('[DrawerContent] Match clicked for club:', club.id);
+    console.log('[ChatDrawerContainer] Match clicked for club:', club.id);
   };
 
   const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
-    console.log('[DrawerContent] User selected:', { userId, userName });
+    console.log('[ChatDrawerContainer] User selected:', { userId, userName });
   };
 
   switch (activeTab) {
     case "clubs":
       return (
         <div className="flex h-full">
-          <ChatSidebarContent
+          <ChatSidebar
             clubs={clubs}
             selectedClub={selectedLocalClub}
             selectedTicket={selectedTicket}
@@ -101,4 +102,4 @@ const DrawerContent: React.FC<DrawerContentProps> = ({
   }
 };
 
-export default DrawerContent;
+export default ChatDrawerContainer;

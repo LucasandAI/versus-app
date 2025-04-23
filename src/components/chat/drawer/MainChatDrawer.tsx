@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Drawer, DrawerContent } from '@/components/ui/drawer';
+import { Drawer, DrawerContent as UIDrawerContent } from '@/components/ui/drawer';
 import { ChatProvider } from '@/context/ChatContext';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
@@ -12,7 +12,7 @@ import { useSupportTickets } from '@/hooks/chat/useSupportTickets';
 import { useRealtimeMessages } from '@/hooks/chat/useRealtimeMessages';
 import { useSupportTicketEffects } from '@/hooks/chat/useSupportTicketEffects';
 import DrawerHeader from './DrawerHeader';
-import DrawerContent from './DrawerContent';
+import ChatDrawerContainer from './ChatDrawerContainer';
 import { useApp } from '@/context/AppContext';
 
 interface MainChatDrawerProps {
@@ -110,13 +110,13 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   return (
     <ChatProvider>
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="h-[80vh] rounded-t-xl p-0 flex flex-col">
+        <UIDrawerContent className="h-[80vh] rounded-t-xl p-0 flex flex-col">
           <DrawerHeader 
             activeTab={activeTab} 
             setActiveTab={setActiveTab} 
           />
           
-          <DrawerContent 
+          <ChatDrawerContainer 
             activeTab={activeTab}
             clubs={clubs}
             selectedLocalClub={selectedLocalClub}
@@ -136,7 +136,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             handleSubmitSupportTicket={handleSubmitTicket}
             isSubmitting={isSubmitting}
           />
-        </DrawerContent>
+        </UIDrawerContent>
       </Drawer>
     </ChatProvider>
   );
