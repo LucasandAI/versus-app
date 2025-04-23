@@ -23,7 +23,7 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
   const { unreadMessages, updateUnreadCount } = useUnreadNotifications(open, onNewMessage);
   const { messages, setMessages, handleNewMessage } = useMessages(saveMessages, updateUnreadCount);
   
-  // Get chat actions without passing currentUser
+  // Get chat actions
   const { sendMessageToClub } = useChatActions();
   const { deleteChat } = useChatDeletion(saveMessages, saveSupportTickets, saveUnreadMessages);
 
@@ -38,58 +38,25 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     setRefreshKey(Date.now());
   };
   
-  // Add a wrapper for sending messages that updates the UI and handles the Supabase insert
+  // Create a wrapper for sending messages that passes the message directly to useChatActions
   const handleSendClubMessage = useCallback(async (message: string, clubId: string) => {
     if (!message.trim() || !clubId) {
       console.log('[useChat] Cannot send empty message or missing clubId');
       return;
     }
     
-    try {
-      // Attempt to refresh the session first
-      await supabase.auth.refreshSession();
-      
-      // Verify user is authenticated
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !sessionData?.session) {
-        console.error('[useChat] No valid session found:', sessionError);
-        toast({
-          title: "Authentication Error",
-          description: "You must be logged in to send messages",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      // Also check user directly
-      const { data: userData } = await supabase.auth.getUser();
-      console.log('[useChat] Auth checks:', { 
-        sessionUserId: sessionData.session.user.id,
-        directUserId: userData?.user?.id,
-        idsMatch: sessionData.session.user.id === userData?.user?.id
-      });
-      
-      console.log('[useChat] Sending message to club:', { 
-        clubId, 
-        userId: sessionData.session.user.id,
-        message: message.substring(0, 20) + (message.length > 20 ? '...' : '') 
-      });
-      
-      // Use the sendMessageToClub function from useChatActions
-      const result = await sendMessageToClub(clubId, message);
-      
-      if (result) {
-        console.log('[useChat] Message sent successfully. The UI will be updated via realtime subscription.');
-      } else {
-        console.error('[useChat] Failed to send message - no result returned');
-      }
-    } catch (error) {
-      console.error('[useChat] Error sending message:', error);
-      toast({
-        title: "Error",
-        description: "Failed to send message. Please try again.",
-        variant: "destructive"
-      });
+    console.log('[useChat] DIRECT handleSendClubMessage called:', { 
+      clubId, 
+      messagePreview: message.substring(0, 20) + (message.length > 20 ? '...' : '') 
+    });
+    
+    // Directly call the sendMessageToClub function from useChatActions
+    const result = await sendMessageToClub(clubId, message);
+    
+    if (result) {
+      console.log('[useChat] Message sent successfully');
+    } else {
+      console.error('[useChat] Failed to send message - no result returned');
     }
   }, [sendMessageToClub]);
 
@@ -100,7 +67,7 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     refreshKey,
     refreshChats,
     handleNewMessage,
-    sendMessageToClub: handleSendClubMessage,
+    sendMessageToClub: handleSendClubMessage,  // Use our wrapped function
     setUnreadMessages: updateUnreadCount,
     markTicketAsRead: (ticketId: string) => updateUnreadCount(ticketId, 0),
     deleteChat

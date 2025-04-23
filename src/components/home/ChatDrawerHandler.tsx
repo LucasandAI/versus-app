@@ -150,9 +150,17 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
     fetchSupportTickets();
   }, [currentUser, isOpen, refreshTrigger]);
 
-  // Function to send a message to a club
+  // Function to send a message to a club - this will be passed to ChatDrawer
   const handleSendClubMessage = async (message: string, clubId?: string) => {
-    if (!clubId) return;
+    if (!clubId) {
+      console.log('[ChatDrawerHandler] No clubId provided for message');
+      return;
+    }
+    
+    console.log('[ChatDrawerHandler] Sending club message:', { 
+      clubId, 
+      messagePreview: message.substring(0, 20) + (message.length > 20 ? '...' : '') 
+    });
     
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -169,8 +177,7 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
         .from('club_chat_messages')
         .insert({
           club_id: clubId,
-          message: message,
-          sender_id: sessionData.session.user.id
+          message: message
         })
         .select(`
           id, 
@@ -216,6 +223,7 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
       supportTickets={fetchedSupportTickets}
       clubMessages={clubMessages}
       onNewMessage={setUnreadMessages}
+      onSendMessage={handleSendClubMessage}
     />
   );
 };

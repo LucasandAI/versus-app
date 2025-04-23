@@ -20,7 +20,7 @@ interface DrawerContentProps {
   unreadMessages: Record<string, number>;
   handleNewMessage: (clubId: string, message: any, isOpen: boolean) => void;
   markTicketAsRead: (ticketId: string) => void;
-  onSendMessage: (message: string, clubId: string) => void;
+  onSendMessage: (message: string, clubId?: string) => void;
   supportMessage: string;
   setSupportMessage: (message: string) => void;
   handleSubmitSupportTicket: () => void;
@@ -47,6 +47,10 @@ const DrawerContent: React.FC<DrawerContentProps> = ({
   handleSubmitSupportTicket,
   isSubmitting = false
 }) => {
+  // Debug log to verify we have the correct club 
+  console.log('[DrawerContent] Selected club:', selectedLocalClub?.id, 
+    'Rendering with activeTab:', activeTab);
+  
   return (
     <div className="flex-1 overflow-auto">
       {activeTab === "clubs" && (
@@ -64,6 +68,9 @@ const DrawerContent: React.FC<DrawerContentProps> = ({
           handleNewMessage={handleNewMessage}
           markTicketAsRead={markTicketAsRead}
           onSendMessage={(message) => {
+            console.log('[DrawerContent] Sending message to club:', 
+              selectedLocalClub?.id, message.substring(0, 20));
+            
             if (selectedLocalClub && selectedLocalClub.id) {
               onSendMessage(message, selectedLocalClub.id);
             } else {

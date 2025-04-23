@@ -35,7 +35,13 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
         messages={clubMessages}
         onMatchClick={() => onMatchClick(selectedClub)}
         onSelectUser={onSelectUser}
-        onSendMessage={(message) => onSendMessage(message, selectedClub.id)}
+        onSendMessage={(message) => {
+          console.log('[ChatMainContent] Sending message:', { 
+            clubId: selectedClub.id, 
+            messageLength: message.length 
+          });
+          onSendMessage(message, selectedClub.id);
+        }}
       />
     );
   }
