@@ -8,9 +8,9 @@ import { useChat } from '@/hooks/chat/useChat';
 import { useChatDrawerState } from '@/hooks/chat/useChatDrawerState';
 import ChatDrawerHeader from './ChatDrawerHeader';
 import ChatDrawerContent from './ChatDrawerContent';
-import SupportOptions from './support/SupportOptions';
-import NewTicketDialog from './support/NewTicketDialog';
 import DMSearchPanel from './dm/DMSearchPanel';
+import SupportTabContent from './support/SupportTabContent';
+import ChatDrawerTabs from './ChatDrawerTabs';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -36,8 +36,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const { currentUser } = useApp();
   const { close: closeDrawer } = useChatDrawerGlobal();
   const [activeTab, setActiveTab] = useState<"clubs"|"dm"|"support">("clubs");
-  const [supportOptionsOpen, setSupportOptionsOpen] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [supportMessage, setSupportMessage] = useState("");
   const [selectedSupportOption, setSelectedSupportOption] = useState<{id: string, label: string} | null>(null);
 
@@ -55,18 +53,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     handleNewMessage,
     markTicketAsRead,
     deleteChat,
-    createSupportTicket
   } = useChat(open, onNewMessage);
-
-  const handleOpenSupportOptions = () => {
-    setSupportOptionsOpen(true);
-  };
-
-  const handleSelectSupportOption = (option: {id: string, label: string}) => {
-    setSelectedSupportOption(option);
-    setSupportOptionsOpen(false);
-    setDialogOpen(true);
-  };
 
   const handleSubmitSupportTicket = async () => {
     if (!currentUser) return;
@@ -116,7 +103,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
         description: "Your support request has been submitted successfully."
       });
 
-      setDialogOpen(false);
       setSupportMessage("");
       setSelectedSupportOption(null);
 
@@ -141,22 +127,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="h-[80vh] rounded-t-xl p-0 flex flex-col">
           <ChatDrawerHeader />
-          <nav className="flex border-b">
-            {["clubs", "dm", "support"].map(tab => (
-              <button
-                key={tab}
-                className={`flex-1 py-3 text-center text-sm font-medium transition ${
-                  activeTab === tab 
-                    ? "border-b-2 border-primary text-primary" 
-                    : "text-gray-500 hover:text-primary"
-                }`}
-                onClick={() => setActiveTab(tab as any)}
-                data-testid={`chat-tab-${tab}`}
-              >
-                {tab === "clubs" ? "Club Chat" : tab === "dm" ? "Direct Messages" : "Support"}
-              </button>
-            ))}
-          </nav>
+          <ChatDrawerTabs activeTab={activeTab} setActiveTab={setActiveTab} />
           
           <div className="flex-1 overflow-auto">
             {activeTab === "clubs" && (
@@ -202,59 +173,17 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             )}
             {activeTab === "dm" && <DMSearchPanel />}
             {activeTab === "support" && (
-              <div className="p-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="font-semibold text-lg">Support Tickets</h2>
-                  <button 
-                    className="bg-primary text-white px-4 py-2 rounded-md text-sm"
-                    onClick={handleOpenSupportOptions}
-                  >
-                    New Ticket
-                  </button>
-                </div>
-                
-                {supportTickets && supportTickets.length === 0 ? (
-                  <div className="text-gray-500 text-sm py-4 text-center">
-                    No support tickets yet. Click "New Ticket" to create one.
-                  </div>
-                ) : (
-                  <ul className="space-y-2">
-                    {supportTickets.map((ticket) => (
-                      <li 
-                        key={ticket.id} 
-                        onClick={() => handleSelectTicket(ticket)}
-                        className="p-3 border rounded-md cursor-pointer hover:bg-gray-50 transition"
-                      >
-                        <div className="font-medium">{ticket.subject}</div>
-                        <div className="text-xs text-gray-500">
-                          Created: {new Date(ticket.createdAt).toLocaleDateString()} 
-                          • {ticket.messages.length} message{ticket.messages.length !== 1 ? 's' : ''}
-                        </div>
-                        <div className="text-xs text-blue-500 mt-1">Click to view conversation</div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+              <SupportTabContent
+                supportTickets={supportTickets}
+                onSelectTicket={handleSelectTicket}
+                handleSubmitSupportTicket={handleSubmitSupportTicket}
+                supportMessage={supportMessage}
+                setSupportMessage={setSupportMessage}
+              />
             )}
           </div>
         </DrawerContent>
       </Drawer>
-
-      <SupportOptions 
-        open={supportOptionsOpen}
-        onOpenChange={setSupportOptionsOpen}
-        onSelectOption={handleSelectSupportOption}
-      />
-
-      <NewTicketDialog 
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        selectedOption={selectedSupportOption}
-        onSubmit={handleSubmitSupportTicket}
-        supportMessage={supportMessage}
-        setSupportMessage={setSupportMessage}
-      />
     </ChatProvider>
   );
 };
