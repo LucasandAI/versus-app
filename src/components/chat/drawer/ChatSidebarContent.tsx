@@ -20,8 +20,16 @@ interface ChatSidebarContentProps {
 }
 
 const ChatSidebarContent: React.FC<ChatSidebarContentProps> = (props) => {
+  // Create a default onSelectUser function if not provided
+  const enhancedProps = {
+    ...props,
+    onSelectUser: props.onSelectUser || ((userId: string, userName: string, userAvatar?: string) => {
+      console.log("Default onSelectUser handler:", userId, userName);
+    })
+  };
+  
   return (
-    <ChatSidebar {...props} />
+    <ChatSidebar {...enhancedProps} />
   );
 };
 

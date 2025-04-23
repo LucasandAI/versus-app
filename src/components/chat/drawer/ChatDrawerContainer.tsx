@@ -4,6 +4,7 @@ import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
 import ChatSidebarContent from './ChatSidebarContent';
 import ChatDrawerContent from './ChatDrawerContent';
+import { useChatInteractions } from '@/hooks/chat/useChatInteractions';
 
 interface ChatDrawerContainerProps {
   activeTab: 'clubs' | 'dm' | 'support';
@@ -48,6 +49,8 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   isSubmitting,
   setClubMessages
 }) => {
+  const { handleSelectUser } = useChatInteractions();
+  
   return (
     <div className="flex flex-1 h-full overflow-hidden">
       {/* Sidebar */}
@@ -62,6 +65,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
           selectedTicket={selectedTicket}
           refreshKey={refreshKey}
           unreadMessages={unreadMessages}
+          onSelectUser={handleSelectUser}
         />
       </div>
 
