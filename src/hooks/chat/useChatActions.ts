@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { createClient } from '@supabase/supabase-js';
 
 export const useChatActions = () => {
   const sendMessageToClub = useCallback(async (clubId: string, messageText: string) => {
@@ -27,7 +28,7 @@ export const useChatActions = () => {
       // Get user info directly to confirm
       const { data: userData, error: userError } = await supabase.auth.getUser();
       console.log('⚡ Double check user:', userData?.user?.id, 'Error:', userError?.message);
-      
+
       if (!userData?.user?.id) {
         console.error('[useChatActions] User ID mismatch or missing');
         toast({
@@ -47,14 +48,30 @@ export const useChatActions = () => {
       // NEW DEBUG LOGGING
       console.log('[DEBUG] Final session before insert:', session);
       console.log('[DEBUG] Final user ID before insert:', session?.user?.id);
+      console.log('[DEBUG] Access token:', session?.access_token);
       
-      // Insert the message
-      const { data: insertedMessage, error: insertError } = await supabase
+      // Create a new client with the access token for this request
+      const SUPABASE_URL = "https://goxpejofxjvcilfoyrxs.supabase.co";
+      const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdveHBlam9meGp2Y2lsZm95cnhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUzNDc0NDgsImV4cCI6MjA2MDkyMzQ0OH0.Giew8VRVChAks1ooUc3N3oTbMDjFVTzGnr9IExIirYs";
+      
+      const clientWithAuth = createClient(SUPABASE_URL, SUPABASE_KEY, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          storage: localStorage
+        },
+        global: {
+          headers: { Authorization: `Bearer ${session.access_token}` }
+        }
+      });
+
+      // Insert the message using the authenticated client
+      const { data: insertedMessage, error: insertError } = await clientWithAuth
         .from('club_chat_messages')
         .insert({
           club_id: clubId,
           message: messageText,
-          sender_id: userId  // Explicitly use the authenticated user's ID
+          sender_id: userId
         })
         .select(`
           id, 
