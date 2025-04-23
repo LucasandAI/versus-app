@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { ChatProvider } from '@/context/ChatContext';
 import { Club } from '@/types';
@@ -40,12 +40,61 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const [supportMessage, setSupportMessage] = useState("");
   const [selectedSupportOption, setSelectedSupportOption] = useState<{id: string, label: string} | null>(null);
 
+  // Load tickets from storage when drawer opens
+  useEffect(() => {
+    if (open) {
+      try {
+        const storedTickets = localStorage.getItem('supportTickets');
+        if (storedTickets) {
+          const parsedTickets = JSON.parse(storedTickets);
+          // Refresh support tickets but maintain selection
+          if (selectedTicket) {
+            const updatedSelectedTicket = parsedTickets.find((t: SupportTicket) => t.id === selectedTicket.id);
+            if (updatedSelectedTicket) {
+              handleSelectTicket(updatedSelectedTicket);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error parsing support tickets:", error);
+      }
+    }
+  }, [open]);
+
   const {
     selectedLocalClub,
     selectedTicket,
     handleSelectClub,
     handleSelectTicket,
   } = useChatDrawerState(open, supportTickets);
+
+  // Ensure real-time updates to messages
+  useEffect(() => {
+    const handleTicketUpdated = () => {
+      try {
+        if (selectedTicket) {
+          const storedTickets = localStorage.getItem('supportTickets');
+          if (storedTickets) {
+            const parsedTickets = JSON.parse(storedTickets);
+            const updatedTicket = parsedTickets.find((t: SupportTicket) => t.id === selectedTicket.id);
+            if (updatedTicket) {
+              handleSelectTicket(updatedTicket);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error updating selected ticket:", error);
+      }
+    };
+
+    window.addEventListener('supportTicketCreated', handleTicketUpdated);
+    window.addEventListener('notificationsUpdated', handleTicketUpdated);
+    
+    return () => {
+      window.removeEventListener('supportTicketCreated', handleTicketUpdated);
+      window.removeEventListener('notificationsUpdated', handleTicketUpdated);
+    };
+  }, [selectedTicket]);
 
   const { 
     messages, 
@@ -63,7 +112,12 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     currentUser
   );
 
-  const handleSubmitSupportTicket = async () => {
+  const handleSubmitSupportTicket = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
     if (!currentUser) return;
 
     try {
@@ -120,6 +174,22 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       window.dispatchEvent(event);
       
       setActiveTab("support");
+
+      // Fetch the newly created ticket to select it
+      try {
+        setTimeout(() => {
+          const storedTickets = localStorage.getItem('supportTickets');
+          if (storedTickets) {
+            const parsedTickets = JSON.parse(storedTickets);
+            const newTicket = parsedTickets.find((t: SupportTicket) => t.id === ticketData.id);
+            if (newTicket) {
+              handleSelectTicket(newTicket);
+            }
+          }
+        }, 500);
+      } catch (error) {
+        console.error("Error selecting new ticket:", error);
+      }
     } catch (error) {
       console.error('Error creating support ticket:', error);
       toast({
@@ -183,10 +253,12 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             {activeTab === "support" && (
               <SupportTabContent
                 supportTickets={supportTickets}
+                selectedTicket={selectedTicket}
                 onSelectTicket={handleSelectTicket}
                 handleSubmitSupportTicket={handleSubmitSupportTicket}
                 supportMessage={supportMessage}
                 setSupportMessage={setSupportMessage}
+                onSendMessage={handleSendMessage}
               />
             )}
           </div>

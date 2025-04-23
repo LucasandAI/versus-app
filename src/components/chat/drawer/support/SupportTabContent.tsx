@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { SupportTicket } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
 import { useApp } from '@/context/AppContext';
 import SupportOptions from './SupportOptions';
 import NewTicketDialog from './NewTicketDialog';
+import ChatTicketContent from '../../ChatTicketContent';
 
 interface SupportTabContentProps {
   supportTickets: SupportTicket[];
@@ -12,6 +12,8 @@ interface SupportTabContentProps {
   handleSubmitSupportTicket: () => void;
   supportMessage: string;
   setSupportMessage: (message: string) => void;
+  selectedTicket: SupportTicket | null;
+  onSendMessage: (message: string) => void;
 }
 
 const SupportTabContent: React.FC<SupportTabContentProps> = ({
@@ -20,12 +22,16 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
   handleSubmitSupportTicket,
   supportMessage,
   setSupportMessage,
+  selectedTicket,
+  onSendMessage
 }) => {
   const [supportOptionsOpen, setSupportOptionsOpen] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [selectedSupportOption, setSelectedSupportOption] = React.useState<{id: string, label: string} | null>(null);
 
-  const handleOpenSupportOptions = () => {
+  const handleOpenSupportOptions = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setSupportOptionsOpen(true);
   };
 
@@ -34,6 +40,15 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
     setSupportOptionsOpen(false);
     setDialogOpen(true);
   };
+
+  if (selectedTicket) {
+    return (
+      <ChatTicketContent 
+        ticket={selectedTicket} 
+        onSendMessage={onSendMessage} 
+      />
+    );
+  }
 
   return (
     <div className="p-4">
