@@ -10,7 +10,6 @@ import ChatDrawerHeader from './drawer/ChatDrawerHeader';
 import ChatDrawerContent from './drawer/ChatDrawerContent';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
-import { HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -39,6 +38,13 @@ const TABS = [
   { key: "support", label: "Support" },
 ];
 
+// Support ticket option types
+const SUPPORT_OPTIONS = [
+  { id: 'bug', label: 'Report a Bug' },
+  { id: 'help', label: 'Ask for Help' },
+  { id: 'cheating', label: 'Report Cheating' }
+];
+
 const ChatDrawer = ({ 
   open, 
   onOpenChange, 
@@ -52,6 +58,7 @@ const ChatDrawer = ({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [supportMessage, setSupportMessage] = useState("");
   const [selectedSupportOption, setSelectedSupportOption] = useState<{id: string, label: string} | null>(null);
+  const [supportOptionsOpen, setSupportOptionsOpen] = useState(false);
   
   const {
     selectedLocalClub,
@@ -117,6 +124,8 @@ const ChatDrawer = ({
           avatar: currentUser.avatar || '/placeholder.svg'
         }
       };
+      
+      // Update local state immediately for real-time appearance
       handleNewMessage(clubId, newMessage, open);
 
       // Persist to Supabase
@@ -130,8 +139,13 @@ const ChatDrawer = ({
     }
   };
 
-  const handleCreateSupportTicket = () => {
-    if (!selectedSupportOption) return;
+  const handleOpenSupportOptions = () => {
+    setSupportOptionsOpen(true);
+  };
+
+  const handleSelectSupportOption = (option: {id: string, label: string}) => {
+    setSelectedSupportOption(option);
+    setSupportOptionsOpen(false);
     setDialogOpen(true);
   };
 
@@ -193,14 +207,16 @@ const ChatDrawer = ({
         description: "Your support request has been submitted successfully."
       });
 
-      // Switch to support tab and refresh
+      // Switch to support tab and close dialog
       setActiveTab("support");
+      
+      // Refresh to show the new ticket
       const event = new CustomEvent('supportTicketCreated', { 
-        detail: { ticketId: ticketData.id, count: 0 }
+        detail: { ticketId: ticketData.id }
       });
       window.dispatchEvent(event);
-
-      // Reset form
+      
+      // Reset form and close dialog
       setSupportMessage("");
       setSelectedSupportOption(null);
       setDialogOpen(false);
@@ -236,8 +252,8 @@ const ChatDrawer = ({
               <ChatDrawerContent 
                 clubs={clubs}
                 selectedLocalClub={selectedLocalClub}
-                selectedTicket={selectedTicket}
-                localSupportTickets={localSupportTickets}
+                selectedTicket={null}
+                localSupportTickets={[]}
                 onSelectClub={handleSelectClub}
                 onSelectTicket={handleSelectTicket}
                 refreshKey={refreshKey}
@@ -255,18 +271,39 @@ const ChatDrawer = ({
             {activeTab === "support" && (
               <SupportPanel 
                 tickets={supportTickets} 
-                onCreateSupportTicket={() => {
-                  setSelectedSupportOption({
-                    id: 'contact',
-                    label: 'Contact Support'
-                  });
-                  setDialogOpen(true);
-                }}
+                onCreateSupportTicket={handleOpenSupportOptions}
               />
             )}
           </div>
         </DrawerContent>
       </Drawer>
+
+      {/* Support Options Dialog */}
+      <AlertDialog open={supportOptionsOpen} onOpenChange={setSupportOptionsOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Select Support Type</AlertDialogTitle>
+            <AlertDialogDescription>
+              Please select the type of support you need:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="grid gap-4 py-4">
+            {SUPPORT_OPTIONS.map(option => (
+              <Button 
+                key={option.id}
+                variant="outline" 
+                className="justify-start text-left font-normal"
+                onClick={() => handleSelectSupportOption(option)}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Support Ticket Dialog */}
       <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -330,7 +367,6 @@ const SupportPanel: React.FC<{
         className="flex items-center gap-1" 
         onClick={onCreateSupportTicket}
       >
-        <HelpCircle className="h-4 w-4" />
         New Ticket
       </Button>
     </div>

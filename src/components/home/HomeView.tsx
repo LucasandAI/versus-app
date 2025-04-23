@@ -100,7 +100,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
             onSearchClick={() => setSearchDialogOpen(true)}
           />
         </div>
-        {/* Only ONE ChatDrawerHandler is rendered at root, manages chat drawer for this view */}
         <ChatDrawerHandler 
           userClubs={userClubs}
           onSelectUser={handleSelectUser}
@@ -117,7 +116,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
           open={createClubDialogOpen}
           onOpenChange={setCreateClubDialogOpen}
         />
-        {/* Removed SupportPopover */}
       </div>
     </ChatDrawerProvider>
   );
