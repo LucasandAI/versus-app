@@ -63,7 +63,13 @@ const DrawerContent: React.FC<DrawerContentProps> = ({
           unreadMessages={unreadMessages}
           handleNewMessage={handleNewMessage}
           markTicketAsRead={markTicketAsRead}
-          onSendMessage={onSendMessage}
+          onSendMessage={(message) => {
+            if (selectedLocalClub && selectedLocalClub.id) {
+              onSendMessage(message, selectedLocalClub.id);
+            } else {
+              console.error('[DrawerContent] Cannot send message: No club selected');
+            }
+          }}
         />
       )}
       {activeTab === "dm" && <DMSearchPanel />}
