@@ -25,6 +25,7 @@ export const useChatActions = () => {
         .insert({
           club_id: clubId,
           message: messageText,
+          sender_id: user.id
         })
         .select(`
           id, 

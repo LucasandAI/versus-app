@@ -33,65 +33,55 @@ export const useClubMessages = (
           schema: 'public',
           table: 'club_chat_messages',
           filter: `club_id=eq.${club.id}`
-        }, (payload) => {
-          console.log(`[Realtime] New club message received:`, payload);
+        }, async (payload) => {
+          console.log(`[Realtime] New club message received for club ${club.id}:`, payload);
           
-          // Immediately update the UI with the new message
-          setClubMessages(prev => {
-            const existingMessages = prev[club.id] || [];
-            // Don't add if message already exists (prevent duplicates)
-            if (existingMessages.some(msg => msg.id === payload.new.id)) {
-              console.log(`[useClubMessages] Message ${payload.new.id} already exists, skipping`);
-              return prev;
+          try {
+            // Fetch sender information immediately for the new message
+            const { data: sender, error } = await supabase
+              .from('users')
+              .select('id, name, avatar')
+              .eq('id', payload.new.sender_id)
+              .single();
+              
+            if (error) {
+              console.error('[useClubMessages] Error fetching sender:', error);
+              return;
             }
             
-            // Fetch the sender information to include with the message
-            const fetchSender = async () => {
-              try {
-                const { data: sender, error } = await supabase
-                  .from('users')
-                  .select('id, name, avatar')
-                  .eq('id', payload.new.sender_id)
-                  .single();
-                
-                if (error) {
-                  console.error('[useClubMessages] Error fetching sender:', error);
-                  return;
-                }
-                
-                // Create a complete message object with sender information
-                const completeMessage = {
-                  ...payload.new,
-                  sender
-                };
-                
-                // Update state with the complete message
-                setClubMessages(currentMessages => {
-                  const clubMessages = currentMessages[club.id] || [];
-                  return {
-                    ...currentMessages,
-                    [club.id]: [...clubMessages, completeMessage]
-                  };
-                });
-              } catch (error) {
-                console.error('[useClubMessages] Error processing new message:', error);
-              }
+            // Create complete message with sender info
+            const completeMessage = {
+              ...payload.new,
+              sender
             };
             
-            fetchSender();
+            // Update state with the new message
+            setClubMessages(currentMessages => {
+              const existingMessages = currentMessages[club.id] || [];
+              
+              // Check for duplicates to prevent double-adding messages
+              if (existingMessages.some(msg => msg.id === completeMessage.id)) {
+                console.log(`[useClubMessages] Message ${completeMessage.id} already exists, skipping`);
+                return currentMessages;
+              }
+              
+              console.log(`[useClubMessages] Adding new message to club ${club.id}:`, completeMessage);
+              
+              // Return updated messages with the new message appended
+              return {
+                ...currentMessages,
+                [club.id]: [...existingMessages, completeMessage]
+              };
+            });
             
-            // Return previous state while we fetch the sender asynchronously
-            return prev;
-          });
-
-          // Handle unread count in a separate async function
-          const updateUnreadCount = async () => {
+            // Handle unread count
             const { data: { user } } = await supabase.auth.getUser();
             if (payload.new.sender_id !== user?.id && setUnreadMessages && document.hidden) {
               setUnreadMessages(1);
             }
-          };
-          updateUnreadCount();
+          } catch (error) {
+            console.error('[useClubMessages] Error processing new message:', error);
+          }
         })
         .on('postgres_changes', {
           event: 'DELETE',
@@ -124,9 +114,9 @@ export const useClubMessages = (
       return channel;
     });
     
-    // Fetch initial messages for each club EVERY time the drawer is opened
+    // Fetch initial messages for each club
     const fetchClubMessages = async () => {
-      console.log('[useClubMessages] Fetching fresh messages for all clubs on drawer open');
+      console.log('[useClubMessages] Fetching messages for all clubs');
       
       try {
         const messagesPromises = userClubs.map(async (club) => {
@@ -163,9 +153,9 @@ export const useClubMessages = (
           }
         });
         
-        // Set the messages in state with the fresh data
+        // Set the messages in state
         setClubMessages(clubMessagesMap);
-        console.log('[useClubMessages] Updated clubMessages state with fresh data:', 
+        console.log('[useClubMessages] Updated clubMessages state:', 
           Object.keys(clubMessagesMap).map(key => `${key}: ${clubMessagesMap[key]?.length || 0} messages`));
       } catch (error) {
         console.error('[useClubMessages] Error fetching club messages:', error);
@@ -177,7 +167,6 @@ export const useClubMessages = (
       }
     };
     
-    // Always fetch fresh messages when the drawer opens
     fetchClubMessages();
 
     // Cleanup subscriptions when drawer closes or component unmounts
