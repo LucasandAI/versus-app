@@ -3,6 +3,8 @@ import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
 
+// This hook is now focused only on updating unread counts and firing events
+// The actual message display is handled by useClubMessages
 export const useRealtimeChat = (
   currentUserId: string | undefined,
   userClubs: Club[]
@@ -14,11 +16,11 @@ export const useRealtimeChat = (
     }
     
     const clubIds = userClubs.map(club => club.id);
-    console.log('[useRealtimeChat] Setting up global subscription for clubs:', clubIds);
+    console.log('[useRealtimeChat] Setting up global subscription for unread notifications');
     
-    // Subscribe to club messages for the user's clubs
+    // Subscribe only for unread notifications, not for displaying messages
     const channel = supabase
-      .channel('chat-updates')
+      .channel('chat-notifications')
       .on(
         'postgres_changes',
         { 
@@ -28,7 +30,7 @@ export const useRealtimeChat = (
           filter: clubIds.length > 0 ? `club_id=in.(${clubIds.map(id => `'${id}'`).join(',')})` : undefined
         },
         (payload) => {
-          console.log('[useRealtimeChat] New message received:', payload);
+          console.log('[useRealtimeChat] New message notification:', payload.new.id);
           
           if (payload.new.sender_id !== currentUserId) {
             // Update unread count if the message is not from current user

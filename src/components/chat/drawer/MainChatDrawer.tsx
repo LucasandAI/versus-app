@@ -9,7 +9,7 @@ import { useChat } from '@/hooks/chat/useChat';
 import { useChatDrawerState } from '@/hooks/chat/useChatDrawerState';
 import { useChatMessages } from '@/hooks/chat/useChatMessages';
 import { useSupportTickets } from '@/hooks/chat/useSupportTickets';
-import { useRealtimeMessages } from '@/hooks/chat/useRealtimeMessages';
+import { useClubMessages } from '@/hooks/chat/useClubMessages';
 import { useSupportTicketEffects } from '@/hooks/chat/useSupportTicketEffects';
 import DrawerHeader from './DrawerHeader';
 import ChatDrawerContainer from './ChatDrawerContainer';
@@ -35,15 +35,9 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const { currentUser } = useApp();
   const [activeTab, setActiveTab] = useState<"clubs"|"dm"|"support">("clubs");
   const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>(supportTickets);
-  const [localClubMessages, setLocalClubMessages] = useState<Record<string, any[]>>(clubMessages);
 
-  // Update local messages whenever clubMessages prop changes
-  useEffect(() => {
-    if (open && Object.keys(clubMessages).length > 0) {
-      console.log('[MainChatDrawer] Received updated clubMessages:', Object.keys(clubMessages).length);
-      setLocalClubMessages(clubMessages);
-    }
-  }, [clubMessages, open]);
+  // Use the club messages hook directly instead of local state
+  const { clubMessages: localClubMessages, setClubMessages } = useClubMessages(clubs, open, onNewMessage);
 
   const {
     supportMessage,
@@ -81,7 +75,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   // Extract club message handler directly from chat
   const handleSendClubMessage = chat.sendMessageToClub;
 
-  useRealtimeMessages(open, setLocalClubMessages);
   useSupportTicketEffects(open, setLocalSupportTickets);
 
   const handleSubmitTicket = async () => {
