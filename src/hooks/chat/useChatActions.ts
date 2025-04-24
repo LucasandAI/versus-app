@@ -103,72 +103,53 @@ export const useChatActions = () => {
   }, [currentUser]);
 
   const deleteMessage = useCallback(async (messageId: string, setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>) => {
-    try {
-      // Optimistically update the UI immediately
-      if (setClubMessages) {
-        setClubMessages(prevMessages => {
-          const updatedMessages = { ...prevMessages };
-          Object.keys(updatedMessages).forEach(clubId => {
-            updatedMessages[clubId] = updatedMessages[clubId].filter(msg => msg.id !== messageId);
-          });
-          return updatedMessages;
+    // 1. Immediately remove from UI
+    if (setClubMessages) {
+      setClubMessages(prevMessages => {
+        const updatedMessages = { ...prevMessages };
+        Object.keys(updatedMessages).forEach(clubId => {
+          updatedMessages[clubId] = updatedMessages[clubId].filter(msg => msg.id !== messageId);
         });
-      }
+        return updatedMessages;
+      });
+    }
 
-      // Only call Supabase for non-temp messages
-      if (!messageId.startsWith('temp-')) {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError || !session?.user) {
-          toast({
-            title: "Authentication Error", 
-            description: "You must be logged in to delete messages",
-            variant: "destructive"
-          });
-          return false;
-        }
-        
-        console.log('[useChatActions] Deleting message from Supabase', { messageId, userId: session.user.id });
-        
-        const { error: deleteError } = await supabase
-          .from('club_chat_messages')
-          .delete()
-          .eq('id', messageId)
-          .eq('sender_id', session.user.id);
-        
-        if (deleteError) {
-          console.error('[useChatActions] Error deleting message:', deleteError);
-          
-          if (deleteError.code === '42501') {
-            toast({
-              title: "Permission Denied",
-              description: "You can only delete your own messages",
-              variant: "destructive"
-            });
-          } else {
-            toast({
-              title: "Error",
-              description: deleteError.message || "Failed to delete message",
-              variant: "destructive"
-            });
-          }
-          return false;
-        }
-        
-        console.log('[useChatActions] Message deleted successfully from Supabase');
-      } else {
-        console.log('[useChatActions] Optimistically deleted temp message:', messageId);
+    // 2. Skip Supabase for temp messages
+    if (messageId.startsWith('temp-')) {
+      console.log('[useChatActions] Skipping Supabase deletion for temp message:', messageId);
+      return true;
+    }
+
+    // 3. Call Supabase in the background for real messages
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session?.user) {
+        console.error('[useChatActions] Auth error during background deletion:', sessionError);
+        return true; // Still return true since UI is already updated
       }
+      
+      console.log('[useChatActions] Deleting message from Supabase in background:', messageId);
+      
+      // Fire and forget - don't await the response
+      supabase
+        .from('club_chat_messages')
+        .delete()
+        .eq('id', messageId)
+        .eq('sender_id', session.user.id)
+        .then(({ error }) => {
+          if (error) {
+            console.error('[useChatActions] Background deletion failed:', error);
+            // Don't revert UI - just log the error
+          } else {
+            console.log('[useChatActions] Background deletion successful');
+          }
+        });
       
       return true;
     } catch (error) {
-      console.error('[useChatActions] Exception deleting message:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
-      return false;
+      console.error('[useChatActions] Exception during background deletion:', error);
+      return true; // Still return true since UI is already updated
     }
   }, []);
 
