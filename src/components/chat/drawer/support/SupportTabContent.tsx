@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { SupportTicket } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
 import { useApp } from '@/context/AppContext';
@@ -37,6 +37,36 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
 }) => {
   const [supportOptionsOpen, setSupportOptionsOpen] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [localSupportTickets, setLocalSupportTickets] = React.useState<SupportTicket[]>(supportTickets);
+
+  // Update local tickets when props change
+  useEffect(() => {
+    setLocalSupportTickets(supportTickets);
+  }, [supportTickets]);
+
+  // Listen for supportTicketDeleted event
+  useEffect(() => {
+    const handleTicketDeleted = (event: CustomEvent) => {
+      const deletedTicketId = event.detail?.ticketId;
+      if (deletedTicketId) {
+        // Update local state to remove the deleted ticket
+        setLocalSupportTickets(prevTickets => 
+          prevTickets.filter(ticket => ticket.id !== deletedTicketId)
+        );
+        
+        // If the deleted ticket is currently selected, clear the selection
+        if (selectedTicket && selectedTicket.id === deletedTicketId) {
+          onSelectTicket(null as any);
+        }
+      }
+    };
+
+    window.addEventListener('supportTicketDeleted', handleTicketDeleted as EventListener);
+    
+    return () => {
+      window.removeEventListener('supportTicketDeleted', handleTicketDeleted as EventListener);
+    };
+  }, [selectedTicket, onSelectTicket]);
 
   const handleOpenSupportOptions = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -127,13 +157,13 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
         </button>
       </div>
       
-      {supportTickets && supportTickets.length === 0 ? (
+      {localSupportTickets.length === 0 ? (
         <div className="text-gray-500 text-sm py-4 text-center">
           No support tickets yet. Click "New Ticket" to create one.
         </div>
       ) : (
         <ul className="space-y-2">
-          {supportTickets.map((ticket) => (
+          {localSupportTickets.map((ticket) => (
             <li 
               key={ticket.id} 
               onClick={() => onSelectTicket(ticket)}
