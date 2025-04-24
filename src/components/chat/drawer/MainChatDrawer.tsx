@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Drawer, DrawerContent as UIDrawerContent } from '@/components/ui/drawer';
 import { ChatProvider } from '@/context/ChatContext';
@@ -34,9 +33,15 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const { currentUser } = useApp();
   const [activeTab, setActiveTab] = useState<"clubs"|"dm"|"support">("clubs");
   const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>(supportTickets);
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [selectedUserName, setSelectedUserName] = useState<string>('');
+  const [selectedUserAvatar, setSelectedUserAvatar] = useState<string>();
 
-  // Use the club messages hook directly to handle real-time messages
-  const { clubMessages: localClubMessages, setClubMessages } = useClubMessages(clubs, open, onNewMessage);
+  const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
+    setSelectedUserId(userId);
+    setSelectedUserName(userName);
+    setSelectedUserAvatar(userAvatar);
+  };
 
   const {
     supportMessage,
@@ -55,8 +60,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     handleSelectTicket,
   } = useChatDrawerState(open, localSupportTickets);
 
-  // Use both hooks for chat functionality
-  const chat = useChat(open, onNewMessage);
   const { 
     messages, 
     unreadMessages, 
@@ -64,7 +67,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     handleNewMessage,
     markTicketAsRead,
     deleteChat,
-  } = chat;
+  } = useChat(open, onNewMessage);
 
   const handleSendClubMessage = async (message: string, clubId?: string) => {
     if (!clubId) return;
@@ -95,7 +98,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     }
   };
   
-  // Debug log to see messages being passed to container
   console.log('[MainChatDrawer] Rendering with active tab:', activeTab, 
     'selectedClub:', selectedLocalClub?.id,
     'messages count:', Object.keys(localClubMessages).length);
@@ -134,6 +136,10 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             handleSubmitSupportTicket={handleSubmitTicket}
             isSubmitting={isSubmitting}
             setClubMessages={setClubMessages}
+            selectedUserId={selectedUserId}
+            selectedUserName={selectedUserName}
+            selectedUserAvatar={selectedUserAvatar}
+            onSelectUser={handleSelectUser}
           />
         </UIDrawerContent>
       </Drawer>
