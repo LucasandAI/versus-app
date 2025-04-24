@@ -4,7 +4,6 @@ import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import UserAvatar from '@/components/shared/UserAvatar';
-import { Button } from '@/components/ui/button';
 import { useApp } from '@/context/AppContext';
 import debounce from 'lodash/debounce';
 import { toast } from '@/hooks/use-toast';
@@ -60,10 +59,39 @@ const DMSearchPanel: React.FC = () => {
     searchUsers(value);
   };
 
-  const handleStartConversation = (userId: string) => {
-    console.log('Starting conversation with user:', userId);
-    setSearchResults([]);
-    setQuery('');
+  const handleSelectUser = async (userId: string) => {
+    try {
+      // First, check if a conversation already exists
+      const { data: existingChats, error: chatError } = await supabase
+        .from('direct_messages')
+        .select('*')
+        .or(`sender_id.eq.${currentUser?.id},receiver_id.eq.${currentUser?.id}`)
+        .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+        .limit(1);
+
+      if (chatError) {
+        throw chatError;
+      }
+
+      // Clear the search results and input
+      setSearchResults([]);
+      setQuery('');
+
+      // Trigger opening the chat with this user
+      // Note: The parent component will need to handle this event
+      const event = new CustomEvent('openDirectMessage', { 
+        detail: { userId, hasExistingChat: existingChats && existingChats.length > 0 }
+      });
+      window.dispatchEvent(event);
+
+    } catch (error) {
+      console.error('Error checking existing chat:', error);
+      toast({
+        title: "Error",
+        description: "Could not open conversation",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -88,7 +116,8 @@ const DMSearchPanel: React.FC = () => {
                 {searchResults.map((user) => (
                   <div
                     key={user.id}
-                    className="px-4 py-2 hover:bg-gray-50 flex items-center justify-between"
+                    onClick={() => handleSelectUser(user.id)}
+                    className="px-4 py-2 hover:bg-gray-50 flex items-center cursor-pointer transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <UserAvatar
@@ -98,13 +127,6 @@ const DMSearchPanel: React.FC = () => {
                       />
                       <span className="font-medium">{user.name}</span>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleStartConversation(user.id)}
-                    >
-                      Message
-                    </Button>
                   </div>
                 ))}
               </div>
