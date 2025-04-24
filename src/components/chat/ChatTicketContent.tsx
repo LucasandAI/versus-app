@@ -1,19 +1,70 @@
+
 import React from 'react';
 import { SupportTicket } from '@/types/chat';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import { useApp } from '@/context/AppContext';
+import { XCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 interface ChatTicketContentProps {
   ticket: SupportTicket;
   onSendMessage: (message: string) => void;
+  onTicketClosed?: () => void;
 }
 
-const ChatTicketContent = ({ ticket, onSendMessage }: ChatTicketContentProps) => {
+const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicketContentProps) => {
   const { currentUser } = useApp();
+  
+  const handleCloseTicket = async () => {
+    try {
+      const { error } = await supabase
+        .from('support_tickets')
+        .update({ status: 'closed' })
+        .eq('id', ticket.id);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Ticket Closed",
+        description: "The support ticket has been closed successfully.",
+      });
+      
+      if (onTicketClosed) {
+        onTicketClosed();
+      }
+    } catch (error) {
+      console.error('Error closing ticket:', error);
+      toast({
+        title: "Error",
+        description: "Failed to close the ticket. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <div className="flex flex-col h-full">
+      <div className="border-b p-3 flex justify-between items-center">
+        <div>
+          <h3 className="font-semibold">{ticket.subject}</h3>
+          <p className="text-xs text-gray-500">
+            Created {new Date(ticket.createdAt).toLocaleDateString()}
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleCloseTicket}
+          className="text-gray-500 hover:text-gray-700"
+        >
+          <XCircle className="w-4 h-4 mr-2" />
+          Close Ticket
+        </Button>
+      </div>
+
       <div className="flex-1 overflow-y-auto">
         <ChatMessages 
           messages={ticket.messages || []} 
