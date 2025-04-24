@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SupportTicket } from '@/types/chat';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
@@ -16,6 +16,7 @@ interface ChatTicketContentProps {
 
 const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicketContentProps) => {
   const { currentUser } = useApp();
+  const [localMessages, setLocalMessages] = useState(ticket.messages || []);
 
   const handleSendMessage = (message: string) => {
     // Create optimistic message
@@ -31,10 +32,10 @@ const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicket
       isSupport: false
     };
 
-    // Call onSendMessage with optimistic update
-    onSendMessage(message);
+    // Update local state immediately
+    setLocalMessages(prevMessages => [...prevMessages, optimisticMessage]);
 
-    // Update messages in local storage optimistically
+    // Update localStorage optimistically
     try {
       const storedTickets = localStorage.getItem('supportTickets');
       if (storedTickets) {
@@ -58,6 +59,9 @@ const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicket
     } catch (error) {
       console.error('Error updating localStorage:', error);
     }
+
+    // Call onSendMessage for background Supabase insert
+    onSendMessage(message);
   };
 
   const handleCloseTicket = async () => {
@@ -142,7 +146,7 @@ const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicket
 
       <div className="flex-1 overflow-y-auto">
         <ChatMessages 
-          messages={ticket.messages || []} 
+          messages={localMessages} 
           clubMembers={currentUser ? [currentUser] : []}
           isSupport={true}
         />
