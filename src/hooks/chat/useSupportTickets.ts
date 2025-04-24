@@ -73,13 +73,13 @@ export const useSupportTickets = () => {
 
       if (messageError) throw messageError;
 
-      // Add auto-response message
+      // Add automatic support team response
       const { error: autoResponseError } = await supabase
         .from('support_messages')
         .insert({
           ticket_id: ticketData.id,
           sender_id: 'system',
-          text: `Thank you for contacting support about "${selectedSupportOption.label}". A support agent will review your request and respond shortly.`,
+          text: "Thanks for reaching out! We'll review your message and get back to you shortly.",
           is_support: true
         });
 
@@ -106,7 +106,7 @@ export const useSupportTickets = () => {
           },
           {
             id: 'auto-' + Date.now(),
-            text: `Thank you for contacting support about "${selectedSupportOption.label}". A support agent will review your request and respond shortly.`,
+            text: "Thanks for reaching out! We'll review your message and get back to you shortly.",
             sender: {
               id: 'system',
               name: 'Support Team',
