@@ -37,14 +37,24 @@ export const useChatDrawerState = (open: boolean, supportTickets: SupportTicket[
     
     // Listen for ticket updates
     const handleTicketUpdated = () => loadTickets();
+    const handleTicketDeleted = (event: CustomEvent) => {
+      loadTickets();
+      // If the deleted ticket was selected, clear the selection
+      if (selectedTicket && selectedTicket.id === event.detail.ticketId) {
+        setSelectedTicket(null);
+      }
+    };
+    
     window.addEventListener('supportTicketCreated', handleTicketUpdated);
     window.addEventListener('notificationsUpdated', handleTicketUpdated);
     window.addEventListener('ticketUpdated', handleTicketUpdated);
+    window.addEventListener('supportTicketDeleted', handleTicketDeleted as EventListener);
     
     return () => {
       window.removeEventListener('supportTicketCreated', handleTicketUpdated);
       window.removeEventListener('notificationsUpdated', handleTicketUpdated);
       window.removeEventListener('ticketUpdated', handleTicketUpdated);
+      window.removeEventListener('supportTicketDeleted', handleTicketDeleted as EventListener);
     };
   }, [open, supportTickets, selectedTicket]);
 

@@ -46,13 +46,8 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   const [chatToDelete, setChatToDelete] = useState<{id: string, name: string, isTicket: boolean} | null>(null);
 
   const handleDeleteChat = () => {
-    // Only allow deletion if it's a support ticket, not a club
-    if (chatToDelete && onDeleteChat && chatToDelete.isTicket) {
+    if (chatToDelete && onDeleteChat) {
       onDeleteChat(chatToDelete.id, chatToDelete.isTicket);
-      toast({
-        title: "Chat Deleted",
-        description: `${chatToDelete.name} has been removed from your chats.`
-      });
       setChatToDelete(null);
     }
   };

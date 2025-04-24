@@ -20,17 +20,48 @@ const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicket
   
   const handleCloseTicket = async () => {
     try {
-      const { error } = await supabase
+      // Delete the ticket and its messages from Supabase
+      const { error: messagesError } = await supabase
+        .from('support_messages')
+        .delete()
+        .eq('ticket_id', ticket.id);
+      
+      if (messagesError) {
+        console.error('Error deleting ticket messages:', messagesError);
+        throw messagesError;
+      }
+      
+      const { error: ticketError } = await supabase
         .from('support_tickets')
-        .update({ status: 'closed' })
+        .delete()
         .eq('id', ticket.id);
-
-      if (error) throw error;
+        
+      if (ticketError) {
+        console.error('Error deleting ticket:', ticketError);
+        throw ticketError;
+      }
       
       toast({
-        title: "Ticket Closed",
-        description: "The support ticket has been closed successfully.",
+        title: "Ticket Deleted",
+        description: "The support ticket has been successfully deleted.",
       });
+      
+      // Update local storage
+      try {
+        const storedTickets = localStorage.getItem('supportTickets');
+        if (storedTickets) {
+          const parsedTickets = JSON.parse(storedTickets);
+          const updatedTickets = parsedTickets.filter((t: SupportTicket) => t.id !== ticket.id);
+          localStorage.setItem('supportTickets', JSON.stringify(updatedTickets));
+        }
+      } catch (error) {
+        console.error('Error updating localStorage:', error);
+      }
+
+      // Trigger custom event to notify other components about the deletion
+      window.dispatchEvent(new CustomEvent('supportTicketDeleted', { 
+        detail: { ticketId: ticket.id }
+      }));
       
       if (onTicketClosed) {
         onTicketClosed();
@@ -39,7 +70,7 @@ const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicket
       console.error('Error closing ticket:', error);
       toast({
         title: "Error",
-        description: "Failed to close the ticket. Please try again.",
+        description: "Failed to delete the ticket. Please try again.",
         variant: "destructive"
       });
     }
