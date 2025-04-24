@@ -1,12 +1,11 @@
 
-import { useCallback } from 'react';
 import { useTicketSubmission } from './support/useTicketSubmission';
 import { useMessageSubmission } from './support/useMessageSubmission';
 import { useSupportTicketState } from './support/useSupportTicketState';
 
 export const useSupportTickets = () => {
   const { supportMessage, setSupportMessage, selectedSupportOption, setSelectedSupportOption } = useSupportTicketState();
-  const { isSubmitting, handleSubmitSupportTicket } = useTicketSubmission();
+  const { isSubmitting, handleSubmitSupportTicket } = useTicketSubmission(selectedSupportOption, supportMessage);
   const { sendSupportMessage } = useMessageSubmission();
 
   return {
