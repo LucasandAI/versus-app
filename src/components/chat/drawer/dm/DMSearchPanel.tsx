@@ -7,19 +7,8 @@ import UserAvatar from '@/components/shared/UserAvatar';
 import { useApp } from '@/context/AppContext';
 import debounce from 'lodash/debounce';
 import { toast } from '@/hooks/use-toast';
-import DMConversationList from './DMConversationList';
 
-interface DMSearchPanelProps {
-  onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
-  selectedUserId?: string;
-  onDeleteChat?: (chatId: string, isTicket?: boolean) => void;
-}
-
-const DMSearchPanel: React.FC<DMSearchPanelProps> = ({ 
-  onSelectUser,
-  selectedUserId,
-  onDeleteChat
-}) => {
+const DMSearchPanel: React.FC = () => {
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{
     id: string;
@@ -70,13 +59,14 @@ const DMSearchPanel: React.FC<DMSearchPanelProps> = ({
     searchUsers(value);
   };
 
-  const handleSelectUser = async (userId: string, userName: string, userAvatar?: string) => {
+  const handleSelectUser = async (userId: string) => {
     try {
       // First, check if a conversation already exists
       const { data: existingChats, error: chatError } = await supabase
         .from('direct_messages')
         .select('*')
-        .or(`and(sender_id.eq.${currentUser?.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${currentUser?.id})`)
+        .or(`sender_id.eq.${currentUser?.id},receiver_id.eq.${currentUser?.id}`)
+        .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
         .limit(1);
 
       if (chatError) {
@@ -86,9 +76,14 @@ const DMSearchPanel: React.FC<DMSearchPanelProps> = ({
       // Clear the search results and input
       setSearchResults([]);
       setQuery('');
-      
-      // Call the parent component's handler
-      onSelectUser(userId, userName, userAvatar);
+
+      // Trigger opening the chat with this user
+      // Note: The parent component will need to handle this event
+      const event = new CustomEvent('openDirectMessage', { 
+        detail: { userId, hasExistingChat: existingChats && existingChats.length > 0 }
+      });
+      window.dispatchEvent(event);
+
     } catch (error) {
       console.error('Error checking existing chat:', error);
       toast({
@@ -100,57 +95,44 @@ const DMSearchPanel: React.FC<DMSearchPanelProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-4 border-b">
+    <div className="p-4 border-b">
+      <div className="relative">
         <div className="relative">
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <Input
-              className="w-full pl-9 pr-4"
-              placeholder="Search users to message..."
-              value={query}
-              onChange={handleInputChange}
-            />
-          </div>
-          
-          {(searchResults.length > 0 || isLoading) && (
-            <div className="absolute z-10 mt-1 w-full bg-white rounded-md border shadow-lg max-h-60 overflow-auto">
-              {isLoading ? (
-                <div className="p-4 text-center text-gray-500">Searching...</div>
-              ) : (
-                <div className="py-2">
-                  {searchResults.map((user) => (
-                    <div
-                      key={user.id}
-                      onClick={() => handleSelectUser(user.id, user.name, user.avatar)}
-                      className={`px-4 py-2 hover:bg-gray-50 flex items-center cursor-pointer transition-colors ${
-                        selectedUserId === user.id ? 'bg-gray-100' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <UserAvatar
-                          name={user.name}
-                          image={user.avatar}
-                          size="sm"
-                        />
-                        <span className="font-medium">{user.name}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+          <Input
+            className="w-full pl-9 pr-4"
+            placeholder="Search users to message..."
+            value={query}
+            onChange={handleInputChange}
+          />
         </div>
-      </div>
-
-      {/* Add the conversation list below the search */}
-      <div className="flex-1 overflow-y-auto">
-        <DMConversationList 
-          onSelectUser={handleSelectUser}
-          selectedUserId={selectedUserId}
-          onDeleteChat={onDeleteChat}
-        />
+        
+        {(searchResults.length > 0 || isLoading) && (
+          <div className="absolute z-10 mt-1 w-full bg-white rounded-md border shadow-lg max-h-60 overflow-auto">
+            {isLoading ? (
+              <div className="p-4 text-center text-gray-500">Searching...</div>
+            ) : (
+              <div className="py-2">
+                {searchResults.map((user) => (
+                  <div
+                    key={user.id}
+                    onClick={() => handleSelectUser(user.id)}
+                    className="px-4 py-2 hover:bg-gray-50 flex items-center cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <UserAvatar
+                        name={user.name}
+                        image={user.avatar}
+                        size="sm"
+                      />
+                      <span className="font-medium">{user.name}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
