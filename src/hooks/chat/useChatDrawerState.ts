@@ -19,11 +19,11 @@ export const useChatDrawerState = (open: boolean, supportTickets: SupportTicket[
             const parsedTickets = JSON.parse(storedTickets);
             setLocalSupportTickets(parsedTickets);
             
-            // If we have a selected ticket, update it with the latest data
+            // If we have a selected ticket, check if it still exists
             if (selectedTicket) {
-              const updatedTicket = parsedTickets.find((t: SupportTicket) => t.id === selectedTicket.id);
-              if (updatedTicket) {
-                setSelectedTicket(updatedTicket);
+              const ticketStillExists = parsedTickets.find((t: SupportTicket) => t.id === selectedTicket.id);
+              if (!ticketStillExists) {
+                setSelectedTicket(null);
               }
             }
           }

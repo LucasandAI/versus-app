@@ -31,23 +31,6 @@ export const useChatDeletion = () => {
             throw ticketError;
           }
           
-          // Update local storage
-          try {
-            const storedTickets = localStorage.getItem('supportTickets');
-            if (storedTickets) {
-              const parsedTickets = JSON.parse(storedTickets);
-              const updatedTickets = parsedTickets.filter((t: any) => t.id !== chatId);
-              localStorage.setItem('supportTickets', JSON.stringify(updatedTickets));
-            }
-          } catch (error) {
-            console.error('Error updating localStorage:', error);
-          }
-          
-          // Trigger custom event to notify other components
-          window.dispatchEvent(new CustomEvent('supportTicketDeleted', { 
-            detail: { ticketId: chatId }
-          }));
-          
           return { success: true };
         } catch (error) {
           console.error('Error deleting support ticket:', error);
@@ -77,6 +60,24 @@ export const useChatDeletion = () => {
 
   // Return a function with the expected signature that calls the mutation
   const deleteChat = (chatId: string, isTicket: boolean) => {
+    // Trigger the custom event for optimistic UI update before the mutation
+    window.dispatchEvent(new CustomEvent('supportTicketDeleted', { 
+      detail: { ticketId: chatId }
+    }));
+    
+    // Update local storage optimistically
+    try {
+      const storedTickets = localStorage.getItem('supportTickets');
+      if (storedTickets) {
+        const parsedTickets = JSON.parse(storedTickets);
+        const updatedTickets = parsedTickets.filter((t: any) => t.id !== chatId);
+        localStorage.setItem('supportTickets', JSON.stringify(updatedTickets));
+      }
+    } catch (error) {
+      console.error('Error updating localStorage:', error);
+    }
+    
+    // Then run the actual deletion in the background
     deleteChatMutation.mutate({ chatId, isTicket });
   };
 
