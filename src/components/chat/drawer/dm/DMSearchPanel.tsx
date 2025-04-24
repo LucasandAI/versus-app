@@ -8,6 +8,7 @@ import { useApp } from '@/context/AppContext';
 import debounce from 'lodash/debounce';
 import { toast } from '@/hooks/use-toast';
 import DMConversationList from './DMConversationList';
+import DMConversation from './DMConversation';
 
 const DMSearchPanel: React.FC = () => {
   const [query, setQuery] = useState("");
@@ -17,7 +18,11 @@ const DMSearchPanel: React.FC = () => {
     avatar: string;
   }>>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<string>();
+  const [selectedDMUser, setSelectedDMUser] = useState<{
+    id: string;
+    name: string;
+    avatar?: string;
+  } | null>(null);
   const { currentUser } = useApp();
 
   const searchUsers = useCallback(
@@ -62,20 +67,18 @@ const DMSearchPanel: React.FC = () => {
   };
 
   const handleSelectUser = async (userId: string, userName: string, userAvatar?: string) => {
-    setSelectedUserId(userId);
-    setQuery(''); // Clear search input
-    setSearchResults([]); // Clear search results
-    
-    // Dispatch custom event to open the conversation
-    const event = new CustomEvent('openDirectMessage', { 
-      detail: { userId, userName, userAvatar }
+    setSelectedDMUser({
+      id: userId,
+      name: userName,
+      avatar: userAvatar
     });
-    window.dispatchEvent(event);
+    setQuery('');
+    setSearchResults([]);
   };
 
   return (
-    <div className="flex h-full">
-      <div className="w-[240px] border-r">
+    <div className="flex h-full w-full">
+      <div className="w-[240px] border-r flex flex-col">
         <div className="p-4 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -115,10 +118,22 @@ const DMSearchPanel: React.FC = () => {
           )}
         </div>
         
-        <DMConversationList 
-          onSelectUser={handleSelectUser}
-          selectedUserId={selectedUserId}
-        />
+        <div className="flex-1 overflow-y-auto">
+          <DMConversationList 
+            onSelectUser={handleSelectUser}
+            selectedUserId={selectedDMUser?.id}
+          />
+        </div>
+      </div>
+
+      <div className="flex-1">
+        {selectedDMUser && (
+          <DMConversation 
+            userId={selectedDMUser.id}
+            userName={selectedDMUser.name}
+            userAvatar={selectedDMUser.avatar}
+          />
+        )}
       </div>
     </div>
   );
