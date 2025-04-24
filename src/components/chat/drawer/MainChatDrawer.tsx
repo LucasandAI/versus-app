@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Drawer, DrawerContent as UIDrawerContent } from '@/components/ui/drawer';
 import { ChatProvider } from '@/context/ChatContext';
@@ -12,7 +13,6 @@ import { useSupportTicketEffects } from '@/hooks/chat/useSupportTicketEffects';
 import DrawerHeader from './DrawerHeader';
 import ChatDrawerContainer from './ChatDrawerContainer';
 import { useApp } from '@/context/AppContext';
-import { supabase } from '@/integrations/supabase/client';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -34,15 +34,9 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const { currentUser } = useApp();
   const [activeTab, setActiveTab] = useState<"clubs"|"dm"|"support">("clubs");
   const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>(supportTickets);
-  const [selectedUserId, setSelectedUserId] = useState<string>('');
-  const [selectedUserName, setSelectedUserName] = useState<string>('');
-  const [selectedUserAvatar, setSelectedUserAvatar] = useState<string>();
 
-  const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
-    setSelectedUserId(userId);
-    setSelectedUserName(userName);
-    setSelectedUserAvatar(userAvatar);
-  };
+  // Use the club messages hook directly to handle real-time messages
+  const { clubMessages: localClubMessages, setClubMessages } = useClubMessages(clubs, open, onNewMessage);
 
   const {
     supportMessage,
@@ -61,6 +55,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     handleSelectTicket,
   } = useChatDrawerState(open, localSupportTickets);
 
+  // Use both hooks for chat functionality
+  const chat = useChat(open, onNewMessage);
   const { 
     messages, 
     unreadMessages, 
@@ -68,36 +64,11 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     handleNewMessage,
     markTicketAsRead,
     deleteChat,
-  } = useChat(open, onNewMessage);
-
-  const { clubMessages: localMessages, setClubMessages } = useClubMessages(clubs, open, onNewMessage);
+  } = chat;
 
   const handleSendClubMessage = async (message: string, clubId?: string) => {
     if (!clubId) return;
-    return sendMessageToClub(message, clubId, setClubMessages);
-  };
-
-  const sendMessageToClub = async (message: string, clubId: string, setMessages: React.Dispatch<React.SetStateAction<Record<string, any[]>>>) => {
-    if (!currentUser) return;
-    
-    try {
-      const { data, error } = await supabase.from('club_chat_messages').insert({
-        message,
-        club_id: clubId,
-        sender_id: currentUser.id
-      });
-      
-      if (error) throw error;
-      
-      return data;
-    } catch (error) {
-      console.error('Error sending club message:', error);
-      toast({
-        title: "Message Error",
-        description: "Failed to send message. Please try again.",
-        variant: "destructive"
-      });
-    }
+    return chat.sendMessageToClub(message, clubId, setClubMessages);
   };
 
   const handleSendSupportMessage = async (message: string) => {
@@ -124,9 +95,10 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     }
   };
   
+  // Debug log to see messages being passed to container
   console.log('[MainChatDrawer] Rendering with active tab:', activeTab, 
     'selectedClub:', selectedLocalClub?.id,
-    'messages count:', Object.keys(localMessages).length);
+    'messages count:', Object.keys(localClubMessages).length);
   
   return (
     <ChatProvider>
@@ -146,7 +118,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             onSelectClub={handleSelectClub}
             onSelectTicket={handleSelectTicket}
             refreshKey={refreshKey}
-            messages={localMessages}
+            messages={localClubMessages}
             deleteChat={deleteChat}
             unreadMessages={unreadMessages}
             handleNewMessage={handleNewMessage}
@@ -162,10 +134,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             handleSubmitSupportTicket={handleSubmitTicket}
             isSubmitting={isSubmitting}
             setClubMessages={setClubMessages}
-            selectedUserId={selectedUserId}
-            selectedUserName={selectedUserName}
-            selectedUserAvatar={selectedUserAvatar}
-            onSelectUser={handleSelectUser}
           />
         </UIDrawerContent>
       </Drawer>

@@ -158,30 +158,6 @@ export type Database = {
           },
         ]
       }
-      direct_messages: {
-        Row: {
-          id: string
-          receiver_id: string
-          sender_id: string
-          text: string
-          timestamp: string
-        }
-        Insert: {
-          id?: string
-          receiver_id: string
-          sender_id: string
-          text: string
-          timestamp?: string
-        }
-        Update: {
-          id?: string
-          receiver_id?: string
-          sender_id?: string
-          text?: string
-          timestamp?: string
-        }
-        Relationships: []
-      }
       match_distances: {
         Row: {
           club_id: string | null

@@ -1,9 +1,9 @@
+
 import React from 'react';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
 import ChatSidebar from '../ChatSidebar';
 import DMSearchPanel from './dm/DMSearchPanel';
-import DMChatContent from './dm/DMChatContent';
 import SupportTabContent from './support/SupportTabContent';
 import ChatDrawerContent from './ChatDrawerContent';
 
@@ -29,18 +29,10 @@ interface ChatDrawerContainerProps {
   handleSubmitSupportTicket?: () => Promise<void>;
   isSubmitting?: boolean;
   setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
-  selectedUserId?: string;
-  selectedUserName?: string;
-  selectedUserAvatar?: string;
-  onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
 }
 
 const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   activeTab,
-  selectedUserId,
-  selectedUserName,
-  selectedUserAvatar,
-  onSelectUser,
   clubs,
   selectedLocalClub,
   selectedTicket,
@@ -108,17 +100,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
         </div>
       );
     case "dm":
-      if (selectedUserId && selectedUserName) {
-        return (
-          <DMChatContent
-            selectedUserId={selectedUserId}
-            selectedUserName={selectedUserName}
-            selectedUserAvatar={selectedUserAvatar}
-            onClose={() => onSelectUser('', '', '')}
-          />
-        );
-      }
-      return <DMSearchPanel onSelectUser={onSelectUser} />;
+      return <DMSearchPanel />;
     case "support":
       return (
         <SupportTabContent 
