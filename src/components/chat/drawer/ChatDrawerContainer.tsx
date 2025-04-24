@@ -7,7 +7,6 @@ import DMConversation from './dm/DMConversation';
 import SupportTabContent from './support/SupportTabContent';
 import ChatDrawerContent from './ChatDrawerContent';
 import { supabase } from '@/integrations/supabase/client';
-
 interface ChatDrawerContainerProps {
   activeTab: "clubs" | "dm" | "support";
   clubs: Club[];
@@ -25,13 +24,18 @@ interface ChatDrawerContainerProps {
   onSendMessage: (message: string, clubId?: string) => void;
   supportMessage?: string;
   setSupportMessage?: (message: string) => void;
-  selectedSupportOption?: { id: string, label: string } | null;
-  setSelectedSupportOption?: (option: { id: string, label: string } | null) => void;
+  selectedSupportOption?: {
+    id: string;
+    label: string;
+  } | null;
+  setSelectedSupportOption?: (option: {
+    id: string;
+    label: string;
+  } | null) => void;
   handleSubmitSupportTicket?: () => Promise<void>;
   isSubmitting?: boolean;
   setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
 }
-
 const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   activeTab,
   clubs,
@@ -58,13 +62,11 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   const handleMatchClick = (club: Club) => {
     console.log('[ChatDrawerContainer] Match clicked for club:', club.id);
   };
-
   const [selectedDMUser, setSelectedDMUser] = useState<{
     id: string;
     name: string;
     avatar?: string;
   } | null>(null);
-
   const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
     setSelectedDMUser({
       id: userId,
@@ -95,91 +97,44 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
     console.log('[ChatDrawerContainer] Selection changed:', {
       selectedClub: selectedLocalClub?.id,
       selectedTicket: selectedTicket?.id,
-      activeTab,
+      activeTab
     });
   }, [selectedLocalClub, selectedTicket, activeTab]);
-
   useEffect(() => {
     const handleOpenDM = async (event: CustomEvent) => {
-      const { userId, userName, userAvatar } = event.detail;
+      const {
+        userId,
+        userName,
+        userAvatar
+      } = event.detail;
       handleSelectUser(userId, userName, userAvatar);
     };
-
     window.addEventListener('openDirectMessage', handleOpenDM as EventListener);
     return () => {
       window.removeEventListener('openDirectMessage', handleOpenDM as EventListener);
     };
   }, []);
-  
-  console.log('[ChatDrawerContainer] Active tab:', activeTab, 
-    'selectedClub:', selectedLocalClub?.id,
-    'selectedTicket:', selectedTicket?.id);
-  
+  console.log('[ChatDrawerContainer] Active tab:', activeTab, 'selectedClub:', selectedLocalClub?.id, 'selectedTicket:', selectedTicket?.id);
   switch (activeTab) {
     case "clubs":
-      return (
-        <div className="flex h-full w-full">
+      return <div className="flex h-full w-full">
           <div className="w-[240px] border-r">
-            <ChatSidebar 
-              clubs={clubs} 
-              selectedClub={selectedLocalClub} 
-              selectedTicket={selectedTicket} 
-              supportTickets={localSupportTickets} 
-              onSelectClub={onSelectClub} 
-              onSelectTicket={onSelectTicket} 
-              onDeleteChat={deleteChat} 
-              unreadCounts={unreadMessages} 
-              onSelectUser={handleSelectUser}
-              activeTab={activeTab}
-            />
+            <ChatSidebar clubs={clubs} selectedClub={selectedLocalClub} selectedTicket={selectedTicket} supportTickets={localSupportTickets} onSelectClub={onSelectClub} onSelectTicket={onSelectTicket} onDeleteChat={deleteChat} unreadCounts={unreadMessages} onSelectUser={handleSelectUser} activeTab={activeTab} />
           </div>
           
-          <div className="flex-1">
-            <ChatDrawerContent 
-              selectedClub={selectedLocalClub}
-              selectedTicket={null} // We're in clubs tab, so don't show tickets
-              messages={messages} 
-              onMatchClick={handleMatchClick} 
-              onSelectUser={handleSelectUser} 
-              onSendMessage={onSendMessage} 
-              setClubMessages={setClubMessages}
-            />
+          <div className="flex-1 py-[360px] px-0">
+            <ChatDrawerContent selectedClub={selectedLocalClub} selectedTicket={null} // We're in clubs tab, so don't show tickets
+          messages={messages} onMatchClick={handleMatchClick} onSelectUser={handleSelectUser} onSendMessage={onSendMessage} setClubMessages={setClubMessages} />
           </div>
-        </div>
-      );
+        </div>;
     case "dm":
-      return (
-        <div className="flex h-full w-full">
-          {!selectedDMUser ? (
-            <DMSearchPanel />
-          ) : (
-            <DMConversation 
-              userId={selectedDMUser.id} 
-              userName={selectedDMUser.name} 
-              userAvatar={selectedDMUser.avatar} 
-            />
-          )}
-        </div>
-      );
+      return <div className="flex h-full w-full">
+          {!selectedDMUser ? <DMSearchPanel /> : <DMConversation userId={selectedDMUser.id} userName={selectedDMUser.name} userAvatar={selectedDMUser.avatar} />}
+        </div>;
     case "support":
-      return (
-        <SupportTabContent 
-          supportTickets={localSupportTickets} 
-          selectedTicket={selectedTicket} 
-          onSelectTicket={onSelectTicket} 
-          supportMessage={supportMessage || ""} 
-          setSupportMessage={setSupportMessage || (() => {})} 
-          handleSubmitSupportTicket={handleSubmitSupportTicket || (async () => {})} 
-          isSubmitting={isSubmitting}
-          onSendMessage={onSendMessage}
-          selectedSupportOption={selectedSupportOption || null}
-          setSelectedSupportOption={setSelectedSupportOption || (() => {})}
-          activeTab={activeTab}
-        />
-      );
+      return <SupportTabContent supportTickets={localSupportTickets} selectedTicket={selectedTicket} onSelectTicket={onSelectTicket} supportMessage={supportMessage || ""} setSupportMessage={setSupportMessage || (() => {})} handleSubmitSupportTicket={handleSubmitSupportTicket || (async () => {})} isSubmitting={isSubmitting} onSendMessage={onSendMessage} selectedSupportOption={selectedSupportOption || null} setSelectedSupportOption={setSelectedSupportOption || (() => {})} activeTab={activeTab} />;
     default:
       return null;
   }
 };
-
 export default ChatDrawerContainer;
