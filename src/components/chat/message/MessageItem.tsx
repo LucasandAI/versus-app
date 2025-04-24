@@ -44,13 +44,12 @@ const MessageItem: React.FC<MessageItemProps> = ({
     checkDeletePermission();
   }, [message.sender?.id]);
   
-  console.log('[MessageItem]', {
-    messageId: message.id,
-    senderId: message.sender?.id,
-    isUserMessage,
-    canDelete,
-    messageText: message.text
-  });
+  const handleDeleteClick = () => {
+    if (canDelete && onDeleteMessage && message.id) {
+      console.log('[MessageItem] Delete button clicked for message:', message.id);
+      onDeleteMessage(message.id);
+    }
+  };
 
   return (
     <div className={`flex ${isUserMessage ? 'justify-end' : 'justify-start'} group`}>
@@ -80,10 +79,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
           message={message}
           isUserMessage={isUserMessage}
           isSupport={isSupport}
-          onDeleteMessage={canDelete && onDeleteMessage ? () => {
-            console.log('[MessageItem] Delete button clicked for message:', message.id);
-            onDeleteMessage(message.id);
-          } : undefined}
+          onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
         />
         
         <p className="text-xs text-gray-500 mt-1">{formatTime(message.timestamp)}</p>

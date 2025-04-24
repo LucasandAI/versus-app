@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Club } from '@/types';
 import ChatHeader from './ChatHeader';
@@ -29,11 +30,8 @@ const ChatClubContent = ({
 
   const handleDeleteMessage = async (messageId: string) => {
     console.log('[ChatClubContent] Deleting message:', messageId);
-    const success = await deleteMessage(messageId, setClubMessages);
-    
-    if (!success) {
-      console.log('[ChatClubContent] Failed to delete message');
-    }
+    // Pass setClubMessages to enable optimistic deletion
+    await deleteMessage(messageId, setClubMessages);
   };
 
   const handleClubClick = () => {

@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -103,32 +104,36 @@ export const useChatActions = () => {
   }, [currentUser]);
 
   const deleteMessage = useCallback(async (messageId: string, setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>) => {
-    // 1. Immediately remove from UI
+    console.log('[useChatActions] Deleting message with ID:', messageId);
+    
+    // 1. Immediately remove from UI - true optimistic deletion
     if (setClubMessages) {
       setClubMessages(prevMessages => {
         const updatedMessages = { ...prevMessages };
+        
+        // Update each club's messages
         Object.keys(updatedMessages).forEach(clubId => {
+          const originalLength = updatedMessages[clubId].length;
           updatedMessages[clubId] = updatedMessages[clubId].filter(msg => msg.id !== messageId);
+          
+          // Log if we actually found and removed a message
+          if (originalLength !== updatedMessages[clubId].length) {
+            console.log(`[useChatActions] Optimistically removed message ${messageId} from club ${clubId}`);
+          }
         });
+        
         return updatedMessages;
       });
     }
 
-    // 2. Skip Supabase for temp messages
+    // 2. Skip Supabase deletion for temp messages
     if (messageId.startsWith('temp-')) {
       console.log('[useChatActions] Skipping Supabase deletion for temp message:', messageId);
       return true;
     }
 
-    // 3. Call Supabase in the background for real messages
+    // 3. Call Supabase in the background for real messages - no awaiting
     try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !session?.user) {
-        console.error('[useChatActions] Auth error during background deletion:', sessionError);
-        return true; // Still return true since UI is already updated
-      }
-      
       console.log('[useChatActions] Deleting message from Supabase in background:', messageId);
       
       // Fire and forget - don't await the response
@@ -136,13 +141,12 @@ export const useChatActions = () => {
         .from('club_chat_messages')
         .delete()
         .eq('id', messageId)
-        .eq('sender_id', session.user.id)
         .then(({ error }) => {
           if (error) {
             console.error('[useChatActions] Background deletion failed:', error);
-            // Don't revert UI - just log the error
+            // Don't revert UI or show toast - just log the error
           } else {
-            console.log('[useChatActions] Background deletion successful');
+            console.log('[useChatActions] Background deletion successful for message:', messageId);
           }
         });
       
