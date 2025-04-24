@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { SupportTicket } from '@/types/chat';
 import ChatMessages from './ChatMessages';
@@ -17,7 +16,50 @@ interface ChatTicketContentProps {
 
 const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicketContentProps) => {
   const { currentUser } = useApp();
-  
+
+  const handleSendMessage = (message: string) => {
+    // Create optimistic message
+    const optimisticMessage = {
+      id: `temp-${Date.now()}`,
+      text: message,
+      sender: {
+        id: currentUser?.id || 'unknown',
+        name: currentUser?.name || 'You',
+        avatar: currentUser?.avatar || '/placeholder.svg'
+      },
+      timestamp: new Date().toISOString(),
+      isSupport: false
+    };
+
+    // Call onSendMessage with optimistic update
+    onSendMessage(message);
+
+    // Update messages in local storage optimistically
+    try {
+      const storedTickets = localStorage.getItem('supportTickets');
+      if (storedTickets) {
+        const tickets = JSON.parse(storedTickets);
+        const updatedTickets = tickets.map((t: SupportTicket) => {
+          if (t.id === ticket.id) {
+            return {
+              ...t,
+              messages: [...t.messages, optimisticMessage]
+            };
+          }
+          return t;
+        });
+        localStorage.setItem('supportTickets', JSON.stringify(updatedTickets));
+      }
+      
+      // Dispatch event to update UI immediately
+      window.dispatchEvent(new CustomEvent('ticketUpdated', { 
+        detail: { ticketId: ticket.id }
+      }));
+    } catch (error) {
+      console.error('Error updating localStorage:', error);
+    }
+  };
+
   const handleCloseTicket = async () => {
     try {
       // Update local storage optimistically
@@ -107,7 +149,7 @@ const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicket
       </div>
       
       <div className="sticky bottom-0 left-0 right-0 bg-white border-t">
-        <ChatInput onSendMessage={onSendMessage} />
+        <ChatInput onSendMessage={handleSendMessage} />
       </div>
     </div>
   );

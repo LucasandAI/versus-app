@@ -27,41 +27,7 @@ export const useMessageSubmission = () => {
     }
 
     try {
-      // Create optimistic message for UI
-      const optimisticMessage = {
-        id: `temp-${Date.now()}`,
-        text: message,
-        sender: {
-          id: currentUser.id,
-          name: currentUser.name || 'You',
-          avatar: currentUser.avatar || '/placeholder.svg'
-        },
-        timestamp: new Date().toISOString(),
-        isSupport: false
-      };
-      
-      // Update local storage
-      const existingTickets = localStorage.getItem('supportTickets');
-      if (existingTickets) {
-        const storedTickets = JSON.parse(existingTickets);
-        const updatedTickets = storedTickets.map(ticket => {
-          if (ticket.id === ticketId) {
-            return {
-              ...ticket,
-              messages: [...(ticket.messages || []), optimisticMessage]
-            };
-          }
-          return ticket;
-        });
-        localStorage.setItem('supportTickets', JSON.stringify(updatedTickets));
-      }
-      
-      // Dispatch event to update UI
-      window.dispatchEvent(new CustomEvent('supportTicketUpdated', { 
-        detail: { ticketId, message: optimisticMessage }
-      }));
-      
-      // Send to Supabase
+      // Send to Supabase in the background
       const { error } = await supabase
         .from('support_messages')
         .insert({
@@ -75,17 +41,17 @@ export const useMessageSubmission = () => {
         console.error('Error sending support message:', error);
         toast({
           title: "Error",
-          description: "Failed to send message to server, but it appears in your chat",
+          description: "Message sent but failed to sync with server",
           variant: "destructive"
         });
       }
 
       return true;
     } catch (error) {
-      console.error('Error sending support message:', error);
+      console.error('Error in sendSupportMessage:', error);
       toast({
         title: "Error",
-        description: "Failed to send message",
+        description: "Message sent but failed to sync with server",
         variant: "destructive"
       });
       return false;
