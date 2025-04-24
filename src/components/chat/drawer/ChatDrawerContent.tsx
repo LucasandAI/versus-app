@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Club } from '@/types';
+import { SupportTicket } from '@/types/chat';
 import ChatEmpty from '../ChatEmpty';
 import ChatMainContent from './chat-content/ChatMainContent';
 
@@ -23,6 +24,13 @@ const ChatDrawerContent: React.FC<ChatDrawerContentProps> = ({
   onSendMessage,
   setClubMessages,
 }) => {
+  console.log('[ChatDrawerContent] Rendering with:', { 
+    hasSelectedClub: !!selectedClub, 
+    hasSelectedTicket: !!selectedTicket,
+    clubId: selectedClub?.id,
+    ticketId: selectedTicket?.id
+  });
+  
   if (!selectedClub && !selectedTicket) {
     return <ChatEmpty />;
   }

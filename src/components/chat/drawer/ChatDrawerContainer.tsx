@@ -100,7 +100,9 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
     };
   }, []);
   
-  console.log('[ChatDrawerContainer] Rendering with messages:', messages);
+  console.log('[ChatDrawerContainer] Active tab:', activeTab, 
+    'selectedClub:', selectedLocalClub?.id,
+    'selectedTicket:', selectedTicket?.id);
   
   switch (activeTab) {
     case "clubs":

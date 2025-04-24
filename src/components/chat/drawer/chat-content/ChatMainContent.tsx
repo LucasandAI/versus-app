@@ -24,6 +24,13 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   onSendMessage,
   setClubMessages,
 }) => {
+  console.log('[ChatMainContent] Rendering with:', {
+    hasSelectedClub: !!selectedClub,
+    hasSelectedTicket: !!selectedTicket,
+    clubId: selectedClub?.id,
+    ticketId: selectedTicket?.id
+  });
+
   // Render ticket content if there's a selected ticket
   if (selectedTicket) {
     return (
