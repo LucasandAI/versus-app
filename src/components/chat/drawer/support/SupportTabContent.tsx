@@ -19,6 +19,7 @@ interface SupportTabContentProps {
   isSubmitting?: boolean;
   selectedSupportOption: {id: string, label: string} | null;
   setSelectedSupportOption: (option: {id: string, label: string} | null) => void;
+  activeTab: "clubs" | "dm" | "support";
 }
 
 const SupportTabContent: React.FC<SupportTabContentProps> = ({
@@ -31,7 +32,8 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
   onSendMessage,
   isSubmitting = false,
   selectedSupportOption,
-  setSelectedSupportOption
+  setSelectedSupportOption,
+  activeTab
 }) => {
   const [supportOptionsOpen, setSupportOptionsOpen] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
