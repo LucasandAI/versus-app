@@ -24,7 +24,8 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   onSendMessage,
   setClubMessages,
 }) => {
-  if (selectedClub) {
+  // Only render club content if selectedTicket is null
+  if (selectedClub && !selectedTicket) {
     const clubMessages = messages[selectedClub.id] || [];
     console.log('[ChatMainContent] Rendering club messages:', { 
       clubId: selectedClub.id, 
@@ -62,7 +63,11 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
     );
   }
 
-  return null;
+  return (
+    <div className="flex items-center justify-center h-full text-gray-500">
+      {selectedClub ? 'Loading chat...' : 'Select a club to start chatting'}
+    </div>
+  );
 };
 
 export default ChatMainContent;

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
@@ -73,6 +74,20 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
     });
   };
 
+  // Reset selections when changing tabs
+  useEffect(() => {
+    if (activeTab === "clubs") {
+      onSelectTicket(null as any);
+      setSelectedDMUser(null);
+    } else if (activeTab === "dm") {
+      onSelectClub(null as any);
+      onSelectTicket(null as any);
+    } else if (activeTab === "support") {
+      onSelectClub(null as any);
+      setSelectedDMUser(null);
+    }
+  }, [activeTab, onSelectClub, onSelectTicket]);
+
   useEffect(() => {
     const handleOpenDM = async (event: CustomEvent) => {
       const { userId, userName, userAvatar } = event.detail;
@@ -109,7 +124,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
           <div className="flex-1">
             <ChatDrawerContent 
               selectedClub={selectedLocalClub} 
-              selectedTicket={selectedTicket} 
+              selectedTicket={null} // Force null for ticket when in clubs tab
               messages={messages} 
               onMatchClick={handleMatchClick} 
               onSelectUser={handleSelectUser} 
