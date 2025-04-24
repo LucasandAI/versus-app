@@ -6,6 +6,7 @@ import ChatMessages from '../../ChatMessages';
 import ChatInput from '../../ChatInput';
 import { toast } from '@/hooks/use-toast';
 import UserAvatar from '@/components/shared/UserAvatar';
+import { useNavigation } from '@/hooks/useNavigation';
 
 interface DMConversationProps {
   userId: string;
@@ -17,6 +18,7 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { currentUser } = useApp();
+  const { navigateToUserProfile } = useNavigation();
 
   // Load conversation history
   useEffect(() => {
@@ -62,6 +64,24 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
 
     fetchMessages();
   }, [userId, currentUser?.id, userName, userAvatar, currentUser?.name, currentUser?.avatar]);
+
+  // Real-time message deletion subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('direct-message-changes')
+      .on('postgres_changes', 
+          { event: 'DELETE', schema: 'public', table: 'direct_messages' },
+          (payload) => {
+            if (payload.old) {
+              setMessages(prev => prev.filter(msg => msg.id !== payload.old.id));
+            }
+          })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || !currentUser?.id || !userId) return;
@@ -109,10 +129,36 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
     }
   };
 
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      // Optimistic update
+      setMessages(prev => prev.filter(msg => msg.id !== messageId));
+      
+      const { error } = await supabase
+        .from('direct_messages')
+        .delete()
+        .eq('id', messageId);
+
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      toast({
+        title: "Error",
+        description: "Could not delete message",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="border-b p-3 flex items-center">
-        <div className="flex items-center gap-3">
+        <div 
+          className="flex items-center gap-3 cursor-pointer hover:opacity-80" 
+          onClick={() => navigateToUserProfile(userId, userName, userAvatar)}
+        >
           <UserAvatar name={userName} image={userAvatar} size="sm" />
           <h3 className="font-semibold">{userName}</h3>
         </div>
@@ -122,6 +168,10 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
         <ChatMessages 
           messages={messages} 
           clubMembers={currentUser ? [currentUser] : []}
+          onDeleteMessage={handleDeleteMessage}
+          onSelectUser={(userId, userName, userAvatar) => 
+            navigateToUserProfile(userId, userName, userAvatar)
+          }
         />
       </div>
       
