@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
@@ -74,19 +73,31 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
     });
   };
 
-  // Reset selections when changing tabs
+  // Only reset selection that doesn't match the current tab
   useEffect(() => {
     if (activeTab === "clubs") {
-      onSelectTicket(null as any);
+      // Keep club selection, clear ticket selection only if switching tabs
+      if (selectedTicket) onSelectTicket(null as any);
       setSelectedDMUser(null);
     } else if (activeTab === "dm") {
-      onSelectClub(null as any);
-      onSelectTicket(null as any);
+      // Keep DM selection, clear other selections
+      if (selectedLocalClub) onSelectClub(null as any);
+      if (selectedTicket) onSelectTicket(null as any);
     } else if (activeTab === "support") {
-      onSelectClub(null as any);
+      // Keep ticket selection, clear club selection only if switching tabs
+      if (selectedLocalClub) onSelectClub(null as any);
       setSelectedDMUser(null);
     }
-  }, [activeTab, onSelectClub, onSelectTicket]);
+  }, [activeTab]);
+
+  // Debug log for selections
+  useEffect(() => {
+    console.log('[ChatDrawerContainer] Selection changed:', {
+      selectedClub: selectedLocalClub?.id,
+      selectedTicket: selectedTicket?.id,
+      activeTab,
+    });
+  }, [selectedLocalClub, selectedTicket, activeTab]);
 
   useEffect(() => {
     const handleOpenDM = async (event: CustomEvent) => {

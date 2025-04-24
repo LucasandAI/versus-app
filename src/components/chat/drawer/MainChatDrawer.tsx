@@ -55,6 +55,15 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     handleSelectTicket,
   } = useChatDrawerState(open, localSupportTickets);
 
+  // Debug log for selection change
+  useEffect(() => {
+    console.log('[MainChatDrawer] Selection changed:', { 
+      selectedClub: selectedLocalClub?.id, 
+      selectedTicket: selectedTicket?.id,
+      activeTab
+    });
+  }, [selectedLocalClub, selectedTicket, activeTab]);
+
   // Use both hooks for chat functionality
   const chat = useChat(open, onNewMessage);
   const { 

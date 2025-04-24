@@ -7,7 +7,7 @@ import ChatMainContent from './chat-content/ChatMainContent';
 
 interface ChatDrawerContentProps {
   selectedClub: Club | null;
-  selectedTicket: any | null;
+  selectedTicket: SupportTicket | null;
   messages: Record<string, any[]>;
   onMatchClick: (club: Club) => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
