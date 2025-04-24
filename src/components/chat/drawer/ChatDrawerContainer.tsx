@@ -1,11 +1,13 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
 import ChatSidebar from '../ChatSidebar';
 import DMSearchPanel from './dm/DMSearchPanel';
+import DMConversation from './dm/DMConversation';
 import SupportTabContent from './support/SupportTabContent';
 import ChatDrawerContent from './ChatDrawerContent';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ChatDrawerContainerProps {
   activeTab: "clubs" | "dm" | "support";
@@ -58,12 +60,52 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
     console.log('[ChatDrawerContainer] Match clicked for club:', club.id);
   };
 
+  const [selectedDMUser, setSelectedDMUser] = useState<{
+    id: string;
+    name: string;
+    avatar?: string;
+  } | null>(null);
+
   const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
     console.log('[ChatDrawerContainer] User selected:', {
       userId,
       userName
     });
+    setSelectedDMUser({
+      id: userId,
+      name: userName,
+      avatar: userAvatar
+    });
   };
+
+  // Listen for openDirectMessage event
+  useEffect(() => {
+    const handleOpenDM = async (event: CustomEvent) => {
+      const { userId, hasExistingChat } = event.detail;
+      
+      // Fetch user info if we need to open a chat
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('name, avatar')
+          .eq('id', userId)
+          .single();
+          
+        if (error) throw error;
+        
+        if (data) {
+          handleSelectUser(userId, data.name, data.avatar);
+        }
+      } catch (err) {
+        console.error('Error fetching user data for DM:', err);
+      }
+    };
+
+    window.addEventListener('openDirectMessage', handleOpenDM as EventListener);
+    return () => {
+      window.removeEventListener('openDirectMessage', handleOpenDM as EventListener);
+    };
+  }, []);
   
   console.log('[ChatDrawerContainer] Rendering with messages:', messages);
   
@@ -100,7 +142,21 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
         </div>
       );
     case "dm":
-      return <DMSearchPanel />;
+      return (
+        <div className="flex h-full w-full">
+          {!selectedDMUser ? (
+            <div className="w-full">
+              <DMSearchPanel />
+            </div>
+          ) : (
+            <DMConversation 
+              userId={selectedDMUser.id} 
+              userName={selectedDMUser.name} 
+              userAvatar={selectedDMUser.avatar} 
+            />
+          )}
+        </div>
+      );
     case "support":
       return (
         <SupportTabContent 

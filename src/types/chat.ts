@@ -1,4 +1,3 @@
-
 import { Club } from './index';
 
 export interface ChatMessage {
@@ -19,6 +18,14 @@ export interface SupportTicket {
   createdAt: string;
   status: 'open' | 'closed';
   messages: ChatMessage[];
+}
+
+export interface DirectMessage {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  text: string;
+  timestamp: string;
 }
 
 export interface ChatState {
