@@ -20,7 +20,34 @@ const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicket
   
   const handleCloseTicket = async () => {
     try {
-      // Delete the ticket and its messages from Supabase
+      // Update local storage optimistically
+      try {
+        const storedTickets = localStorage.getItem('supportTickets');
+        if (storedTickets) {
+          const parsedTickets = JSON.parse(storedTickets);
+          const updatedTickets = parsedTickets.filter((t: SupportTicket) => t.id !== ticket.id);
+          localStorage.setItem('supportTickets', JSON.stringify(updatedTickets));
+        }
+      } catch (error) {
+        console.error('Error updating localStorage:', error);
+      }
+
+      // Trigger custom event to notify other components about the deletion
+      window.dispatchEvent(new CustomEvent('supportTicketDeleted', { 
+        detail: { ticketId: ticket.id }
+      }));
+      
+      // Call the onTicketClosed callback to update parent component state
+      if (onTicketClosed) {
+        onTicketClosed();
+      }
+      
+      toast({
+        title: "Ticket Deleted",
+        description: "The support ticket has been successfully deleted.",
+      });
+      
+      // Delete the ticket and its messages from Supabase in the background
       const { error: messagesError } = await supabase
         .from('support_messages')
         .delete()
@@ -41,31 +68,6 @@ const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicket
         throw ticketError;
       }
       
-      toast({
-        title: "Ticket Deleted",
-        description: "The support ticket has been successfully deleted.",
-      });
-      
-      // Update local storage
-      try {
-        const storedTickets = localStorage.getItem('supportTickets');
-        if (storedTickets) {
-          const parsedTickets = JSON.parse(storedTickets);
-          const updatedTickets = parsedTickets.filter((t: SupportTicket) => t.id !== ticket.id);
-          localStorage.setItem('supportTickets', JSON.stringify(updatedTickets));
-        }
-      } catch (error) {
-        console.error('Error updating localStorage:', error);
-      }
-
-      // Trigger custom event to notify other components about the deletion
-      window.dispatchEvent(new CustomEvent('supportTicketDeleted', { 
-        detail: { ticketId: ticket.id }
-      }));
-      
-      if (onTicketClosed) {
-        onTicketClosed();
-      }
     } catch (error) {
       console.error('Error closing ticket:', error);
       toast({

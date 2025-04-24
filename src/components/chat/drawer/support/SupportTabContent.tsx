@@ -54,6 +54,10 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
     onSelectTicket(null as any);
   };
 
+  const handleTicketClosed = () => {
+    onSelectTicket(null as any);
+  };
+
   const handleSubmitTicket = async () => {
     if (!selectedSupportOption) {
       toast({
@@ -96,7 +100,8 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
         </div>
         <ChatTicketContent 
           ticket={selectedTicket} 
-          onSendMessage={onSendMessage} 
+          onSendMessage={onSendMessage}
+          onTicketClosed={handleTicketClosed} 
         />
       </div>
     );
