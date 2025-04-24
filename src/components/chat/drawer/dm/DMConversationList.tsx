@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
@@ -104,6 +105,7 @@ const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) =
 
   return (
     <div className="flex flex-col space-y-2 p-4">
+      <h2 className="font-semibold text-lg mb-2">Messages</h2>
       {visibleConversations.map((conversation) => (
         <button
           key={conversation.userId}

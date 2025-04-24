@@ -37,36 +37,6 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
 }) => {
   const [supportOptionsOpen, setSupportOptionsOpen] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [localSupportTickets, setLocalSupportTickets] = React.useState<SupportTicket[]>(supportTickets);
-
-  // Update local tickets when props change
-  useEffect(() => {
-    setLocalSupportTickets(supportTickets);
-  }, [supportTickets]);
-
-  // Listen for supportTicketDeleted event
-  useEffect(() => {
-    const handleTicketDeleted = (event: CustomEvent) => {
-      const deletedTicketId = event.detail?.ticketId;
-      if (deletedTicketId) {
-        // Update local state to remove the deleted ticket
-        setLocalSupportTickets(prevTickets => 
-          prevTickets.filter(ticket => ticket.id !== deletedTicketId)
-        );
-        
-        // If the deleted ticket is currently selected, clear the selection
-        if (selectedTicket && selectedTicket.id === deletedTicketId) {
-          onSelectTicket(null as any);
-        }
-      }
-    };
-
-    window.addEventListener('supportTicketDeleted', handleTicketDeleted as EventListener);
-    
-    return () => {
-      window.removeEventListener('supportTicketDeleted', handleTicketDeleted as EventListener);
-    };
-  }, [selectedTicket, onSelectTicket]);
 
   const handleOpenSupportOptions = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -111,74 +81,67 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
     setDialogOpen(false);
   };
 
-  if (selectedTicket) {
-    return (
-      <div className="flex flex-col h-full">
-        <div className="border-b p-3 flex items-center">
-          <button 
-            onClick={handleBackToTicketList}
-            className="mr-3 p-1 rounded-full hover:bg-gray-100"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </button>
-          <div>
-            <h3 className="font-semibold">{selectedTicket.subject}</h3>
-            <p className="text-xs text-gray-500">
-              Created {new Date(selectedTicket.createdAt).toLocaleDateString()}
-            </p>
-          </div>
-        </div>
-        <ChatTicketContent 
-          ticket={selectedTicket} 
-          onSendMessage={onSendMessage}
-          onTicketClosed={handleTicketClosed} 
-        />
-      </div>
-    );
-  }
-
   return (
-    <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="font-semibold text-lg">Support Tickets</h2>
-        <button 
-          className="bg-primary text-white px-4 py-2 rounded-md text-sm flex items-center"
-          onClick={handleOpenSupportOptions}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              Creating...
-            </>
+    <div className="flex h-full w-full">
+      <div className="w-[240px] border-r">
+        <div className="p-4">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="font-semibold text-lg">Support</h2>
+            <button 
+              className="bg-primary text-white px-4 py-2 rounded-md text-sm flex items-center"
+              onClick={handleOpenSupportOptions}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Creating...
+                </>
+              ) : (
+                'New Ticket'
+              )}
+            </button>
+          </div>
+          
+          {supportTickets.length === 0 ? (
+            <div className="text-gray-500 text-sm py-4 text-center">
+              No support tickets yet. Click "New Ticket" to create one.
+            </div>
           ) : (
-            'New Ticket'
+            <ul className="space-y-2">
+              {supportTickets.map((ticket) => (
+                <li 
+                  key={ticket.id} 
+                  onClick={() => onSelectTicket(ticket)}
+                  className={`p-3 border rounded-md cursor-pointer hover:bg-gray-50 transition ${
+                    selectedTicket?.id === ticket.id ? 'bg-gray-100' : ''
+                  }`}
+                >
+                  <div className="font-medium">{ticket.subject}</div>
+                  <div className="text-xs text-gray-500">
+                    Created: {new Date(ticket.createdAt).toLocaleDateString()} 
+                    • {ticket.messages.length} message{ticket.messages.length !== 1 ? 's' : ''}
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
-        </button>
+        </div>
       </div>
       
-      {localSupportTickets.length === 0 ? (
-        <div className="text-gray-500 text-sm py-4 text-center">
-          No support tickets yet. Click "New Ticket" to create one.
-        </div>
-      ) : (
-        <ul className="space-y-2">
-          {localSupportTickets.map((ticket) => (
-            <li 
-              key={ticket.id} 
-              onClick={() => onSelectTicket(ticket)}
-              className="p-3 border rounded-md cursor-pointer hover:bg-gray-50 transition"
-            >
-              <div className="font-medium">{ticket.subject}</div>
-              <div className="text-xs text-gray-500">
-                Created: {new Date(ticket.createdAt).toLocaleDateString()} 
-                • {ticket.messages.length} message{ticket.messages.length !== 1 ? 's' : ''}
-              </div>
-              <div className="text-xs text-blue-500 mt-1">Click to view conversation</div>
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="flex-1">
+        {selectedTicket ? (
+          <ChatTicketContent 
+            ticket={selectedTicket} 
+            onSendMessage={onSendMessage}
+            onTicketClosed={handleTicketClosed} 
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full text-gray-500">
+            Select a ticket or create a new one to get started
+          </div>
+        )}
+      </div>
 
       <SupportOptions 
         open={supportOptionsOpen}
