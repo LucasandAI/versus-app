@@ -36,6 +36,11 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
   const [supportOptionsOpen, setSupportOptionsOpen] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
 
+  // Debug log for ticket selection
+  React.useEffect(() => {
+    console.log('[SupportTabContent] selectedTicket changed:', selectedTicket?.id);
+  }, [selectedTicket]);
+
   const handleOpenSupportOptions = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -57,11 +62,17 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
     setDialogOpen(false);
   };
 
+  // Handler for selecting a ticket from the list
+  const handleSelectTicket = (ticket: SupportTicket) => {
+    console.log('[SupportTabContent] Selecting ticket:', ticket.id);
+    onSelectTicket(ticket);
+  };
+
   return (
     <div className="flex h-full w-full">
       <SupportTicketList
         supportTickets={supportTickets}
-        onSelectTicket={onSelectTicket}
+        onSelectTicket={handleSelectTicket}
         selectedTicketId={selectedTicket?.id}
         isSubmitting={isSubmitting}
         onCreateTicket={handleOpenSupportOptions}
@@ -70,6 +81,7 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
       <div className="flex-1">
         {selectedTicket ? (
           <ChatTicketContent 
+            key={selectedTicket.id} // Force re-render when ticket changes
             ticket={selectedTicket} 
             onSendMessage={onSendMessage}
             onTicketClosed={handleTicketClosed} 

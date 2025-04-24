@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
 import ChatClubContent from '../../ChatClubContent';
@@ -24,17 +24,22 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   onSendMessage,
   setClubMessages,
 }) => {
-  console.log('[ChatMainContent] Rendering with:', {
-    hasSelectedClub: !!selectedClub,
-    hasSelectedTicket: !!selectedTicket,
-    clubId: selectedClub?.id,
-    ticketId: selectedTicket?.id
-  });
+  // Enhanced debugging for component renders and selections
+  useEffect(() => {
+    console.log('[ChatMainContent] Rendering with:', {
+      hasSelectedClub: !!selectedClub,
+      hasSelectedTicket: !!selectedTicket,
+      clubId: selectedClub?.id,
+      ticketId: selectedTicket?.id
+    });
+  }, [selectedClub, selectedTicket]);
 
   // Render ticket content if there's a selected ticket
   if (selectedTicket) {
+    console.log('[ChatMainContent] Rendering support ticket content for:', selectedTicket.id);
     return (
       <ChatTicketContent 
+        key={selectedTicket.id} // Force re-render when ticket changes
         ticket={selectedTicket}
         onSendMessage={(message) => {
           console.log('[ChatMainContent] Sending support ticket message');
@@ -55,6 +60,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
     
     return (
       <ChatClubContent 
+        key={selectedClub.id} // Force re-render when club changes
         club={selectedClub}
         messages={clubMessages}
         onMatchClick={() => onMatchClick(selectedClub)}

@@ -26,6 +26,13 @@ const SupportTicketsList: React.FC<SupportTicketsListProps> = ({
 }) => {
   if (!tickets.length) return null;
 
+  // Handler for selecting a ticket with logging
+  const handleSelectTicket = (ticket: SupportTicket) => {
+    console.log('[SupportTicketsList] Selecting ticket:', ticket.id, 
+      'Current selection:', selectedTicket?.id);
+    onSelectTicket(ticket);
+  };
+
   return (
     <div className="space-y-1 mt-4">
       <div className="px-3 py-2">
@@ -43,7 +50,7 @@ const SupportTicketsList: React.FC<SupportTicketsListProps> = ({
               className={`relative group px-3 py-2 cursor-pointer hover:bg-gray-100 ${
                 isSelected ? 'bg-gray-100' : ''
               }`}
-              onClick={() => onSelectTicket(ticket)}
+              onClick={() => handleSelectTicket(ticket)}
             >
               <div className="flex items-center gap-2">
                 <HelpCircle className="w-4 h-4 text-primary" />

@@ -121,8 +121,22 @@ export const useChatDrawerState = (open: boolean, supportTickets: SupportTicket[
   };
 
   const handleSelectTicket = (ticket: SupportTicket | null) => {
-    setSelectedTicket(ticket);
-    setSelectedLocalClub(null);
+    console.log('[useChatDrawerState] Selecting ticket:', ticket?.id);
+    
+    // Force a re-render by clearing selection first if the same ticket is selected
+    if (ticket && selectedTicket && ticket.id === selectedTicket.id) {
+      console.log('[useChatDrawerState] Same ticket selected, forcing re-render');
+      setSelectedTicket(null);
+      // Use setTimeout to ensure the null state is processed before setting the new state
+      setTimeout(() => {
+        setSelectedTicket({...ticket}); // Create a new object reference to ensure re-render
+        setSelectedLocalClub(null);
+      }, 0);
+    } else {
+      // For new selections or clearing the selection
+      setSelectedTicket(ticket ? {...ticket} : null); // Create a new object reference
+      setSelectedLocalClub(null);
+    }
   };
 
   return {
