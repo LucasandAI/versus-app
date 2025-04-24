@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { SupportTicket } from '@/types/chat';
 import { useApp } from '@/context/AppContext';
@@ -171,12 +170,84 @@ export const useSupportTickets = () => {
     }
   }, [currentUser, selectedSupportOption, supportMessage]);
 
+  const sendSupportMessage = useCallback(async (ticketId: string, message: string) => {
+    if (!currentUser) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to send messages",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    try {
+      const { error: messageError } = await supabase
+        .from('support_messages')
+        .insert({
+          ticket_id: ticketId,
+          sender_id: currentUser.id,
+          text: message,
+          is_support: false
+        });
+
+      if (messageError) {
+        console.error("Support message creation error:", messageError);
+        toast({
+          title: "Error Sending Message",
+          description: messageError.message || "Failed to send message",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      // Update local storage
+      const existingTickets = localStorage.getItem('supportTickets');
+      if (existingTickets) {
+        const storedTickets: SupportTicket[] = JSON.parse(existingTickets);
+        const updatedTickets = storedTickets.map(ticket => {
+          if (ticket.id === ticketId) {
+            return {
+              ...ticket,
+              messages: [
+                ...(ticket.messages || []),
+                {
+                  id: Date.now().toString(),
+                  text: message,
+                  sender: {
+                    id: currentUser.id,
+                    name: currentUser.name,
+                    avatar: currentUser.avatar || '/placeholder.svg'
+                  },
+                  timestamp: new Date().toISOString(),
+                  isSupport: false
+                }
+              ]
+            };
+          }
+          return ticket;
+        });
+        localStorage.setItem('supportTickets', JSON.stringify(updatedTickets));
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error sending support message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive"
+      });
+      return false;
+    }
+  }, [currentUser]);
+
   return {
     supportMessage,
     setSupportMessage,
     selectedSupportOption,
     setSelectedSupportOption,
     handleSubmitSupportTicket,
-    isSubmitting
+    isSubmitting,
+    sendSupportMessage
   };
 };

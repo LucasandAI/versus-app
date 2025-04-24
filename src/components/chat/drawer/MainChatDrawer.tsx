@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Drawer, DrawerContent as UIDrawerContent } from '@/components/ui/drawer';
 import { ChatProvider } from '@/context/ChatContext';
@@ -42,7 +41,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     supportMessage,
     setSupportMessage,
     handleSubmitSupportTicket,
-    isSubmitting
+    isSubmitting,
+    sendSupportMessage
   } = useSupportTickets();
 
   const {
@@ -66,6 +66,11 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const handleSendClubMessage = async (message: string, clubId?: string) => {
     if (!clubId) return;
     return chat.sendMessageToClub(message, clubId, setClubMessages);
+  };
+
+  const handleSendSupportMessage = async (message: string) => {
+    if (!selectedTicket) return;
+    return sendSupportMessage(selectedTicket.id, message);
   };
 
   useSupportTicketEffects(open, setLocalSupportTickets);
@@ -116,7 +121,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             handleNewMessage={handleNewMessage}
             markTicketAsRead={markTicketAsRead}
             onSendMessage={activeTab === "support" ? 
-              (message) => console.log("Support message:", message) : 
+              handleSendSupportMessage : 
               handleSendClubMessage
             }
             supportMessage={supportMessage}
