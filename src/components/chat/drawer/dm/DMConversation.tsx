@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
@@ -7,6 +6,7 @@ import ChatInput from '../../ChatInput';
 import { toast } from '@/hooks/use-toast';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { useNavigation } from '@/hooks/useNavigation';
+import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 
 interface DMConversationProps {
   userId: string;
@@ -19,8 +19,8 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
   const [loading, setLoading] = useState(true);
   const { currentUser } = useApp();
   const { navigateToUserProfile } = useNavigation();
+  const { unhideConversation } = useHiddenDMs();
 
-  // Load conversation history
   useEffect(() => {
     const fetchMessages = async () => {
       if (!userId || !currentUser?.id) return;
@@ -37,7 +37,6 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
           throw error;
         }
 
-        // Transform the messages to match the format expected by ChatMessages
         const formattedMessages = (data || []).map((msg) => ({
           id: msg.id,
           text: msg.text,
@@ -65,7 +64,6 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
     fetchMessages();
   }, [userId, currentUser?.id, userName, userAvatar, currentUser?.name, currentUser?.avatar]);
 
-  // Real-time message deletion subscription
   useEffect(() => {
     const channel = supabase
       .channel('direct-message-changes')
@@ -86,7 +84,8 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || !currentUser?.id || !userId) return;
 
-    // Create optimistic message
+    unhideConversation(userId);
+
     const newMessageObj = {
       id: `temp-${Date.now()}`,
       text: message,
@@ -98,11 +97,9 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
       timestamp: new Date().toISOString()
     };
 
-    // Update UI immediately
     setMessages(prev => [...prev, newMessageObj]);
 
     try {
-      // Send to database
       const { data, error } = await supabase
         .from('direct_messages')
         .insert({
@@ -118,7 +115,6 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
       }
 
       console.log('Message sent successfully:', data);
-
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -131,7 +127,6 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
 
   const handleDeleteMessage = async (messageId: string) => {
     try {
-      // Optimistic update
       setMessages(prev => prev.filter(msg => msg.id !== messageId));
       
       const { error } = await supabase
