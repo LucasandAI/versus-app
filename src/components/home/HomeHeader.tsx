@@ -52,7 +52,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
         <Button 
           variant="link"
           onClick={open}
-          className="text-white hover:bg-gray-100 rounded-full p-2"
+          className="text-primary hover:bg-gray-100 rounded-full p-2"
           icon={<MessageCircle className="h-5 w-5" />}
           badge={unreadMessages}
         />
