@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { SupportTicket } from '@/types/chat';
 import { useApp } from '@/context/AppContext';
@@ -72,6 +73,18 @@ export const useSupportTickets = () => {
         });
 
       if (messageError) throw messageError;
+
+      // Add the automatic support team response
+      const { error: autoResponseError } = await supabase
+        .from('support_messages')
+        .insert({
+          ticket_id: ticketData.id,
+          sender_id: null,
+          text: "Thanks for reaching out! We'll review your message and get back to you shortly.",
+          is_support: true
+        });
+
+      if (autoResponseError) throw autoResponseError;
 
       const newTicket: SupportTicket = {
         id: ticketData.id,
