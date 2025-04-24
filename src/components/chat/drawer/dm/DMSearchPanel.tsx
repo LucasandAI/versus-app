@@ -1,9 +1,8 @@
-
 import React, { useState, useCallback } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
-import { UserAvatar } from '@/components/shared/UserAvatar';
+import UserAvatar from '@/components/shared/UserAvatar';
 import { Button } from '@/components/ui/button';
 import { useApp } from '@/context/AppContext';
 import debounce from 'lodash/debounce';
@@ -61,10 +60,9 @@ const DMSearchPanel: React.FC = () => {
   };
 
   const handleStartConversation = (userId: string) => {
-    // This will be implemented in the next step
     console.log('Starting conversation with user:', userId);
-    setSearchResults([]); // Clear results after selection
-    setQuery(''); // Clear input
+    setSearchResults([]);
+    setQuery('');
   };
 
   return (
