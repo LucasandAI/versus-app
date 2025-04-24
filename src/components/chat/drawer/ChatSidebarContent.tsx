@@ -14,6 +14,7 @@ interface ChatSidebarContentProps {
   onDeleteChat?: (chatId: string, isTicket?: boolean) => void;
   unreadCounts?: Record<string, number>;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
+  activeTab: "clubs" | "dm" | "support";
 }
 
 const ChatSidebarContent: React.FC<ChatSidebarContentProps> = (props) => {

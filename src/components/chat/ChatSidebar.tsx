@@ -27,6 +27,7 @@ interface ChatSidebarProps {
   onDeleteChat?: (chatId: string, isTicket?: boolean) => void;
   unreadCounts?: Record<string, number>;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
+  activeTab?: "clubs" | "dm" | "support";
 }
 
 const ChatSidebar: React.FC<ChatSidebarProps> = ({ 
@@ -38,7 +39,8 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onSelectTicket,
   onDeleteChat,
   unreadCounts = {},
-  onSelectUser
+  onSelectUser,
+  activeTab = "clubs"
 }) => {
   const { setCurrentView, setSelectedUser } = useApp();
   const [chatToDelete, setChatToDelete] = useState<{id: string, name: string, isTicket: boolean} | null>(null);
@@ -57,24 +59,30 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
   return (
     <div className="w-[240px] border-r overflow-auto">
-      <SupportTicketsList
-        tickets={supportTickets}
-        selectedTicket={selectedTicket}
-        onSelectTicket={onSelectTicket}
-        onDeleteChat={onDeleteChat}
-        unreadCounts={unreadCounts}
-        setChatToDelete={setChatToDelete}
-      />
+      {/* Only show support tickets when the support tab is active */}
+      {activeTab === "support" && (
+        <SupportTicketsList
+          tickets={supportTickets}
+          selectedTicket={selectedTicket}
+          onSelectTicket={onSelectTicket}
+          onDeleteChat={onDeleteChat}
+          unreadCounts={unreadCounts}
+          setChatToDelete={setChatToDelete}
+        />
+      )}
 
-      <ClubsList
-        clubs={clubs}
-        selectedClub={selectedClub}
-        onSelectClub={onSelectClub}
-        onDeleteChat={onDeleteChat}
-        unreadCounts={unreadCounts}
-        onSelectUser={onSelectUser}
-        setChatToDelete={setChatToDelete}
-      />
+      {/* Only show clubs when the clubs tab is active */}
+      {activeTab === "clubs" && (
+        <ClubsList
+          clubs={clubs}
+          selectedClub={selectedClub}
+          onSelectClub={onSelectClub}
+          onDeleteChat={onDeleteChat}
+          unreadCounts={unreadCounts}
+          onSelectUser={onSelectUser}
+          setChatToDelete={setChatToDelete}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!chatToDelete} onOpenChange={(open) => !open && setChatToDelete(null)}>

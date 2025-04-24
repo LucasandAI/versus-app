@@ -81,7 +81,8 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
               onSelectTicket={onSelectTicket} 
               onDeleteChat={deleteChat} 
               unreadCounts={unreadMessages} 
-              onSelectUser={handleSelectUser} 
+              onSelectUser={handleSelectUser}
+              activeTab={activeTab}
             />
           </div>
           
@@ -113,6 +114,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
           onSendMessage={onSendMessage}
           selectedSupportOption={selectedSupportOption || null}
           setSelectedSupportOption={setSelectedSupportOption || (() => {})}
+          activeTab={activeTab}
         />
       );
     default:
