@@ -11,6 +11,7 @@ interface ChatDrawerContentProps {
   onMatchClick: (club: Club) => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   onSendMessage: (message: string, clubId?: string) => void;
+  setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
 }
 
 const ChatDrawerContent: React.FC<ChatDrawerContentProps> = ({
@@ -20,6 +21,7 @@ const ChatDrawerContent: React.FC<ChatDrawerContentProps> = ({
   onMatchClick,
   onSelectUser,
   onSendMessage,
+  setClubMessages,
 }) => {
   if (!selectedClub && !selectedTicket) {
     return <ChatEmpty />;
@@ -33,6 +35,7 @@ const ChatDrawerContent: React.FC<ChatDrawerContentProps> = ({
       onMatchClick={onMatchClick}
       onSelectUser={onSelectUser}
       onSendMessage={onSendMessage}
+      setClubMessages={setClubMessages}
     />
   );
 };

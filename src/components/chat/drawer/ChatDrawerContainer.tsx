@@ -26,6 +26,7 @@ interface ChatDrawerContainerProps {
   setSupportMessage?: (message: string) => void;
   handleSubmitSupportTicket?: () => Promise<void>;
   isSubmitting?: boolean;
+  setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
 }
 
 const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
@@ -46,7 +47,8 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   supportMessage,
   setSupportMessage,
   handleSubmitSupportTicket,
-  isSubmitting
+  isSubmitting,
+  setClubMessages
 }) => {
   const handleMatchClick = (club: Club) => {
     console.log('[ChatDrawerContainer] Match clicked for club:', club.id);
@@ -87,6 +89,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
               onMatchClick={handleMatchClick} 
               onSelectUser={handleSelectUser} 
               onSendMessage={onSendMessage} 
+              setClubMessages={setClubMessages}
             />
           </div>
         </div>

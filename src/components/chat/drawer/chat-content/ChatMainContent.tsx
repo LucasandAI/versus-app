@@ -12,6 +12,7 @@ interface ChatMainContentProps {
   onMatchClick: (club: Club) => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   onSendMessage: (message: string, clubId?: string) => void;
+  setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
 }
 
 const ChatMainContent: React.FC<ChatMainContentProps> = ({
@@ -21,6 +22,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   onMatchClick,
   onSelectUser,
   onSendMessage,
+  setClubMessages,
 }) => {
   if (selectedClub) {
     const clubMessages = messages[selectedClub.id] || [];
@@ -43,6 +45,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
           });
           onSendMessage(message, selectedClub.id);
         }}
+        setClubMessages={setClubMessages}
       />
     );
   }
