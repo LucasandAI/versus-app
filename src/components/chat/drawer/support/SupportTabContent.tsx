@@ -11,12 +11,14 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 interface SupportTabContentProps {
   supportTickets: SupportTicket[];
   onSelectTicket: (ticket: SupportTicket) => void;
-  handleSubmitSupportTicket: () => void;
+  handleSubmitSupportTicket: () => Promise<void>;
   supportMessage: string;
   setSupportMessage: (message: string) => void;
   selectedTicket: SupportTicket | null;
   onSendMessage: (message: string) => void;
   isSubmitting?: boolean;
+  selectedSupportOption: {id: string, label: string} | null;
+  setSelectedSupportOption: (option: {id: string, label: string} | null) => void;
 }
 
 const SupportTabContent: React.FC<SupportTabContentProps> = ({
@@ -27,11 +29,12 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
   setSupportMessage,
   selectedTicket,
   onSendMessage,
-  isSubmitting = false
+  isSubmitting = false,
+  selectedSupportOption,
+  setSelectedSupportOption
 }) => {
   const [supportOptionsOpen, setSupportOptionsOpen] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [selectedSupportOption, setSelectedSupportOption] = React.useState<{id: string, label: string} | null>(null);
 
   const handleOpenSupportOptions = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -49,7 +52,7 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
     onSelectTicket(null as any);
   };
 
-  const handleSubmitTicket = () => {
+  const handleSubmitTicket = async () => {
     if (!selectedSupportOption) {
       toast({
         title: "Support Option Required",
@@ -68,8 +71,8 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
       return;
     }
 
-    handleSubmitSupportTicket();
-    setSelectedSupportOption(null);
+    await handleSubmitSupportTicket();
+    setDialogOpen(false);
   };
 
   if (selectedTicket) {

@@ -118,7 +118,7 @@ export const useSupportTickets = () => {
 
       // Create the ticket object for the UI
       const newTicket: SupportTicket = {
-        id: ticketData.id,
+        id: ticketData.id, // Use the real UUID from Supabase
         subject: selectedSupportOption.label,
         createdAt: new Date().toISOString(),
         messages: [
@@ -190,27 +190,31 @@ export const useSupportTickets = () => {
       return false;
     }
 
+    // Check if the ticketId is a temporary ID (starts with "support-")
+    if (ticketId.startsWith('support-') || ticketId.startsWith('temp-')) {
+      toast({
+        title: "Error",
+        description: "Cannot send messages until ticket is fully created",
+        variant: "destructive"
+      });
+      return false;
+    }
+
     try {
-      const { error: messageError } = await supabase
-        .from('support_messages')
-        .insert({
-          ticket_id: ticketId,
-          sender_id: currentUser.id,
-          text: message,
-          is_support: false
-        });
-
-      if (messageError) {
-        console.error("Support message creation error:", messageError);
-        toast({
-          title: "Error Sending Message",
-          description: messageError.message || "Failed to send message",
-          variant: "destructive"
-        });
-        return false;
-      }
-
-      // Update local storage
+      // First update the UI immediately for better user experience
+      const optimisticMessage = {
+        id: `temp-${Date.now()}`,
+        text: message,
+        sender: {
+          id: currentUser.id,
+          name: currentUser.name || 'You',
+          avatar: currentUser.avatar || '/placeholder.svg'
+        },
+        timestamp: new Date().toISOString(),
+        isSupport: false
+      };
+      
+      // Update local storage with the optimistic message
       const existingTickets = localStorage.getItem('supportTickets');
       if (existingTickets) {
         const storedTickets: SupportTicket[] = JSON.parse(existingTickets);
@@ -220,23 +224,37 @@ export const useSupportTickets = () => {
               ...ticket,
               messages: [
                 ...(ticket.messages || []),
-                {
-                  id: Date.now().toString(),
-                  text: message,
-                  sender: {
-                    id: currentUser.id,
-                    name: currentUser.name,
-                    avatar: currentUser.avatar || '/placeholder.svg'
-                  },
-                  timestamp: new Date().toISOString(),
-                  isSupport: false
-                }
+                optimisticMessage
               ]
             };
           }
           return ticket;
         });
         localStorage.setItem('supportTickets', JSON.stringify(updatedTickets));
+      }
+      
+      // Dispatch event to update the UI
+      window.dispatchEvent(new CustomEvent('supportTicketUpdated', { 
+        detail: { ticketId, message: optimisticMessage }
+      }));
+      
+      // Then send to Supabase
+      const { error } = await supabase
+        .from('support_messages')
+        .insert({
+          ticket_id: ticketId,
+          sender_id: currentUser.id,
+          text: message,
+          is_support: false
+        });
+        
+      if (error) {
+        console.error('Error sending support message:', error);
+        toast({
+          title: "Error",
+          description: "Failed to send message to server, but it appears in your chat",
+          variant: "destructive"
+        });
       }
 
       return true;

@@ -109,8 +109,10 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
           supportMessage={supportMessage || ""} 
           setSupportMessage={setSupportMessage || (() => {})} 
           handleSubmitSupportTicket={handleSubmitSupportTicket || (async () => {})} 
-          isSubmitting={isSubmitting} 
-          onSendMessage={onSendMessage} 
+          isSubmitting={isSubmitting}
+          onSendMessage={onSendMessage}
+          selectedSupportOption={selectedSupportOption || null}
+          setSelectedSupportOption={setSelectedSupportOption || (() => {})}
         />
       );
     default:
