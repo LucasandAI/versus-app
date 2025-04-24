@@ -146,14 +146,28 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
         <div className="flex h-full w-full">
           {!selectedDMUser ? (
             <div className="w-full">
-              <DMSearchPanel />
+              <DMSearchPanel 
+                onSelectUser={handleSelectUser}
+                onDeleteChat={deleteChat}
+              />
             </div>
           ) : (
-            <DMConversation 
-              userId={selectedDMUser.id} 
-              userName={selectedDMUser.name} 
-              userAvatar={selectedDMUser.avatar} 
-            />
+            <div className="flex h-full w-full">
+              <div className="w-[240px] border-r">
+                <DMSearchPanel 
+                  onSelectUser={handleSelectUser} 
+                  selectedUserId={selectedDMUser.id}
+                  onDeleteChat={deleteChat}
+                />
+              </div>
+              <div className="flex-1">
+                <DMConversation 
+                  userId={selectedDMUser.id} 
+                  userName={selectedDMUser.name} 
+                  userAvatar={selectedDMUser.avatar} 
+                />
+              </div>
+            </div>
           )}
         </div>
       );
