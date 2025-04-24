@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 export const useChatDeletion = () => {
-  const deleteChat = useMutation({
+  const deleteChatMutation = useMutation({
     mutationFn: async ({ chatId, isTicket }: { chatId: string, isTicket?: boolean }) => {
       if (isTicket) {
         // Delete support ticket and all its messages
@@ -74,6 +74,11 @@ export const useChatDeletion = () => {
       });
     }
   });
+
+  // Return a function with the expected signature that calls the mutation
+  const deleteChat = (chatId: string, isTicket: boolean) => {
+    deleteChatMutation.mutate({ chatId, isTicket });
+  };
 
   return { deleteChat };
 };

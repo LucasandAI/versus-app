@@ -20,9 +20,8 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
   const { unreadMessages, updateUnreadCount } = useUnreadNotifications(open, onNewMessage);
   const { messages, setMessages, handleNewMessage } = useMessages(saveMessages, updateUnreadCount);
   
-  // Remove the currentUser parameter since useChatActions no longer expects it
   const { sendMessageToClub } = useChatActions();
-  const { deleteChat } = useChatDeletion(saveMessages, saveSupportTickets, saveUnreadMessages);
+  const { deleteChat } = useChatDeletion();
 
   // Load data from localStorage on mount
   useEffect(() => {
