@@ -10,6 +10,7 @@ export const useProfileState = () => {
   const [showMoreAchievements, setShowMoreAchievements] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
 
   useEffect(() => {
     setTimeout(() => {
@@ -20,6 +21,11 @@ export const useProfileState = () => {
   useEffect(() => {
     if (currentUser && currentView === 'profile' && !selectedUser) {
       setSelectedUser(currentUser);
+    }
+    
+    // Check if the profile being viewed belongs to the current user
+    if (currentUser && selectedUser) {
+      setIsOwnProfile(currentUser.id === selectedUser.id);
     }
   }, [currentView, currentUser, selectedUser, setSelectedUser]);
 
@@ -46,6 +52,7 @@ export const useProfileState = () => {
     setEditProfileOpen,
     logoutDialogOpen,
     setLogoutDialogOpen,
-    setCurrentView
+    setCurrentView,
+    isOwnProfile
   };
 };

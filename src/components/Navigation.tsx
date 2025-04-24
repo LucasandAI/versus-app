@@ -9,15 +9,20 @@ interface NavigationProps {
 }
 
 const Navigation: React.FC<NavigationProps> = () => {
-  const { currentView, setCurrentView, setSelectedUser, currentUser } = useApp();
+  const { currentView, setCurrentView, setSelectedUser, currentUser, selectedUser } = useApp();
 
   const handleProfileClick = () => {
-    // Set selectedUser to currentUser when clicking profile in nav
+    // Always set selectedUser to currentUser when clicking profile in nav
     if (currentUser) {
       setSelectedUser(currentUser);
     }
     setCurrentView('profile');
   };
+
+  // Check if we're viewing the current user's profile
+  const isViewingOwnProfile = 
+    currentView === 'profile' && 
+    selectedUser?.id === currentUser?.id;
 
   const navItems = [
     { 
@@ -36,7 +41,8 @@ const Navigation: React.FC<NavigationProps> = () => {
       view: 'profile' as const, 
       label: 'Profile', 
       icon: User,
-      onClick: handleProfileClick
+      onClick: handleProfileClick,
+      active: isViewingOwnProfile // This will determine if it should be highlighted
     }
   ];
 
@@ -49,7 +55,7 @@ const Navigation: React.FC<NavigationProps> = () => {
             onClick={item.onClick}
             className={cn(
               'flex flex-col items-center justify-center h-full w-full text-xs font-medium transition-colors',
-              currentView === item.view
+              (item.hasOwnProperty('active') ? item.active : currentView === item.view)
                 ? 'text-primary'
                 : 'text-muted-foreground hover:text-foreground'
             )}

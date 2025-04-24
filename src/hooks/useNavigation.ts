@@ -2,10 +2,12 @@
 import { useUserNavigation } from './navigation/useUserNavigation';
 import { useClubNavigation } from './navigation/useClubNavigation';
 import { Club } from '@/types';
+import { useApp } from '@/context/AppContext';
 
 export const useNavigation = () => {
   const { navigateToUserProfile, isLoading: userNavLoading } = useUserNavigation();
   const { handleClubClick, handleJoinRequest } = useClubNavigation();
+  const { currentUser, setCurrentView, setSelectedUser } = useApp();
   
   const navigateToClub = (clubData: Club | Partial<Club>) => {
     if (!clubData) {
@@ -30,11 +32,20 @@ export const useNavigation = () => {
     console.log('[useNavigation] Navigating to club detail:', clubId);
     handleClubClick(clubId);
   };
+
+  // Convenience method to navigate to your own profile
+  const navigateToOwnProfile = () => {
+    if (currentUser) {
+      setSelectedUser(currentUser);
+      setCurrentView('profile');
+    }
+  };
   
   return {
     navigateToUserProfile,
     navigateToClubDetail,
     navigateToClub,
+    navigateToOwnProfile,
     handleJoinRequest,
     isLoading: userNavLoading || false
   };

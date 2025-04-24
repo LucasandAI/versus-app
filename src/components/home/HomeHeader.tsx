@@ -26,8 +26,16 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   onJoinClub,
   onDeclineInvite,
 }) => {
-  const { setCurrentView, currentUser } = useApp();
+  const { setCurrentView, currentUser, setSelectedUser } = useApp();
   const { open } = useChatDrawerGlobal();
+
+  const handleViewOwnProfile = () => {
+    if (currentUser) {
+      // Always set selectedUser to currentUser when clicking the avatar
+      setSelectedUser(currentUser);
+      setCurrentView('profile');
+    }
+  };
 
   return (
     <div className="flex items-center justify-between mb-6">
@@ -44,7 +52,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
         <Button 
           variant="link"
           onClick={open}
-          className="text-primary hover:bg-gray-100 rounded-full p-2"
+          className="text-white hover:bg-gray-100 rounded-full p-2"
           icon={<MessageCircle className="h-5 w-5" />}
           badge={unreadMessages}
         />
@@ -52,7 +60,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           name={currentUser?.name || "User"} 
           image={currentUser?.avatar} 
           size="sm"
-          onClick={() => setCurrentView('profile')}
+          onClick={handleViewOwnProfile}
         />
       </div>
     </div>
