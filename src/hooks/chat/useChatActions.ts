@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -103,47 +102,64 @@ export const useChatActions = () => {
     }
   }, [currentUser]);
 
-  const deleteMessage = useCallback(async (messageId: string) => {
+  const deleteMessage = useCallback(async (messageId: string, setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>) => {
     try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !session?.user) {
-        toast({
-          title: "Authentication Error", 
-          description: "You must be logged in to delete messages",
-          variant: "destructive"
+      // Optimistically update the UI immediately
+      if (setClubMessages) {
+        setClubMessages(prevMessages => {
+          const updatedMessages = { ...prevMessages };
+          Object.keys(updatedMessages).forEach(clubId => {
+            updatedMessages[clubId] = updatedMessages[clubId].filter(msg => msg.id !== messageId);
+          });
+          return updatedMessages;
         });
-        return false;
       }
-      
-      console.log('[useChatActions] Deleting message', { messageId, userId: session.user.id });
-      
-      const { error: deleteError } = await supabase
-        .from('club_chat_messages')
-        .delete()
-        .eq('id', messageId)
-        .eq('sender_id', session.user.id);  // Ensure user can only delete their own messages
-      
-      if (deleteError) {
-        console.error('[useChatActions] Error deleting message:', deleteError);
+
+      // Only call Supabase for non-temp messages
+      if (!messageId.startsWith('temp-')) {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (deleteError.code === '42501') {
+        if (sessionError || !session?.user) {
           toast({
-            title: "Permission Denied",
-            description: "You can only delete your own messages",
+            title: "Authentication Error", 
+            description: "You must be logged in to delete messages",
             variant: "destructive"
           });
-        } else {
-          toast({
-            title: "Error",
-            description: deleteError.message || "Failed to delete message",
-            variant: "destructive"
-          });
+          return false;
         }
-        return false;
+        
+        console.log('[useChatActions] Deleting message from Supabase', { messageId, userId: session.user.id });
+        
+        const { error: deleteError } = await supabase
+          .from('club_chat_messages')
+          .delete()
+          .eq('id', messageId)
+          .eq('sender_id', session.user.id);
+        
+        if (deleteError) {
+          console.error('[useChatActions] Error deleting message:', deleteError);
+          
+          if (deleteError.code === '42501') {
+            toast({
+              title: "Permission Denied",
+              description: "You can only delete your own messages",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "Error",
+              description: deleteError.message || "Failed to delete message",
+              variant: "destructive"
+            });
+          }
+          return false;
+        }
+        
+        console.log('[useChatActions] Message deleted successfully from Supabase');
+      } else {
+        console.log('[useChatActions] Optimistically deleted temp message:', messageId);
       }
       
-      console.log('[useChatActions] Message deleted successfully');
       return true;
     } catch (error) {
       console.error('[useChatActions] Exception deleting message:', error);
