@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
@@ -67,10 +66,6 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   } | null>(null);
 
   const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
-    console.log('[ChatDrawerContainer] User selected:', {
-      userId,
-      userName
-    });
     setSelectedDMUser({
       id: userId,
       name: userName,
@@ -78,27 +73,10 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
     });
   };
 
-  // Listen for openDirectMessage event
   useEffect(() => {
     const handleOpenDM = async (event: CustomEvent) => {
-      const { userId, hasExistingChat } = event.detail;
-      
-      // Fetch user info if we need to open a chat
-      try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('name, avatar')
-          .eq('id', userId)
-          .single();
-          
-        if (error) throw error;
-        
-        if (data) {
-          handleSelectUser(userId, data.name, data.avatar);
-        }
-      } catch (err) {
-        console.error('Error fetching user data for DM:', err);
-      }
+      const { userId, userName, userAvatar } = event.detail;
+      handleSelectUser(userId, userName, userAvatar);
     };
 
     window.addEventListener('openDirectMessage', handleOpenDM as EventListener);
@@ -145,9 +123,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
       return (
         <div className="flex h-full w-full">
           {!selectedDMUser ? (
-            <div className="w-full">
-              <DMSearchPanel />
-            </div>
+            <DMSearchPanel />
           ) : (
             <DMConversation 
               userId={selectedDMUser.id} 
