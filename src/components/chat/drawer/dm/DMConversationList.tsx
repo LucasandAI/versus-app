@@ -25,31 +25,48 @@ const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) =
   useEffect(() => {
     const loadConversations = async () => {
       try {
-        // Get all conversations where the current user is either sender or receiver
-        const { data: messages, error } = await supabase
+        if (!currentUser?.id) return;
+
+        // First get all DMs that involve the current user
+        const { data: messages, error: messagesError } = await supabase
           .from('direct_messages')
-          .select(`
-            id,
-            sender_id,
-            receiver_id,
-            text,
-            timestamp,
-            sender:sender_id(name, avatar),
-            receiver:receiver_id(name, avatar)
-          `)
-          .or(`sender_id.eq.${currentUser?.id},receiver_id.eq.${currentUser?.id}`)
+          .select('id, sender_id, receiver_id, text, timestamp')
+          .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
           .order('timestamp', { ascending: false });
 
-        if (error) throw error;
+        if (messagesError) throw messagesError;
+        if (!messages || messages.length === 0) return;
+
+        // Extract unique user IDs from the messages
+        const uniqueUserIds = new Set<string>();
+        messages.forEach(msg => {
+          const otherUserId = msg.sender_id === currentUser.id ? msg.receiver_id : msg.sender_id;
+          uniqueUserIds.add(otherUserId);
+        });
+
+        // Get user details for these IDs
+        const { data: users, error: usersError } = await supabase
+          .from('users')
+          .select('id, name, avatar')
+          .in('id', Array.from(uniqueUserIds));
+        
+        if (usersError) throw usersError;
+        if (!users) return;
+
+        // Create a map of user IDs to user objects for quick lookup
+        const userMap = users.reduce((map: Record<string, any>, user) => {
+          map[user.id] = user;
+          return map;
+        }, {});
 
         // Process messages to get unique conversations
         const conversationsMap = new Map<string, DMConversation>();
         
-        messages?.forEach(msg => {
-          const otherUserId = msg.sender_id === currentUser?.id ? msg.receiver_id : msg.sender_id;
-          const otherUser = msg.sender_id === currentUser?.id ? msg.receiver : msg.sender;
+        messages.forEach(msg => {
+          const otherUserId = msg.sender_id === currentUser.id ? msg.receiver_id : msg.sender_id;
+          const otherUser = userMap[otherUserId];
           
-          if (!conversationsMap.has(otherUserId)) {
+          if (otherUser && !conversationsMap.has(otherUserId)) {
             conversationsMap.set(otherUserId, {
               userId: otherUserId,
               userName: otherUser.name,
