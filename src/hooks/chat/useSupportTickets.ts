@@ -73,20 +73,6 @@ export const useSupportTickets = () => {
 
       if (messageError) throw messageError;
 
-      // Add automatic support team response
-      const { error: autoResponseError } = await supabase
-        .from('support_messages')
-        .insert({
-          ticket_id: ticketData.id,
-          sender_id: 'system',
-          text: "Thanks for reaching out! We'll review your message and get back to you shortly.",
-          is_support: true
-        });
-
-      if (autoResponseError) {
-        console.error("Auto-response creation error:", autoResponseError);
-      }
-
       const newTicket: SupportTicket = {
         id: ticketData.id,
         subject: selectedSupportOption.label,
