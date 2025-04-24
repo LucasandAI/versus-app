@@ -11,9 +11,16 @@ interface DMSearchPanelProps {
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
 }
 
+// Define a simpler user type for the search panel
+interface SearchUser {
+  id: string;
+  name: string;
+  avatar?: string;
+}
+
 const DMSearchPanel: React.FC<DMSearchPanelProps> = ({ onSelectUser }) => {
   const [query, setQuery] = useState("");
-  const [recentUsers, setRecentUsers] = useState<User[]>([]);
+  const [recentUsers, setRecentUsers] = useState<SearchUser[]>([]);
   const { currentUser } = useApp();
 
   // Fetch club members from user's clubs
@@ -39,9 +46,13 @@ const DMSearchPanel: React.FC<DMSearchPanelProps> = ({ onSelectUser }) => {
         return;
       }
 
-      const uniqueUsers = clubMembers.reduce((acc: User[], member: any) => {
+      const uniqueUsers = clubMembers.reduce((acc: SearchUser[], member: any) => {
         if (member.users && !acc.some(u => u.id === member.users.id)) {
-          acc.push(member.users);
+          acc.push({
+            id: member.users.id,
+            name: member.users.name,
+            avatar: member.users.avatar
+          });
         }
         return acc;
       }, []);

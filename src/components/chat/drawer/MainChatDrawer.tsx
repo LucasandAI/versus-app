@@ -12,6 +12,7 @@ import { useSupportTicketEffects } from '@/hooks/chat/useSupportTicketEffects';
 import DrawerHeader from './DrawerHeader';
 import ChatDrawerContainer from './ChatDrawerContainer';
 import { useApp } from '@/context/AppContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -69,9 +70,34 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     deleteChat,
   } = useChat(open, onNewMessage);
 
+  const { clubMessages: localMessages, setClubMessages } = useClubMessages(clubs, open, onNewMessage);
+
   const handleSendClubMessage = async (message: string, clubId?: string) => {
     if (!clubId) return;
-    return chat.sendMessageToClub(message, clubId, setClubMessages);
+    return sendMessageToClub(message, clubId, setClubMessages);
+  };
+
+  const sendMessageToClub = async (message: string, clubId: string, setMessages: React.Dispatch<React.SetStateAction<Record<string, any[]>>>) => {
+    if (!currentUser) return;
+    
+    try {
+      const { data, error } = await supabase.from('club_chat_messages').insert({
+        message,
+        club_id: clubId,
+        sender_id: currentUser.id
+      });
+      
+      if (error) throw error;
+      
+      return data;
+    } catch (error) {
+      console.error('Error sending club message:', error);
+      toast({
+        title: "Message Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleSendSupportMessage = async (message: string) => {
@@ -100,7 +126,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   
   console.log('[MainChatDrawer] Rendering with active tab:', activeTab, 
     'selectedClub:', selectedLocalClub?.id,
-    'messages count:', Object.keys(localClubMessages).length);
+    'messages count:', Object.keys(localMessages).length);
   
   return (
     <ChatProvider>
@@ -120,7 +146,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             onSelectClub={handleSelectClub}
             onSelectTicket={handleSelectTicket}
             refreshKey={refreshKey}
-            messages={localClubMessages}
+            messages={localMessages}
             deleteChat={deleteChat}
             unreadMessages={unreadMessages}
             handleNewMessage={handleNewMessage}

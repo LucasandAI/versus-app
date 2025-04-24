@@ -3,9 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
-import ChatHeader from '../../ChatHeader';
 import MessageList from '../../message/MessageList';
 import ChatInput from '../../ChatInput';
+import DMChatHeader from './DMChatHeader';
 
 interface DMChatContentProps {
   selectedUserId: string;
@@ -117,10 +117,10 @@ const DMChatContent: React.FC<DMChatContentProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      <ChatHeader 
+      <DMChatHeader 
         title={selectedUserName}
         avatar={selectedUserAvatar}
-        onClose={onClose}
+        onClose={onClose || (() => {})}
       />
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
