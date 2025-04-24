@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { SupportTicket } from '@/types/chat';
 import ChatMessages from './ChatMessages';

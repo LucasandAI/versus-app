@@ -19,7 +19,7 @@ const SupportTicketList: React.FC<SupportTicketListProps> = ({
   onCreateTicket
 }) => {
   return (
-    <div className="w-[240px] border-r">
+    <div className="w-[240px] border-r h-full overflow-y-auto">
       <div className="p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-semibold text-lg">Support</h2>
