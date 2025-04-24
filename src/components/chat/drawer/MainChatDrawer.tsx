@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Drawer, DrawerContent as UIDrawerContent } from '@/components/ui/drawer';
 import { ChatProvider } from '@/context/ChatContext';
@@ -40,6 +41,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const {
     supportMessage,
     setSupportMessage,
+    selectedSupportOption,
+    setSelectedSupportOption,
     handleSubmitSupportTicket,
     isSubmitting,
     sendSupportMessage
@@ -126,6 +129,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             }
             supportMessage={supportMessage}
             setSupportMessage={setSupportMessage}
+            selectedSupportOption={selectedSupportOption}
+            setSelectedSupportOption={setSelectedSupportOption}
             handleSubmitSupportTicket={handleSubmitTicket}
             isSubmitting={isSubmitting}
             setClubMessages={setClubMessages}

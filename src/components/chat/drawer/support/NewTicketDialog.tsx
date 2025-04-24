@@ -35,6 +35,15 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
   const handleSubmit = () => {
     if (isSubmitting) return;
     
+    if (!selectedOption) {
+      toast({
+        title: "Support Option Required",
+        description: "Please select a support topic before submitting",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (!supportMessage.trim()) {
       toast({
         title: "Message Required",
@@ -43,6 +52,7 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
       });
       return;
     }
+    
     onSubmit();
   };
 

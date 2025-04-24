@@ -24,6 +24,8 @@ interface ChatDrawerContainerProps {
   onSendMessage: (message: string, clubId?: string) => void;
   supportMessage?: string;
   setSupportMessage?: (message: string) => void;
+  selectedSupportOption?: { id: string, label: string } | null;
+  setSelectedSupportOption?: (option: { id: string, label: string } | null) => void;
   handleSubmitSupportTicket?: () => Promise<void>;
   isSubmitting?: boolean;
   setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
@@ -46,6 +48,8 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   onSendMessage,
   supportMessage,
   setSupportMessage,
+  selectedSupportOption,
+  setSelectedSupportOption,
   handleSubmitSupportTicket,
   isSubmitting,
   setClubMessages
@@ -102,9 +106,9 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
           supportTickets={localSupportTickets} 
           selectedTicket={selectedTicket} 
           onSelectTicket={onSelectTicket} 
-          supportMessage={supportMessage} 
-          setSupportMessage={setSupportMessage} 
-          handleSubmitSupportTicket={handleSubmitSupportTicket} 
+          supportMessage={supportMessage || ""} 
+          setSupportMessage={setSupportMessage || (() => {})} 
+          handleSubmitSupportTicket={handleSubmitSupportTicket || (async () => {})} 
           isSubmitting={isSubmitting} 
           onSendMessage={onSendMessage} 
         />

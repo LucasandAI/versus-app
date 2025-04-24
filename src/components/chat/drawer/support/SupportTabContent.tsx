@@ -49,6 +49,29 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
     onSelectTicket(null as any);
   };
 
+  const handleSubmitTicket = () => {
+    if (!selectedSupportOption) {
+      toast({
+        title: "Support Option Required",
+        description: "Please select a support option before submitting",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!supportMessage || supportMessage.trim() === '') {
+      toast({
+        title: "Message Required",
+        description: "Please provide details before submitting",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    handleSubmitSupportTicket();
+    setSelectedSupportOption(null);
+  };
+
   if (selectedTicket) {
     return (
       <div className="flex flex-col h-full">
@@ -127,7 +150,7 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         selectedOption={selectedSupportOption}
-        onSubmit={handleSubmitSupportTicket}
+        onSubmit={handleSubmitTicket}
         supportMessage={supportMessage}
         setSupportMessage={setSupportMessage}
         isSubmitting={isSubmitting}

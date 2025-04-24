@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { SupportTicket } from '@/types/chat';
 import { useApp } from '@/context/AppContext';
@@ -11,10 +12,19 @@ export const useSupportTickets = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmitSupportTicket = useCallback(async () => {
-    if (!currentUser || !selectedSupportOption) {
+    if (!currentUser) {
       toast({
         title: "Error",
-        description: "Please select a support topic and enter a message",
+        description: "You must be logged in to submit a support ticket",
+        variant: "destructive"
+      });
+      return null;
+    }
+    
+    if (!selectedSupportOption) {
+      toast({
+        title: "Error",
+        description: "Please select a support topic",
         variant: "destructive"
       });
       return null;
