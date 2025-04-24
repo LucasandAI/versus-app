@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -31,8 +32,8 @@ const DMSearchPanel: React.FC = () => {
           .from('users')
           .select('id, name, avatar')
           .ilike('name', `%${searchTerm}%`)
-          .neq('id', currentUser?.id) // Exclude current user
-          .limit(5);
+          .neq('id', currentUser?.id)
+          .limit(100);
 
         if (error) {
           throw error;
