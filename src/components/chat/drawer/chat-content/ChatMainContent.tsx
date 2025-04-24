@@ -24,8 +24,21 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   onSendMessage,
   setClubMessages,
 }) => {
-  // Only render club content if selectedTicket is null
-  if (selectedClub && !selectedTicket) {
+  // Render ticket content if there's a selected ticket
+  if (selectedTicket) {
+    return (
+      <ChatTicketContent 
+        ticket={selectedTicket}
+        onSendMessage={(message) => {
+          console.log('[ChatMainContent] Sending support ticket message');
+          onSendMessage(message);
+        }}
+      />
+    );
+  }
+
+  // If we have a selected club, render the club content
+  if (selectedClub) {
     const clubMessages = messages[selectedClub.id] || [];
     console.log('[ChatMainContent] Rendering club messages:', { 
       clubId: selectedClub.id, 
@@ -51,18 +64,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
     );
   }
 
-  if (selectedTicket) {
-    return (
-      <ChatTicketContent 
-        ticket={selectedTicket}
-        onSendMessage={(message) => {
-          console.log('[ChatMainContent] Sending support ticket message');
-          onSendMessage(message);
-        }}
-      />
-    );
-  }
-
+  // If nothing is selected, show an empty state
   return (
     <div className="flex items-center justify-center h-full text-gray-500">
       {selectedClub ? 'Loading chat...' : 'Select a club to start chatting'}

@@ -123,8 +123,8 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
           
           <div className="flex-1">
             <ChatDrawerContent 
-              selectedClub={selectedLocalClub} 
-              selectedTicket={null} // Force null for ticket when in clubs tab
+              selectedClub={selectedLocalClub}
+              selectedTicket={null} // We're in clubs tab, so don't show tickets
               messages={messages} 
               onMatchClick={handleMatchClick} 
               onSelectUser={handleSelectUser} 
