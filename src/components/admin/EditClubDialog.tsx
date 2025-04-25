@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Club } from '@/types';
 import {
@@ -30,7 +29,7 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
   onOpenChange, 
   club 
 }) => {
-  const { setSelectedClub, setCurrentUser } = useApp();
+  const { setSelectedClub } = useApp();
   const [name, setName] = useState(club.name);
   const [bio, setBio] = useState(club.bio || 'A club for enthusiastic runners');
   const [logoPreview, setLogoPreview] = useState(club.logo || '/placeholder.svg');
@@ -56,9 +55,8 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
   };
 
   const uploadLogoIfNeeded = async () => {
-    if (!logoFile) return club.logo; // no change
+    if (!logoFile) return club.logo;
     try {
-      // Use club id and timestamp for filename to avoid clashes
       const ext = logoFile.name.split('.').pop();
       const logoPath = `${club.id}/${Date.now()}.${ext}`;
 
@@ -71,7 +69,6 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
         throw new Error(error.message);
       }
 
-      // Get public URL
       const { data: publicUrlData } = supabase
         .storage
         .from('club-logos')
@@ -117,24 +114,21 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
         throw new Error(updateError.message);
       }
 
-      // 3. Update context (selectedClub and clubs array for user)
-      const updatedClub = {
-        ...club,
+      // 3. Create fresh updated club object
+      const updatedClub: Club = {
+        id: club.id,
         name: name.trim(),
         bio: bio.trim(),
         logo: logoUrl,
+        division: club.division,
+        tier: club.tier,
+        elitePoints: club.elitePoints,
+        members: club.members,
+        matchHistory: club.matchHistory,
       };
-      setSelectedClub(updatedClub);
 
-      setCurrentUser(prev => {
-        if (!prev) return prev;
-        const updatedClubs = prev.clubs.map(userClub =>
-          userClub.id === club.id
-            ? { ...userClub, name: name.trim(), bio: bio.trim(), logo: logoUrl }
-            : userClub
-        );
-        return { ...prev, clubs: updatedClubs };
-      });
+      // 4. Update context with fresh club object
+      setSelectedClub(updatedClub);
 
       toast({
         title: "Club Updated",
