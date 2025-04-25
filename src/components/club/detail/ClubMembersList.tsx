@@ -43,6 +43,7 @@ const ClubMembersList: React.FC<ClubMembersListProps> = ({
   };
 
   const MAX_MEMBERS = 5;
+  const actualMemberCount = deduplicatedMembers.length;
 
   return (
     <Card>
@@ -53,46 +54,52 @@ const ClubMembersList: React.FC<ClubMembersListProps> = ({
             Members
           </CardTitle>
           <span className="text-xs text-gray-500">
-            {deduplicatedMembers.length}/{MAX_MEMBERS} members
+            {actualMemberCount}/{MAX_MEMBERS} members
           </span>
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {deduplicatedMembers.map((member) => (
-            <div 
-              key={member.id} 
-              className="flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <UserAvatar 
-                  name={member.name} 
-                  image={member.avatar} 
-                  size="sm" 
-                  className="cursor-pointer"
-                  onClick={() => handleMemberClick(member)}
-                />
-                <span 
-                  className="hover:text-primary cursor-pointer"
-                  onClick={() => handleMemberClick(member)}
-                >
-                  {member.name}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                {member.isAdmin && (
-                  <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
-                    Admin
+          {deduplicatedMembers.length > 0 ? (
+            deduplicatedMembers.map((member) => (
+              <div 
+                key={member.id} 
+                className="flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <UserAvatar 
+                    name={member.name} 
+                    image={member.avatar} 
+                    size="sm" 
+                    className="cursor-pointer"
+                    onClick={() => handleMemberClick(member)}
+                  />
+                  <span 
+                    className="hover:text-primary cursor-pointer"
+                    onClick={() => handleMemberClick(member)}
+                  >
+                    {member.name}
                   </span>
-                )}
-                {currentMatch && (
-                  <span className="font-medium text-xs text-gray-500">
-                    {currentMatch.homeClub.members.find(m => m.id === member.id)?.distanceContribution?.toFixed(1) || "0"} km
-                  </span>
-                )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {member.isAdmin && (
+                    <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
+                      Admin
+                    </span>
+                  )}
+                  {currentMatch && (
+                    <span className="font-medium text-xs text-gray-500">
+                      {currentMatch.homeClub.members.find(m => m.id === member.id)?.distanceContribution?.toFixed(1) || "0"} km
+                    </span>
+                  )}
+                </div>
               </div>
+            ))
+          ) : (
+            <div className="text-center py-3 text-gray-500">
+              No members found
             </div>
-          ))}
+          )}
         </div>
       </CardContent>
     </Card>
