@@ -8,15 +8,24 @@ export const useClubMembers = () => {
     
     const { data: membersData, error: membersError } = await supabase
       .from('club_members')
-      .select('user_id, is_admin, users(id, name, avatar)')
-      .eq('club_id', clubId);
+      .select(`
+        user_id,
+        is_admin,
+        users (
+          id,
+          name,
+          avatar
+        )
+      `)
+      .eq('club_id', clubId)
+      .throwOnError();
       
     if (membersError) {
       console.error('[useClubMembers] Error fetching club members:', membersError);
       throw new Error('Error fetching club members: ' + membersError.message);
     }
     
-    console.log('[useClubMembers] Retrieved members data:', membersData);
+    console.log('[useClubMembers] Retrieved raw members data:', membersData);
     
     if (!membersData || membersData.length === 0) {
       console.log('[useClubMembers] No members found for club:', clubId);
@@ -24,16 +33,17 @@ export const useClubMembers = () => {
     }
     
     const members = membersData.map(member => {
-      if (!member.users) {
+      const userData = member.users;
+      if (!userData) {
         console.warn('[useClubMembers] Missing user data for member:', member);
         return null;
       }
       
       return {
-        id: member.users.id,
-        name: member.users.name,
-        avatar: member.users.avatar || '/placeholder.svg',
-        isAdmin: member.is_admin || false,
+        id: userData.id,
+        name: userData.name,
+        avatar: userData.avatar || '/placeholder.svg',
+        isAdmin: member.is_admin,
         distanceContribution: 0
       };
     }).filter(Boolean) as ClubMember[];
