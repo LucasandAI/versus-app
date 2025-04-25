@@ -15,7 +15,10 @@ export const useClubData = (clubId: string | undefined) => {
   const { fetchClubMatches } = useClubMatches();
 
   const loadClubData = useCallback(async () => {
-    if (!clubId) return;
+    if (!clubId) {
+      console.log('[useClubData] No clubId provided, skipping data fetch');
+      return;
+    }
     
     setIsLoading(true);
     setError(null);
@@ -24,7 +27,12 @@ export const useClubData = (clubId: string | undefined) => {
       console.log('[useClubData] Fetching club data for:', clubId);
       // Fetch basic club data
       const clubData = await fetchClubDetails();
-      if (!clubData) return;
+      if (!clubData) {
+        console.error('[useClubData] fetchClubDetails returned no data');
+        setError('Could not load club details');
+        setIsLoading(false);
+        return;
+      }
       
       // Fetch members and matches in parallel
       const [members, matches] = await Promise.all([
@@ -39,6 +47,7 @@ export const useClubData = (clubId: string | undefined) => {
         matchHistory: matches
       };
       
+      console.log('[useClubData] Successfully loaded club data:', updatedClub);
       setClub(updatedClub);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Error loading club data';
@@ -52,12 +61,16 @@ export const useClubData = (clubId: string | undefined) => {
   // Initial data load - only when clubId is available
   useEffect(() => {
     if (clubId) {
+      console.log('[useClubData] clubId available, initiating data load:', clubId);
       loadClubData();
+    } else {
+      console.log('[useClubData] No clubId yet, waiting...');
     }
   }, [loadClubData, clubId]);
 
   // Return the refetch function to allow manual refreshing
   const refetchClub = useCallback(() => {
+    console.log('[useClubData] Manual refresh requested');
     return loadClubData();
   }, [loadClubData]);
 

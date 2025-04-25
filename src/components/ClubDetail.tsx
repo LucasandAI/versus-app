@@ -10,6 +10,12 @@ const ClubDetail: React.FC = () => {
   const { selectedClub, refreshCurrentUser } = useApp();
   const [clubId, setClubId] = useState<string | undefined>(undefined);
   
+  // Enhanced logging for debugging
+  useEffect(() => {
+    console.log('[ClubDetail] Component mounted/updated');
+    console.log('[ClubDetail] selectedClub state:', selectedClub);
+  }, [selectedClub]);
+  
   // Only set clubId in state once we have a valid selectedClub.id
   useEffect(() => {
     if (selectedClub?.id) {
@@ -30,17 +36,21 @@ const ClubDetail: React.FC = () => {
   }, [selectedClub, refetchClub, clubId]);
 
   if (!clubId) {
+    console.log('[ClubDetail] No clubId yet, showing loading state');
     return <LoadingState />;
   }
 
   if (isLoading) {
+    console.log('[ClubDetail] Club data is loading');
     return <LoadingState />;
   }
 
   if (error || !club) {
+    console.error('[ClubDetail] Error loading club:', error);
     return <ErrorState />;
   }
 
+  console.log('[ClubDetail] Rendering club content with data:', club);
   return <ClubDetailContent club={club} />;
 };
 
