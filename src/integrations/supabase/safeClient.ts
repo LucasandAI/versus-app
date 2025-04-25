@@ -67,20 +67,11 @@ export const safeSupabase = {
         // Get clubs where:
         // 1. User is not a member
         // 2. Club has less than 5 members
+        
+        // First, create a query that counts members per club
         const { data: availableClubs, error: clubsError } = await supabase
           .from('clubs')
-          .select(`
-            id,
-            name,
-            division,
-            tier,
-            logo,
-            (
-              select count(*)
-              from club_members cm 
-              where cm.club_id = clubs.id
-            ) as member_count
-          `)
+          .select('id, name, division, tier, logo')
           .not(
             'id',
             'in',
@@ -90,23 +81,41 @@ export const safeSupabase = {
                   .select('club_id')
                   .eq('user_id', currentUserId)
               : []
-          )
-          .lt('(select count(*) from club_members cm where cm.club_id = clubs.id)', 5)
-          .order('name');
-
+          );
+        
         if (clubsError) {
           console.error('[safeSupabase] Error fetching available clubs:', clubsError);
           return { data: [], error: clubsError };
         }
-
-        // Transform data to match expected format
-        const formattedClubs = availableClubs.map(club => ({
-          ...club,
-          members: parseInt(club.member_count) || 0,
-          member_count: undefined // Remove count from final object
-        }));
-
-        return { data: formattedClubs, error: null };
+        
+        if (!availableClubs || availableClubs.length === 0) {
+          return { data: [], error: null };
+        }
+        
+        // For each club, fetch the member count
+        const availableClubsWithMemberCount = await Promise.all(
+          availableClubs.map(async (club) => {
+            const { count, error: countError } = await supabase
+              .from('club_members')
+              .select('*', { count: 'exact', head: true })
+              .eq('club_id', club.id);
+              
+            if (countError) {
+              console.error(`[safeSupabase] Error counting members for club ${club.id}:`, countError);
+              return { ...club, members: 0 };
+            }
+            
+            return {
+              ...club,
+              members: count || 0
+            };
+          })
+        );
+        
+        // Filter clubs with less than 5 members
+        const filteredClubs = availableClubsWithMemberCount.filter(club => club.members < 5);
+        
+        return { data: filteredClubs, error: null };
       } catch (error) {
         console.error('[safeSupabase] Unexpected error fetching available clubs:', error);
         return {
