@@ -64,6 +64,7 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
             >
               <UserAvatar
                 name={club.name}
+                image={club.logo}
                 size="sm"
                 className="h-10 w-10"
                 onClick={() => handleClubClick(club)}

@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { formatLeagueWithTier } from '@/lib/format';
+import UserAvatar from '../shared/UserAvatar';
 
 interface SearchClubDialogProps {
   open: boolean;
@@ -58,9 +59,12 @@ const SearchClubDialog: React.FC<SearchClubDialogProps> = ({
                     className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="bg-gray-200 h-10 w-10 rounded-full flex items-center justify-center">
-                        <span className="font-bold text-xs text-gray-700">{club.name.substring(0, 2)}</span>
-                      </div>
+                      <UserAvatar
+                        name={club.name}
+                        image={club.logo}
+                        size="sm"
+                        className="h-10 w-10"
+                      />
                       <div>
                         <h4 className="font-medium text-sm">{club.name}</h4>
                         <span className="text-xs text-gray-500">
