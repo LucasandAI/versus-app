@@ -1,16 +1,19 @@
+
 import React from 'react';
 import { UserPlus } from 'lucide-react';
 import Button from '../shared/Button';
 import { formatLeagueWithTier } from '@/lib/format';
 import UserAvatar from '../shared/UserAvatar';
 import { useClubNavigation } from '@/hooks/useClubNavigation';
+import { Division } from '@/types';
 
 interface AvailableClub {
   id: string;
   name: string;
-  division: string;
+  division: Division;
   tier: number;
   members: number;
+  logo?: string;
 }
 
 interface AvailableClubsProps {
@@ -25,9 +28,10 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
     navigateToClub({
       id: club.id,
       name: club.name,
-      division: club.division as any,
+      division: club.division,
       tier: club.tier,
       members: [],
+      logo: club.logo || '/placeholder.svg',
       matchHistory: []
     });
   };
@@ -67,7 +71,7 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
               <div>
                 <h3 className="font-medium text-sm">{club.name}</h3>
                 <span className="text-xs text-gray-500">
-                  {formatLeagueWithTier(club.division as any, club.tier)} • {club.members}/5 members
+                  {formatLeagueWithTier(club.division, club.tier)} • {club.members}/5 members
                 </span>
               </div>
             </div>
