@@ -80,31 +80,25 @@ export const safeSupabase = {
           return { data: [], error: userClubsError };
         }
         
-        // Extract club IDs from the memberships, filtering out null or invalid ids
-        const userClubIds = userClubsData
-          .map(membership => membership.club_id)
+        const userClubIds = (userClubsData || [])
+          .map((m) => m.club_id)
           .filter((id): id is string => !!id);
         
-        console.log('[safeSupabase] Excluding user clubs:', userClubIds);
+        console.log('[safeSupabase] User club IDs:', userClubIds);
         
-        // Step 2: Query for clubs the user is not a member of
-        const { data: availableClubs, error: clubsError } = await supabase
+        // Step 2: Fetch all clubs
+        const { data: allClubs, error: clubsError } = await supabase
           .from('clubs')
-          .select('id, name, division, tier, logo')
-          .not('id', 'in', userClubIds.length > 0 ? userClubIds : ['-1']); // Use dummy ID if array is empty
+          .select('id, name, division, tier, logo');
         
-        if (clubsError) {
+        if (clubsError || !allClubs) {
           console.error('[safeSupabase] Error fetching available clubs:', clubsError);
           return { data: [], error: clubsError };
         }
         
-        if (!availableClubs || availableClubs.length === 0) {
-          return { data: [], error: null };
-        }
-        
-        // Step 3: For each club, fetch the member count
-        const availableClubsWithMemberCount = await Promise.all(
-          availableClubs.map(async (club) => {
+        // Step 3: Filter clubs by checking member count and user membership
+        const filtered = await Promise.all(
+          allClubs.map(async (club) => {
             const { count, error: countError } = await supabase
               .from('club_members')
               .select('*', { count: 'exact', head: true })
@@ -112,27 +106,29 @@ export const safeSupabase = {
               
             if (countError) {
               console.error(`[safeSupabase] Error counting members for club ${club.id}:`, countError);
-              return { ...club, members: 0 };
+              return null;
             }
             
-            return {
-              ...club,
-              members: count || 0
-            };
+            // Skip if club has 5+ members or user is already a member
+            if (count >= 5 || userClubIds.includes(club.id)) {
+              return null;
+            }
+            
+            return { ...club, members: count || 0 };
           })
         );
         
-        // Step 4: Filter clubs with less than 5 members
-        const filteredClubs = availableClubsWithMemberCount.filter(club => club.members < 5);
+        const availableClubs = filtered.filter((c): c is typeof allClubs[0] & { members: number } => !!c);
+        console.log('[safeSupabase] Available clubs:', availableClubs);
         
-        return { data: filteredClubs, error: null };
+        return { data: availableClubs, error: null };
       } catch (error) {
         console.error('[safeSupabase] Unexpected error fetching available clubs:', error);
         return {
           data: [],
           error: error instanceof Error ? 
-            { message: error.message } as PostgrestError : 
-            { message: 'Unknown error fetching clubs' } as PostgrestError
+            { message: error.message } : 
+            { message: 'Unknown error fetching clubs' }
         };
       }
     },
