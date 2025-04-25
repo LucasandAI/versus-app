@@ -8,17 +8,10 @@ export const useClubMembers = () => {
     console.log('[useClubMembers] Fetching members for club:', clubId);
     
     try {
+      // First, get the club members for the specified club
       const { data: membersData, error: membersError } = await supabase
         .from('club_members')
-        .select(`
-          user_id,
-          is_admin,
-          users (
-            id,
-            name,
-            avatar
-          )
-        `)
+        .select('user_id, is_admin')
         .eq('club_id', clubId);
         
       if (membersError) {
@@ -26,15 +19,37 @@ export const useClubMembers = () => {
         throw new Error('Error fetching club members');
       }
       
-      console.log('[useClubMembers] Retrieved raw members data:', membersData);
+      console.log('[useClubMembers] Retrieved club members data:', membersData);
       
       if (!membersData || membersData.length === 0) {
         console.log('[useClubMembers] No members found for club:', clubId);
         return [];
       }
       
+      // Extract user IDs from the members data
+      const userIds = membersData.map(member => member.user_id);
+      
+      // Fetch user details for all members in a single query
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .select('id, name, avatar')
+        .in('id', userIds);
+        
+      if (usersError) {
+        console.error('[useClubMembers] Error fetching users data:', usersError);
+        throw new Error('Error fetching users data');
+      }
+      
+      console.log('[useClubMembers] Retrieved users data:', usersData);
+      
+      // Create a map of user data for easy lookup
+      const userMap = new Map();
+      usersData?.forEach(user => userMap.set(user.id, user));
+      
+      // Combine the data to create the final member list
       const members = membersData.map(member => {
-        const userData = member.users;
+        const userData = userMap.get(member.user_id);
+        
         if (!userData) {
           console.warn('[useClubMembers] Missing user data for member:', member);
           return null;
