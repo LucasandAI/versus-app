@@ -1,4 +1,3 @@
-
 import { supabase } from './client';
 import { PostgrestError } from '@supabase/supabase-js';
 
@@ -65,8 +64,10 @@ export const safeSupabase = {
     // Get available clubs that the user can join
     getAvailableClubs: async (currentUserId?: string) => {
       try {
-        // First, get clubs that have less than 5 members
-        const { data: clubsWithMemberCount, error: clubsError } = await supabase
+        // Get clubs where:
+        // 1. User is not a member
+        // 2. Club has less than 5 members
+        const { data: availableClubs, error: clubsError } = await supabase
           .from('clubs')
           .select(`
             id,
@@ -74,27 +75,38 @@ export const safeSupabase = {
             division,
             tier,
             logo,
-            club_members (count)
+            (
+              select count(*)
+              from club_members cm 
+              where cm.club_id = clubs.id
+            ) as member_count
           `)
-          .not('club_members.user_id', 'eq', currentUserId) // Exclude clubs where user is a member
-          .order('name')
-          .limit(10);
+          .not(
+            'id',
+            'in',
+            currentUserId 
+              ? supabase
+                  .from('club_members')
+                  .select('club_id')
+                  .eq('user_id', currentUserId)
+              : []
+          )
+          .lt('(select count(*) from club_members cm where cm.club_id = clubs.id)', 5)
+          .order('name');
 
         if (clubsError) {
           console.error('[safeSupabase] Error fetching available clubs:', clubsError);
           return { data: [], error: clubsError };
         }
 
-        // Filter clubs with less than 5 members
-        const availableClubs = clubsWithMemberCount
-          .filter(club => (club.club_members?.[0]?.count || 0) < 5)
-          .map(club => ({
-            ...club,
-            members: club.club_members?.[0]?.count || 0,
-            club_members: undefined // Remove the club_members array from the final object
-          }));
+        // Transform data to match expected format
+        const formattedClubs = availableClubs.map(club => ({
+          ...club,
+          members: parseInt(club.member_count) || 0,
+          member_count: undefined // Remove count from final object
+        }));
 
-        return { data: availableClubs, error: null };
+        return { data: formattedClubs, error: null };
       } catch (error) {
         console.error('[safeSupabase] Unexpected error fetching available clubs:', error);
         return {
