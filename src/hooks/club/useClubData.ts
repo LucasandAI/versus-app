@@ -49,10 +49,12 @@ export const useClubData = (clubId: string | undefined) => {
     }
   }, [clubId, fetchClubDetails, fetchClubMembers, fetchClubMatches]);
 
-  // Initial data load
+  // Initial data load - only when clubId is available
   useEffect(() => {
-    loadClubData();
-  }, [loadClubData]);
+    if (clubId) {
+      loadClubData();
+    }
+  }, [loadClubData, clubId]);
 
   // Return the refetch function to allow manual refreshing
   const refetchClub = useCallback(() => {
