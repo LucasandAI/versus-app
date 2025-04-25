@@ -12,7 +12,7 @@ interface MatchHistoryTabProps {
 const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
   const [showAllMatches, setShowAllMatches] = useState(false);
-  const { navigateToUserProfile, navigateToClubDetail } = useNavigation();
+  const { navigateToUserProfile, navigateToClub } = useNavigation();
 
   const handleViewMatchDetails = (matchId: string) => {
     setExpandedMatchId(expandedMatchId === matchId ? null : matchId);
@@ -28,7 +28,7 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
 
   const handleSelectClub = (clubId: string, name: string, logo?: string) => {
     console.log("Selecting club from match history:", clubId, name);
-    navigateToClubDetail(clubId, { 
+    navigateToClub({ 
       id: clubId, 
       name,
       logo: logo || '/placeholder.svg'
