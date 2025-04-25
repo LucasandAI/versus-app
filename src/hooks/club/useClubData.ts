@@ -1,103 +1,56 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Club } from '@/types';
-import { useApp } from '@/context/AppContext';
 import { useClubDetails } from './useClubDetails';
 import { useClubMembers } from './useClubMembers';
 import { useClubMatches } from './useClubMatches';
 
 export const useClubData = (clubId: string | undefined) => {
-  const { selectedClub } = useApp();
-  const [club, setClub] = useState<Club | null>(selectedClub || null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [club, setClub] = useState<Club | null>(null);
 
   const { fetchClubDetails } = useClubDetails(clubId);
   const { fetchClubMembers } = useClubMembers();
   const { fetchClubMatches } = useClubMatches();
 
-  const loadClubData = useCallback(async () => {
-    if (!clubId) {
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      console.log('[useClubData] Fetching club data for:', clubId);
-      const clubData = await fetchClubDetails();
-      
-      if (!clubData || !clubData.id) {
-        console.error('[useClubData] No club data returned or missing ID for:', clubId);
-        setError('Could not find club data');
-        setIsLoading(false);
-        return;
-      }
-
-      console.log('[useClubData] Club details fetched:', clubData);
-
-      const [members, matches] = await Promise.all([
-        fetchClubMembers(clubId),
-        fetchClubMatches(clubId),
-      ]);
-
-      console.log('[useClubData] Members fetched:', members.length);
-      console.log('[useClubData] Matches fetched:', matches.length);
-
-      // Ensure all required properties are present and not optional
-      const updatedClub: Club = {
-        id: clubData.id, // ID is definitely present as we checked above
-        name: clubData.name || 'Unknown Club',
-        logo: clubData.logo || '/placeholder.svg',
-        division: clubData.division || 'bronze',
-        tier: clubData.tier || 5,
-        elitePoints: clubData.elitePoints || 0,
-        bio: clubData.bio || '',
-        members: members,
-        matchHistory: matches,
-        // Optional properties can remain optional
-        currentMatch: clubData.currentMatch || null,
-        joinRequests: clubData.joinRequests || [],
-        isPreviewClub: clubData.isPreviewClub || false,
-      };
-
-      console.log('[useClubData] Setting complete club data:', updatedClub);
-      setClub(updatedClub);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Error loading club data';
-      console.error('[useClubData] Error:', message);
-      setError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [clubId, fetchClubDetails, fetchClubMembers, fetchClubMatches]);
-
-  // When selectedClub changes or component mounts, update the state
   useEffect(() => {
-    if (selectedClub && (!clubId || selectedClub.id === clubId)) {
-      console.log('[useClubData] Using selectedClub directly:', selectedClub);
+    const loadClubData = async () => {
+      if (!clubId) return;
       
-      // If selectedClub exists but doesn't have members or matchHistory, we still need to fetch them
-      if (!selectedClub.members || selectedClub.members.length === 0 || !selectedClub.matchHistory) {
-        console.log('[useClubData] Selected club missing data, fetching full data');
-        loadClubData();
-      } else {
-        setClub(selectedClub);
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        // Fetch basic club data
+        const clubData = await fetchClubDetails();
+        if (!clubData) return;
+        
+        // Fetch members and matches in parallel
+        const [members, matches] = await Promise.all([
+          fetchClubMembers(clubId),
+          fetchClubMatches(clubId)
+        ]);
+        
+        // Create the final club object
+        const updatedClub: Club = {
+          ...clubData,
+          members,
+          matchHistory: matches
+        };
+        
+        setClub(updatedClub);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Error loading club data';
+        console.error(message);
+        setError(message);
+      } finally {
         setIsLoading(false);
       }
-    } else if (clubId) {
-      console.log('[useClubData] No complete selectedClub available, fetching from DB');
-      loadClubData();
-    } else {
-      setIsLoading(false);
-    }
-  }, [selectedClub, clubId, loadClubData]);
+    };
+    
+    loadClubData();
+  }, [clubId]);
 
-  const refetchClub = useCallback(() => {
-    return loadClubData();
-  }, [loadClubData]);
-
-  return { club, isLoading, error, refetchClub };
+  return { club, isLoading, error };
 };

@@ -18,13 +18,6 @@ const ClubDetailTabs: React.FC<ClubDetailTabsProps> = ({
   isActuallyMember, 
   currentUser 
 }) => {
-  // Ensure members and matchHistory are always arrays, even if undefined
-  const safeClub = {
-    ...club,
-    members: club.members || [],
-    matchHistory: club.matchHistory || []
-  };
-  
   const { navigateToUserProfile } = useNavigation();
 
   const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
@@ -41,7 +34,7 @@ const ClubDetailTabs: React.FC<ClubDetailTabsProps> = ({
       
       <TabsContent value="overview">
         <OverviewTab 
-          club={safeClub}
+          club={club}
           currentUser={currentUser}
           onSelectUser={handleSelectUser}
         />
@@ -49,14 +42,14 @@ const ClubDetailTabs: React.FC<ClubDetailTabsProps> = ({
       
       <TabsContent value="members">
         <ClubMembersList
-          members={safeClub.members}
-          currentMatch={safeClub.currentMatch}
+          members={club.members}
+          currentMatch={club.currentMatch}
           onSelectMember={handleSelectUser}
         />
       </TabsContent>
       
       <TabsContent value="history">
-        <MatchHistoryTab club={safeClub} />
+        <MatchHistoryTab club={club} />
       </TabsContent>
     </Tabs>
   );

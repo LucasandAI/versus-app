@@ -1,73 +1,72 @@
 
 import { useState, useEffect } from 'react';
-import { Club } from '@/types';
 import { useApp } from '@/context/AppContext';
-import { supabase } from '@/integrations/supabase/client';
+import { Club } from '@/types';
+import { hasPendingInvite } from '@/utils/notification-queries';
+import { toast } from "@/hooks/use-toast";
 
 export const useClubMembership = (club: Club) => {
-  const { currentUser } = useApp();
-  const [isActuallyMember, setIsActuallyMember] = useState<boolean>(false);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const { currentUser, setCurrentView, setCurrentUser, setSelectedClub } = useApp();
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [hasPending, setHasPending] = useState<boolean>(false);
-  const [showInviteDialog, setShowInviteDialog] = useState<boolean>(false);
-  const [showLeaveDialog, setShowLeaveDialog] = useState<boolean>(false);
+  const [isCheckingInvite, setIsCheckingInvite] = useState(false);
+
+  // Safely check if user is a member with null checks
+  const isActuallyMember = currentUser?.clubs?.some(c => c.id === club?.id) || false;
+  
+  // Safely check if user is an admin with null checks
+  const isAdmin = isActuallyMember && currentUser && club?.members?.some(
+    member => member.id === currentUser.id && member.isAdmin
+  ) || false;
 
   useEffect(() => {
-    const checkMembership = async () => {
-      if (!currentUser || !club || !club.id) return;
+    // Skip if club ID is missing or user is already a member
+    if (!club?.id || isActuallyMember) {
+      return;
+    }
+    
+    let isMounted = true;
+    
+    const checkPendingInvite = async () => {
+      if (!isMounted) return;
       
       try {
-        console.log('[useClubMembership] Checking member status for user:', currentUser.id, 'in club:', club.id);
+        setIsCheckingInvite(true);
+        console.log('[useClubMembership] Checking for pending invite for club:', club.id);
         
-        // Check if user is a member in this club
-        const { data: memberData, error: memberError } = await supabase
-          .from('club_members')
-          .select('is_admin')
-          .eq('club_id', club.id)
-          .eq('user_id', currentUser.id)
-          .single();
-          
-        if (memberError && memberError.code !== 'PGRST116') {
-          console.error('[useClubMembership] Error checking membership:', memberError);
-          return;
+        const pending = await hasPendingInvite(club.id);
+        
+        if (isMounted) {
+          console.log('[useClubMembership] Pending invite status:', pending);
+          setHasPending(pending);
         }
-        
-        const isMember = !!memberData;
-        console.log('[useClubMembership] User is member:', isMember);
-        setIsActuallyMember(isMember);
-        
-        // Set admin status
-        if (isMember && memberData) {
-          setIsAdmin(memberData.is_admin);
-          console.log('[useClubMembership] User is admin:', memberData.is_admin);
-        } else {
-          setIsAdmin(false);
-        }
-        
-        // Check if user has pending invitation
-        const { data: notificationData, error: notificationError } = await supabase
-          .from('notifications')
-          .select('*')
-          .eq('user_id', currentUser.id)
-          .eq('club_id', club.id)
-          .eq('type', 'invitation')
-          .eq('status', 'pending')
-          .single();
-          
-        if (notificationError && notificationError.code !== 'PGRST116') {
-          console.error('[useClubMembership] Error checking invitations:', notificationError);
-        }
-        
-        const hasPendingInvite = !!notificationData;
-        console.log('[useClubMembership] Has pending invite:', hasPendingInvite);
-        setHasPending(hasPendingInvite);
       } catch (error) {
-        console.error('[useClubMembership] Error checking membership status:', error);
+        console.error('[useClubMembership] Error checking pending invite:', error);
+        // Don't update hasPending state on error to avoid UI flickering
+      } finally {
+        if (isMounted) {
+          setIsCheckingInvite(false);
+        }
       }
     };
-
-    checkMembership();
-  }, [currentUser, club]);
+    
+    // Initial check
+    checkPendingInvite();
+    
+    const handleNotificationUpdate = () => {
+      if (!isCheckingInvite && isMounted) {
+        checkPendingInvite();
+      }
+    };
+    
+    window.addEventListener('notificationsUpdated', handleNotificationUpdate);
+    
+    return () => {
+      isMounted = false;
+      window.removeEventListener('notificationsUpdated', handleNotificationUpdate);
+    };
+  }, [club?.id, isActuallyMember, isCheckingInvite]);
 
   return {
     isActuallyMember,

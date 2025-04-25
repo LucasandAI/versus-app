@@ -15,13 +15,6 @@ interface ClubDetailContentProps {
 }
 
 const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
-  // Ensure club has members even if undefined
-  const safeClub = {
-    ...club,
-    members: club.members || [],
-    matchHistory: club.matchHistory || []
-  };
-
   const { currentUser, setCurrentView } = useApp();
   const { handleRequestToJoin } = useClubJoin();
   
@@ -34,22 +27,22 @@ const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
     showLeaveDialog,
     setShowLeaveDialog,
     setHasPending
-  } = useClubMembership(safeClub);
+  } = useClubMembership(club);
 
   const {
     handleLeaveClub,
     handleJoinFromInvite,
     handleDeclineInvite
-  } = useClubActions(safeClub);
+  } = useClubActions(club);
 
   const handleRequestToJoinClub = () => {
-    handleRequestToJoin(safeClub.id, safeClub.name);
+    handleRequestToJoin(club.id, club.name);
   };
 
   return (
     <div className="pb-20 relative">
       <ClubHeader 
-        club={safeClub}
+        club={club}
         isActuallyMember={isActuallyMember}
         isAdmin={isAdmin}
         onBack={() => setCurrentView('home')}
@@ -63,7 +56,7 @@ const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
 
       <div className="container-mobile pt-4">
         <ClubDetailTabs 
-          club={safeClub}
+          club={club}
           isActuallyMember={isActuallyMember}
           currentUser={currentUser}
         />
@@ -72,18 +65,18 @@ const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
       <ClubLeaveDialog
         open={showLeaveDialog}
         onOpenChange={setShowLeaveDialog}
-        clubName={safeClub.name}
+        clubName={club.name}
         onConfirm={handleLeaveClub}
         isAdmin={isAdmin}
-        members={safeClub.members}
+        members={club.members}
         currentUserId={currentUser?.id || ''}
       />
 
-      {safeClub && (
+      {club && (
         <InviteUserDialog
           open={showInviteDialog}
           onOpenChange={setShowInviteDialog}
-          clubId={safeClub.id}
+          clubId={club.id}
         />
       )}
     </div>

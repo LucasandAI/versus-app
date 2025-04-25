@@ -16,9 +16,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   currentUser,
   onSelectUser 
 }) => {
-  // Ensure members is always an array, even if undefined
-  const members = club.members || [];
-  const isAdmin = currentUser && members.some(member => 
+  const isAdmin = currentUser && club.members.some(member => 
     member.id === currentUser.id && member.isAdmin
   );
 
@@ -26,7 +24,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     <div className="space-y-6">
       <ClubStats 
         club={club} 
-        matchHistory={club.matchHistory || []} 
+        matchHistory={club.matchHistory} 
       />
       {club.currentMatch && (
         <ClubCurrentMatch
