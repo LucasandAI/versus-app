@@ -64,24 +64,30 @@ export const safeSupabase = {
     // Get available clubs that the user can join
     getAvailableClubs: async (currentUserId?: string) => {
       try {
-        // Get clubs where:
-        // 1. User is not a member
-        // 2. Club has less than 5 members
+        // If no current user, return empty array
+        if (!currentUserId) {
+          return { data: [], error: null };
+        }
         
-        // First, create a query that counts members per club
+        // Step 1: First fetch clubs the user is already a member of
+        const { data: userClubsData, error: userClubsError } = await supabase
+          .from('club_members')
+          .select('club_id')
+          .eq('user_id', currentUserId);
+        
+        if (userClubsError) {
+          console.error('[safeSupabase] Error fetching user club memberships:', userClubsError);
+          return { data: [], error: userClubsError };
+        }
+        
+        // Extract club IDs from the memberships
+        const userClubIds = userClubsData.map(membership => membership.club_id);
+        
+        // Step 2: Query for clubs the user is not a member of
         const { data: availableClubs, error: clubsError } = await supabase
           .from('clubs')
           .select('id, name, division, tier, logo')
-          .not(
-            'id',
-            'in',
-            currentUserId 
-              ? supabase
-                  .from('club_members')
-                  .select('club_id')
-                  .eq('user_id', currentUserId)
-              : []
-          );
+          .not('id', 'in', userClubIds.length > 0 ? userClubIds : ['-1']); // Use dummy ID if array is empty
         
         if (clubsError) {
           console.error('[safeSupabase] Error fetching available clubs:', clubsError);
@@ -92,7 +98,7 @@ export const safeSupabase = {
           return { data: [], error: null };
         }
         
-        // For each club, fetch the member count
+        // Step 3: For each club, fetch the member count
         const availableClubsWithMemberCount = await Promise.all(
           availableClubs.map(async (club) => {
             const { count, error: countError } = await supabase
@@ -112,7 +118,7 @@ export const safeSupabase = {
           })
         );
         
-        // Filter clubs with less than 5 members
+        // Step 4: Filter clubs with less than 5 members
         const filteredClubs = availableClubsWithMemberCount.filter(club => club.members < 5);
         
         return { data: filteredClubs, error: null };
