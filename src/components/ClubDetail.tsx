@@ -18,11 +18,13 @@ const ClubDetail: React.FC = () => {
     return <ErrorState />;
   }
 
-  // Ensure club has valid members and matchHistory properties
+  // Ensure club has valid members, matchHistory, and division properties
   const safeClub = {
     ...club,
     members: club.members || [],
-    matchHistory: club.matchHistory || []
+    matchHistory: club.matchHistory || [],
+    division: club.division || 'bronze', // Default division if undefined
+    tier: club.tier || 5 // Default tier if undefined
   };
 
   return <ClubDetailContent club={safeClub} />;

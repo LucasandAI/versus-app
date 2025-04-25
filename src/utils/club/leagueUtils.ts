@@ -1,6 +1,11 @@
+
 import { Division } from '@/types';
 
-export const formatLeague = (division: Division, tier?: number) => {
+export const formatLeague = (division?: Division, tier?: number) => {
+  if (!division) {
+    return 'Unknown';
+  }
+  
   if (division === 'elite') {
     return 'Elite League';
   }
@@ -9,7 +14,9 @@ export const formatLeague = (division: Division, tier?: number) => {
   return tier ? `${divisionName} ${tier}` : divisionName;
 };
 
-export const getDivisionEmoji = (division: Division) => {
+export const getDivisionEmoji = (division?: Division) => {
+  if (!division) return '';
+  
   switch (division) {
     case 'elite':
       return '👑';
