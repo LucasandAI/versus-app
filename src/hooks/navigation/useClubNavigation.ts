@@ -2,32 +2,13 @@
 import { useApp } from '@/context/AppContext';
 import { toast } from "@/hooks/use-toast";
 import { createNotification } from '@/utils/notification-queries';
-import { Club } from '@/types';
 
 export const useClubNavigation = () => {
   const { currentUser, setCurrentView, setSelectedClub } = useApp();
 
   const handleClubClick = (clubId: string) => {
-    // Find the club in the user's clubs if possible
-    const userClub = currentUser?.clubs.find(c => c.id === clubId);
-    
-    if (userClub) {
-      console.log('[useClubNavigation] Found club in user clubs:', userClub);
-      setSelectedClub(userClub);
-    } else {
-      console.log('[useClubNavigation] Club not in user clubs, setting ID only:', clubId);
-      setSelectedClub({ id: clubId } as any);
-    }
-    
+    setSelectedClub({ id: clubId } as any);
     setCurrentView('clubDetail');
-  };
-  
-  const navigateToClub = (club: Partial<Club>) => {
-    // Implementation already in the first file update
-    // This is just a reference to ensure the signature is consistent
-    console.log('[useClubNavigation] navigateToClub called with:', club);
-    
-    // We'll implement this in the first file update
   };
 
   const handleLeaderboardClick = () => {
@@ -65,7 +46,6 @@ export const useClubNavigation = () => {
 
   return {
     handleClubClick,
-    navigateToClub,
     handleLeaderboardClick,
     handleProfileClick,
     handleJoinRequest

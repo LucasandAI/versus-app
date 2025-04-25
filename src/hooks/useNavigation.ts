@@ -6,7 +6,7 @@ import { useApp } from '@/context/AppContext';
 
 export const useNavigation = () => {
   const { navigateToUserProfile, isLoading: userNavLoading } = useUserNavigation();
-  const { navigateToClub: navigateToClubDetail } = useClubNavigation();
+  const { handleClubClick, handleJoinRequest } = useClubNavigation();
   const { currentUser, setCurrentView, setSelectedUser } = useApp();
   
   const navigateToClub = (clubData: Club | Partial<Club>) => {
@@ -15,27 +15,22 @@ export const useNavigation = () => {
       return;
     }
     
-    console.log('[useNavigation] Navigating to club with data:', clubData);
-    navigateToClubDetail(clubData);
+    if ('id' in clubData && clubData.id) {
+      console.log('[useNavigation] Navigating to club:', clubData.id);
+      handleClubClick(clubData.id);
+    } else {
+      console.error('[useNavigation] Cannot navigate to club, missing ID:', clubData);
+    }
   };
   
-  const handleClubClick = (clubId: string) => {
-    // This is used for legacy code paths - it's better to use navigateToClub with full data
+  const navigateToClubDetail = (clubId: string, clubData?: Partial<Club>) => {
     if (!clubId) {
       console.error('[useNavigation] Cannot navigate to club detail, missing club ID');
       return;
     }
     
-    console.log('[useNavigation] Navigating to club via ID only:', clubId);
-    
-    // Find the club in the user's clubs if possible
-    const userClub = currentUser?.clubs.find(c => c.id === clubId);
-    if (userClub) {
-      navigateToClubDetail(userClub);
-    } else {
-      // If we don't have the full club data, at least pass the ID
-      navigateToClubDetail({ id: clubId });
-    }
+    console.log('[useNavigation] Navigating to club detail:', clubId);
+    handleClubClick(clubId);
   };
 
   // Convenience method to navigate to your own profile
@@ -48,9 +43,10 @@ export const useNavigation = () => {
   
   return {
     navigateToUserProfile,
-    handleClubClick,
+    navigateToClubDetail,
     navigateToClub,
     navigateToOwnProfile,
+    handleJoinRequest,
     isLoading: userNavLoading || false
   };
 };

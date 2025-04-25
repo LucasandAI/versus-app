@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import { Save, Upload } from 'lucide-react';
 import { Textarea } from "@/components/ui/textarea";
 import { useApp } from '@/context/AppContext';
@@ -56,8 +56,9 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
   };
 
   const uploadLogoIfNeeded = async () => {
-    if (!logoFile) return club.logo;
+    if (!logoFile) return club.logo; // no change
     try {
+      // Use club id and timestamp for filename to avoid clashes
       const ext = logoFile.name.split('.').pop();
       const logoPath = `${club.id}/${Date.now()}.${ext}`;
 
@@ -70,6 +71,7 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
         throw new Error(error.message);
       }
 
+      // Get public URL
       const { data: publicUrlData } = supabase
         .storage
         .from('club-logos')
@@ -115,21 +117,21 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
         throw new Error(updateError.message);
       }
 
-      // 3. Update local state with new club data
+      // 3. Update context (selectedClub and clubs array for user)
       const updatedClub = {
         ...club,
         name: name.trim(),
         bio: bio.trim(),
         logo: logoUrl,
       };
-      
-      // Update both selectedClub and the club in currentUser.clubs
       setSelectedClub(updatedClub);
-      
+
       setCurrentUser(prev => {
         if (!prev) return prev;
         const updatedClubs = prev.clubs.map(userClub =>
-          userClub.id === club.id ? updatedClub : userClub
+          userClub.id === club.id
+            ? { ...userClub, name: name.trim(), bio: bio.trim(), logo: logoUrl }
+            : userClub
         );
         return { ...prev, clubs: updatedClubs };
       });

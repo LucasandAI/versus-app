@@ -18,7 +18,7 @@ const ClubCard: React.FC<ClubCardProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [logoLoaded, setLogoLoaded] = useState(false);
-  const { navigateToClub } = useNavigation();
+  const { navigateToClubDetail } = useNavigation();
 
   const toggleExpanded = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -26,14 +26,12 @@ const ClubCard: React.FC<ClubCardProps> = ({
   };
 
   const handleClubClick = () => {
-    console.log('[ClubCard] Club clicked, navigating with full club data:', club);
-    navigateToClub(club);
+    navigateToClubDetail(club.id, club);
   };
 
-  // Pass full club data when clicking club names
   const handleClubNameClick = (e: React.MouseEvent, clubData: Partial<Club>) => {
     e.stopPropagation();
-    navigateToClub(clubData);
+    navigateToClubDetail(clubData.id || '', clubData);
   };
 
   const getDaysRemaining = (endDate: string) => {
