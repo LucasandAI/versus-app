@@ -120,6 +120,7 @@ export type Database = {
           elite_points: number
           id: string
           logo: string | null
+          member_count: number
           name: string
           slug: string
           tier: number
@@ -132,6 +133,7 @@ export type Database = {
           elite_points?: number
           id?: string
           logo?: string | null
+          member_count?: number
           name: string
           slug: string
           tier: number
@@ -144,6 +146,7 @@ export type Database = {
           elite_points?: number
           id?: string
           logo?: string | null
+          member_count?: number
           name?: string
           slug?: string
           tier?: number

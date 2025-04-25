@@ -61,10 +61,9 @@ export const safeSupabase = {
   },
   storage: supabase.storage,
   clubs: {
-    // Get available clubs that the user can join
+    // Updated getAvailableClubs to use member_count column
     getAvailableClubs: async (currentUserId?: string) => {
       try {
-        // If no current user, return empty array
         if (!currentUserId) {
           return { data: [], error: null };
         }
@@ -86,39 +85,25 @@ export const safeSupabase = {
         
         console.log('[safeSupabase] User club IDs:', userClubIds);
         
-        // Step 2: Fetch all clubs
+        // Step 2: Fetch all clubs with less than 5 members
         const { data: allClubs, error: clubsError } = await supabase
           .from('clubs')
-          .select('id, name, division, tier, logo');
+          .select('id, name, division, tier, logo, member_count')
+          .lt('member_count', 5);
         
         if (clubsError || !allClubs) {
           console.error('[safeSupabase] Error fetching available clubs:', clubsError);
           return { data: [], error: clubsError };
         }
         
-        // Step 3: Filter clubs by checking member count and user membership
-        const filtered = await Promise.all(
-          allClubs.map(async (club) => {
-            const { count, error: countError } = await supabase
-              .from('club_members')
-              .select('*', { count: 'exact', head: true })
-              .eq('club_id', club.id);
-              
-            if (countError) {
-              console.error(`[safeSupabase] Error counting members for club ${club.id}:`, countError);
-              return null;
-            }
-            
-            // Skip if club has 5+ members or user is already a member
-            if (count >= 5 || userClubIds.includes(club.id)) {
-              return null;
-            }
-            
-            return { ...club, members: count || 0 };
-          })
-        );
+        // Filter out clubs the user is already a member of
+        const availableClubs = allClubs
+          .filter(club => !userClubIds.includes(club.id))
+          .map(club => ({
+            ...club,
+            members: club.member_count
+          }));
         
-        const availableClubs = filtered.filter((c): c is typeof allClubs[0] & { members: number } => !!c);
         console.log('[safeSupabase] Available clubs:', availableClubs);
         
         return { data: availableClubs, error: null };
