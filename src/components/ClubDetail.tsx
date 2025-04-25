@@ -18,7 +18,14 @@ const ClubDetail: React.FC = () => {
     return <ErrorState />;
   }
 
-  return <ClubDetailContent club={club} />;
+  // Ensure club has valid members and matchHistory properties
+  const safeClub = {
+    ...club,
+    members: club.members || [],
+    matchHistory: club.matchHistory || []
+  };
+
+  return <ClubDetailContent club={safeClub} />;
 };
 
 export default ClubDetail;
