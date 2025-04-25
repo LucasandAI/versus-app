@@ -8,9 +8,9 @@ import { useClubMatches } from './useClubMatches';
 
 export const useClubData = (clubId: string | undefined) => {
   const { selectedClub } = useApp();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
   const [club, setClub] = useState<Club | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   const { fetchClubDetails } = useClubDetails(clubId);
   const { fetchClubMembers } = useClubMembers();
@@ -23,6 +23,7 @@ export const useClubData = (clubId: string | undefined) => {
     setError(null);
 
     try {
+      console.log('[useClubData] Fetching club data for:', clubId);
       const clubData = await fetchClubDetails();
       if (!clubData) return;
 
@@ -46,19 +47,17 @@ export const useClubData = (clubId: string | undefined) => {
     }
   }, [clubId, fetchClubDetails, fetchClubMembers, fetchClubMatches]);
 
-  // Set local state from selectedClub if it's updated
+  // When selectedClub changes, prioritize showing it immediately
   useEffect(() => {
-    if (selectedClub && selectedClub.id === clubId) {
+    if (selectedClub && (!clubId || selectedClub.id === clubId)) {
+      console.log('[useClubData] Using selectedClub directly');
       setClub(selectedClub);
-    }
-  }, [selectedClub, clubId]);
-
-  // Load fresh data on mount or clubId change
-  useEffect(() => {
-    if (clubId) {
+      setIsLoading(false);
+    } else if (clubId) {
+      console.log('[useClubData] No selectedClub available, fetching from DB');
       loadClubData();
     }
-  }, [loadClubData, clubId]);
+  }, [selectedClub, clubId, loadClubData]);
 
   const refetchClub = useCallback(() => {
     return loadClubData();
