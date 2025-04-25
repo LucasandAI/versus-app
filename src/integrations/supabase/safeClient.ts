@@ -80,8 +80,12 @@ export const safeSupabase = {
           return { data: [], error: userClubsError };
         }
         
-        // Extract club IDs from the memberships
-        const userClubIds = userClubsData.map(membership => membership.club_id);
+        // Extract club IDs from the memberships, filtering out null or invalid ids
+        const userClubIds = userClubsData
+          .map(membership => membership.club_id)
+          .filter((id): id is string => !!id);
+        
+        console.log('[safeSupabase] Excluding user clubs:', userClubIds);
         
         // Step 2: Query for clubs the user is not a member of
         const { data: availableClubs, error: clubsError } = await supabase
