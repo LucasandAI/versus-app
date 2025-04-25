@@ -37,6 +37,9 @@ export const useClubDetails = (clubId: string | undefined) => {
       
       console.log('[useClubDetails] Club data fetched successfully:', clubData);
       
+      // Store the creator ID separately to be accessed later for admin checks
+      const creatorId = clubData.created_by;
+      
       return {
         id: clubData.id,
         name: clubData.name,
@@ -45,10 +48,12 @@ export const useClubDetails = (clubId: string | undefined) => {
         tier: clubData.tier || 1,
         elitePoints: clubData.elite_points || 0,
         bio: clubData.bio,
-        members: [], // Will be populated by useClubMembers
-        matchHistory: [], // Will be populated by useClubMatches
-        // Store the creator ID to help determine admin status
-        created_by: clubData.created_by
+        // We'll populate these arrays later with dedicated hooks
+        members: [], 
+        matchHistory: [],
+        // Store the creator ID as a custom property on the Club object
+        // @ts-ignore - We're adding this property temporarily and will use it for admin checks only
+        creatorId: creatorId
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);

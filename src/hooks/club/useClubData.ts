@@ -29,8 +29,8 @@ export const useClubData = (clubId: string | undefined) => {
       console.log('[useClubData] Fetching club data for:', clubId);
       const clubData = await fetchClubDetails();
       
-      if (!clubData) {
-        console.error('[useClubData] No club data returned for ID:', clubId);
+      if (!clubData || !clubData.id) {
+        console.error('[useClubData] No club data returned or missing ID for:', clubId);
         setError('Could not find club data');
         setIsLoading(false);
         return;
@@ -46,10 +46,21 @@ export const useClubData = (clubId: string | undefined) => {
       console.log('[useClubData] Members fetched:', members.length);
       console.log('[useClubData] Matches fetched:', matches.length);
 
+      // Ensure all required properties are present and not optional
       const updatedClub: Club = {
-        ...clubData,
-        members,
+        id: clubData.id, // ID is definitely present as we checked above
+        name: clubData.name || 'Unknown Club',
+        logo: clubData.logo || '/placeholder.svg',
+        division: clubData.division || 'bronze',
+        tier: clubData.tier || 5,
+        elitePoints: clubData.elitePoints || 0,
+        bio: clubData.bio || '',
+        members: members,
         matchHistory: matches,
+        // Optional properties can remain optional
+        currentMatch: clubData.currentMatch || null,
+        joinRequests: clubData.joinRequests || [],
+        isPreviewClub: clubData.isPreviewClub || false,
       };
 
       console.log('[useClubData] Setting complete club data:', updatedClub);
@@ -69,7 +80,7 @@ export const useClubData = (clubId: string | undefined) => {
       console.log('[useClubData] Using selectedClub directly:', selectedClub);
       
       // If selectedClub exists but doesn't have members or matchHistory, we still need to fetch them
-      if (selectedClub.members?.length === 0 || !selectedClub.matchHistory) {
+      if (!selectedClub.members || selectedClub.members.length === 0 || !selectedClub.matchHistory) {
         console.log('[useClubData] Selected club missing data, fetching full data');
         loadClubData();
       } else {
