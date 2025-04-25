@@ -1,13 +1,24 @@
 
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ClubMember } from '@/types';
-import { PostgrestError } from '@supabase/supabase-js';
 
 export const useClubMembers = () => {
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
   const fetchClubMembers = async (clubId: string): Promise<ClubMember[]> => {
-    console.log('[useClubMembers] Fetching members for club:', clubId);
+    if (!clubId) {
+      console.error('[useClubMembers] No club ID provided');
+      return [];
+    }
+
+    setIsLoading(true);
+    setError(null);
     
     try {
+      console.log('[useClubMembers] Fetching members for club:', clubId);
+      
       // First, get the club members for the specified club
       const { data: membersData, error: membersError } = await supabase
         .from('club_members')
@@ -67,10 +78,14 @@ export const useClubMembers = () => {
       console.log('[useClubMembers] Formatted members:', members);
       return members;
     } catch (error) {
-      console.error('[useClubMembers] Exception occurred:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[useClubMembers] Exception occurred:', errorMessage);
+      setError(errorMessage);
       return [];
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  return { fetchClubMembers };
+  return { fetchClubMembers, isLoading, error };
 };

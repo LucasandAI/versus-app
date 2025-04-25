@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import ClubDetailContent from './club/detail/ClubDetailContent';
 import LoadingState from './club/detail/states/LoadingState';
@@ -8,13 +8,22 @@ import { useClubData } from '@/hooks/club/useClubData';
 
 const ClubDetail: React.FC = () => {
   const { selectedClub } = useApp();
-  const { club, isLoading, error } = useClubData(selectedClub?.id);
+  const clubId = selectedClub?.id;
+  const { club, isLoading, error, refetchClub } = useClubData(clubId);
+
+  useEffect(() => {
+    if (clubId) {
+      console.log('[ClubDetail] Selected club ID:', clubId);
+      refetchClub();
+    }
+  }, [clubId, refetchClub]);
 
   if (isLoading) {
     return <LoadingState />;
   }
 
   if (error || !club) {
+    console.error('[ClubDetail] Error loading club:', error);
     return <ErrorState />;
   }
 
@@ -27,6 +36,7 @@ const ClubDetail: React.FC = () => {
     tier: club.tier || 5 // Default tier if undefined
   };
 
+  console.log('[ClubDetail] Rendering with club data:', safeClub);
   return <ClubDetailContent club={safeClub} />;
 };
 
