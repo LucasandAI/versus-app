@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { UserPlus } from 'lucide-react';
 import Button from '../shared/Button';
@@ -32,6 +31,16 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
       matchHistory: []
     });
   };
+
+  if (clubs.length === 0) {
+    return (
+      <div className="bg-white rounded-lg shadow-md p-4">
+        <p className="text-gray-500 text-center py-4">
+          No clubs available to join at the moment
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-md p-4">

@@ -24,7 +24,7 @@ export const useAvailableClubs = () => {
     const fetchClubs = async () => {
       setLoading(true);
       try {
-        const { data, error } = await safeSupabase.clubs.getAvailableClubs();
+        const { data, error } = await safeSupabase.clubs.getAvailableClubs(currentUser?.id);
         
         if (error) {
           setError(error.message);
@@ -32,16 +32,10 @@ export const useAvailableClubs = () => {
         }
         
         // Transform and validate division field to match Division type
-        let typedData: AvailableClub[] = data.map(club => ({
+        const typedData: AvailableClub[] = data.map(club => ({
           ...club,
           division: ensureDivision(club.division)
         }));
-        
-        // Filter out clubs that the user is already a member of
-        if (currentUser && currentUser.clubs) {
-          const userClubIds = currentUser.clubs.map(club => club.id);
-          typedData = typedData.filter(club => !userClubIds.includes(club.id));
-        }
         
         setClubs(typedData);
         setError(null);
@@ -54,7 +48,7 @@ export const useAvailableClubs = () => {
     };
     
     fetchClubs();
-  }, [currentUser]);
+  }, [currentUser?.id]);
   
   return { clubs, loading, error };
 };

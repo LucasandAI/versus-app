@@ -1,4 +1,3 @@
-
 import { supabase } from './client';
 import { PostgrestError } from '@supabase/supabase-js';
 
@@ -63,35 +62,36 @@ export const safeSupabase = {
   storage: supabase.storage,
   clubs: {
     // Get available clubs that the user can join
-    getAvailableClubs: async () => {
+    getAvailableClubs: async (currentUserId?: string) => {
       try {
-        const { data, error } = await supabase
+        // First, get clubs that have less than 5 members
+        const { data: clubsWithMemberCount, error: clubsError } = await supabase
           .from('clubs')
-          .select('id, name, division, tier, logo')
-          .order('created_at', { ascending: false })
-          .limit(10);
-        
-        if (error) {
-          console.error('[safeSupabase] Error fetching available clubs:', error);
-          return { data: [], error };
+          .select(`
+            id,
+            name,
+            division,
+            tier,
+            logo,
+            club_members (count)
+          `)
+          .not('club_members.user_id', 'eq', currentUserId) // Exclude clubs where user is a member
+          .group_by('id')
+          .having('count(club_members) < 5'); // Only get clubs with less than 5 members
+
+        if (clubsError) {
+          console.error('[safeSupabase] Error fetching available clubs:', clubsError);
+          return { data: [], error: clubsError };
         }
-        
-        // Count members for each club
-        const clubsWithMemberCount = await Promise.all(
-          data.map(async (club) => {
-            const { count, error: countError } = await supabase
-              .from('club_members')
-              .select('*', { count: 'exact', head: true })
-              .eq('club_id', club.id);
-            
-            return {
-              ...club,
-              members: countError ? 0 : count || 0
-            };
-          })
-        );
-        
-        return { data: clubsWithMemberCount, error: null };
+
+        // Transform the data to include member count
+        const availableClubs = clubsWithMemberCount.map(club => ({
+          ...club,
+          members: club.club_members?.[0]?.count || 0,
+          club_members: undefined // Remove the club_members array from the final object
+        }));
+
+        return { data: availableClubs, error: null };
       } catch (error) {
         console.error('[safeSupabase] Unexpected error fetching available clubs:', error);
         return {
@@ -99,46 +99,6 @@ export const safeSupabase = {
           error: error instanceof Error ? 
             { message: error.message } as PostgrestError : 
             { message: 'Unknown error fetching clubs' } as PostgrestError
-        };
-      }
-    },
-    
-    // Get clubs for the leaderboard view
-    getLeaderboardClubs: async () => {
-      try {
-        const { data, error } = await supabase
-          .from('clubs')
-          .select('id, name, division, tier, elite_points')
-          .order('division', { ascending: false })
-          .order('tier', { ascending: true })
-          .order('elite_points', { ascending: false });
-        
-        if (error) {
-          console.error('[safeSupabase] Error fetching leaderboard clubs:', error);
-          return { data: [], error };
-        }
-        
-        // Transform to leaderboard format
-        const leaderboardData = data.map((club, index) => {
-          return {
-            id: club.id,
-            name: club.name,
-            division: club.division.toLowerCase(),
-            tier: club.tier,
-            rank: index + 1,
-            points: club.division.toLowerCase() === 'elite' ? club.elite_points : 0,
-            change: ['up', 'down', 'same'][Math.floor(Math.random() * 3)] as 'up' | 'down' | 'same'
-          };
-        });
-        
-        return { data: leaderboardData, error: null };
-      } catch (error) {
-        console.error('[safeSupabase] Unexpected error fetching leaderboard clubs:', error);
-        return {
-          data: [],
-          error: error instanceof Error ? 
-            { message: error.message } as PostgrestError : 
-            { message: 'Unknown error fetching leaderboard data' } as PostgrestError
         };
       }
     }
