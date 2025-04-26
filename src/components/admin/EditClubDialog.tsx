@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { Save, Upload } from 'lucide-react';
 import { Textarea } from "@/components/ui/textarea";
 import { useApp } from '@/context/AppContext';
@@ -30,7 +30,7 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
   onOpenChange, 
   club 
 }) => {
-  const { setSelectedClub, setCurrentUser } = useApp();
+  const { setSelectedClub } = useApp();
   const [name, setName] = useState(club.name);
   const [bio, setBio] = useState(club.bio || 'A club for enthusiastic runners');
   const [logoPreview, setLogoPreview] = useState(club.logo || '/placeholder.svg');
@@ -56,9 +56,8 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
   };
 
   const uploadLogoIfNeeded = async () => {
-    if (!logoFile) return club.logo; // no change
+    if (!logoFile) return club.logo;
     try {
-      // Use club id and timestamp for filename to avoid clashes
       const ext = logoFile.name.split('.').pop();
       const logoPath = `${club.id}/${Date.now()}.${ext}`;
 
@@ -67,24 +66,17 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
         .from('club-logos')
         .upload(logoPath, logoFile, { upsert: true });
 
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (error) throw error;
 
-      // Get public URL
       const { data: publicUrlData } = supabase
         .storage
         .from('club-logos')
         .getPublicUrl(logoPath);
         
       return publicUrlData?.publicUrl;
-    } catch (e) {
-      toast({
-        title: "Logo Upload Failed",
-        description: e instanceof Error ? e.message : "Error uploading logo.",
-        variant: "destructive",
-      });
-      return club.logo || '/placeholder.svg';
+    } catch (error) {
+      console.error('Logo upload error:', error);
+      throw error;
     }
   };
 
@@ -97,10 +89,11 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
       });
       return;
     }
+
     setLoading(true);
 
     try {
-      // 1. Upload logo if new file selected
+      // 1. Upload logo if needed
       const logoUrl = await uploadLogoIfNeeded();
 
       // 2. Update club in DB
@@ -113,28 +106,18 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
         })
         .eq('id', club.id);
 
-      if (updateError) {
-        throw new Error(updateError.message);
-      }
+      if (updateError) throw updateError;
 
-      // 3. Update context (selectedClub and clubs array for user)
-      const updatedClub = {
+      // 3. Create updated club object with all existing properties
+      const updatedClub: Club = {
         ...club,
         name: name.trim(),
         bio: bio.trim(),
-        logo: logoUrl,
+        logo: logoUrl || club.logo,
       };
-      setSelectedClub(updatedClub);
 
-      setCurrentUser(prev => {
-        if (!prev) return prev;
-        const updatedClubs = prev.clubs.map(userClub =>
-          userClub.id === club.id
-            ? { ...userClub, name: name.trim(), bio: bio.trim(), logo: logoUrl }
-            : userClub
-        );
-        return { ...prev, clubs: updatedClubs };
-      });
+      // 4. Update context
+      setSelectedClub(updatedClub);
 
       toast({
         title: "Club Updated",
@@ -143,6 +126,7 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
 
       onOpenChange(false);
     } catch (error) {
+      console.error('Error updating club:', error);
       toast({
         title: "Error Updating Club",
         description: error instanceof Error ? error.message : "Something went wrong.",
