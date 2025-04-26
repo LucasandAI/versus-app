@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { ChatMessage } from '@/types/chat';
+import { ChatMessage } from '@/types';
 import MessageList from './message/MessageList';
 import { useMessageUser } from './message/useMessageUser';
 import { useMessageNormalization } from './message/useMessageNormalization';
@@ -51,21 +50,19 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   return (
     <div 
       ref={scrollRef}
-      className="flex-1 overflow-y-auto h-full pb-4"
+      className="h-[calc(100vh-14rem)] overflow-y-auto bg-white"
     >
-      <div className="flex flex-col min-h-full">
-        <MessageList 
-          messages={normalizedMessages} 
-          clubMembers={clubMembers} 
-          isSupport={isSupport} 
-          onDeleteMessage={onDeleteMessage} 
-          onSelectUser={onSelectUser} 
-          formatTime={formatTime} 
-          currentUserAvatar={currentUserAvatar}
-          currentUserId={currentUserId}
-          lastMessageRef={lastMessageRef}
-        />
-      </div>
+      <MessageList 
+        messages={normalizedMessages} 
+        clubMembers={clubMembers} 
+        isSupport={isSupport} 
+        onDeleteMessage={onDeleteMessage} 
+        onSelectUser={onSelectUser} 
+        formatTime={formatTime} 
+        currentUserAvatar={currentUserAvatar}
+        currentUserId={currentUserId}
+        lastMessageRef={lastMessageRef}
+      />
     </div>
   );
 };

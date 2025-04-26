@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import ChatHeader from './ChatHeader';
@@ -31,7 +30,6 @@ const ChatClubContent = ({
   const { deleteMessage } = useChatActions();
   const effectiveClubId = clubId || club?.id;
   
-  // Reset state when club changes
   useEffect(() => {
     console.log('[ChatClubContent] Club changed, resetting state for:', effectiveClubId);
     setIsSending(false);
@@ -39,16 +37,12 @@ const ChatClubContent = ({
 
   const handleDeleteMessage = async (messageId: string) => {
     console.log('[ChatClubContent] Deleting message:', messageId);
-    // Pass setClubMessages to enable optimistic deletion
     await deleteMessage(messageId, setClubMessages);
   };
 
   const handleClubClick = () => {
     if (club && club.id) {
-      // This will navigate to the full club detail page when clicking on the header
       navigateToClubDetail(club.id, club);
-      
-      // Close the chat drawer after navigation
       const event = new CustomEvent('chatDrawerClosed');
       window.dispatchEvent(event);
     }
@@ -56,12 +50,8 @@ const ChatClubContent = ({
 
   const handleSendMessage = async (message: string) => {
     console.log('[ChatClubContent] Sending message for club:', effectiveClubId);
-    
-    // Set sending state to prevent multiple sends
     setIsSending(true);
-    
     try {
-      // Capture message in local scope to ensure we're using the current value
       const messageToSend = message.trim();
       await onSendMessage(messageToSend);
     } catch (error) {
@@ -80,8 +70,8 @@ const ChatClubContent = ({
         onClubClick={handleClubClick}
       />
       
-      <div className="flex-1 flex flex-col relative h-full overflow-hidden">
-        <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 flex flex-col relative overflow-hidden">
+        <div className="flex-1 min-h-0">
           <ChatMessages 
             messages={messages} 
             clubMembers={club.members || []}
@@ -90,13 +80,11 @@ const ChatClubContent = ({
           />
         </div>
         
-        <div className="sticky bottom-0 left-0 right-0 bg-white border-t min-h-[64px]">
+        <div className="absolute bottom-0 left-0 right-0 bg-white">
           <ChatInput 
             onSendMessage={handleSendMessage} 
-            isSending={isSending}
-            placeholder="Type a message..."
-            conversationId={effectiveClubId}
             conversationType="club"
+            conversationId={effectiveClubId} 
           />
         </div>
       </div>

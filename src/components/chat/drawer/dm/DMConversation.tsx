@@ -107,9 +107,9 @@ const DMConversation: React.FC<DMConversationProps> = ({
   return (
     <div className="flex flex-col h-full w-full">
       <DMHeader userId={userId} userName={userName} userAvatar={userAvatar} />
-
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto min-h-0">
+      
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+        <div className="flex-1 min-h-0">
           <ChatMessages 
             messages={messages} 
             clubMembers={currentUser ? [currentUser] : []}
@@ -120,7 +120,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
           />
         </div>
         
-        <div className="sticky bottom-0 left-0 right-0 bg-white border-t">
+        <div className="absolute bottom-0 left-0 right-0 bg-white">
           <ChatInput 
             onSendMessage={handleSendMessage}
             isSending={isSending}

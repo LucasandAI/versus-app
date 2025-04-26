@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Send } from 'lucide-react';
 
@@ -22,7 +21,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const [message, setMessage] = useState('');
   const contextId = conversationId || clubId || 'unknown';
   
-  // Reset input when conversation changes (clubId or conversationId changes)
   useEffect(() => {
     console.log(`[ChatInput] Reset input for ${conversationType} conversation: ${contextId}`);
     setMessage('');
@@ -32,19 +30,16 @@ const ChatInput: React.FC<ChatInputProps> = ({
     e.preventDefault();
     
     if (message.trim() && !isSending) {
-      const messageToSend = message.trim(); // Capture current message in local variable
+      const messageToSend = message.trim();
       console.log(`[ChatInput] Submitting message for ${conversationType}:${contextId}:`, 
         messageToSend.substring(0, 20));
       
-      // Clear the input immediately to prevent reusing the same message
       setMessage('');
       
       try {
         await onSendMessage(messageToSend);
-        // No need to clear again as we already did it before sending
       } catch (error) {
         console.error(`[ChatInput] Error sending message for ${conversationType}:${contextId}:`, error);
-        // If there's an error, we might want to restore the message
         setMessage(messageToSend);
       }
     }
@@ -60,7 +55,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   return (
     <form 
       onSubmit={handleSubmit}
-      className="p-3 flex items-center gap-2 w-full bg-white z-10"
+      className="h-16 min-h-[64px] p-3 flex items-center gap-2 w-full bg-white border-t z-10"
       data-conversation-type={conversationType}
       data-conversation-id={contextId}
     >
