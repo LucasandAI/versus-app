@@ -6,7 +6,7 @@ import { toast } from "@/hooks/use-toast";
 import { useApp } from '@/context/AppContext';
 
 export const useClubForm = (club: Club, onClose: () => void) => {
-  const { setSelectedClub } = useApp();
+  const { setSelectedClub, setCurrentUser } = useApp();
   const [name, setName] = useState(club.name);
   const [bio, setBio] = useState(club.bio || 'A club for enthusiastic runners');
   const [logoPreview, setLogoPreview] = useState(club.logo || '/placeholder.svg');
@@ -56,6 +56,22 @@ export const useClubForm = (club: Club, onClose: () => void) => {
     }
   };
 
+  const updateAppState = (updatedClub: Club) => {
+    // Update selectedClub state
+    setSelectedClub(updatedClub);
+
+    // Update club in currentUser.clubs array
+    setCurrentUser(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        clubs: prev.clubs.map(c => 
+          c.id === updatedClub.id ? updatedClub : c
+        )
+      };
+    });
+  };
+
   const handleSave = async () => {
     if (!name.trim()) {
       toast({
@@ -71,25 +87,26 @@ export const useClubForm = (club: Club, onClose: () => void) => {
     try {
       const logoUrl = await uploadLogoIfNeeded();
 
-      const { error: updateError } = await supabase
-        .from('clubs')
-        .update({
-          name: name.trim(),
-          bio: bio.trim(),
-          logo: logoUrl,
-        })
-        .eq('id', club.id);
-
-      if (updateError) throw updateError;
-
-      const updatedClub: Club = {
+      const updatedClub = {
         ...club,
         name: name.trim(),
         bio: bio.trim(),
         logo: logoUrl || club.logo,
       };
 
-      setSelectedClub(updatedClub);
+      const { error: updateError } = await supabase
+        .from('clubs')
+        .update({
+          name: updatedClub.name,
+          bio: updatedClub.bio,
+          logo: updatedClub.logo,
+        })
+        .eq('id', club.id);
+
+      if (updateError) throw updateError;
+
+      // Update both selectedClub and currentUser.clubs after successful save
+      updateAppState(updatedClub);
 
       toast({
         title: "Club Updated",
