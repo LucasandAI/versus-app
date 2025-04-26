@@ -37,29 +37,32 @@ const MessageList: React.FC<MessageListProps> = ({
           No messages yet. Start the conversation!
         </div>
       ) : (
-        messages.map((message: ChatMessage, index: number) => {
-          const isUserMessage = currentUserId && message.sender && 
-            String(message.sender.id) === String(currentUserId);
-          const isLastMessage = index === messages.length - 1;
-          
-          return (
-            <div 
-              key={message.id}
-              ref={isLastMessage ? lastMessageRef : undefined}
-              className="mb-4"
-            >
-              <MessageItem
-                message={message}
-                isUserMessage={isUserMessage}
-                isSupport={isSupport}
-                onDeleteMessage={onDeleteMessage}
-                onSelectUser={onSelectUser}
-                formatTime={formatTime}
-                currentUserAvatar={currentUserAvatar}
-              />
-            </div>
-          );
-        })
+        // Sort messages in ascending order by timestamp
+        [...messages]
+          .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+          .map((message: ChatMessage, index: number) => {
+            const isUserMessage = currentUserId && message.sender && 
+              String(message.sender.id) === String(currentUserId);
+            const isLastMessage = index === messages.length - 1;
+            
+            return (
+              <div 
+                key={message.id}
+                ref={isLastMessage ? lastMessageRef : undefined}
+                className="mb-4"
+              >
+                <MessageItem
+                  message={message}
+                  isUserMessage={isUserMessage}
+                  isSupport={isSupport}
+                  onDeleteMessage={onDeleteMessage}
+                  onSelectUser={onSelectUser}
+                  formatTime={formatTime}
+                  currentUserAvatar={currentUserAvatar}
+                />
+              </div>
+            );
+          })
       )}
     </div>
   );
