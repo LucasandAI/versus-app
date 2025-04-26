@@ -1,12 +1,13 @@
+
 import { useState } from 'react';
 import { Club } from '@/types';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { ClubEditFormValues } from '@/schemas/club-schema';
 
-interface SaveClubData {
-  name: string;
-  bio: string;
+// Update the interface to use the form values type
+interface SaveClubData extends ClubEditFormValues {
   logo: string;
 }
 

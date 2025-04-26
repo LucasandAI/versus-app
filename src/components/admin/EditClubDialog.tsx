@@ -16,7 +16,7 @@ import { useClubForm } from '@/hooks/club/useClubForm';
 import LogoUploadSection from './club-edit/LogoUploadSection';
 import ClubEditForm from './club-edit/ClubEditForm';
 import { Form } from '@/components/ui/form';
-import { clubEditSchema } from '@/schemas/club-schema';
+import { clubEditSchema, ClubEditFormValues } from '@/schemas/club-schema';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from '@/hooks/use-toast';
@@ -32,7 +32,7 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
   onOpenChange, 
   club 
 }) => {
-  const form = useForm({
+  const form = useForm<ClubEditFormValues>({
     resolver: zodResolver(clubEditSchema),
     defaultValues: {
       name: club.name,
@@ -47,7 +47,7 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
     loading
   } = useClubForm(club, () => onOpenChange(false));
 
-  const onSubmit = async (values: Record<string, string>) => {
+  const onSubmit = async (values: ClubEditFormValues) => {
     if (loading) return;
     
     try {
