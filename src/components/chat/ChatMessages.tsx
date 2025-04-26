@@ -92,7 +92,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
         onDeleteMessage={onDeleteMessage} 
         onSelectUser={onSelectUser} 
         formatTime={formatTime} 
-        currentUserAvatar={currentUserAvatar} 
+        currentUserAvatar={currentUserAvatar}
+        currentUserId={currentUserId}
       />
     </div>
   );

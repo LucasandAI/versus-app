@@ -63,7 +63,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
         />
       )}
       
-      <div className={`max-w-[70%] ${isUserMessage ? 'order-2' : 'order-1'}`}>
+      <div className={`max-w-[70%] ${isUserMessage ? 'order-1' : 'order-1'}`}>
         {/* Show sender name for non-user messages */}
         {!isUserMessage && (
           <button 
@@ -87,7 +87,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
       
       {isUserMessage && (
         <UserAvatar 
-          name={message.sender.name || "You"}
+          name={message.sender.name || "You"} 
           image={currentUserAvatar} 
           size="sm" 
           className="ml-2 flex-shrink-0"

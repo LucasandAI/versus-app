@@ -15,6 +15,7 @@ interface MessageListProps {
   onSelectUser?: (userId: string, userName: string, userAvatar?: string) => void;
   formatTime: (isoString: string) => string;
   currentUserAvatar: string;
+  currentUserId: string | null;
 }
 
 const MessageList: React.FC<MessageListProps> = ({
@@ -25,6 +26,7 @@ const MessageList: React.FC<MessageListProps> = ({
   onSelectUser,
   formatTime,
   currentUserAvatar,
+  currentUserId,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -37,8 +39,8 @@ const MessageList: React.FC<MessageListProps> = ({
       ) : (
         messages.map((message: ChatMessage) => {
           // Check if the message was sent by the current user
-          const isUserMessage = currentUserAvatar && message.sender && 
-            clubMembers.some(member => member.id === message.sender.id);
+          const isUserMessage = currentUserId && message.sender && 
+            String(message.sender.id) === String(currentUserId);
           
           return (
             <MessageItem
