@@ -31,7 +31,10 @@ const ClubMembersList: React.FC<ClubMembersListProps> = ({
       // Ensure every member has a distanceContribution (default to 0)
       acc.set(member.id, {
         ...member,
-        distanceContribution: member.distanceContribution || 0
+        name: member.name || 'Unknown Member',
+        avatar: member.avatar || '/placeholder.svg',
+        isAdmin: !!member.isAdmin,
+        distanceContribution: typeof member.distanceContribution === 'number' ? member.distanceContribution : 0
       });
     }
     return acc;

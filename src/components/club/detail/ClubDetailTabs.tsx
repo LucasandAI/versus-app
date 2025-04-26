@@ -22,13 +22,20 @@ const ClubDetailTabs: React.FC<ClubDetailTabsProps> = ({
   const { navigateToUserProfile } = useNavigation();
 
   // Handle null club case
-  if (!club) {
+  if (!club || typeof club !== 'object') {
     return <ClubTabsLoadingSkeleton />;
   }
 
   const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
     if (!userId) return;
     navigateToUserProfile(userId, userName || 'User', userAvatar);
+  };
+
+  // Safe access to club properties
+  const safeClub = {
+    ...club,
+    members: Array.isArray(club.members) ? club.members : [],
+    matchHistory: Array.isArray(club.matchHistory) ? club.matchHistory : []
   };
 
   return (
@@ -41,7 +48,7 @@ const ClubDetailTabs: React.FC<ClubDetailTabsProps> = ({
       
       <TabsContent value="overview">
         <OverviewTab 
-          club={club}
+          club={safeClub}
           currentUser={currentUser}
           onSelectUser={handleSelectUser}
         />
@@ -49,14 +56,14 @@ const ClubDetailTabs: React.FC<ClubDetailTabsProps> = ({
       
       <TabsContent value="members">
         <ClubMembersList
-          members={club.members}
-          currentMatch={club.currentMatch}
+          members={safeClub.members}
+          currentMatch={safeClub.currentMatch}
           onSelectMember={handleSelectUser}
         />
       </TabsContent>
       
       <TabsContent value="history">
-        <MatchHistoryTab club={club} />
+        <MatchHistoryTab club={safeClub} />
       </TabsContent>
     </Tabs>
   );

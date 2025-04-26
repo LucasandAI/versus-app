@@ -12,13 +12,39 @@ export const useClubMembership = (club: Club) => {
   const [hasPending, setHasPending] = useState<boolean>(false);
   const [isCheckingInvite, setIsCheckingInvite] = useState(false);
 
+  // Safely check if club and currentUser exist
+  if (!club || !club.id || !currentUser) {
+    console.log('[useClubMembership] Missing club or currentUser data');
+  }
+
   // Safely check if user is a member with null checks
-  const isActuallyMember = currentUser?.clubs?.some(c => c.id === club?.id) || false;
+  const isActuallyMember = !!(
+    currentUser && 
+    Array.isArray(currentUser.clubs) && 
+    club && 
+    club.id && 
+    currentUser.clubs.some(c => c && c.id === club.id)
+  );
   
   // Safely check if user is an admin with null checks
-  const isAdmin = isActuallyMember && currentUser && club?.members?.some(
-    member => member.id === currentUser.id && member.isAdmin
-  ) || false;
+  const isAdmin = !!(
+    isActuallyMember && 
+    currentUser && 
+    club && 
+    Array.isArray(club.members) && 
+    club.members.some(member => 
+      member && 
+      member.id === currentUser.id && 
+      member.isAdmin === true
+    )
+  );
+  
+  console.log('[useClubMembership] Status check:', { 
+    isActuallyMember, 
+    isAdmin,
+    hasMembers: Array.isArray(club?.members) ? club?.members?.length : 'no members array',
+    userId: currentUser?.id
+  });
 
   useEffect(() => {
     // Skip if club ID is missing or user is already a member

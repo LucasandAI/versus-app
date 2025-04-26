@@ -13,7 +13,7 @@ interface ClubStatsProps {
 
 const ClubStats: React.FC<ClubStatsProps> = ({ club, matchHistory }) => {
   // Safely handle potentially undefined club or matchHistory
-  if (!club) {
+  if (!club || typeof club !== 'object') {
     return <StatsLoadingSkeleton />;
   }
   
@@ -22,7 +22,7 @@ const ClubStats: React.FC<ClubStatsProps> = ({ club, matchHistory }) => {
   
   // Calculate win/loss record from match history
   const wins = safeMatchHistory.filter(match => {
-    if (!match?.homeClub?.id || !match?.winner) return false;
+    if (!match || !match.homeClub?.id || !match.winner) return false;
     const isHomeTeam = match.homeClub.id === club.id;
     return (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
   }).length;
@@ -37,7 +37,7 @@ const ClubStats: React.FC<ClubStatsProps> = ({ club, matchHistory }) => {
     if (!match?.homeClub?.id) return sum;
     const isHomeTeam = match.homeClub.id === club.id;
     const clubInMatch = isHomeTeam ? match.homeClub : match.awayClub;
-    return sum + (clubInMatch?.totalDistance || 0);
+    return sum + (typeof clubInMatch?.totalDistance === 'number' ? clubInMatch.totalDistance : 0);
   }, 0);
   
   // Safely handle potentially undefined club.members
@@ -112,14 +112,14 @@ const calculateWinStreak = (matches: Match[] | undefined, clubId: string): numbe
   
   // Sort by most recent first
   const sortedMatches = [...matches].sort((a, b) => {
-    if (!a.endDate || !b.endDate) return 0;
+    if (!a || !a.endDate || !b || !b.endDate) return 0;
     return new Date(b.endDate).getTime() - new Date(a.endDate).getTime();
   });
   
   let streak = 0;
   
   for (const match of sortedMatches) {
-    if (!match?.homeClub?.id || !match.winner) continue;
+    if (!match || !match.homeClub?.id || !match.winner) continue;
     
     const isHomeTeam = match.homeClub.id === clubId;
     const isWin = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');

@@ -40,10 +40,17 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
   hasPendingInvite,
 }) => {
   // Handle null club case
-  if (!club) {
+  if (!club || typeof club !== 'object') {
     return <ClubHeaderLoadingSkeleton onBack={onBack} />;
   }
 
+  // Safe club properties with fallbacks
+  const clubName = club.name || 'Unnamed Club';
+  const clubLogo = club.logo || '/placeholder.svg';
+  const clubBio = club.bio || `Welcome to this running club! We're a group of passionate runners looking to challenge ourselves and improve together.`;
+  const division = club.division || 'bronze';
+  const tier = typeof club.tier === 'number' ? club.tier : 5;
+  
   // Use optional chaining and nullish coalescing to prevent crashes
   const memberCount = Array.isArray(club.members) ? club.members.length : 0;
   const isClubFull = memberCount >= 5;
@@ -138,7 +145,7 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
   return (
     <>
       <AppHeader 
-        title={club.name || 'Club'}
+        title={clubName}
         onBack={onBack}
       />
 
@@ -148,16 +155,16 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
             <div className="flex flex-col items-center md:items-start mb-4 md:mb-0">
               <div className="mb-4">
                 <UserAvatar 
-                  name={club.name || 'Club'} 
-                  image={club.logo} 
+                  name={clubName} 
+                  image={clubLogo} 
                   size="lg"
                   className="h-24 w-24 border-4 border-white shadow-md"
                 />
               </div>
-              <h2 className="text-2xl font-bold text-center md:text-left">{club.name || 'Club'}</h2>
+              <h2 className="text-2xl font-bold text-center md:text-left">{clubName}</h2>
               <div className="flex items-center mt-2 space-x-2">
                 <span className="text-sm bg-gray-100 px-2 py-1 rounded-full text-gray-700 font-medium">
-                  {formatLeagueWithTier(club.division, club.tier)}
+                  {formatLeagueWithTier(division, tier)}
                 </span>
                 <span className="text-sm bg-gray-100 px-2 py-1 rounded-full text-gray-700">
                   {`${memberCount}/5 members`}
@@ -173,9 +180,7 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
           </div>
           
           <div className="mt-4 border-t pt-4 text-center md:text-left">
-            <p className="text-gray-600 text-sm">
-              {club.bio || `Welcome to ${club.name || 'our club'}! We're a group of passionate runners looking to challenge ourselves and improve together.`}
-            </p>
+            <p className="text-gray-600 text-sm">{clubBio}</p>
           </div>
         </div>
       </div>

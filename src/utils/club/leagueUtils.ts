@@ -2,20 +2,30 @@
 import { Division } from '@/types';
 
 export const formatLeague = (division?: Division, tier?: number) => {
-  if (!division) return 'Unknown';
+  if (!division) return 'Bronze 5';
   
   if (division === 'elite') {
     return 'Elite League';
   }
   
-  const divisionName = division.charAt(0).toUpperCase() + division.slice(1);
-  return tier ? `${divisionName} ${tier}` : divisionName;
+  // Ensure division name is properly capitalized
+  const divisionName = division.charAt(0).toUpperCase() + division.slice(1).toLowerCase();
+  
+  // Ensure tier is a valid number between 1 and 5
+  const safeTier = typeof tier === 'number' && tier >= 1 && tier <= 5 
+    ? tier 
+    : 5;
+    
+  return `${divisionName} ${safeTier}`;
 };
 
 export const getDivisionEmoji = (division?: Division) => {
-  if (!division) return '';
+  if (!division) return '🥉'; // Default to bronze emoji
   
-  switch (division) {
+  // Normalize division to lowercase for comparison
+  const normalizedDivision = division.toLowerCase() as Division;
+  
+  switch (normalizedDivision) {
     case 'elite':
       return '👑';
     case 'diamond':
@@ -29,7 +39,7 @@ export const getDivisionEmoji = (division?: Division) => {
     case 'bronze':
       return '🥉';
     default:
-      return '';
+      return '🥉'; // Default to bronze emoji
   }
 };
 
@@ -52,8 +62,10 @@ export const calculateNewDivisionAndTier = (
   elitePoints: number = 0
 ): { division: Division; tier: number; elitePoints?: number } => {
   // Default values if inputs are undefined
-  const division = currentDivision?.toLowerCase() as Division || 'bronze';
-  const tier = currentTier || 1;
+  const division = (currentDivision?.toLowerCase() as Division) || 'bronze';
+  const tier = typeof currentTier === 'number' && currentTier >= 1 && currentTier <= 5
+    ? currentTier 
+    : 5;
   
   // Default to false if isWin is undefined
   const win = isWin === true;

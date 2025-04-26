@@ -27,7 +27,14 @@ export const useClubMembers = () => {
       }
       
       // Extract user IDs from the members data
-      const userIds = membersData.map(member => member.user_id);
+      const userIds = membersData
+        .filter(member => member && member.user_id)
+        .map(member => member.user_id);
+      
+      if (userIds.length === 0) {
+        console.log('[useClubMembers] No valid user IDs found');
+        return [];
+      }
       
       // Fetch user details for all members in a single query
       const { data: usersData, error: usersError } = await supabase
@@ -44,25 +51,34 @@ export const useClubMembers = () => {
       
       // Create a map of user data for easy lookup
       const userMap = new Map();
-      usersData?.forEach(user => userMap.set(user.id, user));
+      if (usersData && Array.isArray(usersData)) {
+        usersData.forEach(user => {
+          if (user && user.id) {
+            userMap.set(user.id, user);
+          }
+        });
+      }
       
       // Combine the data to create the final member list
-      const members = membersData.map(member => {
-        const userData = userMap.get(member.user_id);
-        
-        if (!userData) {
-          console.warn('[useClubMembers] Missing user data for member:', member);
-          return null;
-        }
-        
-        return {
-          id: userData.id,
-          name: userData.name,
-          avatar: userData.avatar || '/placeholder.svg',
-          isAdmin: member.is_admin,
-          distanceContribution: 0
-        };
-      }).filter(Boolean) as ClubMember[];
+      const members = membersData
+        .filter(member => member && member.user_id && userMap.has(member.user_id))
+        .map(member => {
+          const userData = userMap.get(member.user_id);
+          
+          if (!userData) {
+            console.warn('[useClubMembers] Missing user data for member:', member);
+            return null;
+          }
+          
+          return {
+            id: userData.id,
+            name: userData.name || 'Unknown Member',
+            avatar: userData.avatar || '/placeholder.svg',
+            isAdmin: member.is_admin === true,
+            distanceContribution: 0
+          };
+        })
+        .filter(Boolean) as ClubMember[];
       
       console.log('[useClubMembers] Formatted members:', members);
       return members;

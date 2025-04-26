@@ -18,20 +18,20 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   onSelectUser 
 }) => {
   // Handle null club case
-  if (!club) {
+  if (!club || typeof club !== 'object') {
     return <OverviewLoadingSkeleton />;
   }
 
   // Add optional chaining and fallback for the members array
   const isAdmin = currentUser && Array.isArray(club.members) && club.members.some(member => 
-    member && member.id === currentUser.id && member.isAdmin
+    member && member.id === currentUser.id && member.isAdmin === true
   ) || false;
 
   return (
     <div className="space-y-6">
       <ClubStats 
         club={club} 
-        matchHistory={club.matchHistory} 
+        matchHistory={Array.isArray(club.matchHistory) ? club.matchHistory : []} 
       />
       {club.currentMatch && (
         <ClubCurrentMatch

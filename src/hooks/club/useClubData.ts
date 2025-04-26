@@ -4,6 +4,7 @@ import { Club } from '@/types';
 import { useClubDetails } from './useClubDetails';
 import { useClubMembers } from './useClubMembers';
 import { useClubMatches } from './useClubMatches';
+import { ensureDivision } from '@/utils/club/leagueUtils';
 
 export const useClubData = (clubId: string | undefined) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -24,7 +25,11 @@ export const useClubData = (clubId: string | undefined) => {
       try {
         // Fetch basic club data
         const clubData = await fetchClubDetails();
-        if (!clubData) return;
+        if (!clubData) {
+          throw new Error('Could not fetch club details');
+        }
+        
+        console.log('[useClubData] Basic club data fetched:', clubData);
         
         // Fetch members and matches in parallel
         const [members, matches] = await Promise.all([
@@ -32,17 +37,28 @@ export const useClubData = (clubId: string | undefined) => {
           fetchClubMatches(clubId)
         ]);
         
-        // Create the final club object
+        console.log('[useClubData] Members fetched:', members);
+        console.log('[useClubData] Matches fetched:', matches);
+        
+        // Find current active match if any
+        const currentMatch = matches && Array.isArray(matches) 
+          ? matches.find(m => m.status === 'active') 
+          : null;
+        
+        // Create the final club object with safe defaults
         const updatedClub: Club = {
           ...clubData,
-          members,
-          matchHistory: matches
+          members: members || [],
+          matchHistory: matches || [],
+          currentMatch: currentMatch || null
         };
+        
+        console.log('[useClubData] Complete club object created:', updatedClub);
         
         setClub(updatedClub);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Error loading club data';
-        console.error(message);
+        console.error('[useClubData] Error:', message);
         setError(message);
       } finally {
         setIsLoading(false);
@@ -50,7 +66,7 @@ export const useClubData = (clubId: string | undefined) => {
     };
     
     loadClubData();
-  }, [clubId]);
+  }, [clubId, fetchClubDetails, fetchClubMembers, fetchClubMatches]);
 
   return { club, isLoading, error };
 };
