@@ -85,6 +85,7 @@ const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
           open={showInviteDialog}
           onOpenChange={setShowInviteDialog}
           clubId={club.id}
+          clubName={club.name}
         />
       )}
     </div>

@@ -1,70 +1,64 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-
-interface InvitableUser {
-  id: string;
-  name: string;
-  avatar: string | null;
-}
+import { toast } from '@/hooks/use-toast';
+import { ClubInvite } from '@/types';
 
 export const useClubInvites = (clubId: string) => {
-  const [users, setUsers] = useState<InvitableUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [invites, setInvites] = useState<ClubInvite[]>([]);
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      if (!clubId) return;
-      
-      setLoading(true);
-      try {
-        // Get current members of this club to exclude them
-        const { data: members } = await supabase
-          .from('club_members')
-          .select('user_id')
-          .eq('club_id', clubId);
-        
-        const memberIds = members?.map(member => member.user_id) || [];
-        
-        // Also get users who already have pending invites or requests
-        const { data: pendingNotifications } = await supabase
-          .from('notifications')
-          .select('user_id')
-          .eq('club_id', clubId)
-          .in('type', ['invite', 'join_request'])
-          .eq('status', 'pending');
-          
-        const pendingUserIds = pendingNotifications?.map(notification => notification.user_id) || [];
-        
-        // Combine both sets of IDs to exclude
-        const excludeIds = [...new Set([...memberIds, ...pendingUserIds])];
+  const sendInvite = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('club_invites')
+        .insert([
+          { user_id: userId, club_id: clubId }
+        ]);
 
-        // Get users who are not members and don't have pending invites/requests
-        const { data: nonMembers, error: usersError } = await supabase
-          .from('users')
-          .select('id, name, avatar');
+      if (error) throw error;
 
-        if (usersError) {
-          throw usersError;
-        }
+      toast({
+        title: "Invite sent",
+        description: "The user has been invited to join the club"
+      });
+    } catch (error) {
+      console.error('Error sending invite:', error);
+      toast({
+        title: "Error",
+        description: "Could not send invite",
+        variant: "destructive"
+      });
+    }
+  };
 
-        // Client-side filtering to exclude members and pending users
-        const availableUsers = nonMembers?.filter(user => 
-          !excludeIds.includes(user.id)
-        ) || [];
+  const respondToInvite = async (inviteId: string, accept: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('club_invites')
+        .update({ status: accept ? 'accepted' : 'rejected' })
+        .eq('id', inviteId);
 
-        setUsers(availableUsers);
-      } catch (err) {
-        console.error('Error fetching invitable users:', err);
-        setError('Failed to load users');
-      } finally {
-        setLoading(false);
-      }
-    };
+      if (error) throw error;
 
-    fetchUsers();
-  }, [clubId]);
+      toast({
+        title: accept ? "Invite accepted" : "Invite declined",
+        description: accept ? "You have joined the club" : "You have declined the invite"
+      });
+    } catch (error) {
+      console.error('Error responding to invite:', error);
+      toast({
+        title: "Error",
+        description: "Could not process your response",
+        variant: "destructive"
+      });
+    }
+  };
 
-  return { users, loading, error };
+  return {
+    invites,
+    loading,
+    sendInvite,
+    respondToInvite
+  };
 };

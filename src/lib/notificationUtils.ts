@@ -1,4 +1,3 @@
-
 import { Notification, Club } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -73,10 +72,10 @@ export const refreshNotifications = async () => {
   // Process notifications
   const processedNotifications = data.map(notification => ({
     id: notification.id,
-    type: notification.type === 'invite' ? 'invitation' : notification.type, // Convert to frontend type
+    type: notification.type === 'invite' ? 'invitation' : notification.type,
     userId: notification.type === 'invite' ? notification.user_id : user.id,
-    userName: notification.type === 'invite' ? notification.users.name : user.name,
-    userAvatar: notification.type === 'invite' ? notification.users.avatar : null,
+    userName: notification.type === 'invite' ? notification?.users?.name : user?.name,
+    userAvatar: notification.type === 'invite' ? notification?.users?.avatar : null,
     clubId: notification.club_id,
     clubName: notification.clubs?.name || 'Unknown Club',
     message: notification.message || '',
