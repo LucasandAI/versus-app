@@ -139,3 +139,6 @@ export interface AppContextType {
   createClub: (name: string, logo?: string) => Promise<Club | null>;
   refreshCurrentUser: () => Promise<User | null>;
 }
+
+export { ChatMessage } from './chat';
+export type { User, Club, Division, JoinRequest, ClubRequest, ClubInvite, Match, Notification, AppView, AppContextType } from './chat-state';
