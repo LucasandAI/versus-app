@@ -13,8 +13,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Save } from 'lucide-react';
 import { useClubForm } from '@/hooks/club/useClubForm';
-import LogoSection from './edit-club/LogoSection';
-import ClubDetailsForm from './edit-club/ClubDetailsForm';
+import LogoSection from './LogoSection';
+import ClubDetailsForm from './ClubDetailsForm';
 
 interface EditClubDialogProps {
   open: boolean;
