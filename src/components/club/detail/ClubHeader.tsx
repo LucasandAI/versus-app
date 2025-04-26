@@ -113,7 +113,7 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
       );
     }
     
-    if (!(club.members?.length ?? 0) >= 5) {
+    if (!((club.members?.length ?? 0) >= 5)) {
       return (
         <Button 
           variant="primary" 
