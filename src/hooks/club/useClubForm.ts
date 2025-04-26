@@ -87,8 +87,9 @@ export const useClubForm = (club: Club, onClose: () => void) => {
     try {
       const logoUrl = await uploadLogoIfNeeded();
 
+      // Preserve all existing club properties and only override specific fields
       const updatedClub = {
-        ...club,
+        ...club, // Spread the entire existing club object first
         name: name.trim(),
         bio: bio.trim(),
         logo: logoUrl || club.logo,
