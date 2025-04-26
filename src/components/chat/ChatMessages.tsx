@@ -1,9 +1,9 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageList from './message/MessageList';
 import { useMessageUser } from './message/useMessageUser';
 import { useMessageNormalization } from './message/useMessageNormalization';
+import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
 
 interface ChatMessagesProps {
   messages: ChatMessage[] | any[];
@@ -24,11 +24,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   onDeleteMessage,
   onSelectUser
 }) => {
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const {
-    currentUserId,
-    currentUserAvatar
-  } = useMessageUser();
+  const { currentUserId, currentUserAvatar } = useMessageUser();
   const [currentUserInClub, setCurrentUserInClub] = useState<boolean>(false);
   
   const scrollToBottom = () => {
@@ -82,9 +78,14 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   // Debug log for messages
   console.log('[ChatMessages] Normalized messages:', normalizedMessages.length);
   
+  const { scrollRef } = useMessageScroll(messages);
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  
   return (
-    <div className="p-2 space-y-4 flex flex-col-reverse min-h-full">
-      <div ref={messagesEndRef} />
+    <div 
+      ref={scrollRef}
+      className="p-2 space-y-4 flex flex-col-reverse min-h-full overflow-y-auto"
+    >
       <MessageList 
         messages={normalizedMessages.reverse()} 
         clubMembers={clubMembers} 
