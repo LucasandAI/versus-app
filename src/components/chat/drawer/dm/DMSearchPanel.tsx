@@ -32,42 +32,42 @@ const DMSearchPanel: React.FC = () => {
 
   return (
     <div className="flex h-full w-full">
-      {!selectedDMUser ? (
-        <div className="w-full flex flex-col h-full">
-          <div className="w-[240px] border-r flex flex-col h-full">
-            <div className="p-4 border-b">
-              <SearchBar value={query} onChange={handleInputChange} />
-              
-              {(searchResults.length > 0 || isLoading) && (
-                <div className="absolute z-10 mt-1 w-[216px] bg-white rounded-md border shadow-lg max-h-60 overflow-auto">
-                  <UserSearchResults
-                    results={searchResults}
-                    isLoading={isLoading}
-                    onSelectUser={handleSelectUser}
-                  />
-                </div>
-              )}
-            </div>
-            
-            <ScrollArea className="flex-1">
-              <DMConversationList 
+      <div className="w-[240px] border-r flex flex-col h-full">
+        <div className="p-4 border-b">
+          <SearchBar value={query} onChange={handleInputChange} />
+          
+          {(searchResults.length > 0 || isLoading) && (
+            <div className="absolute z-10 mt-1 w-[216px] bg-white rounded-md border shadow-lg max-h-60 overflow-auto">
+              <UserSearchResults
+                results={searchResults}
+                isLoading={isLoading}
                 onSelectUser={handleSelectUser}
-                selectedUserId={selectedDMUser?.id}
               />
-            </ScrollArea>
-          </div>
+            </div>
+          )}
+        </div>
+        
+        <ScrollArea className="flex-1">
+          <DMConversationList 
+            onSelectUser={handleSelectUser}
+            selectedUserId={selectedDMUser?.id}
+          />
+        </ScrollArea>
+      </div>
 
-          <div className="flex-1 bg-gray-50 flex items-center justify-center">
+      <div className="flex-1 h-full">
+        {!selectedDMUser ? (
+          <div className="h-full flex items-center justify-center">
             <p className="text-gray-500">Select a conversation or search for a user to message</p>
           </div>
-        </div>
-      ) : (
-        <DMConversation 
-          userId={selectedDMUser.id}
-          userName={selectedDMUser.name}
-          userAvatar={selectedDMUser.avatar}
-        />
-      )}
+        ) : (
+          <DMConversation 
+            userId={selectedDMUser.id}
+            userName={selectedDMUser.name}
+            userAvatar={selectedDMUser.avatar}
+          />
+        )}
+      </div>
     </div>
   );
 };
