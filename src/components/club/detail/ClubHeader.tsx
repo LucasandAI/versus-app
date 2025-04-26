@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Users } from 'lucide-react';
 import { Club } from '@/types';
@@ -38,19 +37,15 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
   onDeclineInvite,
   hasPendingInvite,
 }) => {
-  console.log('Club Header rendering with club:', club);
-  console.log('hasPendingInvite:', hasPendingInvite);
-  
-  // Ensure club.members exists and has a length property
-  const membersCount = club?.members?.length || 0;
-  const isClubFull = membersCount >= 5;
+  console.log('Club Header rendering with hasPendingInvite:', hasPendingInvite);
+  const isClubFull = club.members.length >= 5;
 
   const renderActionButtons = () => {
     if (isActuallyMember) {
       if (isAdmin) {
         return (
           <div className="flex space-x-2">
-            {membersCount < 5 && (
+            {club.members.length < 5 && (
               <Button 
                 variant="primary" 
                 size="sm"
@@ -135,7 +130,7 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
   return (
     <>
       <AppHeader 
-        title={club?.name || "Club"}
+        title={club.name}
         onBack={onBack}
       />
 
@@ -145,19 +140,19 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
             <div className="flex flex-col items-center md:items-start mb-4 md:mb-0">
               <div className="mb-4">
                 <UserAvatar 
-                  name={club?.name || "Club"} 
-                  image={club?.logo} 
+                  name={club.name} 
+                  image={club.logo} 
                   size="lg"
                   className="h-24 w-24 border-4 border-white shadow-md"
                 />
               </div>
-              <h2 className="text-2xl font-bold text-center md:text-left">{club?.name || "Club"}</h2>
+              <h2 className="text-2xl font-bold text-center md:text-left">{club.name}</h2>
               <div className="flex items-center mt-2 space-x-2">
                 <span className="text-sm bg-gray-100 px-2 py-1 rounded-full text-gray-700 font-medium">
-                  {formatLeagueWithTier(club?.division || 'bronze', club?.tier || 5)}
+                  {formatLeagueWithTier(club.division, club.tier)}
                 </span>
                 <span className="text-sm bg-gray-100 px-2 py-1 rounded-full text-gray-700">
-                  {membersCount}/5 members
+                  {club.members.length}/5 members
                 </span>
               </div>
             </div>
@@ -171,7 +166,7 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
           
           <div className="mt-4 border-t pt-4 text-center md:text-left">
             <p className="text-gray-600 text-sm">
-              {club?.bio || `Welcome to ${club?.name || 'our club'}! We're a group of passionate runners looking to challenge ourselves and improve together.`}
+              {club.bio || `Welcome to ${club.name}! We're a group of passionate runners looking to challenge ourselves and improve together.`}
             </p>
           </div>
         </div>

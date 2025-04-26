@@ -18,12 +18,6 @@ const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
   const { currentUser, setCurrentView } = useApp();
   const { handleRequestToJoin } = useClubJoin();
   
-  // Add defensive check to ensure club is valid
-  if (!club || !club.id) {
-    console.error('ClubDetailContent received invalid club:', club);
-    return <div>Invalid club data</div>;
-  }
-  
   const {
     isActuallyMember,
     isAdmin,
@@ -74,7 +68,7 @@ const ClubDetailContent: React.FC<ClubDetailContentProps> = ({ club }) => {
         clubName={club.name}
         onConfirm={handleLeaveClub}
         isAdmin={isAdmin}
-        members={club.members || []}
+        members={club.members}
         currentUserId={currentUser?.id || ''}
       />
 

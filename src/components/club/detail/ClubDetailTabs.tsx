@@ -20,12 +20,6 @@ const ClubDetailTabs: React.FC<ClubDetailTabsProps> = ({
 }) => {
   const { navigateToUserProfile } = useNavigation();
 
-  // Ensure club is valid
-  if (!club) {
-    console.error('ClubDetailTabs received invalid club');
-    return null;
-  }
-
   const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
     navigateToUserProfile(userId, userName, userAvatar);
   };
@@ -48,7 +42,7 @@ const ClubDetailTabs: React.FC<ClubDetailTabsProps> = ({
       
       <TabsContent value="members">
         <ClubMembersList
-          members={club.members || []}
+          members={club.members}
           currentMatch={club.currentMatch}
           onSelectMember={handleSelectUser}
         />
