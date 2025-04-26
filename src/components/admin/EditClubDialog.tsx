@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Club } from '@/types';
 import {
@@ -117,21 +116,21 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
         throw new Error(updateError.message);
       }
 
-      // 3. Update context (selectedClub and clubs array for user)
-      const updatedClub = {
+      // 3. Create updated club object keeping all existing data
+      const updatedClub: Club = {
         ...club,
         name: name.trim(),
         bio: bio.trim(),
         logo: logoUrl,
       };
+
+      // 4. Update context (selectedClub and clubs array for user)
       setSelectedClub(updatedClub);
 
       setCurrentUser(prev => {
         if (!prev) return prev;
         const updatedClubs = prev.clubs.map(userClub =>
-          userClub.id === club.id
-            ? { ...userClub, name: name.trim(), bio: bio.trim(), logo: logoUrl }
-            : userClub
+          userClub.id === club.id ? updatedClub : userClub
         );
         return { ...prev, clubs: updatedClubs };
       });
