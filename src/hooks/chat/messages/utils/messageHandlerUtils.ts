@@ -56,17 +56,31 @@ export const processNewMessage = async (
     sender
   };
 
-  setClubMessages(currentMessages => {
-    const clubId = newMessage.club_id;
-    const existingMessages = currentMessages[clubId] || [];
-
-    // Prevent duplicate messages
-    if (existingMessages.some(msg => msg.id === newMessage.id)) {
-      return currentMessages;
+  setClubMessages(prevMessages => {
+    const clubId = newMessage.club_id as string;
+    
+    // Check if we already have this conversation in state
+    if (!prevMessages[clubId]) {
+      console.log(`[messageHandlerUtils] Creating new message array for club ${clubId}`);
+      return {
+        ...prevMessages,
+        [clubId]: [completeMessage]
+      };
     }
-
+    
+    // Get existing messages for this club
+    const existingMessages = prevMessages[clubId];
+    
+    // Prevent duplicate messages by checking ID
+    if (existingMessages.some(msg => msg.id === newMessage.id)) {
+      console.log(`[messageHandlerUtils] Skipping duplicate message ${newMessage.id}`);
+      return prevMessages;
+    }
+    
+    // Add the new message to this specific conversation only
+    console.log(`[messageHandlerUtils] Adding message ${newMessage.id} to club ${clubId}`);
     return {
-      ...currentMessages,
+      ...prevMessages,
       [clubId]: [...existingMessages, completeMessage]
     };
   });

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
@@ -17,9 +18,17 @@ interface DMConversationProps {
 const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userAvatar }) => {
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
   const { currentUser } = useApp();
   const { navigateToUserProfile } = useNavigation();
   const { unhideConversation } = useHiddenDMs();
+
+  // Reset state when conversation changes
+  useEffect(() => {
+    console.log('[DMConversation] Conversation changed, resetting state for:', userId);
+    setMessages([]);
+    setLoading(true);
+  }, [userId]);
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -65,8 +74,9 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
   }, [userId, currentUser?.id, userName, userAvatar, currentUser?.name, currentUser?.avatar]);
 
   useEffect(() => {
+    // Create a channel specific to this DM conversation
     const channel = supabase
-      .channel('direct-message-changes')
+      .channel(`dm-conversation-${userId}-${currentUser?.id}`)
       .on('postgres_changes', 
           { event: 'DELETE', schema: 'public', table: 'direct_messages' },
           (payload) => {
@@ -79,16 +89,24 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [userId, currentUser?.id]);
 
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || !currentUser?.id || !userId) return;
 
+    // Set sending state to prevent multiple sends
+    setIsSending(true);
+    
+    // Capture message in local scope to ensure we're using the current value
+    const messageToSend = message.trim();
+    
     unhideConversation(userId);
 
+    // Create optimistic message
+    const optimisticId = `temp-${Date.now()}`;
     const newMessageObj = {
-      id: `temp-${Date.now()}`,
-      text: message,
+      id: optimisticId,
+      text: messageToSend,
       sender: {
         id: currentUser.id,
         name: currentUser.name,
@@ -97,6 +115,7 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
       timestamp: new Date().toISOString()
     };
 
+    // Add immediately to UI
     setMessages(prev => [...prev, newMessageObj]);
 
     try {
@@ -105,7 +124,7 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
         .insert({
           sender_id: currentUser.id,
           receiver_id: userId,
-          text: message
+          text: messageToSend
         })
         .select('*')
         .single();
@@ -115,6 +134,16 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
       }
 
       console.log('Message sent successfully:', data);
+      
+      // Update the temporary message with the real one if needed
+      if (data) {
+        setMessages(prev => 
+          prev.map(msg => msg.id === optimisticId ? {
+            ...msg,
+            id: data.id
+          } : msg)
+        );
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -122,11 +151,17 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
         description: "Could not send message",
         variant: "destructive"
       });
+      
+      // Remove the optimistic message on error
+      setMessages(prev => prev.filter(msg => msg.id !== optimisticId));
+    } finally {
+      setIsSending(false);
     }
   };
 
   const handleDeleteMessage = async (messageId: string) => {
     try {
+      // Optimistic UI update
       setMessages(prev => prev.filter(msg => msg.id !== messageId));
       
       const { error } = await supabase
@@ -171,7 +206,12 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
       </div>
       
       <div className="sticky bottom-0 left-0 right-0 bg-white border-t">
-        <ChatInput onSendMessage={handleSendMessage} />
+        <ChatInput 
+          onSendMessage={handleSendMessage}
+          isSending={isSending}
+          conversationId={userId}
+          conversationType="dm"
+        />
       </div>
     </div>
   );

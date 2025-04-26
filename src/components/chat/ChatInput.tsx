@@ -6,28 +6,35 @@ interface ChatInputProps {
   onSendMessage: (message: string) => void;
   isSending?: boolean;
   placeholder?: string;
-  clubId?: string; // Add clubId to track conversation context
+  clubId?: string; // Used for chat context tracking
+  conversationId?: string; // Unified ID for any conversation (club, dm, support)
+  conversationType?: 'club' | 'dm' | 'support'; // Type of conversation
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({ 
   onSendMessage, 
   isSending = false,
   placeholder = "Type a message...",
-  clubId
+  clubId,
+  conversationId,
+  conversationType = 'club'
 }) => {
   const [message, setMessage] = useState('');
+  const contextId = conversationId || clubId || 'unknown';
   
-  // Reset input when conversation changes (clubId changes)
+  // Reset input when conversation changes (clubId or conversationId changes)
   useEffect(() => {
+    console.log(`[ChatInput] Reset input for ${conversationType} conversation: ${contextId}`);
     setMessage('');
-  }, [clubId]);
+  }, [contextId, conversationType]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (message.trim() && !isSending) {
       const messageToSend = message.trim(); // Capture current message in local variable
-      console.log('[ChatInput] Submitting message:', messageToSend.substring(0, 20));
+      console.log(`[ChatInput] Submitting message for ${conversationType}:${contextId}:`, 
+        messageToSend.substring(0, 20));
       
       // Clear the input immediately to prevent reusing the same message
       setMessage('');
@@ -36,7 +43,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         await onSendMessage(messageToSend);
         // No need to clear again as we already did it before sending
       } catch (error) {
-        console.error('[ChatInput] Error sending message:', error);
+        console.error(`[ChatInput] Error sending message for ${conversationType}:${contextId}:`, error);
         // If there's an error, we might want to restore the message
         setMessage(messageToSend);
       }
@@ -54,6 +61,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
     <form 
       onSubmit={handleSubmit}
       className="p-3 bg-white flex items-center gap-2 w-full"
+      data-conversation-type={conversationType}
+      data-conversation-id={contextId}
     >
       <input
         type="text"

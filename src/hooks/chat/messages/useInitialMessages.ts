@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
 import { toast } from '@/hooks/use-toast';
@@ -9,6 +9,8 @@ export const useInitialMessages = (
   isOpen: boolean,
   setClubMessages: React.Dispatch<React.SetStateAction<Record<string, any[]>>>
 ) => {
+  const [hasLoadedMessages, setHasLoadedMessages] = useState<Record<string, boolean>>({});
+  
   useEffect(() => {
     if (!isOpen || !userClubs.length) return;
 
@@ -17,7 +19,15 @@ export const useInitialMessages = (
       
       try {
         const messagesPromises = userClubs.map(async (club) => {
-          console.log(`[useInitialMessages] Fetching messages for club ${club.id}`);
+          const clubId = club.id;
+          
+          // Skip loading if already loaded for this session
+          if (hasLoadedMessages[clubId]) {
+            console.log(`[useInitialMessages] Already loaded messages for club ${clubId}`);
+            return [clubId, null];
+          }
+          
+          console.log(`[useInitialMessages] Fetching messages for club ${clubId}`);
           
           const { data, error } = await supabase
             .from('club_chat_messages')
@@ -29,27 +39,38 @@ export const useInitialMessages = (
               club_id,
               sender:sender_id(id, name, avatar)
             `)
-            .eq('club_id', club.id)
+            .eq('club_id', clubId)
             .order('timestamp', { ascending: true });
               
           if (error) {
-            console.error(`[useInitialMessages] Error fetching messages for club ${club.id}:`, error);
-            return [club.id, []];
+            console.error(`[useInitialMessages] Error fetching messages for club ${clubId}:`, error);
+            return [clubId, []];
           }
           
-          return [club.id, data || []];
+          // Mark as loaded
+          setHasLoadedMessages(prev => ({
+            ...prev, 
+            [clubId]: true
+          }));
+          
+          return [clubId, data || []];
         });
         
         const messagesResults = await Promise.all(messagesPromises);
-        const clubMessagesMap: Record<string, any[]> = {};
         
-        messagesResults.forEach(([clubId, messages]) => {
-          if (typeof clubId === 'string') {
-            clubMessagesMap[clubId] = Array.isArray(messages) ? messages : [];
-          }
+        // Update state with all fetched messages in a single update
+        setClubMessages(prevMessages => {
+          const updatedMessages = { ...prevMessages };
+          
+          messagesResults.forEach(([clubId, messages]) => {
+            if (typeof clubId === 'string' && messages !== null) {
+              updatedMessages[clubId] = Array.isArray(messages) ? messages : [];
+              console.log(`[useInitialMessages] Loaded ${updatedMessages[clubId].length} messages for club ${clubId}`);
+            }
+          });
+          
+          return updatedMessages;
         });
-        
-        setClubMessages(clubMessagesMap);
       } catch (error) {
         console.error('[useInitialMessages] Error fetching club messages:', error);
         toast({
@@ -61,5 +82,12 @@ export const useInitialMessages = (
     };
     
     fetchClubMessages();
-  }, [userClubs, isOpen, setClubMessages]);
+  }, [userClubs, isOpen, setClubMessages, hasLoadedMessages]);
+
+  // Reset loaded state when drawer closes
+  useEffect(() => {
+    if (!isOpen) {
+      setHasLoadedMessages({});
+    }
+  }, [isOpen]);
 };

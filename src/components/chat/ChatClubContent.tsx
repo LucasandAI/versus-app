@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import ChatHeader from './ChatHeader';
 import ChatMessages from './ChatMessages';
@@ -14,7 +14,7 @@ interface ChatClubContentProps {
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   onSendMessage: (message: string) => void;
   setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
-  clubId?: string; // Add clubId as an optional prop
+  clubId?: string;
 }
 
 const ChatClubContent = ({ 
@@ -29,6 +29,13 @@ const ChatClubContent = ({
   const { navigateToClubDetail } = useNavigation();
   const [isSending, setIsSending] = useState(false);
   const { deleteMessage } = useChatActions();
+  const effectiveClubId = clubId || club?.id;
+  
+  // Reset state when club changes
+  useEffect(() => {
+    console.log('[ChatClubContent] Club changed, resetting state for:', effectiveClubId);
+    setIsSending(false);
+  }, [effectiveClubId]);
 
   const handleDeleteMessage = async (messageId: string) => {
     console.log('[ChatClubContent] Deleting message:', messageId);
@@ -48,10 +55,17 @@ const ChatClubContent = ({
   };
 
   const handleSendMessage = async (message: string) => {
-    console.log('[ChatClubContent] Sending message for club:', club.id);
+    console.log('[ChatClubContent] Sending message for club:', effectiveClubId);
+    
+    // Set sending state to prevent multiple sends
     setIsSending(true);
+    
     try {
-      await onSendMessage(message);
+      // Capture message in local scope to ensure we're using the current value
+      const messageToSend = message.trim();
+      await onSendMessage(messageToSend);
+    } catch (error) {
+      console.error('[ChatClubContent] Error sending club message:', error);
     } finally {
       setIsSending(false);
     }
@@ -80,7 +94,8 @@ const ChatClubContent = ({
           onSendMessage={handleSendMessage} 
           isSending={isSending}
           placeholder="Type a message..."
-          clubId={clubId || club.id} // Use the passed clubId or fall back to club.id
+          conversationId={effectiveClubId}
+          conversationType="club"
         />
       </div>
     </div>
