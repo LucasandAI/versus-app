@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { Club } from '@/types';
@@ -24,6 +25,7 @@ const ClubCard: React.FC<ClubCardProps> = ({
   };
 
   const handleClubClick = () => {
+    // Use our improved navigation - we're already a member so the full data is in context
     navigateToClubDetail(club.id, club);
   };
 

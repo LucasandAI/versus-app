@@ -30,9 +30,7 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
       name: club.name,
       division: club.division,
       tier: club.tier,
-      members: [],
       logo: club.logo || '/placeholder.svg',
-      matchHistory: []
     });
   };
 

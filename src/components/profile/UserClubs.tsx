@@ -18,7 +18,7 @@ const UserClubs: React.FC<UserClubsProps> = ({ user, loading, onClubClick }) => 
   const { navigateToClubDetail } = useNavigation();
 
   const handleClubClick = (club: Club) => {
-    // Use our improved navigation method with full club data
+    // Use our improved navigation method 
     navigateToClubDetail(club.id, club);
     
     // Also call the passed handler for backward compatibility

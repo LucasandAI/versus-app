@@ -3,6 +3,7 @@ import { useApp } from '@/context/AppContext';
 import { toast } from "@/hooks/use-toast";
 import { createNotification } from '@/utils/notification-queries';
 import { Club } from '@/types';
+import { useNavigation } from '@/hooks/useNavigation';
 
 export const useClubNavigation = () => {
   const { currentUser, setCurrentView, setSelectedClub } = useApp();
@@ -15,22 +16,18 @@ export const useClubNavigation = () => {
 
     console.log('[useClubNavigation] Navigating to club:', club.id);
     
-    // Always set the selected club first with the data we have
-    setSelectedClub({
-      id: club.id,
-      name: club.name || 'Loading club...',
-      logo: club.logo || '/placeholder.svg',
-      division: club.division || 'bronze',
-      tier: club.tier || 5,
-      elitePoints: club.elitePoints || 0,
-      bio: club.bio || '',
-      members: club.members || [],
-      matchHistory: club.matchHistory || [],
-      currentMatch: club.currentMatch || null
-    } as Club);
+    // Check if this is one of the user's clubs first (full data already available)
+    const userClub = currentUser?.clubs?.find(c => c.id === club.id);
     
-    // Then navigate to the club detail view
-    setCurrentView('clubDetail');
+    if (userClub) {
+      // Use the full club data from the current user's clubs
+      setSelectedClub(userClub);
+      setCurrentView('clubDetail');
+    } else {
+      // For non-member clubs, use the standard navigation which will fetch full data
+      const { navigateToClubDetail } = useNavigation();
+      navigateToClubDetail(club.id, club);
+    }
   };
 
   const handleLeaderboardClick = () => {

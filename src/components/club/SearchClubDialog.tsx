@@ -34,9 +34,7 @@ const SearchClubDialog: React.FC<SearchClubDialogProps> = ({
       name: club.name,
       division: club.division,
       tier: club.tier,
-      members: [],
       logo: club.logo || '/placeholder.svg',
-      matchHistory: []
     });
     onOpenChange(false);
   };

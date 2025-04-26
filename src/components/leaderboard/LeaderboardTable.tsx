@@ -8,9 +8,10 @@ import { useNavigation } from '@/hooks/useNavigation';
 
 interface LeaderboardTableProps {
   clubs: LeaderboardClub[];
+  onSelectClub?: (club: Partial<Club>) => void;
 }
 
-const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ clubs }) => {
+const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ clubs, onSelectClub }) => {
   const { navigateToClubDetail } = useNavigation();
   
   const getChangeIcon = (change: 'up' | 'down' | 'same') => {
@@ -21,6 +22,30 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ clubs }) => {
         return <ArrowDown className="h-4 w-4 text-red-500" />;
       default:
         return <span className="h-4 w-4 text-gray-300">-</span>;
+    }
+  };
+
+  const handleClubClick = (club: LeaderboardClub) => {
+    // First use the navigation hook which will properly set the selected club
+    navigateToClubDetail(club.id, {
+      id: club.id,
+      name: club.name,
+      division: club.division,
+      tier: club.tier,
+      elitePoints: club.division === 'elite' ? club.points : 0,
+      logo: '/placeholder.svg', 
+      members: [],
+      matchHistory: []
+    });
+    
+    // If onSelectClub is provided, call it as well for backward compatibility
+    if (onSelectClub) {
+      onSelectClub({
+        id: club.id,
+        name: club.name,
+        division: club.division,
+        tier: club.tier,
+      });
     }
   };
 
@@ -51,16 +76,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ clubs }) => {
             <tr 
               key={club.id} 
               className="hover:bg-gray-50 cursor-pointer"
-              onClick={() => navigateToClubDetail(club.id, {
-                id: club.id,
-                name: club.name,
-                division: club.division,
-                tier: club.tier,
-                elitePoints: club.division === 'elite' ? club.points : 0,
-                logo: '/placeholder.svg', 
-                members: [],
-                matchHistory: []
-              })}
+              onClick={() => handleClubClick(club)}
             >
               <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                 {club.rank}
