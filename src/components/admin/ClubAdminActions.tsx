@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Club, User } from '@/types';
 import { ShieldAlert } from 'lucide-react';
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { useApp } from '@/context/AppContext';
 import EditClubDialog from './EditClubDialog';
 import JoinRequestsDialog from './JoinRequestsDialog';
@@ -10,7 +10,7 @@ import MembersManagement from './club-members/MembersManagement';
 import AdminActionButtons from './club-members/AdminActionButtons';
 import DeleteClubDialog from './DeleteClubDialog';
 import { useDeleteClub } from '@/hooks/club/useDeleteClub';
-import { Trash } from 'lucide-react';
+import { Trash, Users } from 'lucide-react';
 import Button from '@/components/shared/Button';
 
 interface ClubAdminActionsProps {
@@ -106,6 +106,18 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({ club, currentUser }
         onEditClick={() => setEditDialogOpen(true)}
         onRequestsClick={() => setRequestsDialogOpen(true)}
       />
+
+      <div className="mt-4">
+        <Button
+          variant="primary"
+          size="sm"
+          className="w-full flex items-center gap-2"
+          onClick={() => setRequestsDialogOpen(true)}
+        >
+          <Users className="h-4 w-4" />
+          View Join Requests
+        </Button>
+      </div>
 
       <MembersManagement
         club={currentClub}

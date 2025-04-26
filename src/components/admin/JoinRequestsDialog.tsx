@@ -11,7 +11,7 @@ import {
 import JoinRequestItem from './join-requests/JoinRequestItem';
 import EmptyRequests from './join-requests/EmptyRequests';
 import { useJoinRequests } from '@/hooks/admin/useJoinRequests';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchClubJoinRequests } from '@/utils/notification-queries';
 
 interface JoinRequestsDialogProps {
   open: boolean;
@@ -43,10 +43,8 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
       
       setLoading(true);
       try {
-        // Mock fetching join requests - in real app this would be a Supabase query
-        // This is just a placeholder since we don't have the join_requests table yet
-        const mockRequests: JoinRequest[] = [];
-        setJoinRequests(mockRequests);
+        const requests = await fetchClubJoinRequests(club.id);
+        setJoinRequests(requests);
       } catch (error) {
         console.error('Error fetching join requests:', error);
       } finally {

@@ -11,43 +11,43 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import UserAvatar from "../shared/UserAvatar";
 import { useClubInvites } from '@/hooks/club/useClubInvites';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useClubNavigation } from '@/hooks/navigation/useClubNavigation';
+import { useApp } from '@/context/AppContext';
 
 interface InviteUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   clubId: string;
+  clubName: string;
 }
 
 const InviteUserDialog: React.FC<InviteUserDialogProps> = ({ 
   open, 
   onOpenChange,
-  clubId 
+  clubId,
+  clubName
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { users, loading, error, sendInvite } = useClubInvites(clubId);
+  const { users, loading, error } = useClubInvites(clubId);
+  const { handleSendInvite } = useClubNavigation();
+  const { currentUser } = useApp();
   
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleInvite = async (userId: string, userName: string) => {
-    const success = await sendInvite(userId, userName);
+    if (!currentUser) return;
+    
+    const success = await handleSendInvite(userId, userName, clubId, clubName);
     
     if (success) {
-      toast({
-        title: "Invitation Sent",
-        description: `Invitation sent to ${userName}`,
-      });
-    } else {
-      toast({
-        title: "Error",
-        description: "Failed to send invitation",
-        variant: "destructive"
-      });
+      // Close dialog after successful invite
+      onOpenChange(false);
     }
   };
 

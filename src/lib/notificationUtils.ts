@@ -1,5 +1,7 @@
+
 import { Notification, Club } from '@/types';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 // Function to handle individual notification actions (read, delete)
 export const handleNotification = (id: string, action: 'read' | 'delete') => {
@@ -46,147 +48,161 @@ export const getNotificationsFromStorage = (): Notification[] => {
 };
 
 // Function to refresh notifications (used when initializing the app)
-export const refreshNotifications = () => {
-  // This function can be expanded to fetch notifications from an API
-  // For now, just trigger an event to reload from localStorage
-  console.log('Refreshing notifications');
-  const event = new CustomEvent('notificationsUpdated');
-  window.dispatchEvent(event);
-};
-
-export const markAllNotificationsAsRead = () => {
-  console.log("Marking all notifications as read");
-  const storedNotifications = localStorage.getItem('notifications');
-  if (!storedNotifications) return;
+export const refreshNotifications = async () => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
   
-  try {
-    const notifications: Notification[] = JSON.parse(storedNotifications);
+  // Fetch notifications from Supabase
+  const { data, error } = await supabase
+    .from('notifications')
+    .select(`
+      *,
+      clubs:club_id (name, logo),
+      users:user_id (name, avatar)
+    `)
+    .eq('user_id', user.id)
+    .or('status.eq.pending,status.eq.read')
+    .order('created_at', { ascending: false });
     
-    const updatedNotifications = notifications.map(notification => ({
-      ...notification,
-      read: true,
-      previouslyDisplayed: true  // Mark as previously displayed
-    }));
-    
-    console.log("Updated all notifications to read:", updatedNotifications);
-    
-    localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
-    
-    const event = new CustomEvent('notificationsUpdated');
-    window.dispatchEvent(event);
-    
-    return updatedNotifications;
-  } catch (error) {
-    console.error("Error marking all notifications as read:", error);
-    return null;
+  if (error) {
+    console.error('Error fetching notifications:', error);
+    return;
   }
-};
-
-// Function to generate test notifications for development
-export const generateTestNotifications = () => {
-  const baseTimestamp = new Date().toISOString();
   
-  const newNotifications = [
-    // Club invite notifications
-    {
-      id: 'invite1',
-      userId: 'user123',
-      userName: 'Sarah Wilson',
-      userAvatar: '/placeholder.svg',
-      clubId: 'club1',
-      clubName: 'Elite Runners',
-      type: 'invitation',
-      message: 'invited you to join',
-      timestamp: baseTimestamp,
-      read: false,
-      previouslyDisplayed: false,
-      distance: 0
-    },
-    {
-      id: 'invite2',
-      userId: 'user456',
-      userName: 'Mike Thompson',
-      userAvatar: '/placeholder.svg', 
-      clubId: 'club2',
-      clubName: 'Marathon Masters',
-      type: 'invitation',
-      message: 'invited you to join',
-      timestamp: baseTimestamp,
-      read: false,
-      previouslyDisplayed: false,
-      distance: 0
-    },
-    // Activity notifications
-    {
-      id: 'activity1',
-      userId: 'user789',
-      userName: 'Emma Davis',
-      userAvatar: '/placeholder.svg',
-      clubId: 'club3',
-      clubName: 'Speed Demons',
-      type: 'activity',
-      timestamp: baseTimestamp,
-      read: false,
-      previouslyDisplayed: false,
-      distance: 12.5
-    },
-    {
-      id: 'activity2',
-      userId: 'user101',
-      userName: 'James Wilson',
-      userAvatar: '/placeholder.svg',
-      clubId: 'club4',
-      clubName: 'Trail Blazers',
-      type: 'activity',
-      timestamp: baseTimestamp,
-      read: false,
-      previouslyDisplayed: false,
-      distance: 8.3
-    }
-  ];
-
-  // Get existing notifications
-  const existingNotifications = localStorage.getItem('notifications');
-  const currentNotifications = existingNotifications ? JSON.parse(existingNotifications) : [];
+  // Process notifications
+  const processedNotifications = data.map(notification => ({
+    id: notification.id,
+    type: notification.type === 'invite' ? 'invitation' : notification.type, // Convert to frontend type
+    userId: notification.type === 'invite' ? notification.user_id : user.id,
+    userName: notification.type === 'invite' ? notification.users.name : user.name,
+    userAvatar: notification.type === 'invite' ? notification.users.avatar : null,
+    clubId: notification.club_id,
+    clubName: notification.clubs?.name || 'Unknown Club',
+    message: notification.message || '',
+    timestamp: notification.created_at,
+    read: notification.status === 'read',
+    previouslyDisplayed: false
+  }));
   
-  // Add new notifications at the beginning of the array
-  const updatedNotifications = [...newNotifications, ...currentNotifications];
-  
-  // Save to localStorage
-  localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+  // Update local storage
+  localStorage.setItem('notifications', JSON.stringify(processedNotifications));
   
   // Dispatch event to update UI
   const event = new CustomEvent('notificationsUpdated');
   window.dispatchEvent(event);
-  
-  return updatedNotifications;
 };
 
-// Execute the function immediately to generate notifications
-generateTestNotifications();
-
-export const hasPendingInvite = (clubId: string): boolean => {
-  console.log('Checking pending invite for club ID:', clubId);
-  const storedNotifications = localStorage.getItem('notifications');
-  if (!storedNotifications) {
-    console.log('No notifications found in storage');
-    return false;
+export const markAllNotificationsAsRead = async () => {
+  console.log("Marking all notifications as read");
+  
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  
+  // Update all pending notifications to read in Supabase
+  const { error } = await supabase
+    .from('notifications')
+    .update({ status: 'read' })
+    .eq('user_id', user.id)
+    .eq('status', 'pending');
+    
+  if (error) {
+    console.error('Error marking notifications as read:', error);
+    return;
   }
   
-  try {
-    const notifications: Notification[] = JSON.parse(storedNotifications);
-    console.log('All notifications:', notifications);
+  // Update local storage
+  const storedNotifications = localStorage.getItem('notifications');
+  if (storedNotifications) {
+    try {
+      const notifications: Notification[] = JSON.parse(storedNotifications);
+      
+      const updatedNotifications = notifications.map(notification => ({
+        ...notification,
+        read: true,
+        previouslyDisplayed: true  // Mark as previously displayed
+      }));
+      
+      localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+      
+      const event = new CustomEvent('notificationsUpdated');
+      window.dispatchEvent(event);
+      
+      return updatedNotifications;
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+    }
+  }
+  
+  return null;
+};
+
+// Function to check for pending club invites
+export const hasPendingInvite = async (clubId: string): Promise<boolean> => {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  
+  // Check for pending invite
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('club_id', clubId)
+    .in('type', ['invite', 'join_request'])
+    .eq('status', 'pending')
+    .single();
     
-    const pendingInvites = notifications.filter(notification => 
-      notification.type === 'invitation' && 
-      notification.clubId === clubId && 
-      !notification.read
-    );
-    
-    console.log('Pending invites for club:', pendingInvites);
-    return pendingInvites.length > 0;
-  } catch (error) {
+  if (error) {
+    if (error.code === 'PGRST116') { // No rows
+      return false;
+    }
     console.error('Error checking pending invites:', error);
     return false;
   }
+  
+  return !!data;
+};
+
+// Utility functions for notification components
+export const findClubFromStorage = (clubId?: string): Club | null => {
+  if (!clubId) return null;
+  
+  // Try to find in local storage
+  const storedClubs = localStorage.getItem('userClubs');
+  if (storedClubs) {
+    try {
+      const clubs: Club[] = JSON.parse(storedClubs);
+      return clubs.find(club => club.id === clubId) || null;
+    } catch (error) {
+      console.error('Error parsing clubs from storage:', error);
+    }
+  }
+  
+  return null;
+};
+
+export const getMockClub = (clubId?: string, clubName?: string): Club | null => {
+  if (!clubId || !clubName) return null;
+  
+  // Create a basic mock club for UI purposes
+  return {
+    id: clubId,
+    name: clubName,
+    logo: '/placeholder.svg',
+    division: 'bronze',
+    tier: 5,
+    elitePoints: 0,
+    members: [],
+    matchHistory: []
+  };
+};
+
+export const handleClubError = () => {
+  toast({
+    title: "Error",
+    description: "Could not load club details",
+    variant: "destructive"
+  });
 };

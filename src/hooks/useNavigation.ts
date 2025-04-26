@@ -112,12 +112,16 @@ export const useNavigation = () => {
           homeClub: {
             id: match.home_club_id,
             name: 'Home Club', // Will be populated by the club detail page
-            totalDistance: 0
+            logo: '/placeholder.svg', // Placeholder until we get actual data
+            totalDistance: 0,
+            members: [] // Empty array to satisfy TypeScript
           },
           awayClub: {
             id: match.away_club_id,
             name: 'Away Club', // Will be populated by the club detail page
-            totalDistance: 0
+            logo: '/placeholder.svg', // Placeholder until we get actual data
+            totalDistance: 0,
+            members: [] // Empty array to satisfy TypeScript
           },
           startDate: match.start_date,
           endDate: match.end_date,

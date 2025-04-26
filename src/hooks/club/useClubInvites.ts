@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { User } from '@/types';
 
 interface InvitableUser {
   id: string;
@@ -20,22 +19,42 @@ export const useClubInvites = (clubId: string) => {
       
       setLoading(true);
       try {
-        // Get users who are not members of this club
+        // Get current members of this club to exclude them
+        const { data: members } = await supabase
+          .from('club_members')
+          .select('user_id')
+          .eq('club_id', clubId);
+        
+        const memberIds = members?.map(member => member.user_id) || [];
+        
+        // Also get users who already have pending invites or requests
+        const { data: pendingNotifications } = await supabase
+          .from('notifications')
+          .select('user_id')
+          .eq('club_id', clubId)
+          .in('type', ['invite', 'join_request'])
+          .eq('status', 'pending');
+          
+        const pendingUserIds = pendingNotifications?.map(notification => notification.user_id) || [];
+        
+        // Combine both sets of IDs to exclude
+        const excludeIds = [...new Set([...memberIds, ...pendingUserIds])];
+
+        // Get users who are not members and don't have pending invites/requests
         const { data: nonMembers, error: usersError } = await supabase
           .from('users')
-          .select('id, name, avatar')
-          .not('id', 'in', (subquery) => {
-            return subquery
-              .from('club_members')
-              .select('user_id')
-              .eq('club_id', clubId);
-          });
+          .select('id, name, avatar');
 
         if (usersError) {
           throw usersError;
         }
 
-        setUsers(nonMembers || []);
+        // Client-side filtering to exclude members and pending users
+        const availableUsers = nonMembers?.filter(user => 
+          !excludeIds.includes(user.id)
+        ) || [];
+
+        setUsers(availableUsers);
       } catch (err) {
         console.error('Error fetching invitable users:', err);
         setError('Failed to load users');
@@ -47,28 +66,5 @@ export const useClubInvites = (clubId: string) => {
     fetchUsers();
   }, [clubId]);
 
-  const sendInvite = async (userId: string, userName: string) => {
-    try {
-      // Create a notification of type 'invite'
-      const { error } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: userId,
-          type: 'invite',
-          club_id: clubId,
-          title: 'Club Invitation',
-          description: `You've been invited to join a club`,
-          message: `You've been invited to join a club`,
-          status: 'pending'
-        });
-
-      if (error) throw error;
-      return true;
-    } catch (err) {
-      console.error('Error sending invite:', err);
-      return false;
-    }
-  };
-
-  return { users, loading, error, sendInvite };
+  return { users, loading, error };
 };

@@ -11,7 +11,7 @@ import {
   DialogClose
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { ShieldCheck, UsersRound } from 'lucide-react';
 import {
   Select,
@@ -20,6 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useClubNavigation } from '@/hooks/navigation/useClubNavigation';
+import { useApp } from '@/context/AppContext';
 
 interface ClubInviteDialogProps {
   open: boolean;
@@ -35,9 +37,11 @@ const ClubInviteDialog: React.FC<ClubInviteDialogProps> = ({
   adminClubs 
 }) => {
   const [selectedClub, setSelectedClub] = useState<string | null>(null);
+  const { handleSendInvite } = useClubNavigation();
+  const { currentUser } = useApp();
 
-  const handleInvite = () => {
-    if (!selectedClub) {
+  const handleInvite = async () => {
+    if (!selectedClub || !currentUser) {
       toast({
         title: "Error",
         description: "Please select a club to invite the user to.",
@@ -46,13 +50,14 @@ const ClubInviteDialog: React.FC<ClubInviteDialogProps> = ({
       return;
     }
 
-    // In a real app, this would send the invite to the backend
-    toast({
-      title: "Invitation Sent",
-      description: `${user.name} has been invited to join the club.`,
-    });
+    const club = adminClubs.find(c => c.id === selectedClub);
+    if (!club) return;
 
-    onOpenChange(false);
+    const success = await handleSendInvite(user.id, user.name, club.id, club.name);
+    
+    if (success) {
+      onOpenChange(false);
+    }
   };
 
   const getClubMemberStatus = (club: Club) => {

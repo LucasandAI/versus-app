@@ -4,6 +4,8 @@ import { toast } from "@/hooks/use-toast";
 import { createNotification } from '@/utils/notification-queries';
 import { Club } from '@/types';
 import { useNavigation } from '@/hooks/useNavigation';
+import { supabase } from '@/integrations/supabase/client';
+import { hasPendingInvite } from '@/lib/notificationUtils';
 
 export const useClubNavigation = () => {
   const { currentUser, setCurrentView, setSelectedClub } = useApp();
@@ -40,6 +42,27 @@ export const useClubNavigation = () => {
 
   const handleJoinRequest = async (clubId: string, clubName: string) => {
     try {
+      // Check if user is already a member of this club
+      const isAlreadyMember = currentUser?.clubs?.some(club => club.id === clubId);
+      
+      if (isAlreadyMember) {
+        toast({
+          title: "Already a member",
+          description: `You're already a member of ${clubName}.`
+        });
+        return false;
+      }
+      
+      // Check if there's already a pending request
+      const hasPending = await hasPendingInvite(clubId);
+      if (hasPending) {
+        toast({
+          title: "Request pending",
+          description: `You already have a pending request for ${clubName}.`
+        });
+        return false;
+      }
+
       const success = await createNotification({
         type: 'join_request',
         club_id: clubId,
@@ -52,6 +75,7 @@ export const useClubNavigation = () => {
           title: "Join request sent",
           description: `Your request to join ${clubName} has been sent!`
         });
+        return true;
       }
     } catch (error) {
       console.error('Error sending join request:', error);
@@ -61,12 +85,43 @@ export const useClubNavigation = () => {
         variant: "destructive"
       });
     }
+    
+    return false;
+  };
+
+  const handleSendInvite = async (userId: string, userName: string, clubId: string, clubName: string) => {
+    try {
+      const success = await createNotification({
+        type: 'invite',
+        club_id: clubId,
+        user_id: userId,
+        message: `invited you to join ${clubName}`
+      });
+
+      if (success) {
+        toast({
+          title: "Invitation Sent",
+          description: `${userName} has been invited to join ${clubName}.`
+        });
+        return true;
+      }
+    } catch (error) {
+      console.error('Error sending invitation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send invitation. Please try again.",
+        variant: "destructive"
+      });
+    }
+    
+    return false;
   };
 
   return {
     navigateToClub,
     handleLeaderboardClick,
     handleProfileClick,
-    handleJoinRequest
+    handleJoinRequest,
+    handleSendInvite
   };
 };
