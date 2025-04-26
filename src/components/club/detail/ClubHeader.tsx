@@ -12,6 +12,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import AppHeader from '@/components/shared/AppHeader';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ClubHeaderProps {
   club: Club;
@@ -38,15 +39,21 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
   onDeclineInvite,
   hasPendingInvite,
 }) => {
+  // Handle null club case
+  if (!club) {
+    return <ClubHeaderLoadingSkeleton onBack={onBack} />;
+  }
+
   // Use optional chaining and nullish coalescing to prevent crashes
-  const isClubFull = (club.members?.length ?? 0) >= 5;
+  const memberCount = Array.isArray(club.members) ? club.members.length : 0;
+  const isClubFull = memberCount >= 5;
 
   const renderActionButtons = () => {
     if (isActuallyMember) {
       if (isAdmin) {
         return (
           <div className="flex space-x-2">
-            {(club.members?.length ?? 0) < 5 && (
+            {memberCount < 5 && (
               <Button 
                 variant="primary" 
                 size="sm"
@@ -113,7 +120,7 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
       );
     }
     
-    if (!((club.members?.length ?? 0) >= 5)) {
+    if (memberCount < 5) {
       return (
         <Button 
           variant="primary" 
@@ -131,7 +138,7 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
   return (
     <>
       <AppHeader 
-        title={club.name}
+        title={club.name || 'Club'}
         onBack={onBack}
       />
 
@@ -141,19 +148,19 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
             <div className="flex flex-col items-center md:items-start mb-4 md:mb-0">
               <div className="mb-4">
                 <UserAvatar 
-                  name={club.name} 
+                  name={club.name || 'Club'} 
                   image={club.logo} 
                   size="lg"
                   className="h-24 w-24 border-4 border-white shadow-md"
                 />
               </div>
-              <h2 className="text-2xl font-bold text-center md:text-left">{club.name}</h2>
+              <h2 className="text-2xl font-bold text-center md:text-left">{club.name || 'Club'}</h2>
               <div className="flex items-center mt-2 space-x-2">
                 <span className="text-sm bg-gray-100 px-2 py-1 rounded-full text-gray-700 font-medium">
                   {formatLeagueWithTier(club.division, club.tier)}
                 </span>
                 <span className="text-sm bg-gray-100 px-2 py-1 rounded-full text-gray-700">
-                  {`${club.members?.length ?? 0}/5 members`}
+                  {`${memberCount}/5 members`}
                 </span>
               </div>
             </div>
@@ -167,8 +174,40 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
           
           <div className="mt-4 border-t pt-4 text-center md:text-left">
             <p className="text-gray-600 text-sm">
-              {club.bio || `Welcome to ${club.name}! We're a group of passionate runners looking to challenge ourselves and improve together.`}
+              {club.bio || `Welcome to ${club.name || 'our club'}! We're a group of passionate runners looking to challenge ourselves and improve together.`}
             </p>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// Loading skeleton for header when data is not yet available
+const ClubHeaderLoadingSkeleton: React.FC<{onBack: () => void}> = ({ onBack }) => {
+  return (
+    <>
+      <AppHeader 
+        title="Loading club..."
+        onBack={onBack}
+      />
+      
+      <div className="bg-white shadow-md">
+        <div className="container-mobile py-6">
+          <div className="flex flex-col md:flex-row items-center justify-between">
+            <div className="flex flex-col items-center md:items-start mb-4 md:mb-0">
+              <div className="mb-4">
+                <Skeleton className="h-24 w-24 rounded-full" />
+              </div>
+              <Skeleton className="h-8 w-48 mb-2" />
+              <div className="flex items-center mt-2 space-x-2">
+                <Skeleton className="h-6 w-24" />
+                <Skeleton className="h-6 w-24" />
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 border-t pt-4">
+            <Skeleton className="h-16 w-full" />
           </div>
         </div>
       </div>

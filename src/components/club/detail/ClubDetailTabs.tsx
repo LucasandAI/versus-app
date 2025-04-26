@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MatchHistoryTab from './tabs/MatchHistoryTab';
 import OverviewTab from './tabs/OverviewTab';
 import { useNavigation } from '@/hooks/useNavigation';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ClubDetailTabsProps {
   club: Club;
@@ -20,8 +21,14 @@ const ClubDetailTabs: React.FC<ClubDetailTabsProps> = ({
 }) => {
   const { navigateToUserProfile } = useNavigation();
 
+  // Handle null club case
+  if (!club) {
+    return <ClubTabsLoadingSkeleton />;
+  }
+
   const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
-    navigateToUserProfile(userId, userName, userAvatar);
+    if (!userId) return;
+    navigateToUserProfile(userId, userName || 'User', userAvatar);
   };
 
   return (
@@ -52,6 +59,20 @@ const ClubDetailTabs: React.FC<ClubDetailTabsProps> = ({
         <MatchHistoryTab club={club} />
       </TabsContent>
     </Tabs>
+  );
+};
+
+// Loading skeleton for club tabs when data is not yet available
+const ClubTabsLoadingSkeleton = () => {
+  return (
+    <div className="mb-6">
+      <div className="grid grid-cols-3 gap-1 mb-2">
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-10" />
+        ))}
+      </div>
+      <Skeleton className="h-64 w-full" />
+    </div>
   );
 };
 

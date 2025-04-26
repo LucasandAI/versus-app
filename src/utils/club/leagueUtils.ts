@@ -1,6 +1,9 @@
+
 import { Division } from '@/types';
 
-export const formatLeague = (division: Division, tier?: number) => {
+export const formatLeague = (division?: Division, tier?: number) => {
+  if (!division) return 'Unknown';
+  
   if (division === 'elite') {
     return 'Elite League';
   }
@@ -9,7 +12,9 @@ export const formatLeague = (division: Division, tier?: number) => {
   return tier ? `${divisionName} ${tier}` : divisionName;
 };
 
-export const getDivisionEmoji = (division: Division) => {
+export const getDivisionEmoji = (division?: Division) => {
+  if (!division) return '';
+  
   switch (division) {
     case 'elite':
       return '👑';
@@ -41,17 +46,21 @@ export const getDivisionEmoji = (division: Division) => {
  *   - If points < 0, relegate to Diamond 1
  */
 export const calculateNewDivisionAndTier = (
-  currentDivision: Division,
-  currentTier: number,
-  isWin: boolean,
+  currentDivision?: Division,
+  currentTier?: number,
+  isWin?: boolean,
   elitePoints: number = 0
 ): { division: Division; tier: number; elitePoints?: number } => {
-  // Ensure division is lowercase
-  const division = currentDivision.toLowerCase() as Division;
+  // Default values if inputs are undefined
+  const division = currentDivision?.toLowerCase() as Division || 'bronze';
+  const tier = currentTier || 1;
+  
+  // Default to false if isWin is undefined
+  const win = isWin === true;
   
   // Handle Elite division separately (point-based)
   if (division === 'elite') {
-    const newElitePoints = elitePoints + (isWin ? 1 : -1);
+    const newElitePoints = elitePoints + (win ? 1 : -1);
     
     // If elite points become negative, relegate to Diamond 1
     if (newElitePoints < 0) {
@@ -73,13 +82,13 @@ export const calculateNewDivisionAndTier = (
   const divisionOrder: Division[] = ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'elite'];
   const divisionIndex = divisionOrder.indexOf(division);
   
-  if (isWin) {
+  if (win) {
     // Win scenario: always move up, either tier or division
-    if (currentTier > 1) {
+    if (tier > 1) {
       // Move up within same division
       return {
         division: division,
-        tier: currentTier - 1 // Lower tier number = higher rank (tier 1 is top)
+        tier: tier - 1 // Lower tier number = higher rank (tier 1 is top)
       };
     } else {
       // At tier 1, move to next division if not already at top
@@ -104,7 +113,7 @@ export const calculateNewDivisionAndTier = (
         // Already at top division/tier, stay
         return {
           division: division,
-          tier: currentTier
+          tier: tier
         };
       }
     }
@@ -114,15 +123,15 @@ export const calculateNewDivisionAndTier = (
       // Bronze: stay at same division/tier even on loss
       return {
         division: division,
-        tier: currentTier
+        tier: tier
       };
     } else {
       // All other divisions: move down tier on loss
-      if (currentTier < 5) {
+      if (tier < 5) {
         // Move down within same division
         return {
           division: division,
-          tier: currentTier + 1 // Higher tier number = lower rank
+          tier: tier + 1 // Higher tier number = lower rank
         };
       } else {
         // At tier 5, move to previous division
@@ -137,7 +146,9 @@ export const calculateNewDivisionAndTier = (
 };
 
 // Helper function to validate division value from database
-export const ensureDivision = (value: string): Division => {
+export const ensureDivision = (value?: string): Division => {
+  if (!value) return 'bronze';
+  
   // Convert division to lowercase and check if it's a valid division type
   const normalized = value.toLowerCase();
   const validDivisions: Division[] = ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'elite'];

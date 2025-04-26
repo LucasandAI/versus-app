@@ -4,6 +4,7 @@ import { Club, User } from '@/types';
 import ClubStats from '../ClubStats';
 import ClubCurrentMatch from '../ClubCurrentMatch';
 import ClubAdminActions from '@/components/admin/ClubAdminActions';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface OverviewTabProps {
   club: Club;
@@ -16,9 +17,14 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   currentUser,
   onSelectUser 
 }) => {
+  // Handle null club case
+  if (!club) {
+    return <OverviewLoadingSkeleton />;
+  }
+
   // Add optional chaining and fallback for the members array
-  const isAdmin = currentUser && club.members?.some(member => 
-    member.id === currentUser.id && member.isAdmin
+  const isAdmin = currentUser && Array.isArray(club.members) && club.members.some(member => 
+    member && member.id === currentUser.id && member.isAdmin
   ) || false;
 
   return (
@@ -33,7 +39,17 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           onViewProfile={onSelectUser}
         />
       )}
-      {isAdmin && <ClubAdminActions club={club} currentUser={currentUser} />}
+      {isAdmin && currentUser && <ClubAdminActions club={club} currentUser={currentUser} />}
+    </div>
+  );
+};
+
+// Loading skeleton for overview when data is not yet available
+const OverviewLoadingSkeleton = () => {
+  return (
+    <div className="space-y-6">
+      <Skeleton className="h-64 w-full" />
+      <Skeleton className="h-48 w-full" />
     </div>
   );
 };

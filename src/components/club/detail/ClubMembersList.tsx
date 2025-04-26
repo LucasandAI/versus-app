@@ -5,9 +5,10 @@ import UserAvatar from '@/components/shared/UserAvatar';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Users } from 'lucide-react';
 import { useNavigation } from '@/hooks/useNavigation';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ClubMembersListProps {
-  members: ClubMember[];
+  members: ClubMember[] | undefined;
   currentMatch?: Match | null;
   onSelectMember?: (userId: string, name: string, avatar?: string) => void;
 }
@@ -19,9 +20,14 @@ const ClubMembersList: React.FC<ClubMembersListProps> = ({
 }) => {
   const { navigateToUserProfile } = useNavigation();
   
+  // Handle undefined members
+  if (!Array.isArray(members)) {
+    return <MembersLoadingSkeleton />;
+  }
+  
   // Create a map to deduplicate members by ID
   const uniqueMembers = members.reduce((acc, member) => {
-    if (!acc.has(member.id)) {
+    if (member && member.id && !acc.has(member.id)) {
       // Ensure every member has a distanceContribution (default to 0)
       acc.set(member.id, {
         ...member,
@@ -35,10 +41,12 @@ const ClubMembersList: React.FC<ClubMembersListProps> = ({
   const deduplicatedMembers = Array.from(uniqueMembers.values());
 
   const handleMemberClick = (member: ClubMember) => {
+    if (!member || !member.id) return;
+    
     if (onSelectMember) {
-      onSelectMember(member.id, member.name, member.avatar);
+      onSelectMember(member.id, member.name || 'Unknown', member.avatar);
     } else {
-      navigateToUserProfile(member.id, member.name, member.avatar);
+      navigateToUserProfile(member.id, member.name || 'Unknown', member.avatar);
     }
   };
 
@@ -68,7 +76,7 @@ const ClubMembersList: React.FC<ClubMembersListProps> = ({
               >
                 <div className="flex items-center gap-3">
                   <UserAvatar 
-                    name={member.name} 
+                    name={member.name || 'Unknown'} 
                     image={member.avatar} 
                     size="sm" 
                     className="cursor-pointer"
@@ -78,7 +86,7 @@ const ClubMembersList: React.FC<ClubMembersListProps> = ({
                     className="hover:text-primary cursor-pointer"
                     onClick={() => handleMemberClick(member)}
                   >
-                    {member.name}
+                    {member.name || 'Unknown'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -89,7 +97,7 @@ const ClubMembersList: React.FC<ClubMembersListProps> = ({
                   )}
                   {currentMatch && (
                     <span className="font-medium text-xs text-gray-500">
-                      {currentMatch.homeClub.members.find(m => m.id === member.id)?.distanceContribution?.toFixed(1) || "0"} km
+                      {getDistanceContribution(currentMatch, member.id)} km
                     </span>
                   )}
                 </div>
@@ -100,6 +108,45 @@ const ClubMembersList: React.FC<ClubMembersListProps> = ({
               No members found
             </div>
           )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Helper to safely get the distance contribution for a member
+const getDistanceContribution = (match: Match, memberId: string): string => {
+  if (!match || !match.homeClub || !match.homeClub.members || !Array.isArray(match.homeClub.members)) {
+    return "0.0";
+  }
+  
+  const member = match.homeClub.members.find(m => m && m.id === memberId);
+  return member && typeof member.distanceContribution === 'number' 
+    ? member.distanceContribution.toFixed(1) 
+    : "0.0";
+};
+
+// Loading skeleton for members list when data is not yet available
+const MembersLoadingSkeleton = () => {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-6 w-24" />
+          <Skeleton className="h-4 w-16" />
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <Skeleton className="h-4 w-12" />
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>
