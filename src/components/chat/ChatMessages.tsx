@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+
+import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageList from './message/MessageList';
 import { useMessageUser } from './message/useMessageUser';
 import { useMessageNormalization } from './message/useMessageNormalization';
 import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
+import { useCurrentMember } from '@/hooks/chat/messages/useCurrentMember';
+import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
 
 interface ChatMessagesProps {
   messages: ChatMessage[] | any[];
@@ -25,61 +28,26 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   onSelectUser
 }) => {
   const { currentUserId, currentUserAvatar } = useMessageUser();
-  const [currentUserInClub, setCurrentUserInClub] = useState<boolean>(false);
-  
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: 'smooth'
-    });
-  };
-  
-  useEffect(() => {
-    console.log('[ChatMessages] Messages updated, scrolling to bottom', 
-      Array.isArray(messages) ? messages.length : 'not an array');
-    scrollToBottom();
-  }, [messages]);
-  
-  useEffect(() => {
-    if (currentUserId && clubMembers.length > 0) {
-      const isInClub = clubMembers.some(member => String(member.id) === String(currentUserId));
-      setCurrentUserInClub(isInClub);
-    }
-  }, [currentUserId, clubMembers]);
-  
-  const getMemberName = (senderId: string) => {
-    if (currentUserId && String(senderId) === String(currentUserId)) return 'You';
-    const member = clubMembers.find(m => String(m.id) === String(senderId));
-    return member ? member.name : 'Unknown Member';
-  };
+  const { currentUserInClub } = useCurrentMember(currentUserId, clubMembers);
+  const { formatTime, getMemberName } = useMessageFormatting();
+  const { scrollRef } = useMessageScroll(messages);
   
   const {
     normalizeMessage
-  } = useMessageNormalization(currentUserId, getMemberName);
-  
-  const formatTime = (isoString: string) => {
-    const date = new Date(isoString);
-    return date.toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-  
+  } = useMessageNormalization(currentUserId, (senderId) => getMemberName(senderId, currentUserId, clubMembers));
+
   if (!Array.isArray(messages)) {
     console.error("[ChatMessages] Messages is not an array:", messages);
-    return <div className="flex-1 p-4">
+    return (
+      <div className="flex-1 p-4">
         <div className="h-full flex items-center justify-center text-gray-500 text-sm">
           No messages yet. Start the conversation!
         </div>
-      </div>;
+      </div>
+    );
   }
   
   const normalizedMessages = messages.map(message => normalizeMessage(message));
-  
-  // Debug log for messages
-  console.log('[ChatMessages] Normalized messages:', normalizedMessages.length);
-  
-  const { scrollRef } = useMessageScroll(messages);
-  const messagesEndRef = React.useRef<HTMLDivElement>(null);
   
   return (
     <div 
