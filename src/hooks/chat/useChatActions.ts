@@ -13,9 +13,13 @@ export const useChatActions = () => {
         throw new Error('Not authenticated');
       }
       
-      // Create optimistic message
+      // Generate a unique temp ID for optimistic UI
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      
+      // Create a fresh optimistic message with the current text input
+      // This ensures we're never reusing old message objects
       const optimisticMessage = {
-        id: `temp-${Date.now()}`,
+        id: tempId,
         message: messageText,
         club_id: clubId,
         sender_id: currentUser.id,

@@ -1,30 +1,44 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Send } from 'lucide-react';
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
   isSending?: boolean;
   placeholder?: string;
+  clubId?: string; // Add clubId to track conversation context
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({ 
   onSendMessage, 
   isSending = false,
-  placeholder = "Type a message..."
+  placeholder = "Type a message...",
+  clubId
 }) => {
   const [message, setMessage] = useState('');
+  
+  // Reset input when conversation changes (clubId changes)
+  useEffect(() => {
+    setMessage('');
+  }, [clubId]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (message.trim() && !isSending) {
-      console.log('[ChatInput] Submitting message:', message.substring(0, 20));
+      const messageToSend = message.trim(); // Capture current message in local variable
+      console.log('[ChatInput] Submitting message:', messageToSend.substring(0, 20));
+      
+      // Clear the input immediately to prevent reusing the same message
+      setMessage('');
+      
       try {
-        await onSendMessage(message);
-        setMessage('');
+        await onSendMessage(messageToSend);
+        // No need to clear again as we already did it before sending
       } catch (error) {
         console.error('[ChatInput] Error sending message:', error);
+        // If there's an error, we might want to restore the message
+        setMessage(messageToSend);
       }
     }
   };

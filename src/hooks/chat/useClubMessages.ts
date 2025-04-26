@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
 import { toast } from '@/hooks/use-toast';
@@ -9,12 +9,20 @@ export const useClubMessages = (
   setUnreadMessages?: (count: number) => void
 ) => {
   const [clubMessages, setClubMessages] = useState<Record<string, any[]>>({});
+  const activeSubscriptionsRef = useRef<Record<string, boolean>>({});
+  const cleanupRef = useRef<() => void | undefined>();
 
-  // Effect to handle real-time subscriptions and initial message loading
+  useEffect(() => {
+    if (!isOpen) {
+      if (cleanupRef.current) {
+        cleanupRef.current();
+      }
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     if (!userClubs.length) return;
     
-    // Only set up subscriptions when the drawer is open
     if (!isOpen) {
       console.log('[useClubMessages] Chat drawer is closed, not setting up subscriptions');
       return;
@@ -22,9 +30,16 @@ export const useClubMessages = (
     
     console.log('[useClubMessages] Chat drawer opened, setting up subscriptions for clubs:', userClubs.length);
     
-    // Create channels for each club
+    activeSubscriptionsRef.current = {};
+    
     const channels = userClubs.map(club => {
+      if (activeSubscriptionsRef.current[club.id]) {
+        console.log(`[useClubMessages] Subscription already exists for club ${club.id}, skipping`);
+        return null;
+      }
+      
       console.log(`[useClubMessages] Creating channel for club ${club.id}`);
+      activeSubscriptionsRef.current[club.id] = true;
       
       const channel = supabase.channel(`club-messages-${club.id}`)
         .on('postgres_changes', {
@@ -36,7 +51,6 @@ export const useClubMessages = (
           console.log(`[Realtime] New club message received for club ${club.id}:`, payload);
           
           try {
-            // Fetch sender information immediately for the new message
             const { data: sender, error } = await supabase
               .from('users')
               .select('id, name, avatar')
@@ -48,18 +62,14 @@ export const useClubMessages = (
               return;
             }
             
-            // Create complete message with sender info
             const completeMessage = {
               ...payload.new,
               sender
             };
             
-            // Update state with the new message
             setClubMessages(currentMessages => {
               const existingMessages = currentMessages[club.id] || [];
               
-              // Check for duplicates to prevent double-adding messages
-              // Access payload.new.id directly since that's where the message ID is
               if (existingMessages.some(msg => msg.id === payload.new.id)) {
                 console.log(`[useClubMessages] Message ${payload.new.id} already exists, skipping`);
                 return currentMessages;
@@ -67,14 +77,12 @@ export const useClubMessages = (
               
               console.log(`[useClubMessages] Adding new message to club ${club.id}:`, completeMessage);
               
-              // Return updated messages with the new message appended
               return {
                 ...currentMessages,
                 [club.id]: [...existingMessages, completeMessage]
               };
             });
             
-            // Handle unread count
             const { data: { user } } = await supabase.auth.getUser();
             if (payload.new.sender_id !== user?.id && setUnreadMessages && document.hidden) {
               setUnreadMessages(1);
@@ -100,7 +108,6 @@ export const useClubMessages = (
           });
         });
 
-      // Subscribe to the channel with enhanced status logging
       channel.subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           console.log(`[useClubMessages] Successfully subscribed to club ${club.id} messages`);
@@ -112,9 +119,8 @@ export const useClubMessages = (
       });
 
       return channel;
-    });
+    }).filter(Boolean);
     
-    // Fetch initial messages for each club
     const fetchClubMessages = async () => {
       console.log('[useClubMessages] Fetching messages for all clubs');
       
@@ -153,7 +159,6 @@ export const useClubMessages = (
           }
         });
         
-        // Set the messages in state
         setClubMessages(clubMessagesMap);
         console.log('[useClubMessages] Updated clubMessages state:', 
           Object.keys(clubMessagesMap).map(key => `${key}: ${clubMessagesMap[key]?.length || 0} messages`));
@@ -169,17 +174,38 @@ export const useClubMessages = (
     
     fetchClubMessages();
 
-    // Cleanup subscriptions when drawer closes or component unmounts
-    return () => {
+    cleanupRef.current = () => {
       console.log('[useClubMessages] Cleaning up subscriptions');
       channels.forEach(channel => {
-        supabase.removeChannel(channel);
+        if (channel) {
+          supabase.removeChannel(channel);
+        }
       });
+      activeSubscriptionsRef.current = {};
     };
-  }, [userClubs, isOpen, setUnreadMessages]); // Re-run when isOpen changes
+
+    return cleanupRef.current;
+  }, [userClubs, isOpen, setUnreadMessages]);
+
+  const safeSetClubMessages = useCallback((
+    updater: React.SetStateAction<Record<string, any[]>>
+  ) => {
+    setClubMessages(prevState => {
+      const nextState = typeof updater === 'function' 
+        ? updater(prevState) 
+        : updater;
+      
+      console.log('[useClubMessages] State update:', {
+        prevClubIds: Object.keys(prevState),
+        nextClubIds: Object.keys(nextState)
+      });
+      
+      return nextState;
+    });
+  }, []);
 
   return {
     clubMessages,
-    setClubMessages,
+    setClubMessages: safeSetClubMessages,
   };
 };
