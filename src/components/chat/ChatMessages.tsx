@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageList from './message/MessageList';
@@ -29,7 +30,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const { currentUserId, currentUserAvatar } = useMessageUser();
   const { currentUserInClub } = useCurrentMember(currentUserId, clubMembers);
   const { formatTime, getMemberName } = useMessageFormatting();
-  const { scrollRef } = useMessageScroll(messages);
+  const { scrollRef, lastMessageRef, scrollToBottom } = useMessageScroll(messages);
   
   const {
     normalizeMessage
@@ -50,18 +51,21 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   return (
     <div 
       ref={scrollRef}
-      className="flex-1 overflow-y-auto pb-[76px] relative"
+      className="flex-1 overflow-y-auto pb-[76px]"
     >
-      <MessageList 
-        messages={normalizedMessages.reverse()} 
-        clubMembers={clubMembers} 
-        isSupport={isSupport} 
-        onDeleteMessage={onDeleteMessage} 
-        onSelectUser={onSelectUser} 
-        formatTime={formatTime} 
-        currentUserAvatar={currentUserAvatar}
-        currentUserId={currentUserId}
-      />
+      <div className="flex flex-col h-full">
+        <MessageList 
+          messages={normalizedMessages} 
+          clubMembers={clubMembers} 
+          isSupport={isSupport} 
+          onDeleteMessage={onDeleteMessage} 
+          onSelectUser={onSelectUser} 
+          formatTime={formatTime} 
+          currentUserAvatar={currentUserAvatar}
+          currentUserId={currentUserId}
+          lastMessageRef={lastMessageRef}
+        />
+      </div>
     </div>
   );
 };

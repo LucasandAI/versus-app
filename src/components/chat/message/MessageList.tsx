@@ -1,5 +1,5 @@
 
-import React, { useRef } from 'react';
+import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageItem from './MessageItem';
 
@@ -16,6 +16,7 @@ interface MessageListProps {
   formatTime: (isoString: string) => string;
   currentUserAvatar: string;
   currentUserId: string | null;
+  lastMessageRef: React.RefObject<HTMLDivElement>;
 }
 
 const MessageList: React.FC<MessageListProps> = ({
@@ -27,9 +28,8 @@ const MessageList: React.FC<MessageListProps> = ({
   formatTime,
   currentUserAvatar,
   currentUserId,
+  lastMessageRef,
 }) => {
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
   return (
     <>
       {messages.length === 0 ? (
@@ -37,26 +37,30 @@ const MessageList: React.FC<MessageListProps> = ({
           No messages yet. Start the conversation!
         </div>
       ) : (
-        messages.map((message: ChatMessage) => {
-          // Check if the message was sent by the current user
+        messages.map((message: ChatMessage, index: number) => {
           const isUserMessage = currentUserId && message.sender && 
             String(message.sender.id) === String(currentUserId);
+          const isLastMessage = index === messages.length - 1;
           
           return (
-            <MessageItem
+            <div 
               key={message.id}
-              message={message}
-              isUserMessage={isUserMessage}
-              isSupport={isSupport}
-              onDeleteMessage={onDeleteMessage}
-              onSelectUser={onSelectUser}
-              formatTime={formatTime}
-              currentUserAvatar={currentUserAvatar}
-            />
+              ref={isLastMessage ? lastMessageRef : undefined}
+              className="mb-4"
+            >
+              <MessageItem
+                message={message}
+                isUserMessage={isUserMessage}
+                isSupport={isSupport}
+                onDeleteMessage={onDeleteMessage}
+                onSelectUser={onSelectUser}
+                formatTime={formatTime}
+                currentUserAvatar={currentUserAvatar}
+              />
+            </div>
           );
         })
       )}
-      <div ref={messagesEndRef} />
     </>
   );
 };
