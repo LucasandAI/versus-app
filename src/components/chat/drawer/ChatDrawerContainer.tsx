@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
@@ -6,7 +7,6 @@ import DMSearchPanel from './dm/DMSearchPanel';
 import DMConversation from './dm/DMConversation';
 import SupportTabContent from './support/SupportTabContent';
 import ChatDrawerContent from './ChatDrawerContent';
-import { supabase } from '@/integrations/supabase/client';
 
 interface ChatDrawerContainerProps {
   activeTab: "clubs" | "dm" | "support";
@@ -134,7 +134,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
             />
           </div>
           
-          <div className="flex-1">
+          <div className="flex-1 h-full">
             <ChatDrawerContent 
               selectedClub={selectedLocalClub}
               selectedTicket={null} // We're in clubs tab, so don't show tickets

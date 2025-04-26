@@ -36,15 +36,17 @@ const ChatDrawerContent: React.FC<ChatDrawerContentProps> = ({
   }
   
   return (
-    <ChatMainContent
-      selectedClub={selectedClub}
-      selectedTicket={selectedTicket}
-      messages={messages}
-      onMatchClick={onMatchClick}
-      onSelectUser={onSelectUser}
-      onSendMessage={onSendMessage}
-      setClubMessages={setClubMessages}
-    />
+    <div className="h-full flex flex-col">
+      <ChatMainContent
+        selectedClub={selectedClub}
+        selectedTicket={selectedTicket}
+        messages={messages}
+        onMatchClick={onMatchClick}
+        onSelectUser={onSelectUser}
+        onSendMessage={onSendMessage}
+        setClubMessages={setClubMessages}
+      />
+    </div>
   );
 };
 

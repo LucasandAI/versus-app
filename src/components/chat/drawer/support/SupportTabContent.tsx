@@ -78,14 +78,16 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
         onCreateTicket={handleOpenSupportOptions}
       />
       
-      <div className="flex-1">
+      <div className="flex-1 h-full">
         {selectedTicket ? (
-          <ChatTicketContent 
-            key={selectedTicket.id} // Force re-render when ticket changes
-            ticket={selectedTicket} 
-            onSendMessage={onSendMessage}
-            onTicketClosed={handleTicketClosed} 
-          />
+          <div className="flex flex-col h-full">
+            <ChatTicketContent 
+              key={selectedTicket.id} // Force re-render when ticket changes
+              ticket={selectedTicket} 
+              onSendMessage={onSendMessage}
+              onTicketClosed={handleTicketClosed} 
+            />
+          </div>
         ) : (
           <div className="flex items-center justify-center h-full text-gray-500">
             Select a ticket or create a new one to get started

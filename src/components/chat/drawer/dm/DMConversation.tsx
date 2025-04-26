@@ -105,10 +105,10 @@ const DMConversation: React.FC<DMConversationProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full w-full">
       <DMHeader userId={userId} userName={userName} userAvatar={userAvatar} />
 
-      <div className="flex-1 overflow-hidden flex flex-col relative">
+      <div className="flex-1 flex flex-col relative overflow-hidden">
         <div className="flex-1 overflow-y-auto pb-16">
           <ChatMessages 
             messages={messages} 

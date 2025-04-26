@@ -80,7 +80,7 @@ const ChatClubContent = ({
         onClubClick={handleClubClick}
       />
       
-      <div className="flex-1 overflow-hidden flex flex-col">
+      <div className="flex-1 flex flex-col relative overflow-hidden">
         <div className="flex-1 overflow-y-auto pb-16">
           <ChatMessages 
             messages={messages} 

@@ -38,14 +38,16 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   if (selectedTicket) {
     console.log('[ChatMainContent] Rendering support ticket content for:', selectedTicket.id);
     return (
-      <ChatTicketContent 
-        key={selectedTicket.id} // Force re-render when ticket changes
-        ticket={selectedTicket}
-        onSendMessage={(message) => {
-          console.log('[ChatMainContent] Sending support ticket message');
-          onSendMessage(message);
-        }}
-      />
+      <div className="flex-1 flex flex-col h-full">
+        <ChatTicketContent 
+          key={selectedTicket.id} // Force re-render when ticket changes
+          ticket={selectedTicket}
+          onSendMessage={(message) => {
+            console.log('[ChatMainContent] Sending support ticket message');
+            onSendMessage(message);
+          }}
+        />
+      </div>
     );
   }
 
@@ -59,22 +61,24 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
     });
     
     return (
-      <ChatClubContent 
-        key={selectedClub.id} // Force re-render when club changes
-        club={selectedClub}
-        messages={clubMessages}
-        onMatchClick={() => onMatchClick(selectedClub)}
-        onSelectUser={onSelectUser}
-        onSendMessage={(message) => {
-          console.log('[ChatMainContent] Sending club message to:', { 
-            clubId: selectedClub.id, 
-            messageLength: message.length 
-          });
-          onSendMessage(message, selectedClub.id);
-        }}
-        setClubMessages={setClubMessages}
-        clubId={selectedClub.id} // Pass clubId for proper context in ChatInput
-      />
+      <div className="flex-1 flex flex-col h-full">
+        <ChatClubContent 
+          key={selectedClub.id} // Force re-render when club changes
+          club={selectedClub}
+          messages={clubMessages}
+          onMatchClick={() => onMatchClick(selectedClub)}
+          onSelectUser={onSelectUser}
+          onSendMessage={(message) => {
+            console.log('[ChatMainContent] Sending club message to:', { 
+              clubId: selectedClub.id, 
+              messageLength: message.length 
+            });
+            onSendMessage(message, selectedClub.id);
+          }}
+          setClubMessages={setClubMessages}
+          clubId={selectedClub.id} // Pass clubId for proper context in ChatInput
+        />
+      </div>
     );
   }
 

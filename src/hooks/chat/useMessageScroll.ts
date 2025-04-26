@@ -9,14 +9,29 @@ export const useMessageScroll = (messages: any[]) => {
     if (lastMessageRef.current) {
       lastMessageRef.current.scrollIntoView({
         behavior: smooth ? 'smooth' : 'auto',
-        block: 'nearest'
+        block: 'end'
       });
+    } else if (scrollRef.current) {
+      // Fallback if there's no last message ref
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   };
 
+  // Scroll to bottom when messages are loaded initially
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Use setTimeout to ensure DOM is updated before scrolling
+      setTimeout(() => {
+        scrollToBottom(false);
+      }, 0);
+    }
+  }, []); 
+
   // Scroll to bottom when new messages are added
   useEffect(() => {
-    scrollToBottom();
+    if (messages.length > 0) {
+      scrollToBottom();
+    }
   }, [messages.length]); // Only trigger when message count changes
 
   return {
