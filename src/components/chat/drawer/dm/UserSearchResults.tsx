@@ -13,21 +13,18 @@ interface UserSearchResultsProps {
   results: SearchResult[];
   isLoading: boolean;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
-  onCloseSearch: () => void;
 }
 
 const UserSearchResults: React.FC<UserSearchResultsProps> = ({
   results,
   isLoading,
   onSelectUser,
-  onCloseSearch
 }) => {
   const { unhideConversation } = useHiddenDMs();
 
   const handleUserSelect = (user: SearchResult) => {
     unhideConversation(user.id); // Make sure conversation is visible in the list
     onSelectUser(user.id, user.name, user.avatar);
-    onCloseSearch(); // Close the search results
   };
 
   if (isLoading) {

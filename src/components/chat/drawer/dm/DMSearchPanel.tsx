@@ -8,7 +8,15 @@ import DMConversation from './DMConversation';
 import { useUserSearch } from '@/hooks/chat/dm/useUserSearch';
 
 const DMSearchPanel: React.FC = () => {
-  const { query, setQuery, searchResults, isLoading, searchUsers } = useUserSearch();
+  const { 
+    query, 
+    setQuery, 
+    searchResults, 
+    isLoading, 
+    searchUsers,
+    clearSearch 
+  } = useUserSearch();
+
   const [selectedDMUser, setSelectedDMUser] = useState<{
     id: string;
     name: string;
@@ -27,11 +35,7 @@ const DMSearchPanel: React.FC = () => {
       name: userName,
       avatar: userAvatar
     });
-    setQuery(''); // Clear the search input
-  };
-
-  const handleCloseSearch = () => {
-    setQuery(''); // Clear search and hide results
+    clearSearch(); // Clear both query and results
   };
 
   return (
@@ -46,7 +50,6 @@ const DMSearchPanel: React.FC = () => {
                 results={searchResults}
                 isLoading={isLoading}
                 onSelectUser={handleSelectUser}
-                onCloseSearch={handleCloseSearch}
               />
             </div>
           )}

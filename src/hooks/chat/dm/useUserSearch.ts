@@ -15,6 +15,11 @@ export const useUserSearch = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { currentUser } = useApp();
 
+  const clearSearch = useCallback(() => {
+    setQuery("");
+    setSearchResults([]);
+  }, []);
+
   const searchUsers = useCallback(
     debounce(async (searchTerm: string) => {
       if (!searchTerm.trim()) {
@@ -55,6 +60,7 @@ export const useUserSearch = () => {
     setQuery,
     searchResults,
     isLoading,
-    searchUsers
+    searchUsers,
+    clearSearch
   };
 };

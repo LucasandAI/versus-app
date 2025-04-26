@@ -23,72 +23,97 @@ interface Props {
 const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) => {
   const [conversations, setConversations] = useState<DMConversation[]>([]);
   const { currentUser } = useApp();
-  const { hideConversation, isConversationHidden } = useHiddenDMs();
+  const { hideConversation, isConversationHidden, hiddenDMs } = useHiddenDMs();
   
-  useEffect(() => {
-    const loadConversations = async () => {
-      try {
-        if (!currentUser?.id) return;
+  // Function to fetch conversations
+  const fetchConversations = async () => {
+    try {
+      if (!currentUser?.id) return;
 
-        const { data: messages, error: messagesError } = await supabase
-          .from('direct_messages')
-          .select('id, sender_id, receiver_id, text, timestamp')
-          .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
-          .order('timestamp', { ascending: false });
+      const { data: messages, error: messagesError } = await supabase
+        .from('direct_messages')
+        .select('id, sender_id, receiver_id, text, timestamp')
+        .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
+        .order('timestamp', { ascending: false });
 
-        if (messagesError) throw messagesError;
-        if (!messages || messages.length === 0) return;
+      if (messagesError) throw messagesError;
+      if (!messages || messages.length === 0) return;
 
-        const uniqueUserIds = new Set<string>();
-        messages.forEach(msg => {
-          const otherUserId = msg.sender_id === currentUser.id ? msg.receiver_id : msg.sender_id;
-          uniqueUserIds.add(otherUserId);
-        });
+      const uniqueUserIds = new Set<string>();
+      messages.forEach(msg => {
+        const otherUserId = msg.sender_id === currentUser.id ? msg.receiver_id : msg.sender_id;
+        uniqueUserIds.add(otherUserId);
+      });
 
-        const { data: users, error: usersError } = await supabase
-          .from('users')
-          .select('id, name, avatar')
-          .in('id', Array.from(uniqueUserIds));
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, name, avatar')
+        .in('id', Array.from(uniqueUserIds));
+      
+      if (usersError) throw usersError;
+      if (!users) return;
+
+      const userMap = users.reduce((map: Record<string, any>, user) => {
+        map[user.id] = user;
+        return map;
+      }, {});
+
+      const conversationsMap = new Map<string, DMConversation>();
+      
+      messages.forEach(msg => {
+        const otherUserId = msg.sender_id === currentUser.id ? msg.receiver_id : msg.sender_id;
+        const otherUser = userMap[otherUserId];
         
-        if (usersError) throw usersError;
-        if (!users) return;
+        if (otherUser && !conversationsMap.has(otherUserId)) {
+          conversationsMap.set(otherUserId, {
+            userId: otherUserId,
+            userName: otherUser.name,
+            userAvatar: otherUser.avatar,
+            lastMessage: msg.text,
+            timestamp: msg.timestamp
+          });
+        }
+      });
 
-        const userMap = users.reduce((map: Record<string, any>, user) => {
-          map[user.id] = user;
-          return map;
-        }, {});
-
-        const conversationsMap = new Map<string, DMConversation>();
-        
-        messages.forEach(msg => {
-          const otherUserId = msg.sender_id === currentUser.id ? msg.receiver_id : msg.sender_id;
-          const otherUser = userMap[otherUserId];
-          
-          if (otherUser && !conversationsMap.has(otherUserId)) {
-            conversationsMap.set(otherUserId, {
-              userId: otherUserId,
-              userName: otherUser.name,
-              userAvatar: otherUser.avatar,
-              lastMessage: msg.text,
-              timestamp: msg.timestamp
-            });
-          }
-        });
-
-        setConversations(Array.from(conversationsMap.values()));
-      } catch (error) {
-        console.error('Error loading conversations:', error);
-        toast({
-          title: "Error",
-          description: "Could not load conversations",
-          variant: "destructive"
-        });
-      }
-    };
-
-    if (currentUser?.id) {
-      loadConversations();
+      setConversations(Array.from(conversationsMap.values()));
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+      toast({
+        title: "Error",
+        description: "Could not load conversations",
+        variant: "destructive"
+      });
     }
+  };
+
+  // Fetch conversations initially and when hiddenDMs changes
+  useEffect(() => {
+    fetchConversations();
+  }, [currentUser?.id, hiddenDMs]);
+
+  // Subscribe to real-time updates
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    const channel = supabase
+      .channel('direct-messages-changes')
+      .on('postgres_changes', 
+        { 
+          event: '*',
+          schema: 'public',
+          table: 'direct_messages',
+          filter: `sender_id=eq.${currentUser.id},receiver_id=eq.${currentUser.id}` 
+        },
+        () => {
+          // Refresh conversations when messages change
+          fetchConversations();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [currentUser?.id]);
 
   const handleHideConversation = (
