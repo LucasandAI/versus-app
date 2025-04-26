@@ -1,13 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import ChatMessages from '../../ChatMessages';
 import ChatInput from '../../ChatInput';
-import { toast } from '@/hooks/use-toast';
-import UserAvatar from '@/components/shared/UserAvatar';
+import DMHeader from './DMHeader';
+import { useDMMessages } from '@/hooks/chat/dm/useDMMessages';
+import { useDMSubscription } from '@/hooks/chat/dm/useDMSubscription';
 import { useNavigation } from '@/hooks/useNavigation';
-import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
+import { toast } from '@/hooks/use-toast';
 
 interface DMConversationProps {
   userId: string;
@@ -15,98 +16,30 @@ interface DMConversationProps {
   userAvatar?: string;
 }
 
-const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userAvatar }) => {
-  const [messages, setMessages] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isSending, setIsSending] = useState(false);
+const DMConversation: React.FC<DMConversationProps> = ({ 
+  userId, 
+  userName, 
+  userAvatar 
+}) => {
   const { currentUser } = useApp();
   const { navigateToUserProfile } = useNavigation();
-  const { unhideConversation } = useHiddenDMs();
+  const { 
+    messages, 
+    setMessages, 
+    isSending, 
+    setIsSending 
+  } = useDMMessages(userId, userName);
 
-  // Reset state when conversation changes
-  useEffect(() => {
-    console.log('[DMConversation] Conversation changed, resetting state for:', userId);
-    setMessages([]);
-    setLoading(true);
-  }, [userId]);
-
-  useEffect(() => {
-    const fetchMessages = async () => {
-      if (!userId || !currentUser?.id) return;
-      
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('direct_messages')
-          .select('*')
-          .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${currentUser.id})`)
-          .order('timestamp', { ascending: true });
-
-        if (error) {
-          throw error;
-        }
-
-        const formattedMessages = (data || []).map((msg) => ({
-          id: msg.id,
-          text: msg.text,
-          sender: {
-            id: msg.sender_id,
-            name: msg.sender_id === currentUser.id ? currentUser.name : userName,
-            avatar: msg.sender_id === currentUser.id ? currentUser.avatar : userAvatar
-          },
-          timestamp: msg.timestamp,
-        }));
-
-        setMessages(formattedMessages);
-      } catch (error) {
-        console.error('Error fetching direct messages:', error);
-        toast({
-          title: "Error",
-          description: "Could not load messages",
-          variant: "destructive"
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMessages();
-  }, [userId, currentUser?.id, userName, userAvatar, currentUser?.name, currentUser?.avatar]);
-
-  useEffect(() => {
-    // Create a channel specific to this DM conversation
-    const channel = supabase
-      .channel(`dm-conversation-${userId}-${currentUser?.id}`)
-      .on('postgres_changes', 
-          { event: 'DELETE', schema: 'public', table: 'direct_messages' },
-          (payload) => {
-            if (payload.old) {
-              setMessages(prev => prev.filter(msg => msg.id !== payload.old.id));
-            }
-          })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId, currentUser?.id]);
+  useDMSubscription(userId, currentUser?.id, setMessages);
 
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || !currentUser?.id || !userId) return;
-
-    // Set sending state to prevent multiple sends
     setIsSending(true);
     
-    // Capture message in local scope to ensure we're using the current value
-    const messageToSend = message.trim();
-    
-    unhideConversation(userId);
-
-    // Create optimistic message
     const optimisticId = `temp-${Date.now()}`;
     const newMessageObj = {
       id: optimisticId,
-      text: messageToSend,
+      text: message,
       sender: {
         id: currentUser.id,
         name: currentUser.name,
@@ -115,7 +48,6 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
       timestamp: new Date().toISOString()
     };
 
-    // Add immediately to UI
     setMessages(prev => [...prev, newMessageObj]);
 
     try {
@@ -124,18 +56,13 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
         .insert({
           sender_id: currentUser.id,
           receiver_id: userId,
-          text: messageToSend
+          text: message
         })
         .select('*')
         .single();
 
-      if (error) {
-        throw error;
-      }
-
-      console.log('Message sent successfully:', data);
+      if (error) throw error;
       
-      // Update the temporary message with the real one if needed
       if (data) {
         setMessages(prev => 
           prev.map(msg => msg.id === optimisticId ? {
@@ -151,8 +78,6 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
         description: "Could not send message",
         variant: "destructive"
       });
-      
-      // Remove the optimistic message on error
       setMessages(prev => prev.filter(msg => msg.id !== optimisticId));
     } finally {
       setIsSending(false);
@@ -161,7 +86,6 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
 
   const handleDeleteMessage = async (messageId: string) => {
     try {
-      // Optimistic UI update
       setMessages(prev => prev.filter(msg => msg.id !== messageId));
       
       const { error } = await supabase
@@ -169,9 +93,7 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
         .delete()
         .eq('id', messageId);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
     } catch (error) {
       console.error('Error deleting message:', error);
       toast({
@@ -184,15 +106,7 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
 
   return (
     <div className="flex flex-col h-full">
-      <div className="border-b p-3 flex items-center">
-        <div 
-          className="flex items-center gap-3 cursor-pointer hover:opacity-80" 
-          onClick={() => navigateToUserProfile(userId, userName, userAvatar)}
-        >
-          <UserAvatar name={userName} image={userAvatar} size="sm" />
-          <h3 className="font-semibold">{userName}</h3>
-        </div>
-      </div>
+      <DMHeader userId={userId} userName={userName} userAvatar={userAvatar} />
 
       <div className="flex-1 overflow-y-auto">
         <ChatMessages 
