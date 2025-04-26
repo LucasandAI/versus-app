@@ -27,13 +27,17 @@ const DMSearchPanel: React.FC = () => {
       name: userName,
       avatar: userAvatar
     });
-    setQuery('');
+    setQuery(''); // Clear the search input
+  };
+
+  const handleCloseSearch = () => {
+    setQuery(''); // Clear search and hide results
   };
 
   return (
     <div className="flex h-full w-full">
       <div className="w-[240px] border-r flex flex-col h-full">
-        <div className="p-4 border-b">
+        <div className="p-4 border-b relative">
           <SearchBar value={query} onChange={handleInputChange} />
           
           {(searchResults.length > 0 || isLoading) && (
@@ -42,6 +46,7 @@ const DMSearchPanel: React.FC = () => {
                 results={searchResults}
                 isLoading={isLoading}
                 onSelectUser={handleSelectUser}
+                onCloseSearch={handleCloseSearch}
               />
             </div>
           )}
