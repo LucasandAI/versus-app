@@ -1,6 +1,7 @@
-
-import React from 'react';
-import Button from '@/components/shared/Button';
+import React, { useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { useJoinRequest } from '@/hooks/club/useJoinRequest';
+import { useApp } from '@/context/AppContext';
 import {
   Tooltip,
   TooltipContent,
@@ -18,6 +19,7 @@ interface ClubHeaderActionsProps {
   onJoinClub: () => void;
   onDeclineInvite: () => void;
   onRequestJoin: () => void;
+  clubId: string;
 }
 
 const ClubHeaderActions: React.FC<ClubHeaderActionsProps> = ({
@@ -29,9 +31,22 @@ const ClubHeaderActions: React.FC<ClubHeaderActionsProps> = ({
   onLeaveClub,
   onJoinClub,
   onDeclineInvite,
-  onRequestJoin,
+  clubId,
 }) => {
   const isClubFull = memberCount >= 5;
+  const { currentUser } = useApp();
+  const { isRequesting, hasPendingRequest, sendJoinRequest, checkPendingRequest } = useJoinRequest(clubId);
+
+  useEffect(() => {
+    if (currentUser?.id && !isActuallyMember) {
+      checkPendingRequest(currentUser.id);
+    }
+  }, [currentUser?.id, isActuallyMember]);
+
+  const handleRequestJoin = async () => {
+    if (!currentUser?.id) return;
+    await sendJoinRequest(currentUser.id);
+  };
 
   if (isActuallyMember) {
     if (isAdmin) {
@@ -67,7 +82,7 @@ const ClubHeaderActions: React.FC<ClubHeaderActionsProps> = ({
       </Button>
     );
   }
-  
+
   if (hasPendingInvite) {
     return (
       <div className="flex space-x-2">
@@ -103,20 +118,30 @@ const ClubHeaderActions: React.FC<ClubHeaderActionsProps> = ({
       </div>
     );
   }
-  
-  if (memberCount < 5) {
-    return (
-      <Button 
-        variant="primary" 
-        size="sm"
-        onClick={onRequestJoin}
-      >
-        Request to Join
-      </Button>
-    );
-  }
-  
-  return null;
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleRequestJoin}
+              disabled={isRequesting || hasPendingRequest || isClubFull}
+            >
+              {hasPendingRequest ? 'Request Pending' : 'Request to Join'}
+            </Button>
+          </span>
+        </TooltipTrigger>
+        {isClubFull && (
+          <TooltipContent>
+            <p>This club is currently full</p>
+          </TooltipContent>
+        )}
+      </Tooltip>
+    </TooltipProvider>
+  );
 };
 
 export default ClubHeaderActions;
