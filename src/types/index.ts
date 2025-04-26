@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   name: string;
@@ -140,5 +141,4 @@ export interface AppContextType {
   refreshCurrentUser: () => Promise<User | null>;
 }
 
-export { ChatMessage } from './chat';
-export type { User, Club, Division, JoinRequest, ClubRequest, ClubInvite, Match, Notification, AppView, AppContextType } from './chat-state';
+export type { ChatMessage } from './chat';
