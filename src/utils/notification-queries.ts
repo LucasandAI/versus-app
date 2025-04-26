@@ -38,7 +38,7 @@ export const hasPendingInvite = async (clubId: string, userId?: string): Promise
       .select('*')
       .eq('club_id', clubId)
       .eq('user_id', userId)
-      .in('type', ['invite', 'club_invite'])
+      .in('type', ['invite']) // Use 'invite' instead of 'club_invite'
       .eq('status', 'pending')
       .single();
 
@@ -86,21 +86,21 @@ export const hasPendingJoinRequest = async (userId: string, clubId: string): Pro
 // Function to create a new notification
 export const createNotification = async (notification: {
   user_id: string;
-  type: 'invite' | 'join_request' | 'match_result' | 'match_start' | 'achievement' | 'club_invite';
+  type: 'invite' | 'join_request' | 'match_result' | 'match_start' | 'achievement';
   club_id: string;
   message?: string;
 }) => {
   try {
     const { error } = await supabase
       .from('notifications')
-      .insert([
-        {
-          ...notification,
-          status: 'pending',
-          read: false,
-          created_at: new Date().toISOString()
-        }
-      ]);
+      .insert({
+        user_id: notification.user_id,
+        type: notification.type,
+        club_id: notification.club_id,
+        message: notification.message || '',
+        status: 'pending',
+        read: false
+      });
       
     if (error) {
       console.error('Error creating notification:', error);

@@ -49,14 +49,14 @@ export const useJoinRequests = () => {
       try {
         await supabase
           .from('notifications')
-          .insert([{
+          .insert({
             user_id: request.userId,
             club_id: request.clubId,
             type: 'join_request',
             status: 'accepted',
             message: `Your request to join ${club.name} has been accepted.`,
             read: false
-          }]);
+          });
       } catch (notificationError) {
         console.error('Error creating notification:', notificationError);
         // Continue even if notification creation fails
@@ -115,10 +115,10 @@ export const useJoinRequests = () => {
     try {
       setError(null);
 
-      // 1. Update request status to declined
+      // 1. Update request status to rejected
       const { error: requestError } = await supabase
         .from('club_requests')
-        .update({ status: 'declined' })
+        .update({ status: 'rejected' })
         .eq('id', request.id);
 
       if (requestError) throw requestError;
@@ -127,14 +127,14 @@ export const useJoinRequests = () => {
       try {
         await supabase
           .from('notifications')
-          .insert([{
+          .insert({
             user_id: request.userId,
             club_id: request.clubId,
             type: 'join_request',
-            status: 'declined',
+            status: 'rejected',
             message: `Your request to join the club has been declined.`,
             read: false
-          }]);
+          });
       } catch (notificationError) {
         console.error('Error creating notification:', notificationError);
         // Continue even if notification creation fails
@@ -176,7 +176,7 @@ export const useJoinRequests = () => {
           club_id,
           status,
           created_at,
-          users:user_id (
+          users (
             id, 
             name,
             avatar
@@ -187,14 +187,19 @@ export const useJoinRequests = () => {
 
       if (error) throw error;
 
-      const formattedRequests: JoinRequest[] = data?.map(request => ({
-        id: request.id,
-        userId: request.user_id,
-        clubId: request.club_id,
-        userName: request.users?.name || 'Unknown',
-        userAvatar: request.users?.avatar || '',
-        createdAt: request.created_at
-      })) || [];
+      const formattedRequests: JoinRequest[] = data?.map(request => {
+        // Handle the case where users might be null
+        const userData = request.users || { name: 'Unknown', avatar: '' };
+        
+        return {
+          id: request.id,
+          userId: request.user_id,
+          clubId: request.club_id,
+          userName: userData.name || 'Unknown',
+          userAvatar: userData.avatar || '',
+          createdAt: request.created_at
+        };
+      }) || [];
 
       setRequests(formattedRequests);
       return formattedRequests;

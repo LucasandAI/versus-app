@@ -20,6 +20,16 @@ const AdminActionButtons: React.FC<AdminActionButtonsProps> = ({ onEditClick, on
         <Settings className="h-4 w-4 mr-2" />
         Edit Club Details
       </Button>
+      
+      <Button 
+        variant="secondary" 
+        size="sm" 
+        className="flex items-center justify-center"
+        onClick={onRequestsClick}
+      >
+        <Users className="h-4 w-4 mr-2" />
+        View Join Requests
+      </Button>
     </div>
   );
 };

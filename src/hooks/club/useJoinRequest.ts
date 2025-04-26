@@ -73,17 +73,15 @@ export const useJoinRequest = (clubId: string) => {
             .single();
             
           // Create notifications for each admin
-          const notifications = admins.map(admin => ({
-            user_id: admin.user_id,
-            club_id: clubId,
-            type: 'join_request',
-            message: `${userData?.name || 'Someone'} has requested to join ${clubData?.name || 'your club'}.`,
-            status: 'pending',
-            read: false
-          }));
-          
-          if (notifications.length > 0) {
-            await supabase.from('notifications').insert(notifications);
+          for (const admin of admins) {
+            await supabase.from('notifications').insert({
+              user_id: admin.user_id,
+              club_id: clubId,
+              type: 'join_request',
+              message: `${userData?.name || 'Someone'} has requested to join ${clubData?.name || 'your club'}.`,
+              status: 'pending',
+              read: false
+            });
           }
         }
       } catch (notificationError) {

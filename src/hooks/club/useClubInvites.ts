@@ -119,7 +119,7 @@ export const useClubInvites = (clubId: string) => {
         toast({
           title: "Invite already sent",
           description: "This user already has a pending invitation to this club",
-          variant: "warning"
+          variant: "destructive"
         });
         return false;
       }
@@ -146,14 +146,14 @@ export const useClubInvites = (clubId: string) => {
       try {
         await supabase
           .from('notifications')
-          .insert([{
+          .insert({
             user_id: userId,
             club_id: clubId,
             type: 'invite',
             message: `You've been invited to join ${clubData?.name || 'a club'}.`,
             status: 'pending',
             read: false
-          }]);
+          });
       } catch (notificationError) {
         console.error('Error creating notification:', notificationError);
         // Continue even if notification creation fails
@@ -218,10 +218,13 @@ export const useClubInvites = (clubId: string) => {
         if (memberError) throw memberError;
       }
       
+      // Update invite status based on the action
+      const newStatus = accept ? 'accepted' : 'rejected';
+      
       // Update invite status
       const { error } = await supabase
         .from('club_invites')
-        .update({ status: accept ? 'accepted' : 'declined' })
+        .update({ status: newStatus })
         .eq('id', inviteId);
 
       if (error) throw error;
