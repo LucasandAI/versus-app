@@ -13,23 +13,25 @@ interface ClubMembersListProps {
 }
 
 const ClubMembersList: React.FC<ClubMembersListProps> = ({ 
-  members, 
+  members = [], // Provide default empty array
   currentMatch,
   onSelectMember
 }) => {
   const { navigateToUserProfile } = useNavigation();
   
-  // Create a map to deduplicate members by ID
-  const uniqueMembers = members.reduce((acc, member) => {
-    if (!acc.has(member.id)) {
-      // Ensure every member has a distanceContribution (default to 0)
-      acc.set(member.id, {
-        ...member,
-        distanceContribution: member.distanceContribution || 0
-      });
-    }
-    return acc;
-  }, new Map<string, ClubMember>());
+  // Create a map to deduplicate members by ID - with safety check for undefined members
+  const uniqueMembers = Array.isArray(members) 
+    ? members.reduce((acc, member) => {
+        if (member && !acc.has(member.id)) {
+          // Ensure every member has a distanceContribution (default to 0)
+          acc.set(member.id, {
+            ...member,
+            distanceContribution: member.distanceContribution || 0
+          });
+        }
+        return acc;
+      }, new Map<string, ClubMember>())
+    : new Map<string, ClubMember>();
   
   // Convert back to array
   const deduplicatedMembers = Array.from(uniqueMembers.values());

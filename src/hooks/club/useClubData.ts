@@ -27,10 +27,13 @@ export const useClubData = (clubId: string | undefined) => {
         if (!clubData) return;
         
         // Fetch members and matches in parallel
-        const [members, matches] = await Promise.all([
+        const [membersResult, matches] = await Promise.all([
           fetchClubMembers(clubId),
           fetchClubMatches(clubId)
         ]);
+        
+        // Ensure members is always an array, even if the fetch fails
+        const members = Array.isArray(membersResult) ? membersResult : [];
         
         // Create the final club object
         const updatedClub: Club = {
