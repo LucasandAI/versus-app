@@ -30,6 +30,7 @@ const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) =
     try {
       if (!currentUser?.id) return;
 
+      // Fetch messages involving the current user
       const { data: messages, error: messagesError } = await supabase
         .from('direct_messages')
         .select('id, sender_id, receiver_id, text, timestamp')
@@ -37,14 +38,19 @@ const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) =
         .order('timestamp', { ascending: false });
 
       if (messagesError) throw messagesError;
-      if (!messages || messages.length === 0) return;
+      if (!messages || messages.length === 0) {
+        setConversations([]);
+        return;
+      }
 
+      // Get unique user IDs from conversations
       const uniqueUserIds = new Set<string>();
       messages.forEach(msg => {
         const otherUserId = msg.sender_id === currentUser.id ? msg.receiver_id : msg.sender_id;
         uniqueUserIds.add(otherUserId);
       });
 
+      // Fetch user details for all participants
       const { data: users, error: usersError } = await supabase
         .from('users')
         .select('id, name, avatar')
@@ -58,13 +64,15 @@ const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) =
         return map;
       }, {});
 
+      // Create conversation map with latest message for each user
       const conversationsMap = new Map<string, DMConversation>();
       
       messages.forEach(msg => {
         const otherUserId = msg.sender_id === currentUser.id ? msg.receiver_id : msg.sender_id;
         const otherUser = userMap[otherUserId];
         
-        if (otherUser && !conversationsMap.has(otherUserId)) {
+        if (otherUser && (!conversationsMap.has(otherUserId) || 
+            new Date(msg.timestamp) > new Date(conversationsMap.get(otherUserId)?.timestamp || ''))) {
           conversationsMap.set(otherUserId, {
             userId: otherUserId,
             userName: otherUser.name,
@@ -75,7 +83,11 @@ const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) =
         }
       });
 
-      setConversations(Array.from(conversationsMap.values()));
+      // Convert map to array and sort by timestamp
+      const sortedConversations = Array.from(conversationsMap.values())
+        .sort((a, b) => new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime());
+
+      setConversations(sortedConversations);
     } catch (error) {
       console.error('Error loading conversations:', error);
       toast({
@@ -86,17 +98,13 @@ const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) =
     }
   };
 
-  // Fetch conversations initially and when hiddenDMs changes
-  useEffect(() => {
-    fetchConversations();
-  }, [currentUser?.id, hiddenDMs]);
-
-  // Subscribe to real-time updates
+  // Set up real-time subscriptions
   useEffect(() => {
     if (!currentUser?.id) return;
 
+    // Subscribe to new messages
     const channel = supabase
-      .channel('direct-messages-changes')
+      .channel('dm-changes')
       .on('postgres_changes', 
         { 
           event: '*',
@@ -105,16 +113,19 @@ const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) =
           filter: `sender_id=eq.${currentUser.id},receiver_id=eq.${currentUser.id}` 
         },
         () => {
-          // Refresh conversations when messages change
+          console.log('DM change detected, refreshing conversations');
           fetchConversations();
         }
       )
       .subscribe();
 
+    // Initial fetch
+    fetchConversations();
+
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, hiddenDMs]);
 
   const handleHideConversation = (
     e: React.MouseEvent,
