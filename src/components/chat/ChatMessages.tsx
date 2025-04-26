@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageList from './message/MessageList';
@@ -37,7 +36,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   } = useMessageNormalization(currentUserId, (senderId) => getMemberName(senderId, currentUserId, clubMembers));
 
   if (!Array.isArray(messages)) {
-    console.error("[ChatMessages] Messages is not an array:", messages);
     return (
       <div className="flex-1 p-4">
         <div className="h-full flex items-center justify-center text-gray-500 text-sm">
@@ -52,7 +50,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   return (
     <div 
       ref={scrollRef}
-      className="p-2 space-y-4 flex flex-col-reverse min-h-full overflow-y-auto"
+      className="flex-1 overflow-y-auto pb-[76px] relative"
     >
       <MessageList 
         messages={normalizedMessages.reverse()} 

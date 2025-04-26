@@ -6,8 +6,12 @@ export const useMessageScroll = (messages: any[]) => {
   
   const scrollToBottom = (smooth = true) => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
+      const container = scrollRef.current;
+      const scrollHeight = container.scrollHeight;
+      const inputHeight = 76; // Height of input + padding
+      
+      container.scrollTo({
+        top: scrollHeight - inputHeight,
         behavior: smooth ? 'smooth' : 'auto'
       });
     }
