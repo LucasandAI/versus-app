@@ -11,26 +11,30 @@ interface ClubStatsProps {
 }
 
 const ClubStats: React.FC<ClubStatsProps> = ({ club, matchHistory }) => {
+  // Safely handle potentially undefined matchHistory
+  const safeMatchHistory = matchHistory || [];
+  
   // Calculate win/loss record from match history
-  const wins = matchHistory.filter(match => {
+  const wins = safeMatchHistory.filter(match => {
     const isHomeTeam = match.homeClub.id === club.id;
     return (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
   }).length;
   
-  const losses = matchHistory.length - wins;
+  const losses = safeMatchHistory.length - wins;
   
   // Calculate win streak
-  const winStreak = calculateWinStreak(matchHistory, club.id);
+  const winStreak = calculateWinStreak(safeMatchHistory, club.id);
   
   // Calculate total and average distance
-  const totalDistance = matchHistory.reduce((sum, match) => {
+  const totalDistance = safeMatchHistory.reduce((sum, match) => {
     const isHomeTeam = match.homeClub.id === club.id;
     const clubInMatch = isHomeTeam ? match.homeClub : match.awayClub;
     return sum + clubInMatch.totalDistance;
   }, 0);
   
-  const avgPerMember = club.members && club.members.length > 0 ? 
-    (totalDistance / club.members.length) : 0;
+  // Safely handle potentially undefined club.members
+  const memberCount = Array.isArray(club.members) ? club.members.length : 0;
+  const avgPerMember = memberCount > 0 ? (totalDistance / memberCount) : 0;
   
   return (
     <Card>
@@ -54,7 +58,7 @@ const ClubStats: React.FC<ClubStatsProps> = ({ club, matchHistory }) => {
           <div className="bg-gray-50 p-3 rounded-md">
             <p className="text-xs text-gray-500">Match Record</p>
             <p className="font-medium">
-              {matchHistory.length > 0 
+              {safeMatchHistory.length > 0 
                 ? `${wins}W - ${losses}L` 
                 : 'No matches yet'}
             </p>
