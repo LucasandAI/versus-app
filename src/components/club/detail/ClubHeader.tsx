@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Users } from 'lucide-react';
 import { Club } from '@/types';
@@ -37,15 +38,15 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
   onDeclineInvite,
   hasPendingInvite,
 }) => {
-  console.log('Club Header rendering with hasPendingInvite:', hasPendingInvite);
-  const isClubFull = club.members.length >= 5;
+  // Use optional chaining and nullish coalescing to prevent crashes
+  const isClubFull = (club.members?.length ?? 0) >= 5;
 
   const renderActionButtons = () => {
     if (isActuallyMember) {
       if (isAdmin) {
         return (
           <div className="flex space-x-2">
-            {club.members.length < 5 && (
+            {(club.members?.length ?? 0) < 5 && (
               <Button 
                 variant="primary" 
                 size="sm"
@@ -112,7 +113,7 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
       );
     }
     
-    if (!isClubFull) {
+    if (!(club.members?.length ?? 0) >= 5) {
       return (
         <Button 
           variant="primary" 
@@ -152,7 +153,7 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
                   {formatLeagueWithTier(club.division, club.tier)}
                 </span>
                 <span className="text-sm bg-gray-100 px-2 py-1 rounded-full text-gray-700">
-                  {club.members.length}/5 members
+                  {`${club.members?.length ?? 0}/5 members`}
                 </span>
               </div>
             </div>
