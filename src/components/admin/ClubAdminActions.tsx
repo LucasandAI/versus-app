@@ -1,16 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { Club, User } from '@/types';
-import { ShieldAlert, Users } from 'lucide-react';
+import { ShieldAlert, Edit, Users, Trash } from 'lucide-react';
 import { toast } from "@/hooks/use-toast";
 import { useApp } from '@/context/AppContext';
 import EditClubDialog from './EditClubDialog';
 import JoinRequestsDialog from './join-requests/JoinRequestsDialog';
 import MembersManagement from './club-members/MembersManagement';
-import AdminActionButtons from './club-members/AdminActionButtons';
 import DeleteClubDialog from './DeleteClubDialog';
 import { useDeleteClub } from '@/hooks/club/useDeleteClub';
-import { Trash } from 'lucide-react';
 import Button from '@/components/shared/Button';
 import { fetchClubJoinRequests } from '@/utils/notifications/joinRequestQueries';
 import { Badge } from "@/components/ui/badge";
@@ -122,48 +120,80 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({
     if (ok) setDeleteDialogOpen(false);
   };
 
-  return <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+  return (
+    <div className="bg-white rounded-lg shadow-md p-4 mb-6">
       <div className="flex items-center mb-4">
         <ShieldAlert className="h-5 w-5 text-primary mr-2" />
         <h2 className="font-bold">Admin Actions</h2>
       </div>
 
-      <AdminActionButtons onEditClick={() => setEditDialogOpen(true)} onRequestsClick={() => setRequestsDialogOpen(true)} />
-      
-      {pendingRequestsCount > 0 && (
+      <div className="grid grid-cols-2 gap-2 mb-4">
         <Button 
-          variant="outline" 
+          variant="secondary" 
           size="sm" 
-          className="mt-2 w-full flex items-center justify-center gap-2"
+          className="flex items-center justify-center"
+          onClick={() => setEditDialogOpen(true)}
+        >
+          <Edit className="h-4 w-4 mr-2" />
+          Edit Club
+        </Button>
+        
+        <Button 
+          variant="secondary" 
+          size="sm" 
+          className="flex items-center justify-center"
           onClick={() => setRequestsDialogOpen(true)}
         >
-          <Users className="h-4 w-4" />
+          <Users className="h-4 w-4 mr-2" />
           View Requests
-          <Badge variant="secondary" className="ml-2">
-            {pendingRequestsCount}
-          </Badge>
-        </Button>
-      )}
-
-      <div className="mt-4">
-        
-      </div>
-
-      <MembersManagement club={currentClub} onMakeAdmin={handleMakeAdmin} onRemoveMember={handleRemoveMember} />
-
-      <div className="border-t pt-4 mt-4">
-        <Button variant="primary" size="sm" className="w-full flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white" onClick={() => setDeleteDialogOpen(true)}>
-          <Trash className="h-4 w-4" />
-          Delete Club
+          {pendingRequestsCount > 0 && (
+            <Badge variant="secondary" className="ml-2">
+              {pendingRequestsCount}
+            </Badge>
+          )}
         </Button>
       </div>
 
-      <EditClubDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} club={currentClub} />
+      <div className="mb-4">
+        <h3 className="text-sm font-medium mb-2">Manage Members</h3>
+        <MembersManagement 
+          club={currentClub} 
+          onMakeAdmin={handleMakeAdmin} 
+          onRemoveMember={handleRemoveMember} 
+        />
+      </div>
 
-      <JoinRequestsDialog open={requestsDialogOpen} onOpenChange={setRequestsDialogOpen} club={currentClub} />
+      <Button 
+        variant="primary" 
+        size="sm" 
+        className="w-full flex items-center justify-center bg-red-600 hover:bg-red-700 text-white"
+        onClick={() => setDeleteDialogOpen(true)}
+      >
+        <Trash className="h-4 w-4 mr-2" />
+        Delete Club
+      </Button>
 
-      <DeleteClubDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} club={currentClub} loading={deleting} onConfirmDelete={handleDeleteConfirm} />
-    </div>;
+      <EditClubDialog 
+        open={editDialogOpen} 
+        onOpenChange={setEditDialogOpen} 
+        club={currentClub} 
+      />
+
+      <JoinRequestsDialog 
+        open={requestsDialogOpen} 
+        onOpenChange={setRequestsDialogOpen} 
+        club={currentClub} 
+      />
+
+      <DeleteClubDialog 
+        open={deleteDialogOpen} 
+        onOpenChange={setDeleteDialogOpen} 
+        club={currentClub} 
+        loading={deleting} 
+        onConfirmDelete={handleDeleteConfirm} 
+      />
+    </div>
+  );
 };
 
 export default ClubAdminActions;
