@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Club, User } from '@/types';
 import { ShieldAlert, Edit, Users, Trash } from 'lucide-react';
@@ -12,12 +11,10 @@ import { useDeleteClub } from '@/hooks/club/useDeleteClub';
 import Button from '@/components/shared/Button';
 import { fetchClubJoinRequests } from '@/utils/notifications/joinRequestQueries';
 import { Badge } from "@/components/ui/badge";
-
 interface ClubAdminActionsProps {
   club: Club;
   currentUser: User | null;
 }
-
 const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({
   club,
   currentUser
@@ -35,10 +32,9 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({
     loading: deleting
   } = useDeleteClub();
   const [currentClub, setCurrentClub] = useState<Club>(club);
-
   useEffect(() => {
     setCurrentClub(club);
-    
+
     // Fetch pending requests count
     const loadPendingRequests = async () => {
       if (club && club.id) {
@@ -48,18 +44,14 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({
         setPendingRequestsCount(requests.length);
       }
     };
-    
     loadPendingRequests();
-    
+
     // Refresh count every minute
     const interval = setInterval(loadPendingRequests, 60000);
     return () => clearInterval(interval);
   }, [club]);
-
   const isAdmin = currentUser && currentClub.members.some(member => member.id === currentUser.id && member.isAdmin);
-
   if (!isAdmin) return null;
-
   const handleRemoveMember = (memberId: string, memberName: string) => {
     const updatedMembers = currentClub.members.filter(member => member.id !== memberId);
     const updatedClub = {
@@ -86,7 +78,6 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({
       description: `${memberName} has been removed from the club.`
     });
   };
-
   const handleMakeAdmin = (memberId: string, memberName: string) => {
     const updatedMembers = currentClub.members.map(member => member.id === memberId ? {
       ...member,
@@ -116,86 +107,46 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({
       description: `${memberName} is now an admin of the club.`
     });
   };
-
   const handleDeleteConfirm = async () => {
     const ok = await deleteClub(currentClub);
     if (ok) setDeleteDialogOpen(false);
   };
-
-  return (
-    <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+  return <div className="bg-white rounded-lg shadow-md p-4 mb-6">
       <div className="flex items-center mb-4">
         <ShieldAlert className="h-5 w-5 text-primary mr-2" />
         <h2 className="font-bold">Admin Actions</h2>
       </div>
 
       <div className="grid grid-cols-2 gap-2 mb-4">
-        <Button 
-          variant="secondary" 
-          size="sm" 
-          className="flex items-center justify-center"
-          onClick={() => setEditDialogOpen(true)}
-        >
+        <Button variant="secondary" size="sm" className="flex items-center justify-center" onClick={() => setEditDialogOpen(true)}>
           <Edit className="h-4 w-4 mr-2" />
           Edit Club
         </Button>
         
-        <Button 
-          variant="secondary" 
-          size="sm" 
-          className="flex items-center justify-center"
-          onClick={() => setRequestsDialogOpen(true)}
-        >
+        <Button variant="secondary" size="sm" className="flex items-center justify-center" onClick={() => setRequestsDialogOpen(true)}>
           <Users className="h-4 w-4 mr-2" />
           View Requests
-          {pendingRequestsCount > 0 && (
-            <Badge variant="secondary" className="ml-2">
+          {pendingRequestsCount > 0 && <Badge variant="secondary" className="ml-2">
               {pendingRequestsCount}
-            </Badge>
-          )}
+            </Badge>}
         </Button>
       </div>
 
       <div className="mb-4">
-        <h3 className="text-sm font-medium mb-2">Manage Members</h3>
-        <MembersManagement 
-          club={currentClub} 
-          onMakeAdmin={handleMakeAdmin} 
-          onRemoveMember={handleRemoveMember} 
-        />
+        
+        <MembersManagement club={currentClub} onMakeAdmin={handleMakeAdmin} onRemoveMember={handleRemoveMember} />
       </div>
 
-      <Button 
-        variant="primary" 
-        size="sm" 
-        className="w-full flex items-center justify-center bg-red-600 hover:bg-red-700 text-white"
-        onClick={() => setDeleteDialogOpen(true)}
-      >
+      <Button variant="primary" size="sm" className="w-full flex items-center justify-center bg-red-600 hover:bg-red-700 text-white" onClick={() => setDeleteDialogOpen(true)}>
         <Trash className="h-4 w-4 mr-2" />
         Delete Club
       </Button>
 
-      <EditClubDialog 
-        open={editDialogOpen} 
-        onOpenChange={setEditDialogOpen} 
-        club={currentClub} 
-      />
+      <EditClubDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} club={currentClub} />
 
-      <JoinRequestsDialog 
-        open={requestsDialogOpen} 
-        onOpenChange={setRequestsDialogOpen} 
-        club={currentClub} 
-      />
+      <JoinRequestsDialog open={requestsDialogOpen} onOpenChange={setRequestsDialogOpen} club={currentClub} />
 
-      <DeleteClubDialog 
-        open={deleteDialogOpen} 
-        onOpenChange={setDeleteDialogOpen} 
-        club={currentClub} 
-        loading={deleting} 
-        onConfirmDelete={handleDeleteConfirm} 
-      />
-    </div>
-  );
+      <DeleteClubDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} club={currentClub} loading={deleting} onConfirmDelete={handleDeleteConfirm} />
+    </div>;
 };
-
 export default ClubAdminActions;
