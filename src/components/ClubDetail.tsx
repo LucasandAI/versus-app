@@ -4,25 +4,21 @@ import { useApp } from '@/context/AppContext';
 import ClubDetailContent from './club/detail/ClubDetailContent';
 import LoadingState from './club/detail/states/LoadingState';
 import ErrorState from './club/detail/states/ErrorState';
+import { useClubData } from '@/hooks/club/useClubData';
 
 const ClubDetail: React.FC = () => {
   const { selectedClub } = useApp();
+  const { club, isLoading, error } = useClubData(selectedClub?.id);
 
-  if (!selectedClub) {
+  if (isLoading) {
     return <LoadingState />;
   }
 
-  // Check if club has all required essential properties to render properly
-  if (!selectedClub.id || !selectedClub.name) {
-    return <ErrorState message="Invalid club data received." />;
+  if (error || !club) {
+    return <ErrorState />;
   }
 
-  // Ensure members is defined to prevent crashes
-  if (!selectedClub.members) {
-    selectedClub.members = [];
-  }
-
-  return <ClubDetailContent club={selectedClub} />;
+  return <ClubDetailContent club={club} />;
 };
 
 export default ClubDetail;

@@ -24,9 +24,6 @@ const ClubDetailTabs: React.FC<ClubDetailTabsProps> = ({
     navigateToUserProfile(userId, userName, userAvatar);
   };
 
-  // Make sure club.members is defined before passing it to components
-  const safeMembers = club.members || [];
-
   return (
     <Tabs defaultValue="overview" className="mb-6">
       <TabsList className="grid grid-cols-3 mb-2">
@@ -45,7 +42,7 @@ const ClubDetailTabs: React.FC<ClubDetailTabsProps> = ({
       
       <TabsContent value="members">
         <ClubMembersList
-          members={safeMembers}
+          members={club.members}
           currentMatch={club.currentMatch}
           onSelectMember={handleSelectUser}
         />

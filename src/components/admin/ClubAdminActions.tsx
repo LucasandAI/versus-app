@@ -4,7 +4,7 @@ import { Club, User } from '@/types';
 import { ShieldAlert } from 'lucide-react';
 import { toast } from "@/components/ui/use-toast";
 import { useApp } from '@/context/AppContext';
-import EditClubDialog from '../club/edit/EditClubDialog';
+import EditClubDialog from './EditClubDialog';
 import JoinRequestsDialog from './JoinRequestsDialog';
 import MembersManagement from './club-members/MembersManagement';
 import AdminActionButtons from './club-members/AdminActionButtons';
