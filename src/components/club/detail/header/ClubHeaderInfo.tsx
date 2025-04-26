@@ -10,10 +10,11 @@ interface ClubHeaderInfoProps {
 }
 
 const ClubHeaderInfo: React.FC<ClubHeaderInfoProps> = ({ club, memberCount }) => {
-  const clubName = club.name || 'Unnamed Club';
-  const clubLogo = club.logo || '/placeholder.svg';
-  const division = club.division || 'bronze';
-  const tier = typeof club.tier === 'number' ? club.tier : 5;
+  // Safely handle potentially undefined club properties with fallbacks
+  const clubName = club?.name || 'Unnamed Club';
+  const clubLogo = club?.logo || '/placeholder.svg';
+  const division = club?.division || 'bronze';
+  const tier = typeof club?.tier === 'number' ? club.tier : 5;
 
   return (
     <div className="flex flex-col items-center md:items-start mb-4 md:mb-0">
