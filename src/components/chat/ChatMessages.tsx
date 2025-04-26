@@ -51,9 +51,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   return (
     <div 
       ref={scrollRef}
-      className="flex-1 overflow-y-auto h-full"
+      className="flex-1 overflow-y-auto h-full pb-4"
     >
-      <div className="flex flex-col pb-4">
+      <div className="flex flex-col min-h-full">
         <MessageList 
           messages={normalizedMessages} 
           clubMembers={clubMembers} 

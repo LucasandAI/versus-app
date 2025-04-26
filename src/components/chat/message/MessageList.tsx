@@ -31,7 +31,7 @@ const MessageList: React.FC<MessageListProps> = ({
   lastMessageRef,
 }) => {
   return (
-    <div className="px-4 py-2">
+    <div className="px-4 py-2 mb-4">
       {messages.length === 0 ? (
         <div className="h-full flex items-center justify-center text-gray-500 text-sm py-8">
           No messages yet. Start the conversation!

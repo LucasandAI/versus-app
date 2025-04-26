@@ -38,7 +38,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   if (selectedTicket) {
     console.log('[ChatMainContent] Rendering support ticket content for:', selectedTicket.id);
     return (
-      <div className="flex-1 flex flex-col h-full">
+      <div className="flex-1 h-full flex flex-col">
         <ChatTicketContent 
           key={selectedTicket.id} // Force re-render when ticket changes
           ticket={selectedTicket}
@@ -61,7 +61,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
     });
     
     return (
-      <div className="flex-1 flex flex-col h-full">
+      <div className="flex-1 h-full flex flex-col">
         <ChatClubContent 
           key={selectedClub.id} // Force re-render when club changes
           club={selectedClub}

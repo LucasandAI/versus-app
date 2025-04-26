@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { SupportTicket } from '@/types/chat';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
@@ -18,6 +18,15 @@ interface ChatTicketContentProps {
 const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicketContentProps) => {
   const { currentUser } = useApp();
   const [localMessages, setLocalMessages] = useState(ticket.messages || []);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [localMessages]);
 
   const handleSendMessage = (message: string) => {
     // Create optimistic message
@@ -145,16 +154,23 @@ const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicket
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        <ChatMessages 
-          messages={localMessages} 
-          clubMembers={currentUser ? [currentUser] : []}
-          isSupport={true}
-        />
-      </div>
-      
-      <div className="sticky bottom-0 left-0 right-0 bg-white border-t">
-        <ChatInput onSendMessage={handleSendMessage} />
+      <div className="flex-1 flex flex-col h-full relative overflow-hidden">
+        <div className="flex-1 overflow-y-auto">
+          <ChatMessages 
+            messages={localMessages} 
+            clubMembers={currentUser ? [currentUser] : []}
+            isSupport={true}
+          />
+          <div ref={messagesEndRef} />
+        </div>
+        
+        <div className="sticky bottom-0 left-0 right-0 bg-white border-t min-h-[64px]">
+          <ChatInput 
+            onSendMessage={handleSendMessage}
+            conversationId={ticket.id}
+            conversationType="support" 
+          />
+        </div>
       </div>
     </div>
   );
