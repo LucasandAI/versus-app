@@ -28,37 +28,40 @@ export const processNewMessage = async (
   }>,
   setClubMessages: React.Dispatch<React.SetStateAction<Record<string, any[]>>>
 ) => {
-  // Check if payload.new exists and has the required properties
-  if (!payload.new || typeof payload.new !== 'object' || !('sender_id' in payload.new)) {
+  // More robust type checking using type guard
+  if (!payload.new || typeof payload.new !== 'object') {
     console.error('[messageHandlerUtils] Invalid payload format:', payload);
     return;
   }
 
-  const sender = await fetchMessageSender(payload.new.sender_id);
+  // Ensure required properties exist using type guard
+  const newMessage = payload.new as { 
+    sender_id?: string; 
+    club_id?: string; 
+    id?: string;
+    message?: string;
+    timestamp?: string;
+  };
+
+  if (!newMessage.sender_id || !newMessage.club_id || !newMessage.id) {
+    console.error('[messageHandlerUtils] Missing required message properties:', newMessage);
+    return;
+  }
+
+  const sender = await fetchMessageSender(newMessage.sender_id);
   if (!sender) return;
 
   const completeMessage = {
-    ...payload.new,
+    ...newMessage,
     sender
   };
 
   setClubMessages(currentMessages => {
-    // Ensure club_id exists in the payload
-    if (!('club_id' in payload.new) || !payload.new.club_id) {
-      console.error('[messageHandlerUtils] Missing club_id in payload:', payload);
-      return currentMessages;
-    }
-
-    const clubId = payload.new.club_id;
+    const clubId = newMessage.club_id;
     const existingMessages = currentMessages[clubId] || [];
 
-    // Ensure id exists in the payload
-    if (!('id' in payload.new) || !payload.new.id) {
-      console.error('[messageHandlerUtils] Missing message id in payload:', payload);
-      return currentMessages;
-    }
-
-    if (existingMessages.some(msg => msg.id === payload.new.id)) {
+    // Prevent duplicate messages
+    if (existingMessages.some(msg => msg.id === newMessage.id)) {
       return currentMessages;
     }
 
