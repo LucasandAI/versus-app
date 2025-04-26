@@ -15,6 +15,11 @@ import { Save } from 'lucide-react';
 import { useClubForm } from '@/hooks/club/useClubForm';
 import LogoUploadSection from './club-edit/LogoUploadSection';
 import ClubEditForm from './club-edit/ClubEditForm';
+import { Form } from '@/components/ui/form';
+import { clubEditSchema } from '@/schemas/club-schema';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from '@/hooks/use-toast';
 
 interface EditClubDialogProps {
   open: boolean;
@@ -27,16 +32,37 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
   onOpenChange, 
   club 
 }) => {
+  const form = useForm({
+    resolver: zodResolver(clubEditSchema),
+    defaultValues: {
+      name: club.name,
+      bio: club.bio || 'A club for enthusiastic runners'
+    }
+  });
+
   const {
-    name,
-    setName,
-    bio,
-    setBio,
     logoPreview,
     handleLogoChange,
     handleSave,
     loading
   } = useClubForm(club, () => onOpenChange(false));
+
+  const onSubmit = async (values: Record<string, string>) => {
+    if (loading) return;
+    
+    try {
+      await handleSave({
+        ...values,
+        logo: logoPreview
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update club",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -46,34 +72,33 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
           <DialogDescription>Make changes to your club's profile here.</DialogDescription>
         </DialogHeader>
 
-        <div className="py-4">
-          <div className="space-y-6">
-            <LogoUploadSection
-              logoPreview={logoPreview}
-              name={name}
-              onLogoChange={handleLogoChange}
-              disabled={loading}
-            />
-            
-            <ClubEditForm
-              name={name}
-              bio={bio}
-              onNameChange={(e) => setName(e.target.value)}
-              onBioChange={(e) => setBio(e.target.value)}
-              disabled={loading}
-            />
-          </div>
-        </div>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="py-4 space-y-6">
+              <LogoUploadSection
+                logoPreview={logoPreview}
+                name={form.watch("name")}
+                onLogoChange={handleLogoChange}
+                disabled={loading}
+              />
+              
+              <ClubEditForm
+                form={form}
+                disabled={loading}
+              />
+            </div>
 
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline" disabled={loading}>Cancel</Button>
-          </DialogClose>
-          <Button onClick={handleSave} disabled={loading}>
-            <Save className="mr-2 h-4 w-4" />
-            {loading ? "Saving..." : "Save Changes"}
-          </Button>
-        </DialogFooter>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="outline" disabled={loading}>Cancel</Button>
+              </DialogClose>
+              <Button type="submit" disabled={loading}>
+                <Save className="mr-2 h-4 w-4" />
+                {loading ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

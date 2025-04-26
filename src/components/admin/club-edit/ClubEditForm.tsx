@@ -2,46 +2,54 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ClubEditFormValues } from "@/schemas/club-schema";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { UseFormReturn } from "react-hook-form";
 
 interface ClubEditFormProps {
-  name: string;
-  bio: string;
-  onNameChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onBioChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  form: UseFormReturn<ClubEditFormValues>;
   disabled?: boolean;
 }
 
-const ClubEditForm = ({
-  name,
-  bio,
-  onNameChange,
-  onBioChange,
-  disabled
-}: ClubEditFormProps) => {
+const ClubEditForm = ({ form, disabled }: ClubEditFormProps) => {
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="club-name">Club Name</Label>
-        <Input 
-          id="club-name" 
-          value={name} 
-          onChange={onNameChange} 
-          placeholder="Enter club name"
-          disabled={disabled}
-        />
-      </div>
+      <FormField
+        control={form.control}
+        name="name"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Club Name</FormLabel>
+            <FormControl>
+              <Input 
+                placeholder="Enter club name" 
+                disabled={disabled} 
+                {...field} 
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
       
-      <div className="space-y-2">
-        <Label htmlFor="club-bio">Club Bio</Label>
-        <Textarea 
-          id="club-bio" 
-          value={bio} 
-          onChange={onBioChange} 
-          placeholder="Enter club bio"
-          rows={4}
-          disabled={disabled}
-        />
-      </div>
+      <FormField
+        control={form.control}
+        name="bio"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Club Bio</FormLabel>
+            <FormControl>
+              <Textarea 
+                placeholder="Enter club bio"
+                rows={4}
+                disabled={disabled}
+                {...field}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
     </div>
   );
 };

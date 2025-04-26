@@ -1,14 +1,17 @@
-
 import { useState } from 'react';
 import { Club } from '@/types';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
+interface SaveClubData {
+  name: string;
+  bio: string;
+  logo: string;
+}
+
 export const useClubForm = (club: Club, onClose: () => void) => {
   const { setSelectedClub, setCurrentUser } = useApp();
-  const [name, setName] = useState(club.name);
-  const [bio, setBio] = useState(club.bio || 'A club for enthusiastic runners');
   const [logoPreview, setLogoPreview] = useState(club.logo || '/placeholder.svg');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -51,24 +54,15 @@ export const useClubForm = (club: Club, onClose: () => void) => {
     }
   };
 
-  const handleSave = async () => {
-    if (!name.trim()) {
-      toast({
-        title: "Error",
-        description: "Club name cannot be empty",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleSave = async (data: SaveClubData) => {
     setLoading(true);
     try {
       const logoUrl = await uploadLogoIfNeeded();
       const { error: updateError } = await supabase
         .from('clubs')
         .update({
-          name: name.trim(),
-          bio: bio.trim(),
+          name: data.name.trim(),
+          bio: data.bio.trim(),
           logo: logoUrl,
         })
         .eq('id', club.id);
@@ -77,8 +71,8 @@ export const useClubForm = (club: Club, onClose: () => void) => {
 
       const updatedClub: Club = {
         ...club,
-        name: name.trim(),
-        bio: bio.trim(),
+        name: data.name.trim(),
+        bio: data.bio.trim(),
         logo: logoUrl,
       };
 
@@ -98,21 +92,13 @@ export const useClubForm = (club: Club, onClose: () => void) => {
 
       onClose();
     } catch (error) {
-      toast({
-        title: "Error Updating Club",
-        description: error instanceof Error ? error.message : "Something went wrong.",
-        variant: "destructive",
-      });
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
   return {
-    name,
-    setName,
-    bio,
-    setBio,
     logoPreview,
     handleLogoChange,
     handleSave,
