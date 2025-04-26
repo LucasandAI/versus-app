@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useJoinRequest } from '@/hooks/club/useJoinRequest';
@@ -54,7 +55,7 @@ const ClubHeaderActions: React.FC<ClubHeaderActionsProps> = ({
         <div className="flex space-x-2">
           {memberCount < 5 && (
             <Button 
-              variant="primary" 
+              variant="default" 
               size="sm"
               onClick={onInvite}
             >
@@ -91,7 +92,7 @@ const ClubHeaderActions: React.FC<ClubHeaderActionsProps> = ({
             <TooltipTrigger asChild>
               <span>
                 <Button 
-                  variant="primary" 
+                  variant="default" 
                   size="sm"
                   onClick={onJoinClub}
                   disabled={isClubFull}
@@ -125,7 +126,7 @@ const ClubHeaderActions: React.FC<ClubHeaderActionsProps> = ({
         <TooltipTrigger asChild>
           <span>
             <Button
-              variant="primary"
+              variant="default"
               size="sm"
               onClick={handleRequestJoin}
               disabled={isRequesting || hasPendingRequest || isClubFull}

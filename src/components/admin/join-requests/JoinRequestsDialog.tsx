@@ -1,6 +1,6 @@
 
-import React, { useEffect } from 'react';
-import { Club } from '@/types';
+import React, { useEffect, useState } from 'react';
+import { Club, JoinRequest } from '@/types';
 import {
   Dialog,
   DialogContent,
@@ -43,7 +43,7 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
     };
     
     loadRequests();
-  }, [open, club.id]);
+  }, [open, club.id, setRequests]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

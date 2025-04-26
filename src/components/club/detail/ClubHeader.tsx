@@ -49,7 +49,7 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
       <div className="bg-white shadow-md">
         <div className="container-mobile py-6">
           <div className="flex flex-col md:flex-row items-center justify-between">
-            <ClubHeaderInfo club={club} memberCount={memberCount} />
+            <ClubHeaderInfo club={club} memberCount={memberCount} isAdmin={isAdmin} />
             
             <div className="flex flex-col items-center md:items-end">
               <ClubHeaderActions 
@@ -62,6 +62,7 @@ const ClubHeader: React.FC<ClubHeaderProps> = ({
                 onJoinClub={onJoinClub}
                 onDeclineInvite={onDeclineInvite}
                 onRequestJoin={onRequestJoin}
+                clubId={club.id}
               />
             </div>
           </div>

@@ -7,6 +7,7 @@ import { toast } from '@/hooks/use-toast';
 export const useJoinRequests = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [requests, setRequests] = useState<JoinRequest[]>([]);
 
   const handleAcceptRequest = async (request: JoinRequest, club: Club) => {
     try {
@@ -31,6 +32,9 @@ export const useJoinRequests = () => {
       // Since we don't have the join_requests table in Supabase yet, this is a placeholder
       // In a real implementation, this would add the user to club_members and delete the request
       // For now, just show a toast notification
+      
+      // Remove the request from the list
+      setRequests(prevRequests => prevRequests.filter(r => r.id !== request.id));
       
       toast({
         title: "Request accepted",
@@ -59,7 +63,9 @@ export const useJoinRequests = () => {
 
       // Since we don't have the join_requests table in Supabase yet, this is a placeholder
       // In a real implementation, this would delete the request from the join_requests table
-      // For now, just show a toast notification
+      
+      // Remove the request from the list
+      setRequests(prevRequests => prevRequests.filter(r => r.id !== request.id));
       
       toast({
         title: "Request declined",
@@ -82,6 +88,8 @@ export const useJoinRequests = () => {
   return {
     isLoading,
     error,
+    requests,
+    setRequests,
     handleAcceptRequest,
     handleDeclineRequest
   };

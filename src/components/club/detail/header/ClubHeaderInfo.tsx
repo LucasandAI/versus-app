@@ -24,7 +24,7 @@ const ClubHeaderInfo: React.FC<ClubHeaderInfoProps> = ({
         <UserAvatar
           name={club.name}
           image={club.logo}
-          size="xl"
+          size="lg"
         />
       </div>
       
