@@ -1,7 +1,7 @@
 
 import { useApp } from '@/context/AppContext';
 import { toast } from "@/hooks/use-toast";
-import { createNotification } from '@/utils/notification-queries';
+import { createNotification } from '@/utils/notifications/notificationManagement';
 import { Club } from '@/types';
 import { useNavigation } from '@/hooks/useNavigation';
 import { supabase } from '@/integrations/supabase/client';

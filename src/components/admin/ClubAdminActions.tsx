@@ -12,7 +12,7 @@ import DeleteClubDialog from './DeleteClubDialog';
 import { useDeleteClub } from '@/hooks/club/useDeleteClub';
 import { Trash } from 'lucide-react';
 import Button from '@/components/shared/Button';
-import { fetchClubJoinRequests } from '@/utils/notification-queries';
+import { fetchClubJoinRequests } from '@/utils/notifications/joinRequestQueries';
 import { Badge } from "@/components/ui/badge";
 
 interface ClubAdminActionsProps {

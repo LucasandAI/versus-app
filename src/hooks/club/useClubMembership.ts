@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
-import { hasPendingInvite } from '@/utils/notification-queries';
+import { hasPendingInvite } from '@/utils/notifications/inviteQueries';
 import { toast } from "@/hooks/use-toast";
 
 export const useClubMembership = (club: Club) => {
