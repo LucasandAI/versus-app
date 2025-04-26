@@ -60,7 +60,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   return (
     <form 
       onSubmit={handleSubmit}
-      className="absolute bottom-0 left-0 right-0 bg-white border-t p-3 flex items-center gap-2 w-full z-10 shadow-sm"
+      className="p-3 flex items-center gap-2 w-full bg-white z-10"
       data-conversation-type={conversationType}
       data-conversation-id={contextId}
     >

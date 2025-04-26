@@ -108,24 +108,26 @@ const DMConversation: React.FC<DMConversationProps> = ({
     <div className="flex flex-col h-full">
       <DMHeader userId={userId} userName={userName} userAvatar={userAvatar} />
 
-      <div className="flex-1 overflow-y-auto">
-        <ChatMessages 
-          messages={messages} 
-          clubMembers={currentUser ? [currentUser] : []}
-          onDeleteMessage={handleDeleteMessage}
-          onSelectUser={(userId, userName, userAvatar) => 
-            navigateToUserProfile(userId, userName, userAvatar)
-          }
-        />
-      </div>
-      
-      <div className="sticky bottom-0 left-0 right-0 bg-white border-t">
-        <ChatInput 
-          onSendMessage={handleSendMessage}
-          isSending={isSending}
-          conversationId={userId}
-          conversationType="dm"
-        />
+      <div className="flex-1 overflow-hidden flex flex-col relative">
+        <div className="flex-1 overflow-y-auto pb-16">
+          <ChatMessages 
+            messages={messages} 
+            clubMembers={currentUser ? [currentUser] : []}
+            onDeleteMessage={handleDeleteMessage}
+            onSelectUser={(userId, userName, userAvatar) => 
+              navigateToUserProfile(userId, userName, userAvatar)
+            }
+          />
+        </div>
+        
+        <div className="absolute bottom-0 left-0 right-0 bg-white border-t">
+          <ChatInput 
+            onSendMessage={handleSendMessage}
+            isSending={isSending}
+            conversationId={userId}
+            conversationType="dm"
+          />
+        </div>
       </div>
     </div>
   );
