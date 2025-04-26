@@ -1,14 +1,16 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { JoinRequest, Club, ClubMember } from '@/types';
 import { toast } from '@/hooks/use-toast';
+import { useApp } from '@/context/AppContext';
 
 export const useJoinRequests = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [processingRequests, setProcessingRequests] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [requests, setRequests] = useState<JoinRequest[]>([]);
+  const { setSelectedClub, currentUser, refreshCurrentUser } = useApp();
 
   const handleAcceptRequest = async (request: JoinRequest, club: Club) => {
     if (club.members.length >= 5) {
@@ -94,6 +96,14 @@ export const useJoinRequests = () => {
         members: [...club.members, newMember]
       };
 
+      // Update the club in the global context
+      setSelectedClub(updatedClub);
+      
+      // Refresh current user to update their clubs
+      if (currentUser) {
+        await refreshCurrentUser();
+      }
+
       return updatedClub;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to accept request";
@@ -163,11 +173,13 @@ export const useJoinRequests = () => {
     }
   };
 
-  const fetchClubRequests = async (clubId: string) => {
+  const fetchClubRequests = useCallback(async (clubId: string) => {
     setIsLoading(true);
     setError(null);
     
     try {
+      console.log('[useJoinRequests] Fetching club requests for club:', clubId);
+      
       // First, let's query club requests with a separate query for safety
       const { data: requestsData, error: requestsError } = await supabase
         .from('club_requests')
@@ -175,7 +187,12 @@ export const useJoinRequests = () => {
         .eq('club_id', clubId)
         .eq('status', 'pending');
 
-      if (requestsError) throw requestsError;
+      if (requestsError) {
+        console.error('[useJoinRequests] Error fetching club requests:', requestsError);
+        throw requestsError;
+      }
+
+      console.log('[useJoinRequests] Found requests:', requestsData?.length || 0);
 
       if (!requestsData || requestsData.length === 0) {
         setRequests([]);
@@ -194,7 +211,7 @@ export const useJoinRequests = () => {
           .single();
           
         if (userError) {
-          console.error('Error fetching user data:', userError);
+          console.error('[useJoinRequests] Error fetching user data:', userError);
           // Add with default values if user data can't be fetched
           formattedRequests.push({
             id: request.id,
@@ -216,11 +233,13 @@ export const useJoinRequests = () => {
         }
       }
 
+      console.log('[useJoinRequests] Formatted requests:', formattedRequests);
       setRequests(formattedRequests);
       return formattedRequests;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to fetch join requests";
       setError(message);
+      console.error('[useJoinRequests] Error:', message);
       toast({
         title: "Error",
         description: "Could not load join requests",
@@ -230,7 +249,7 @@ export const useJoinRequests = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   return {
     isLoading,

@@ -42,7 +42,9 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({
     // Fetch pending requests count
     const loadPendingRequests = async () => {
       if (club && club.id) {
+        console.log('[ClubAdminActions] Fetching pending requests for club:', club.id);
         const requests = await fetchClubJoinRequests(club.id);
+        console.log('[ClubAdminActions] Found pending requests:', requests.length);
         setPendingRequestsCount(requests.length);
       }
     };

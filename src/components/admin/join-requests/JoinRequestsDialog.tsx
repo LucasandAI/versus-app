@@ -39,6 +39,7 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
   useEffect(() => {
     const loadRequests = async () => {
       if (!open) return;
+      console.log('[JoinRequestsDialog] Loading requests for club:', club.id);
       await fetchClubRequests(club.id);
     };
     
