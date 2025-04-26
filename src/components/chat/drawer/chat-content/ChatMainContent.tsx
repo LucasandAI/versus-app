@@ -73,7 +73,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
           onSendMessage(message, selectedClub.id);
         }}
         setClubMessages={setClubMessages}
-        clubId={selectedClub.id} // Pass clubId to reset input when changing clubs
+        clubId={selectedClub.id} // Pass clubId for proper context in ChatInput
       />
     );
   }

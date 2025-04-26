@@ -13,7 +13,8 @@ interface ChatClubContentProps {
   onMatchClick: () => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   onSendMessage: (message: string) => void;
-  setClubMessages: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
+  setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
+  clubId?: string; // Add clubId as an optional prop
 }
 
 const ChatClubContent = ({ 
@@ -22,7 +23,8 @@ const ChatClubContent = ({
   onMatchClick,
   onSelectUser,
   onSendMessage,
-  setClubMessages
+  setClubMessages,
+  clubId
 }: ChatClubContentProps) => {
   const { navigateToClubDetail } = useNavigation();
   const [isSending, setIsSending] = useState(false);
@@ -78,6 +80,7 @@ const ChatClubContent = ({
           onSendMessage={handleSendMessage} 
           isSending={isSending}
           placeholder="Type a message..."
+          clubId={clubId || club.id} // Use the passed clubId or fall back to club.id
         />
       </div>
     </div>
