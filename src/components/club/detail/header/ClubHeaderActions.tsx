@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useJoinRequest } from '@/hooks/club/useJoinRequest';
 import { useApp } from '@/context/AppContext';
+import { Loader2 } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -36,17 +37,28 @@ const ClubHeaderActions: React.FC<ClubHeaderActionsProps> = ({
 }) => {
   const isClubFull = memberCount >= 5;
   const { currentUser } = useApp();
-  const { isRequesting, hasPendingRequest, sendJoinRequest, checkPendingRequest } = useJoinRequest(clubId);
+  const { 
+    isRequesting, 
+    hasPendingRequest, 
+    sendJoinRequest, 
+    cancelJoinRequest,
+    checkPendingRequest 
+  } = useJoinRequest(clubId);
 
   useEffect(() => {
     if (currentUser?.id && !isActuallyMember) {
       checkPendingRequest(currentUser.id);
     }
-  }, [currentUser?.id, isActuallyMember]);
+  }, [currentUser?.id, isActuallyMember, checkPendingRequest]);
 
   const handleRequestJoin = async () => {
     if (!currentUser?.id) return;
     await sendJoinRequest(currentUser.id);
+  };
+
+  const handleCancelRequest = async () => {
+    if (!currentUser?.id) return;
+    await cancelJoinRequest(currentUser.id);
   };
 
   if (isActuallyMember) {
@@ -128,10 +140,13 @@ const ClubHeaderActions: React.FC<ClubHeaderActionsProps> = ({
             <Button
               variant="default"
               size="sm"
-              onClick={handleRequestJoin}
-              disabled={isRequesting || hasPendingRequest || isClubFull}
+              onClick={hasPendingRequest ? handleCancelRequest : handleRequestJoin}
+              disabled={isRequesting || isClubFull}
             >
-              {hasPendingRequest ? 'Request Pending' : 'Request to Join'}
+              {isRequesting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : null}
+              {hasPendingRequest ? 'Cancel Request' : 'Request to Join'}
             </Button>
           </span>
         </TooltipTrigger>

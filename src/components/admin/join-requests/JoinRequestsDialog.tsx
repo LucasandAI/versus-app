@@ -9,9 +9,9 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useJoinRequests } from '@/hooks/admin/useJoinRequests';
-import { fetchClubJoinRequests } from '@/utils/notification-queries';
 import JoinRequestItem from './JoinRequestItem';
 import EmptyRequests from './EmptyRequests';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface JoinRequestsDialogProps {
   open: boolean;
@@ -28,9 +28,10 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
     isLoading,
     error,
     requests,
-    setRequests,
+    fetchClubRequests,
     handleAcceptRequest,
-    handleDeclineRequest
+    handleDeclineRequest,
+    isProcessing
   } = useJoinRequests();
   
   const isClubFull = club.members.length >= 5;
@@ -38,12 +39,11 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
   useEffect(() => {
     const loadRequests = async () => {
       if (!open) return;
-      const requests = await fetchClubJoinRequests(club.id);
-      setRequests(requests);
+      await fetchClubRequests(club.id);
     };
     
     loadRequests();
-  }, [open, club.id, setRequests]);
+  }, [open, club.id, fetchClubRequests]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -65,7 +65,27 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
           )}
 
           {isLoading ? (
-            <div className="py-8 text-center text-gray-500">Loading requests...</div>
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div>
+                      <Skeleton className="h-4 w-32 mb-2" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Skeleton className="h-9 w-16" />
+                    <Skeleton className="h-9 w-16" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="py-8 text-center">
+              <p className="text-red-500">Error loading requests. Please try again.</p>
+            </div>
           ) : requests.length > 0 ? (
             <div className="space-y-4">
               {requests.map(request => (
@@ -75,6 +95,7 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
                   onApprove={() => handleAcceptRequest(request, club)}
                   onDeny={() => handleDeclineRequest(request)}
                   isClubFull={isClubFull}
+                  isProcessing={isProcessing(request.id)}
                 />
               ))}
             </div>

@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { Club, User } from '@/types';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, Users } from 'lucide-react';
 import { toast } from "@/hooks/use-toast";
 import { useApp } from '@/context/AppContext';
 import EditClubDialog from './EditClubDialog';
@@ -9,8 +10,10 @@ import MembersManagement from './club-members/MembersManagement';
 import AdminActionButtons from './club-members/AdminActionButtons';
 import DeleteClubDialog from './DeleteClubDialog';
 import { useDeleteClub } from '@/hooks/club/useDeleteClub';
-import { Trash, Users } from 'lucide-react';
+import { Trash } from 'lucide-react';
 import Button from '@/components/shared/Button';
+import { fetchClubJoinRequests } from '@/utils/notification-queries';
+import { Badge } from "@/components/ui/badge";
 
 interface ClubAdminActionsProps {
   club: Club;
@@ -24,6 +27,7 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [requestsDialogOpen, setRequestsDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const {
     setCurrentUser,
     setSelectedClub
@@ -36,6 +40,20 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({
 
   useEffect(() => {
     setCurrentClub(club);
+    
+    // Fetch pending requests count
+    const loadPendingRequests = async () => {
+      if (club && club.id) {
+        const requests = await fetchClubJoinRequests(club.id);
+        setPendingRequestsCount(requests.length);
+      }
+    };
+    
+    loadPendingRequests();
+    
+    // Refresh count every minute
+    const interval = setInterval(loadPendingRequests, 60000);
+    return () => clearInterval(interval);
   }, [club]);
 
   const isAdmin = currentUser && currentClub.members.some(member => member.id === currentUser.id && member.isAdmin);
@@ -111,6 +129,21 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({
       </div>
 
       <AdminActionButtons onEditClick={() => setEditDialogOpen(true)} onRequestsClick={() => setRequestsDialogOpen(true)} />
+      
+      {pendingRequestsCount > 0 && (
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="mt-2 w-full flex items-center justify-center gap-2"
+          onClick={() => setRequestsDialogOpen(true)}
+        >
+          <Users className="h-4 w-4" />
+          View Requests
+          <Badge variant="secondary" className="ml-2">
+            {pendingRequestsCount}
+          </Badge>
+        </Button>
+      )}
 
       <div className="mt-4">
         

@@ -3,19 +3,22 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { ShieldCheck, ShieldX } from 'lucide-react';
 import { JoinRequest } from '@/types';
+import { Loader2 } from 'lucide-react';
 
 interface JoinRequestButtonsProps {
   request: JoinRequest;
   onDeny: () => void;
   onApprove: () => void;
   isClubFull: boolean;
+  isProcessing: boolean;
 }
 
 const JoinRequestButtons: React.FC<JoinRequestButtonsProps> = ({
   request,
   onDeny,
   onApprove,
-  isClubFull
+  isClubFull,
+  isProcessing
 }) => {
   return (
     <div className="flex gap-2">
@@ -24,18 +27,27 @@ const JoinRequestButtons: React.FC<JoinRequestButtonsProps> = ({
         variant="outline"
         className="h-8"
         onClick={onDeny}
+        disabled={isProcessing}
       >
-        <ShieldX className="h-4 w-4 mr-1" />
-        Deny
+        {isProcessing ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <ShieldX className="h-4 w-4 mr-1" />
+        )}
+        {!isProcessing && "Deny"}
       </Button>
       <Button 
         size="sm" 
         className="h-8"
         onClick={onApprove}
-        disabled={isClubFull}
+        disabled={isProcessing || isClubFull}
       >
-        <ShieldCheck className="h-4 w-4 mr-1" />
-        Approve
+        {isProcessing ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <ShieldCheck className="h-4 w-4 mr-1" />
+        )}
+        {!isProcessing && "Approve"}
       </Button>
     </div>
   );

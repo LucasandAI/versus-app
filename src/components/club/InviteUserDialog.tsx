@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Search, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, X, Loader2 } from 'lucide-react';
 import { 
   Dialog, 
   DialogContent, 
@@ -11,11 +11,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/hooks/use-toast";
 import UserAvatar from "../shared/UserAvatar";
 import { useClubInvites } from '@/hooks/club/useClubInvites';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useClubNavigation } from '@/hooks/navigation/useClubNavigation';
 import { useApp } from '@/context/AppContext';
 
 interface InviteUserDialogProps {
@@ -32,9 +30,15 @@ const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
   clubName
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { users, loading, error, sendInvite } = useClubInvites(clubId);
-  const { handleSendInvite } = useClubNavigation();
+  const { users, loading, error, sendInvite, isProcessing } = useClubInvites(clubId);
   const { currentUser } = useApp();
+  
+  // Reset search query when dialog opens/closes
+  useEffect(() => {
+    if (!open) {
+      setSearchQuery('');
+    }
+  }, [open]);
   
   const filteredUsers = users?.filter(user =>
     user.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -43,11 +47,11 @@ const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
   const handleInvite = async (userId: string, userName: string) => {
     if (!currentUser) return;
     
-    const success = await handleSendInvite(userId, userName, clubId, clubName);
+    const success = await sendInvite(userId, userName);
     
     if (success) {
-      // Close dialog after successful invite
-      onOpenChange(false);
+      // Don't close dialog to allow multiple invites
+      // onOpenChange(false);
     }
   };
 
@@ -87,7 +91,7 @@ const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
     }
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 max-h-[60vh] overflow-y-auto">
         {filteredUsers.map((user) => (
           <div 
             key={user.id}
@@ -100,8 +104,11 @@ const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
             <Button
               size="sm"
               onClick={() => handleInvite(user.id, user.name)}
+              disabled={isProcessing(user.id)}
             >
-              Invite
+              {isProcessing(user.id) ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : "Invite"}
             </Button>
           </div>
         ))}
@@ -115,7 +122,7 @@ const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
         <DialogHeader>
           <DialogTitle>Invite Runner</DialogTitle>
           <DialogDescription>
-            Search and invite runners to join your club
+            Search and invite runners to join {clubName}
           </DialogDescription>
         </DialogHeader>
         <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">

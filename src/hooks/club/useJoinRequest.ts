@@ -8,20 +8,25 @@ export const useJoinRequest = (clubId: string) => {
   const [hasPendingRequest, setHasPendingRequest] = useState(false);
 
   const checkPendingRequest = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('club_requests')
-      .select('*')
-      .eq('club_id', clubId)
-      .eq('user_id', userId)
-      .eq('status', 'pending')
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('club_requests')
+        .select('*')
+        .eq('club_id', clubId)
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+        .single();
 
-    if (error && error.code !== 'PGRST116') {
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error checking pending request:', error);
+      }
+
+      setHasPendingRequest(!!data);
+      return !!data;
+    } catch (error) {
       console.error('Error checking pending request:', error);
+      return false;
     }
-
-    setHasPendingRequest(!!data);
-    return !!data;
   };
 
   const sendJoinRequest = async (userId: string) => {
@@ -39,9 +44,54 @@ export const useJoinRequest = (clubId: string) => {
 
       setHasPendingRequest(true);
       toast({
-        title: "Request sent",
+        title: "Request Sent",
         description: "Your request to join has been sent to the club admins"
       });
+      
+      // Create notification for club admins
+      try {
+        // Get club admins
+        const { data: admins } = await supabase
+          .from('club_members')
+          .select('user_id')
+          .eq('club_id', clubId)
+          .eq('is_admin', true);
+          
+        if (admins && admins.length > 0) {
+          // Get user information for the notification
+          const { data: userData } = await supabase
+            .from('users')
+            .select('name')
+            .eq('id', userId)
+            .single();
+            
+          // Get club information
+          const { data: clubData } = await supabase
+            .from('clubs')
+            .select('name')
+            .eq('id', clubId)
+            .single();
+            
+          // Create notifications for each admin
+          const notifications = admins.map(admin => ({
+            user_id: admin.user_id,
+            club_id: clubId,
+            type: 'join_request',
+            message: `${userData?.name || 'Someone'} has requested to join ${clubData?.name || 'your club'}.`,
+            status: 'pending',
+            read: false
+          }));
+          
+          if (notifications.length > 0) {
+            await supabase.from('notifications').insert(notifications);
+          }
+        }
+      } catch (notificationError) {
+        console.error('Error creating notifications:', notificationError);
+        // We don't want to fail the whole request if notifications fail
+      }
+      
+      return true;
     } catch (error) {
       console.error('Error sending join request:', error);
       toast({
@@ -49,6 +99,38 @@ export const useJoinRequest = (clubId: string) => {
         description: "Could not send join request",
         variant: "destructive"
       });
+      return false;
+    } finally {
+      setIsRequesting(false);
+    }
+  };
+
+  const cancelJoinRequest = async (userId: string) => {
+    setIsRequesting(true);
+    try {
+      const { error } = await supabase
+        .from('club_requests')
+        .delete()
+        .eq('club_id', clubId)
+        .eq('user_id', userId)
+        .eq('status', 'pending');
+
+      if (error) throw error;
+
+      setHasPendingRequest(false);
+      toast({
+        title: "Request Canceled",
+        description: "Your join request has been canceled"
+      });
+      return true;
+    } catch (error) {
+      console.error('Error canceling join request:', error);
+      toast({
+        title: "Error",
+        description: "Could not cancel join request",
+        variant: "destructive"
+      });
+      return false;
     } finally {
       setIsRequesting(false);
     }
@@ -58,6 +140,7 @@ export const useJoinRequest = (clubId: string) => {
     isRequesting,
     hasPendingRequest,
     sendJoinRequest,
+    cancelJoinRequest,
     checkPendingRequest
   };
 };
