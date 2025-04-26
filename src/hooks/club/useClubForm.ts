@@ -6,7 +6,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { ClubEditFormValues } from '@/schemas/club-schema';
 
-// Update the interface to use the form values type
 interface SaveClubData extends ClubEditFormValues {
   logo: string;
 }
@@ -70,6 +69,7 @@ export const useClubForm = (club: Club, onClose: () => void) => {
 
       if (updateError) throw new Error(updateError.message);
 
+      // Create updated club object with new data
       const updatedClub: Club = {
         ...club,
         name: data.name.trim(),
@@ -77,7 +77,10 @@ export const useClubForm = (club: Club, onClose: () => void) => {
         logo: logoUrl,
       };
 
+      // Update the selected club in context
       setSelectedClub(updatedClub);
+
+      // Update the club in the user's clubs array
       setCurrentUser(prev => {
         if (!prev) return prev;
         const updatedClubs = prev.clubs.map(userClub =>
