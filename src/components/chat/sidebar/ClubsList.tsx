@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Club } from '@/types';
 import UserAvatar from '../../shared/UserAvatar';
@@ -29,13 +28,17 @@ const ClubsList: React.FC<ClubsListProps> = ({
 }) => {
   const { navigateToClubDetail } = useNavigation();
   
-  const handleClubClick = (club: Club) => {
-    // First set the selected club for the chat context
+  const handleClubClick = (club: Club, e: React.MouseEvent) => {
+    // Prevent default to avoid any automatic navigation
+    e.preventDefault();
+    
+    // Only set the selected club for the chat context
+    // This keeps the chat inside the popup without navigating
     onSelectClub(club);
     
-    // Also set up navigation to the club detail if needed
-    // This makes the club data available in other parts of the app
-    navigateToClubDetail(club.id, club);
+    // Important: Do NOT call navigateToClubDetail here
+    // That would cause a page navigation which we want to avoid
+    console.log('[ClubsList] Club selected for chat:', club.id);
   };
 
   return (
@@ -49,7 +52,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
               className={`w-full flex items-center p-2 rounded-md text-left transition-colors ${
                 selectedClub?.id === club.id ? 'bg-primary/10 text-primary' : 'hover:bg-gray-100'
               }`} 
-              onClick={() => handleClubClick(club)}
+              onClick={(e) => handleClubClick(club, e)}
             >
               <div className="flex-shrink-0 mr-2">
                 <UserAvatar name={club.name} image={club.logo || ''} size="sm" />

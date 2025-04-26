@@ -24,7 +24,7 @@ const ChatClubContent = ({
   onSendMessage,
   setClubMessages
 }: ChatClubContentProps) => {
-  const { navigateToClub } = useNavigation();
+  const { navigateToClubDetail } = useNavigation();
   const [isSending, setIsSending] = useState(false);
   const { deleteMessage } = useChatActions();
 
@@ -36,7 +36,12 @@ const ChatClubContent = ({
 
   const handleClubClick = () => {
     if (club && club.id) {
-      navigateToClub(club);
+      // This will navigate to the full club detail page when clicking on the header
+      navigateToClubDetail(club.id, club);
+      
+      // Close the chat drawer after navigation
+      const event = new CustomEvent('chatDrawerClosed');
+      window.dispatchEvent(event);
     }
   };
 
