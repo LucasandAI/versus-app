@@ -16,9 +16,10 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   currentUser,
   onSelectUser 
 }) => {
-  const isAdmin = currentUser && club.members.some(member => 
+  // Add optional chaining and fallback for the members array
+  const isAdmin = currentUser && club.members?.some(member => 
     member.id === currentUser.id && member.isAdmin
-  );
+  ) || false;
 
   return (
     <div className="space-y-6">
