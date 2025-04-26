@@ -1,9 +1,7 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Club } from '@/types';
-import JoinRequestsDialog from '@/components/admin/join-requests/JoinRequestsDialog';
 import UserAvatar from '@/components/shared/UserAvatar';
-import { Button } from '@/components/ui/button';
 
 interface ClubHeaderInfoProps {
   club: Club;
@@ -16,8 +14,6 @@ const ClubHeaderInfo: React.FC<ClubHeaderInfoProps> = ({
   memberCount,
   isAdmin 
 }) => {
-  const [showRequestsDialog, setShowRequestsDialog] = useState(false);
-
   return (
     <div className="flex flex-col items-center md:items-start">
       <div className="mb-4">
@@ -35,24 +31,8 @@ const ClubHeaderInfo: React.FC<ClubHeaderInfoProps> = ({
           <span className="text-sm text-gray-600">
             {memberCount}/5 members
           </span>
-          
-          {isAdmin && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowRequestsDialog(true)}
-            >
-              View Requests
-            </Button>
-          )}
         </div>
       </div>
-
-      <JoinRequestsDialog
-        open={showRequestsDialog}
-        onOpenChange={setShowRequestsDialog}
-        club={club}
-      />
     </div>
   );
 };
