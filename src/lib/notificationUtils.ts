@@ -1,3 +1,4 @@
+
 import { Notification, Club } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -74,7 +75,7 @@ export const refreshNotifications = async () => {
     id: notification.id,
     type: notification.type === 'invite' ? 'invitation' : notification.type,
     userId: notification.type === 'invite' ? notification.user_id : user.id,
-    userName: notification.type === 'invite' ? notification?.users?.name : user?.name,
+    userName: notification.type === 'invite' ? notification?.users?.name || 'Unknown User' : user?.user_metadata?.name || 'Unknown User',
     userAvatar: notification.type === 'invite' ? notification?.users?.avatar : null,
     clubId: notification.club_id,
     clubName: notification.clubs?.name || 'Unknown Club',

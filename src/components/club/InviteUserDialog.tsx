@@ -32,13 +32,13 @@ const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
   clubName
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { users, loading, error } = useClubInvites(clubId);
+  const { users, loading, error, sendInvite } = useClubInvites(clubId);
   const { handleSendInvite } = useClubNavigation();
   const { currentUser } = useApp();
   
-  const filteredUsers = users.filter(user =>
+  const filteredUsers = users?.filter(user =>
     user.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ) || [];
 
   const handleInvite = async (userId: string, userName: string) => {
     if (!currentUser) return;
@@ -79,7 +79,7 @@ const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
     if (filteredUsers.length === 0) {
       return (
         <p className="text-center text-muted-foreground py-4">
-          {users.length === 0 
+          {users?.length === 0 
             ? "No users available to invite" 
             : "No runners found matching your search"}
         </p>
