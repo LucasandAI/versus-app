@@ -4,13 +4,15 @@ import { ArrowUp, ArrowDown } from 'lucide-react';
 import { Club } from '@/types';
 import { LeaderboardClub } from './types';
 import { getDivisionIcon, getDivisionColor, formatLeagueWithTier } from './utils';
+import { useNavigation } from '@/hooks/useNavigation';
 
 interface LeaderboardTableProps {
   clubs: LeaderboardClub[];
-  onSelectClub: (club: Club) => void;
 }
 
-const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ clubs, onSelectClub }) => {
+const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ clubs }) => {
+  const { navigateToClubDetail } = useNavigation();
+  
   const getChangeIcon = (change: 'up' | 'down' | 'same') => {
     switch (change) {
       case 'up':
@@ -49,7 +51,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ clubs, onSelectClub
             <tr 
               key={club.id} 
               className="hover:bg-gray-50 cursor-pointer"
-              onClick={() => onSelectClub({
+              onClick={() => navigateToClubDetail(club.id, {
                 id: club.id,
                 name: club.name,
                 division: club.division,

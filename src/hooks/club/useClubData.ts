@@ -4,12 +4,13 @@ import { Club } from '@/types';
 import { useClubDetails } from './useClubDetails';
 import { useClubMembers } from './useClubMembers';
 import { useClubMatches } from './useClubMatches';
-import { ensureDivision } from '@/utils/club/leagueUtils';
+import { useApp } from '@/context/AppContext';
 
 export const useClubData = (clubId: string | undefined) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [club, setClub] = useState<Club | null>(null);
+  const { setSelectedClub } = useApp();
 
   const { fetchClubDetails } = useClubDetails(clubId);
   const { fetchClubMembers } = useClubMembers();
@@ -55,7 +56,12 @@ export const useClubData = (clubId: string | undefined) => {
         
         console.log('[useClubData] Complete club object created:', updatedClub);
         
+        // Update local state and global context with the hydrated club
         setClub(updatedClub);
+        
+        // Update global context with the fully hydrated club
+        setSelectedClub(updatedClub);
+        
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Error loading club data';
         console.error('[useClubData] Error:', message);
@@ -66,7 +72,7 @@ export const useClubData = (clubId: string | undefined) => {
     };
     
     loadClubData();
-  }, [clubId, fetchClubDetails, fetchClubMembers, fetchClubMatches]);
+  }, [clubId, fetchClubDetails, fetchClubMembers, fetchClubMatches, setSelectedClub]);
 
   return { club, isLoading, error };
 };

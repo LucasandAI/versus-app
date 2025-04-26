@@ -2,10 +2,10 @@
 import { Division } from '@/types';
 
 export const formatLeagueWithTier = (division?: Division, tier?: number) => {
-  if (!division) return 'Unknown';
+  if (!division) return 'Unknown League';
   
   // Handle the elite division case specifically
-  if (division === 'elite') return 'Elite League';
+  if (division.toLowerCase() === 'elite') return 'Elite League';
   
   // Safely capitalize the first letter if the division name exists
   const capitalizedDivision = division.charAt(0).toUpperCase() + division.slice(1);

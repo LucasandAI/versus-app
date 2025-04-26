@@ -15,11 +15,11 @@ interface UserClubsProps {
 }
 
 const UserClubs: React.FC<UserClubsProps> = ({ user, loading, onClubClick }) => {
-  const { navigateToClub } = useNavigation();
+  const { navigateToClubDetail } = useNavigation();
 
   const handleClubClick = (club: Club) => {
-    // Use the navigation hook to properly navigate to the club
-    navigateToClub(club);
+    // Use our improved navigation method with full club data
+    navigateToClubDetail(club.id, club);
     
     // Also call the passed handler for backward compatibility
     onClubClick(club);

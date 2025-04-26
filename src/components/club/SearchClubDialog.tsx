@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { formatLeagueWithTier } from '@/lib/format';
 import UserAvatar from '../shared/UserAvatar';
+import { useNavigation } from '@/hooks/useNavigation';
 
 interface SearchClubDialogProps {
   open: boolean;
@@ -21,10 +22,24 @@ const SearchClubDialog: React.FC<SearchClubDialogProps> = ({
   onRequestJoin,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const { navigateToClubDetail } = useNavigation();
   
   const filteredClubs = clubs.filter(club => 
     club.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleClubClick = (club: any) => {
+    navigateToClubDetail(club.id, {
+      id: club.id,
+      name: club.name,
+      division: club.division,
+      tier: club.tier,
+      members: [],
+      logo: club.logo || '/placeholder.svg',
+      matchHistory: []
+    });
+    onOpenChange(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -56,7 +71,8 @@ const SearchClubDialog: React.FC<SearchClubDialogProps> = ({
                 {filteredClubs.map((club) => (
                   <div 
                     key={club.id} 
-                    className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md"
+                    className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md cursor-pointer"
+                    onClick={() => handleClubClick(club)}
                   >
                     <div className="flex items-center gap-3">
                       <UserAvatar
@@ -76,7 +92,8 @@ const SearchClubDialog: React.FC<SearchClubDialogProps> = ({
                       variant="outline" 
                       size="sm" 
                       className="h-8"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         onRequestJoin(club.id, club.name);
                         onOpenChange(false);
                       }}

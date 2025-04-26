@@ -4,8 +4,8 @@ import { UserPlus } from 'lucide-react';
 import Button from '../shared/Button';
 import { formatLeagueWithTier } from '@/lib/format';
 import UserAvatar from '../shared/UserAvatar';
-import { useClubNavigation } from '@/hooks/useClubNavigation';
 import { Division } from '@/types';
+import { useNavigation } from '@/hooks/useNavigation';
 
 interface AvailableClub {
   id: string;
@@ -22,10 +22,10 @@ interface AvailableClubsProps {
 }
 
 const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin }) => {
-  const { navigateToClub } = useClubNavigation();
+  const { navigateToClubDetail } = useNavigation();
 
   const handleClubClick = (club: AvailableClub) => {
-    navigateToClub({
+    navigateToClubDetail(club.id, {
       id: club.id,
       name: club.name,
       division: club.division,
@@ -67,7 +67,10 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
                 image={club.logo}
                 size="sm"
                 className="h-10 w-10"
-                onClick={() => handleClubClick(club)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleClubClick(club);
+                }}
               />
               <div>
                 <h3 className="font-medium text-sm">{club.name}</h3>

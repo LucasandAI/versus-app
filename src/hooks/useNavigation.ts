@@ -6,33 +6,49 @@ import { useApp } from '@/context/AppContext';
 
 export const useNavigation = () => {
   const { navigateToUserProfile, isLoading: userNavLoading } = useUserNavigation();
-  const { handleClubClick, handleJoinRequest } = useClubNavigation();
-  const { currentUser, setCurrentView, setSelectedUser } = useApp();
+  const { navigateToClub } = useClubNavigation();
+  const { currentUser, setCurrentView, setSelectedUser, setSelectedClub } = useApp();
   
-  const navigateToClub = (clubData: Club | Partial<Club>) => {
-    if (!clubData) {
-      console.error('[useNavigation] Cannot navigate to club, missing club data');
-      return;
-    }
-    
-    if ('id' in clubData && clubData.id) {
-      console.log('[useNavigation] Navigating to club:', clubData.id);
-      handleClubClick(clubData.id);
-    } else {
-      console.error('[useNavigation] Cannot navigate to club, missing ID:', clubData);
-    }
-  };
-  
+  // Improved navigation to club with proper setting of selected club
   const navigateToClubDetail = (clubId: string, clubData?: Partial<Club>) => {
     if (!clubId) {
       console.error('[useNavigation] Cannot navigate to club detail, missing club ID');
       return;
     }
     
-    console.log('[useNavigation] Navigating to club detail:', clubId);
-    handleClubClick(clubId);
+    console.log('[useNavigation] Navigating to club detail:', clubId, clubData);
+    
+    // First set the selected club with the data we have
+    if (clubData) {
+      setSelectedClub({
+        id: clubId,
+        name: clubData.name || 'Loading...',
+        logo: clubData.logo || '/placeholder.svg',
+        division: clubData.division || 'bronze',
+        tier: clubData.tier || 5,
+        elitePoints: clubData.elitePoints || 0,
+        members: clubData.members || [],
+        matchHistory: clubData.matchHistory || [],
+        bio: clubData.bio || ''
+      } as Club);
+    } else {
+      // If no club data provided, set a minimal object with ID so the detail page can load it
+      setSelectedClub({ 
+        id: clubId, 
+        name: 'Loading...',
+        logo: '/placeholder.svg',
+        division: 'bronze',
+        tier: 5,
+        elitePoints: 0,
+        members: [],
+        matchHistory: []
+      } as Club);
+    }
+    
+    // Then navigate to the club detail view
+    setCurrentView('clubDetail');
   };
-
+  
   // Convenience method to navigate to your own profile
   const navigateToOwnProfile = () => {
     if (currentUser) {
@@ -46,7 +62,6 @@ export const useNavigation = () => {
     navigateToClubDetail,
     navigateToClub,
     navigateToOwnProfile,
-    handleJoinRequest,
     isLoading: userNavLoading || false
   };
 };

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { Club } from '@/types';
@@ -17,7 +16,6 @@ const ClubCard: React.FC<ClubCardProps> = ({
   onSelectUser 
 }) => {
   const [expanded, setExpanded] = useState(false);
-  const [logoLoaded, setLogoLoaded] = useState(false);
   const { navigateToClubDetail } = useNavigation();
 
   const toggleExpanded = (e: React.MouseEvent) => {
@@ -40,10 +38,6 @@ const ClubCard: React.FC<ClubCardProps> = ({
     const diffTime = end.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
-  };
-
-  const handleLogoLoad = () => {
-    setLogoLoaded(true);
   };
 
   const MAX_MEMBERS = 5;
