@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Club } from '@/types';
 import {
   Dialog,
@@ -11,13 +11,10 @@ import {
   DialogDescription
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { toast } from "@/hooks/use-toast";
-import { Save, Upload } from 'lucide-react';
-import { Textarea } from "@/components/ui/textarea";
-import { useApp } from '@/context/AppContext';
-import { supabase } from '@/integrations/supabase/client';
+import { Save } from 'lucide-react';
+import { useClubForm } from '@/hooks/club/useClubForm';
+import LogoSection from './edit-club/LogoSection';
+import ClubDetailsForm from './edit-club/ClubDetailsForm';
 
 interface EditClubDialogProps {
   open: boolean;
@@ -30,112 +27,16 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
   onOpenChange, 
   club 
 }) => {
-  const { setSelectedClub } = useApp();
-  const [name, setName] = useState(club.name);
-  const [bio, setBio] = useState(club.bio || 'A club for enthusiastic runners');
-  const [logoPreview, setLogoPreview] = useState(club.logo || '/placeholder.svg');
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-  
-  React.useEffect(() => {
-    if (open && club) {
-      setName(club.name);
-      setBio(club.bio || 'A club for enthusiastic runners');
-      setLogoPreview(club.logo || '/placeholder.svg');
-      setLogoFile(null);
-    }
-  }, [club, open]);
-  
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setLogoFile(file);
-      const previewUrl = URL.createObjectURL(file);
-      setLogoPreview(previewUrl);
-    }
-  };
-
-  const uploadLogoIfNeeded = async () => {
-    if (!logoFile) return club.logo;
-    try {
-      const ext = logoFile.name.split('.').pop();
-      const logoPath = `${club.id}/${Date.now()}.${ext}`;
-
-      const { data, error } = await supabase
-        .storage
-        .from('club-logos')
-        .upload(logoPath, logoFile, { upsert: true });
-
-      if (error) throw error;
-
-      const { data: publicUrlData } = supabase
-        .storage
-        .from('club-logos')
-        .getPublicUrl(logoPath);
-        
-      return publicUrlData?.publicUrl;
-    } catch (error) {
-      console.error('Logo upload error:', error);
-      throw error;
-    }
-  };
-
-  const handleSave = async () => {
-    if (!name.trim()) {
-      toast({
-        title: "Error",
-        description: "Club name cannot be empty",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      // 1. Upload logo if needed
-      const logoUrl = await uploadLogoIfNeeded();
-
-      // 2. Update club in DB
-      const { error: updateError } = await supabase
-        .from('clubs')
-        .update({
-          name: name.trim(),
-          bio: bio.trim(),
-          logo: logoUrl,
-        })
-        .eq('id', club.id);
-
-      if (updateError) throw updateError;
-
-      // 3. Create updated club object with all existing properties
-      const updatedClub: Club = {
-        ...club,
-        name: name.trim(),
-        bio: bio.trim(),
-        logo: logoUrl || club.logo,
-      };
-
-      // 4. Update context
-      setSelectedClub(updatedClub);
-
-      toast({
-        title: "Club Updated",
-        description: "The club details have been updated.",
-      });
-
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Error updating club:', error);
-      toast({
-        title: "Error Updating Club",
-        description: error instanceof Error ? error.message : "Something went wrong.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    name,
+    setName,
+    bio,
+    setBio,
+    logoPreview,
+    loading,
+    handleLogoChange,
+    handleSave,
+  } = useClubForm(club, () => onOpenChange(false));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -147,53 +48,19 @@ const EditClubDialog: React.FC<EditClubDialogProps> = ({
 
         <div className="py-4">
           <div className="space-y-6">
-            <div className="flex flex-col items-center gap-3">
-              <div className="relative">
-                <img 
-                  src={logoPreview} 
-                  alt={name} 
-                  className="h-24 w-24 rounded-full object-cover border"
-                />
-                <label 
-                  htmlFor="logo-upload" 
-                  className="absolute bottom-0 right-0 bg-primary text-white p-1.5 rounded-full cursor-pointer shadow-md"
-                >
-                  <Upload className="h-4 w-4" />
-                  <span className="sr-only">Upload logo</span>
-                </label>
-                <input 
-                  id="logo-upload" 
-                  type="file" 
-                  accept="image/*" 
-                  className="hidden" 
-                  onChange={handleLogoChange}
-                />
-              </div>
-              <p className="text-xs text-gray-500">Click the icon to upload a new logo</p>
-            </div>
+            <LogoSection
+              name={name}
+              logoPreview={logoPreview}
+              handleLogoChange={handleLogoChange}
+            />
             
-            <div className="space-y-2">
-              <Label htmlFor="club-name">Club Name</Label>
-              <Input 
-                id="club-name" 
-                value={name} 
-                onChange={(e) => setName(e.target.value)} 
-                placeholder="Enter club name"
-                disabled={loading}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="club-bio">Club Bio</Label>
-              <Textarea 
-                id="club-bio" 
-                value={bio} 
-                onChange={(e) => setBio(e.target.value)} 
-                placeholder="Enter club bio"
-                rows={4}
-                disabled={loading}
-              />
-            </div>
+            <ClubDetailsForm
+              name={name}
+              setName={setName}
+              bio={bio}
+              setBio={setBio}
+              loading={loading}
+            />
           </div>
         </div>
 
