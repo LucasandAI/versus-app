@@ -4,17 +4,19 @@ import { ShieldAlert } from 'lucide-react';
 import { toast } from "@/hooks/use-toast";
 import { useApp } from '@/context/AppContext';
 import EditClubDialog from './EditClubDialog';
-import JoinRequestsDialog from './JoinRequestsDialog';
+import JoinRequestsDialog from './join-requests/JoinRequestsDialog';
 import MembersManagement from './club-members/MembersManagement';
 import AdminActionButtons from './club-members/AdminActionButtons';
 import DeleteClubDialog from './DeleteClubDialog';
 import { useDeleteClub } from '@/hooks/club/useDeleteClub';
 import { Trash, Users } from 'lucide-react';
 import Button from '@/components/shared/Button';
+
 interface ClubAdminActionsProps {
   club: Club;
   currentUser: User | null;
 }
+
 const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({
   club,
   currentUser
@@ -31,11 +33,15 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({
     loading: deleting
   } = useDeleteClub();
   const [currentClub, setCurrentClub] = useState<Club>(club);
+
   useEffect(() => {
     setCurrentClub(club);
   }, [club]);
+
   const isAdmin = currentUser && currentClub.members.some(member => member.id === currentUser.id && member.isAdmin);
+
   if (!isAdmin) return null;
+
   const handleRemoveMember = (memberId: string, memberName: string) => {
     const updatedMembers = currentClub.members.filter(member => member.id !== memberId);
     const updatedClub = {
@@ -62,6 +68,7 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({
       description: `${memberName} has been removed from the club.`
     });
   };
+
   const handleMakeAdmin = (memberId: string, memberName: string) => {
     const updatedMembers = currentClub.members.map(member => member.id === memberId ? {
       ...member,
@@ -91,10 +98,12 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({
       description: `${memberName} is now an admin of the club.`
     });
   };
+
   const handleDeleteConfirm = async () => {
     const ok = await deleteClub(currentClub);
     if (ok) setDeleteDialogOpen(false);
   };
+
   return <div className="bg-white rounded-lg shadow-md p-4 mb-6">
       <div className="flex items-center mb-4">
         <ShieldAlert className="h-5 w-5 text-primary mr-2" />
@@ -123,4 +132,5 @@ const ClubAdminActions: React.FC<ClubAdminActionsProps> = ({
       <DeleteClubDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} club={currentClub} loading={deleting} onConfirmDelete={handleDeleteConfirm} />
     </div>;
 };
+
 export default ClubAdminActions;
