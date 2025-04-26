@@ -140,37 +140,57 @@ export const updateNotificationStatus = async (
 // Function to fetch join requests for a club
 export const fetchClubJoinRequests = async (clubId: string): Promise<JoinRequest[]> => {
   try {
-    const { data, error } = await supabase
+    // First, let's query club requests with a separate query for safety
+    const { data: requestsData, error: requestsError } = await supabase
       .from('club_requests')
-      .select(`
-        id,
-        user_id,
-        club_id,
-        status,
-        created_at,
-        users:user_id (
-          id,
-          name,
-          avatar
-        )
-      `)
+      .select('id, user_id, club_id, status, created_at')
       .eq('club_id', clubId)
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false });
-      
-    if (error) {
-      console.error('Error fetching join requests:', error);
+      .eq('status', 'pending');
+
+    if (requestsError) {
+      console.error('Error fetching join requests:', requestsError);
       return [];
     }
+
+    if (!requestsData || requestsData.length === 0) {
+      return [];
+    }
+
+    // Now get user details for each request
+    const results: JoinRequest[] = [];
     
-    return data?.map(item => ({
-      id: item.id,
-      userId: item.user_id,
-      userName: item.users?.name || 'Unknown',
-      userAvatar: item.users?.avatar || '',
-      clubId: item.club_id,
-      createdAt: item.created_at
-    })) || [];
+    for (const request of requestsData) {
+      // Get user info separately
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('name, avatar')
+        .eq('id', request.user_id)
+        .single();
+        
+      if (userError) {
+        console.error('Error fetching user data:', userError);
+        // Add with default values if user data can't be fetched
+        results.push({
+          id: request.id,
+          userId: request.user_id,
+          clubId: request.club_id,
+          userName: 'Unknown User',
+          userAvatar: '',
+          createdAt: request.created_at
+        });
+      } else {
+        results.push({
+          id: request.id,
+          userId: request.user_id,
+          clubId: request.club_id,
+          userName: userData.name || 'Unknown',
+          userAvatar: userData.avatar || '',
+          createdAt: request.created_at
+        });
+      }
+    }
+    
+    return results;
   } catch (error) {
     console.error('Error in fetchClubJoinRequests:', error);
     return [];
