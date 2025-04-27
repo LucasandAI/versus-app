@@ -31,7 +31,7 @@ const MessageList: React.FC<MessageListProps> = ({
   lastMessageRef,
 }) => {
   return (
-    <div className="px-4 py-2 mb-4">
+    <div className="px-4 py-2 mb-4 flex flex-col-reverse h-full overflow-y-auto">
       {messages.length === 0 ? (
         <div className="h-full flex items-center justify-center text-gray-500 text-sm py-8">
           No messages yet. Start the conversation!
@@ -46,7 +46,7 @@ const MessageList: React.FC<MessageListProps> = ({
             <div 
               key={message.id}
               ref={isLastMessage ? lastMessageRef : undefined}
-              className="mb-4"
+              className="mb-2" // Reduced from mb-4 to mb-2
             >
               <MessageItem
                 message={message}

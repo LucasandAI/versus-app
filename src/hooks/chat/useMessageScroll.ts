@@ -27,13 +27,6 @@ export const useMessageScroll = (messages: any[]) => {
     }
   }, [messages]); // Also scroll when messages change completely
 
-  // Scroll to bottom when new messages are added
-  useEffect(() => {
-    if (messages.length > 0) {
-      scrollToBottom();
-    }
-  }, [messages.length]); // Only trigger when message count changes
-
   return {
     scrollRef,
     lastMessageRef,
