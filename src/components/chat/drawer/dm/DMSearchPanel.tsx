@@ -6,6 +6,7 @@ import UserSearchResults from './UserSearchResults';
 import DMConversationList from './DMConversationList';
 import DMConversation from './DMConversation';
 import { useUserSearch } from '@/hooks/chat/dm/useUserSearch';
+import { useClickOutside } from '@/hooks/use-click-outside';
 
 const DMSearchPanel: React.FC = () => {
   const { 
@@ -14,7 +15,9 @@ const DMSearchPanel: React.FC = () => {
     searchResults, 
     isLoading, 
     searchUsers,
-    clearSearch 
+    clearSearch,
+    showResults,
+    setShowResults
   } = useUserSearch();
 
   const [selectedDMUser, setSelectedDMUser] = useState<{
@@ -23,9 +26,14 @@ const DMSearchPanel: React.FC = () => {
     avatar?: string;
   } | null>(null);
 
+  const searchContainerRef = useClickOutside(() => {
+    setShowResults(false);
+  });
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setQuery(value);
+    setShowResults(true);
     searchUsers(value);
   };
 
@@ -35,24 +43,26 @@ const DMSearchPanel: React.FC = () => {
       name: userName,
       avatar: userAvatar
     });
-    clearSearch(); // Clear both query and results
+    clearSearch();
   };
 
   return (
     <div className="flex h-full w-full">
       <div className="w-[240px] border-r flex flex-col h-full">
-        <div className="p-4 border-b relative">
-          <SearchBar value={query} onChange={handleInputChange} />
+        <div ref={searchContainerRef} className="relative">
+          <SearchBar 
+            value={query} 
+            onChange={handleInputChange}
+            onFocus={() => setShowResults(true)}
+            showResults={showResults}
+          />
           
-          {(searchResults.length > 0 || isLoading) && (
-            <div className="absolute z-10 mt-1 w-[216px] bg-white rounded-md border shadow-lg max-h-60 overflow-auto">
-              <UserSearchResults
-                results={searchResults}
-                isLoading={isLoading}
-                onSelectUser={handleSelectUser}
-              />
-            </div>
-          )}
+          <UserSearchResults
+            results={searchResults}
+            isLoading={isLoading}
+            onSelectUser={handleSelectUser}
+            visible={showResults}
+          />
         </div>
         
         <ScrollArea className="flex-1">

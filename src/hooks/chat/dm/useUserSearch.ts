@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import debounce from 'lodash/debounce';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
@@ -13,11 +13,13 @@ export const useUserSearch = () => {
     avatar: string;
   }>>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showResults, setShowResults] = useState(false);
   const { currentUser } = useApp();
 
   const clearSearch = useCallback(() => {
     setQuery("");
     setSearchResults([]);
+    setShowResults(false);
   }, []);
 
   const searchUsers = useCallback(
@@ -34,7 +36,7 @@ export const useUserSearch = () => {
           .select('id, name, avatar')
           .ilike('name', `%${searchTerm}%`)
           .neq('id', currentUser?.id)
-          .limit(100);
+          .limit(10);
 
         if (error) {
           throw error;
@@ -55,12 +57,21 @@ export const useUserSearch = () => {
     [currentUser?.id]
   );
 
+  // Clear results when query is empty
+  useEffect(() => {
+    if (!query.trim()) {
+      setSearchResults([]);
+    }
+  }, [query]);
+
   return {
     query,
     setQuery,
     searchResults,
     isLoading,
     searchUsers,
-    clearSearch
+    clearSearch,
+    showResults,
+    setShowResults
   };
 };

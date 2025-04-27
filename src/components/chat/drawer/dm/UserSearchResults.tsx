@@ -13,42 +13,58 @@ interface UserSearchResultsProps {
   results: SearchResult[];
   isLoading: boolean;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
+  visible: boolean;
 }
 
 const UserSearchResults: React.FC<UserSearchResultsProps> = ({
   results,
   isLoading,
   onSelectUser,
+  visible,
 }) => {
   const { unhideConversation } = useHiddenDMs();
 
+  if (!visible) return null;
+
   const handleUserSelect = (user: SearchResult) => {
-    unhideConversation(user.id); // Make sure conversation is visible in the list
+    unhideConversation(user.id);
     onSelectUser(user.id, user.name, user.avatar);
   };
 
   if (isLoading) {
-    return <div className="p-4 text-center text-gray-500">Searching...</div>;
+    return (
+      <div className="absolute z-10 w-full bg-white border-x border-b rounded-b-lg shadow-lg">
+        <div className="p-4 text-center text-gray-500">Searching...</div>
+      </div>
+    );
   }
 
   return (
-    <div className="py-2">
-      {results.map((user) => (
-        <div
-          key={user.id}
-          onClick={() => handleUserSelect(user)}
-          className="px-4 py-2 hover:bg-gray-50 flex items-center cursor-pointer transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <UserAvatar
-              name={user.name}
-              image={user.avatar}
-              size="sm"
-            />
-            <span className="font-medium">{user.name}</span>
-          </div>
+    <div className="absolute z-10 w-full bg-white border-x border-b rounded-b-lg shadow-lg max-h-[300px] overflow-y-auto">
+      {results.length === 0 ? (
+        <div className="p-4 text-center text-gray-500">
+          No users found
         </div>
-      ))}
+      ) : (
+        <div className="py-2">
+          {results.map((user) => (
+            <div
+              key={user.id}
+              onClick={() => handleUserSelect(user)}
+              className="px-4 py-2 hover:bg-gray-50 flex items-center cursor-pointer transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <UserAvatar
+                  name={user.name}
+                  image={user.avatar}
+                  size="sm"
+                />
+                <span className="font-medium">{user.name}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
