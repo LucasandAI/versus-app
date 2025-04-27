@@ -1,10 +1,10 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 import ConversationItem from './ConversationItem';
 import { useConversations } from '@/hooks/chat/dm/useConversations';
-import { useIsMobile } from '@/hooks/use-mobile';
-import AppHeader from '@/components/shared/AppHeader';
+import SearchBar from './SearchBar';
+import { useUserSearch } from '@/hooks/chat/dm/useUserSearch';
 
 interface Props {
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
@@ -14,35 +14,37 @@ interface Props {
 const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) => {
   const { hideConversation, hiddenDMs } = useHiddenDMs();
   const { conversations } = useConversations(hiddenDMs);
-  const isMobile = useIsMobile();
-  
-  useEffect(() => {
-    // Debug log for conversation updates
-    console.log('[DMConversationList] Conversations updated:', conversations.length);
-  }, [conversations]);
+  const { query, setQuery, searchUsers } = useUserSearch();
 
   const handleHideConversation = (
     e: React.MouseEvent,
     userId: string
   ) => {
     e.stopPropagation();
-    console.log('[DMConversationList] Hiding conversation for user:', userId);
+    console.log('[DMConversationList] Hiding conversation for userId:', userId);
     hideConversation(userId);
   };
 
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setQuery(value);
+    searchUsers(value);
+  };
+
   return (
-    <div className="flex flex-col h-full">
-      <AppHeader title="Messages" />
+    <div className="flex flex-col h-full bg-white">
+      <h1 className="text-4xl font-bold p-4">Messages</h1>
+      <SearchBar value={query} onChange={handleSearchChange} />
       
       <div className="flex-1 overflow-auto">
-        <div className="space-y-1 p-3">
-          {conversations.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p>No messages yet</p>
-              <p className="text-sm mt-1">Start a conversation by searching for users</p>
-            </div>
-          ) : (
-            conversations.map((conversation) => (
+        {conversations.length === 0 ? (
+          <div className="p-4 text-center text-gray-500">
+            <p className="text-lg">No messages yet</p>
+            <p className="text-sm mt-1">Search above to start a conversation</p>
+          </div>
+        ) : (
+          <div className="divide-y">
+            {conversations.map((conversation) => (
               <ConversationItem
                 key={conversation.userId}
                 conversation={conversation}
@@ -54,9 +56,9 @@ const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) =
                 )}
                 onHide={(e) => handleHideConversation(e, conversation.userId)}
               />
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

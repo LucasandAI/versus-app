@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { EyeOff } from 'lucide-react';
 import { DMConversation } from '@/hooks/chat/dm/useConversations';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { formatDistanceToNow } from 'date-fns';
@@ -19,42 +19,43 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
   onHide
 }) => {
   const formattedTime = conversation.timestamp 
-    ? formatDistanceToNow(new Date(conversation.timestamp), { addSuffix: true })
+    ? formatDistanceToNow(new Date(conversation.timestamp), { addSuffix: false })
     : '';
 
   return (
     <div 
-      className={`flex items-center p-3 rounded-md transition-colors cursor-pointer
-        ${isSelected ? 'bg-gray-100' : 'hover:bg-gray-50'}`}
+      className={`flex items-center px-4 py-3 cursor-pointer hover:bg-gray-50
+        ${isSelected ? 'bg-gray-100' : ''}`}
       onClick={onSelect}
     >
       <UserAvatar
         name={conversation.userName}
         image={conversation.userAvatar}
-        size="md"
+        size="lg"
+        className="flex-shrink-0"
       />
       
-      <div className="ml-3 flex-1 min-w-0">
-        <div className="flex justify-between items-center">
-          <span className="font-medium text-gray-900 truncate">
+      <div className="ml-4 flex-1 min-w-0">
+        <div className="flex justify-between items-baseline">
+          <h2 className="text-xl font-semibold text-gray-900 truncate">
             {conversation.userName}
-          </span>
-          <span className="text-xs text-gray-500">
+          </h2>
+          <span className="text-sm text-gray-500 ml-2">
             {formattedTime}
           </span>
         </div>
         
-        <p className="text-sm text-gray-500 truncate">
+        <p className="text-gray-600 truncate mt-1">
           {conversation.lastMessage}
         </p>
       </div>
       
       <button
         onClick={onHide}
-        className="ml-2 p-1.5 rounded-full hover:bg-gray-200 transition-colors"
+        className="ml-2 p-2 rounded-full hover:bg-gray-200 transition-colors"
         aria-label={`Hide conversation with ${conversation.userName}`}
       >
-        <EyeOff size={16} className="text-gray-500" />
+        <EyeOff size={20} className="text-gray-400" />
       </button>
     </div>
   );
