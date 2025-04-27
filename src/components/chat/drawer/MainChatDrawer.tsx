@@ -25,7 +25,9 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   clubMessages = {}
 }) => {
   const [activeTab, setActiveTab] = useState<"clubs"|"dm"|"support">("clubs");
-
+  const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  
   // Listen for direct message events
   useEffect(() => {
     const handleOpenDM = (event: CustomEvent<{
@@ -43,6 +45,18 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     };
   }, []);
 
+  // Handle club selection
+  const handleSelectClub = (club: Club) => {
+    setSelectedLocalClub(club);
+    setSelectedTicket(null);
+  };
+
+  // Handle ticket selection
+  const handleSelectTicket = (ticket: SupportTicket) => {
+    setSelectedTicket(ticket);
+    setSelectedLocalClub(null);
+  };
+
   return (
     <ChatProvider>
       <Drawer open={open} onOpenChange={onOpenChange}>
@@ -55,9 +69,18 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
           <ChatDrawerContainer 
             activeTab={activeTab}
             clubs={clubs}
-            supportTickets={supportTickets}
+            selectedLocalClub={selectedLocalClub}
+            selectedTicket={selectedTicket}
+            localSupportTickets={supportTickets}
+            onSelectClub={handleSelectClub}
+            onSelectTicket={handleSelectTicket}
+            refreshKey={0}
             messages={clubMessages}
-            onNewMessage={onNewMessage}
+            deleteChat={() => {}}
+            unreadMessages={{}}
+            handleNewMessage={() => {}}
+            markTicketAsRead={() => {}}
+            onSendMessage={() => {}}
           />
         </DrawerContent>
       </Drawer>
