@@ -67,41 +67,48 @@ const MessageItem: React.FC<MessageItemProps> = ({
   };
 
   return (
-    <div className={`flex mb-6 group ${isUserMessage ? 'justify-end' : ''}`}>
-      <div className="relative flex max-w-[80%]">
+    <div className={`flex items-start mb-4 ${isUserMessage ? 'justify-end' : 'justify-start'}`}>
+      {!isUserMessage && (
         <UserAvatar
-          name={message.sender.name || (isUserMessage ? "You" : "Unknown")}
-          image={isUserMessage ? currentUserAvatar : message.sender.avatar}
+          name={message.sender.name || "Unknown"}
+          image={message.sender.avatar}
           size="sm"
-          className={`flex-shrink-0 mr-2 ${!isSupport && !isUserMessage ? 'cursor-pointer hover:opacity-80' : ''}`}
-          onClick={!isSupport && !isUserMessage ? handleProfileClick : undefined}
+          className={`flex-shrink-0 mr-2 ${!isSupport ? 'cursor-pointer hover:opacity-80' : ''}`}
+          onClick={!isSupport ? handleProfileClick : undefined}
+        />
+      )}
+
+      <div className={`flex flex-col ${isUserMessage ? 'items-end' : 'items-start'} max-w-sm`}>
+        {!isUserMessage && (
+          <button
+            className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left`}
+            onClick={!isSupport ? handleProfileClick : undefined}
+          >
+            {message.sender.name || "Unknown"}
+            {message.isSupport && <span className="ml-1 text-blue-500">(Support)</span>}
+          </button>
+        )}
+
+        <MessageContent
+          message={message}
+          isUserMessage={isUserMessage}
+          isSupport={isSupport}
+          onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
         />
 
-        <div className="flex flex-col">
-          {!isUserMessage && (
-            <button
-              className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left`}
-              onClick={!isSupport ? handleProfileClick : undefined}
-            >
-              {message.sender.name || "Unknown"}
-              {message.isSupport && <span className="ml-1 text-blue-500">(Support)</span>}
-            </button>
-          )}
-
-          <div className="relative">
-            <MessageContent
-              message={message}
-              isUserMessage={isUserMessage}
-              isSupport={isSupport}
-              onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
-            />
-
-            <div className="absolute -bottom-5 left-0 whitespace-nowrap text-xs text-gray-500">
-              {formatTime(getTimestamp())}
-            </div>
-          </div>
+        <div className="text-xs text-gray-500 mt-1 pr-1">
+          {formatTime(getTimestamp())}
         </div>
       </div>
+
+      {isUserMessage && (
+        <UserAvatar
+          name="You"
+          image={currentUserAvatar}
+          size="sm"
+          className="flex-shrink-0 ml-2"
+        />
+      )}
     </div>
   );
 };

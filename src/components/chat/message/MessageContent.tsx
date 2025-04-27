@@ -7,7 +7,7 @@ interface MessageContentProps {
   message: ChatMessage;
   isUserMessage: boolean;
   isSupport: boolean;
-  onDeleteMessage?: (messageId: string) => void;
+  onDeleteMessage?: () => void;
 }
 
 const MessageContent: React.FC<MessageContentProps> = ({
@@ -19,20 +19,19 @@ const MessageContent: React.FC<MessageContentProps> = ({
   return (
     <div className="flex items-start gap-2">
       <div 
-        className={`rounded-lg p-3 text-sm break-words flex-grow ${
+        className={`p-3 rounded-lg break-words ${
           isUserMessage 
             ? 'bg-primary text-white' 
             : isSupport
-            ? 'bg-blue-100 text-blue-800'
-            : 'bg-gray-100 text-gray-800'
+              ? 'bg-blue-100 text-blue-800'
+              : 'bg-gray-100 text-gray-800'
         }`}
       >
         {message.text}
       </div>
 
-      {/* Only show delete button if it's the user's message AND we have a delete handler AND it's not a support message */}
       {isUserMessage && onDeleteMessage && !isSupport && (
-        <MessageDeleteButton onDelete={() => onDeleteMessage(message.id)} />
+        <MessageDeleteButton onDelete={onDeleteMessage} />
       )}
     </div>
   );
