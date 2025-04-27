@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
@@ -14,6 +13,7 @@ export interface DMConversation {
 
 export const useConversations = (hiddenDMs: string[]) => {
   const [conversations, setConversations] = useState<DMConversation[]>([]);
+  const [refreshVersion, setRefreshVersion] = useState(0);
   const { currentUser } = useApp();
 
   const updateConversation = useCallback((otherUserId: string, newMessage: string, otherUserName?: string, otherUserAvatar?: string) => {
@@ -26,17 +26,14 @@ export const useConversations = (hiddenDMs: string[]) => {
       let updatedConversations = [...prevConversations];
       
       if (existingConversationIndex >= 0) {
-        // Update existing conversation
         updatedConversations[existingConversationIndex] = {
           ...updatedConversations[existingConversationIndex],
           lastMessage: newMessage,
           timestamp: now,
-          // Only update name and avatar if provided
           ...(otherUserName && { userName: otherUserName }),
           ...(otherUserAvatar && { userAvatar: otherUserAvatar })
         };
       } else if (otherUserName) {
-        // Add new conversation only if we have the user name
         updatedConversations = [{
           userId: otherUserId,
           userName: otherUserName,
@@ -46,11 +43,11 @@ export const useConversations = (hiddenDMs: string[]) => {
         }, ...updatedConversations];
       }
       
-      // Sort conversations by timestamp, most recent first
       return updatedConversations.sort(
         (a, b) => new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime()
       );
     });
+    setRefreshVersion(prev => prev + 1);
   }, []);
 
   const fetchConversations = useCallback(async () => {
@@ -178,5 +175,10 @@ export const useConversations = (hiddenDMs: string[]) => {
     };
   }, [currentUser?.id, fetchConversations, updateConversation]);
 
-  return { conversations, fetchConversations, updateConversation };
+  return { 
+    conversations, 
+    fetchConversations, 
+    updateConversation, 
+    refreshVersion 
+  };
 };

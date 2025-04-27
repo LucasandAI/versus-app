@@ -11,12 +11,11 @@ interface Props {
 
 const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) => {
   const { hideConversation, isConversationHidden, hiddenDMs } = useHiddenDMs();
-  const { conversations, fetchConversations } = useConversations(hiddenDMs);
+  const { conversations, refreshVersion } = useConversations(hiddenDMs);
 
-  // Force refresh conversations when the component mounts
   useEffect(() => {
-    fetchConversations();
-  }, [fetchConversations]);
+    console.log('[DMConversationList] Conversation list refreshed', { refreshVersion });
+  }, [refreshVersion]);
 
   const handleHideConversation = (
     e: React.MouseEvent,

@@ -3,6 +3,7 @@ import React from 'react';
 import { X } from 'lucide-react';
 import UserAvatar from '@/components/shared/UserAvatar';
 import type { DMConversation } from '@/hooks/chat/dm/useConversations';
+import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +29,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
   onHide
 }) => {
   const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
+  const { formatTime } = useMessageFormatting();
 
   const handleHideClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -56,7 +58,14 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
         <div className="flex-1 min-w-0">
           <p className="font-medium truncate">{conversation.userName}</p>
           {conversation.lastMessage && (
-            <p className="text-sm text-gray-500 truncate">{conversation.lastMessage}</p>
+            <div className="flex items-baseline space-x-2">
+              <p className="text-sm text-gray-500 truncate flex-1">{conversation.lastMessage}</p>
+              {conversation.timestamp && (
+                <span className="text-xs text-gray-400 whitespace-nowrap">
+                  {formatTime(conversation.timestamp)}
+                </span>
+              )}
+            </div>
           )}
         </div>
         <button
