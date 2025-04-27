@@ -5,7 +5,6 @@ import { SupportTicket } from '@/types/chat';
 import DMContainer from './dm/DMContainer';
 import SupportTabContent from './support/SupportTabContent';
 import ChatClubContainer from './club/ChatClubContainer';
-import DMSearchPanel from './dm/DMSearchPanel';
 
 interface ChatDrawerContainerProps {
   activeTab: "clubs" | "dm" | "support";

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { Textarea } from "@/components/ui/textarea";
 
 interface NewTicketDialogProps {
   open: boolean;
@@ -57,7 +58,11 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={(isOpen) => {
+      if (!isSubmitting) {
+        onOpenChange(isOpen);
+      }
+    }}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
@@ -69,8 +74,8 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="grid gap-4 py-4">
-          <textarea 
-            className="w-full min-h-[100px] p-2 border rounded-md" 
+          <Textarea 
+            className="w-full min-h-[100px] p-2 border rounded-md resize-none" 
             placeholder="Describe your issue in detail..."
             value={supportMessage}
             onChange={(e) => setSupportMessage(e.target.value)}
@@ -78,10 +83,10 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
           />
         </div>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => setSupportMessage('')} disabled={isSubmitting}>
+          <AlertDialogCancel onClick={() => !isSubmitting && onOpenChange(false)} disabled={isSubmitting}>
             Cancel
           </AlertDialogCancel>
-          <AlertDialogAction onClick={handleSubmit} disabled={isSubmitting}>
+          <AlertDialogAction onClick={handleSubmit} disabled={isSubmitting || !supportMessage.trim()}>
             {isSubmitting ? (
               <div className="flex items-center">
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />

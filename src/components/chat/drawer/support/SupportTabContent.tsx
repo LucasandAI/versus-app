@@ -7,6 +7,7 @@ import NewTicketDialog from './NewTicketDialog';
 import ChatTicketContent from '../../ChatTicketContent';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { useSupportTicketEffects } from '@/hooks/chat/useSupportTicketEffects';
 
 interface SupportTabContentProps {
   supportTickets: SupportTicket[];
@@ -37,34 +38,33 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
 }) => {
   const [supportOptionsOpen, setSupportOptionsOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [localSupportTickets, setLocalSupportTickets] = useState(initialSupportTickets);
+  const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>(initialSupportTickets);
   
+  // Load tickets from local storage and handle updates
+  useSupportTicketEffects(activeTab === "support", setLocalSupportTickets);
+  
+  // Also update from props when they change
   useEffect(() => {
-    setLocalSupportTickets(initialSupportTickets);
+    if (initialSupportTickets.length > 0) {
+      setLocalSupportTickets(initialSupportTickets);
+    }
   }, [initialSupportTickets]);
-  
-  useEffect(() => {
-    const handleTicketDeleted = (event: CustomEvent) => {
-      const { ticketId } = event.detail;
-      setLocalSupportTickets(current => 
-        current.filter(ticket => ticket.id !== ticketId)
-      );
-    };
-    
-    window.addEventListener('supportTicketDeleted', handleTicketDeleted as EventListener);
-    
-    return () => {
-      window.removeEventListener('supportTicketDeleted', handleTicketDeleted as EventListener);
-    };
-  }, []);
 
   const handleTicketClosed = () => {
     onSelectTicket(null as any);
   };
 
   const handleSubmitTicket = async () => {
-    await handleSubmitSupportTicket();
-    setDialogOpen(false);
+    if (!supportMessage.trim() || !selectedSupportOption) {
+      return;
+    }
+    
+    try {
+      await handleSubmitSupportTicket();
+      setDialogOpen(false);
+    } catch (error) {
+      console.error("Failed to submit ticket:", error);
+    }
   };
 
   return (

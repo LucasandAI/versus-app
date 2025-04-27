@@ -5,6 +5,7 @@ import DMConversationList from './DMConversationList';
 import DMConversation from './DMConversation';
 import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 import UserAvatar from '@/components/shared/UserAvatar';
+import DMSearchPanel from './DMSearchPanel';
 
 type SelectedUser = {
   id: string;
@@ -91,11 +92,8 @@ const DMContainer: React.FC<DMContainerProps> = ({
   return (
     <div className="flex flex-col h-full w-full">
       {!selectedUser ? (
-        // Conversation list view
-        <DMConversationList 
-          onSelectUser={handleSelectUser}
-          selectedUserId={null}
-        />
+        // Conversation list view with search panel
+        <DMSearchPanel />
       ) : (
         // Single conversation view
         <div className="flex flex-col h-full">
