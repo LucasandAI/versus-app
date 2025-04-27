@@ -49,7 +49,7 @@ const DMSearchPanel: React.FC = () => {
   return (
     <div className="flex h-full w-full">
       <div className="w-[240px] border-r flex flex-col h-full">
-        <div ref={searchContainerRef} className="relative">
+        <div ref={searchContainerRef} className="relative z-10">
           <SearchBar 
             value={query} 
             onChange={handleInputChange}
