@@ -44,15 +44,15 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
 
   const truncateMessage = (message: string) => {
     if (!message) return '';
-    if (message.length <= 40) return message;
-    return `${message.substring(0, 40)}...`;
+    if (message.length <= 15) return message;
+    return `${message.substring(0, 15)}...`;
   };
 
   return (
     <>
       <button
         onClick={onSelect}
-        className={`flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors w-full text-left group ${
+        className={`flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors w-full text-left group relative ${
           isSelected ? 'bg-gray-100' : ''
         }`}
       >
@@ -61,27 +61,27 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
           image={conversation.userAvatar}
           size="sm"
         />
-
+        
         <div className="flex-1 min-w-0">
-          <div className="flex items-baseline justify-between w-full">
-            <p className="font-medium truncate flex-shrink-1">{conversation.userName}</p>
+          <div className="flex justify-between items-center w-full mb-0.5">
+            <span className="font-medium truncate max-w-[60%]">
+              {conversation.userName}
+            </span>
             {conversation.timestamp && (
-              <span className="text-xs text-gray-400 ml-2 flex-shrink-0 whitespace-nowrap">
+              <span className="text-xs text-gray-400 ml-2 whitespace-nowrap flex-shrink-0">
                 {formatTime(conversation.timestamp)}
               </span>
             )}
           </div>
           
-          {conversation.lastMessage && (
-            <p className="text-sm text-gray-500 truncate">
-              {truncateMessage(conversation.lastMessage)}
-            </p>
-          )}
+          <p className="text-sm text-gray-500 truncate max-w-[90%]">
+            {conversation.lastMessage ? truncateMessage(conversation.lastMessage) : ''}
+          </p>
         </div>
 
         <button
           onClick={handleHideClick}
-          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded transition-all ml-2"
+          className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 hover:bg-gray-200 rounded transition-all"
           aria-label="Hide conversation"
         >
           <X className="h-4 w-4 text-gray-500" />

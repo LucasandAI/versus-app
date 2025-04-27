@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
@@ -27,31 +26,29 @@ export const useConversations = (hiddenDMs: string[]) => {
       let updatedConversations = [...prevConversations];
       
       if (existingConversationIndex >= 0) {
-        // Update existing conversation
-        updatedConversations[existingConversationIndex] = {
-          ...updatedConversations[existingConversationIndex],
+        // Move existing conversation to top and update
+        const existingConv = { ...updatedConversations[existingConversationIndex] };
+        updatedConversations.splice(existingConversationIndex, 1);
+        updatedConversations.unshift({
+          ...existingConv,
           lastMessage: newMessage,
           timestamp: now,
           ...(otherUserName && { userName: otherUserName }),
           ...(otherUserAvatar && { userAvatar: otherUserAvatar })
-        };
+        });
       } else if (otherUserName) {
-        // Add new conversation
-        updatedConversations = [{
+        // Add new conversation at the top
+        updatedConversations.unshift({
           userId: otherUserId,
           userName: otherUserName,
           userAvatar: otherUserAvatar,
           lastMessage: newMessage,
           timestamp: now
-        }, ...updatedConversations];
+        });
       }
-      
-      // Sort by latest message
-      return updatedConversations.sort(
-        (a, b) => new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime()
-      );
+
+      return updatedConversations;
     });
-    setRefreshVersion(prev => prev + 1);
   }, []);
 
   const fetchConversations = useCallback(async () => {
@@ -128,7 +125,6 @@ export const useConversations = (hiddenDMs: string[]) => {
 
     console.log('[useConversations] Setting up real-time subscription');
     
-    // Subscribe to outgoing messages
     const outgoingChannel = supabase
       .channel('dm-outgoing')
       .on('postgres_changes', 
@@ -139,14 +135,12 @@ export const useConversations = (hiddenDMs: string[]) => {
           filter: `sender_id=eq.${currentUser.id}`
         },
         (payload: any) => {
-          console.log('[useConversations] Outgoing DM detected');
-          // Instantly update conversation for outgoing messages
+          console.log('[useConversations] Outgoing DM detected:', payload);
           updateConversation(payload.new.receiver_id, payload.new.text);
         }
       )
       .subscribe();
     
-    // Subscribe to incoming messages
     const incomingChannel = supabase
       .channel('dm-incoming')
       .on('postgres_changes', 
@@ -157,8 +151,7 @@ export const useConversations = (hiddenDMs: string[]) => {
           filter: `receiver_id=eq.${currentUser.id}`
         },
         async (payload: any) => {
-          console.log('[useConversations] Incoming DM detected');
-          // Fetch sender info and instantly update conversation
+          console.log('[useConversations] Incoming DM detected:', payload);
           const { data: senderData } = await supabase
             .from('users')
             .select('name, avatar')
@@ -175,7 +168,6 @@ export const useConversations = (hiddenDMs: string[]) => {
       )
       .subscribe();
 
-    // Initial fetch of conversations
     fetchConversations();
 
     return () => {
