@@ -31,12 +31,17 @@ export const useSupportTicketEffects = (
       loadStoredTickets();
     };
 
-    window.addEventListener('supportTicketCreated', handleTicketUpdated);
+    const handleTicketCreated = (event: CustomEvent) => {
+      console.log("New ticket created:", event.detail);
+      loadStoredTickets();
+    };
+
+    window.addEventListener('supportTicketCreated', handleTicketCreated as EventListener);
     window.addEventListener('ticketUpdated', handleTicketUpdated);
     window.addEventListener('notificationsUpdated', handleTicketUpdated);
     
     return () => {
-      window.removeEventListener('supportTicketCreated', handleTicketUpdated);
+      window.removeEventListener('supportTicketCreated', handleTicketCreated as EventListener);
       window.removeEventListener('ticketUpdated', handleTicketUpdated);
       window.removeEventListener('notificationsUpdated', handleTicketUpdated);
     };

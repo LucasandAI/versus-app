@@ -50,6 +50,24 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
     }
   }, [initialSupportTickets]);
 
+  // Effect to refresh tickets when navigating to support tab
+  useEffect(() => {
+    if (activeTab === "support") {
+      try {
+        const storedTickets = localStorage.getItem('supportTickets');
+        if (storedTickets) {
+          const parsedTickets = JSON.parse(storedTickets);
+          if (Array.isArray(parsedTickets) && parsedTickets.length > 0) {
+            console.log("Refreshed tickets from localStorage:", parsedTickets.length);
+            setLocalSupportTickets(parsedTickets);
+          }
+        }
+      } catch (error) {
+        console.error("Error parsing support tickets:", error);
+      }
+    }
+  }, [activeTab]);
+
   const handleTicketClosed = () => {
     onSelectTicket(null as any);
   };
@@ -62,6 +80,19 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
     try {
       await handleSubmitSupportTicket();
       setDialogOpen(false);
+      
+      // Refresh tickets after submission
+      const storedTickets = localStorage.getItem('supportTickets');
+      if (storedTickets) {
+        try {
+          const parsedTickets = JSON.parse(storedTickets);
+          if (Array.isArray(parsedTickets)) {
+            setLocalSupportTickets(parsedTickets);
+          }
+        } catch (error) {
+          console.error("Error refreshing tickets after submit:", error);
+        }
+      }
     } catch (error) {
       console.error("Failed to submit ticket:", error);
     }

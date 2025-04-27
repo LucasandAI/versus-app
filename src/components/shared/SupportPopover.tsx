@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { HelpCircle } from 'lucide-react';
 import { 
@@ -33,7 +34,7 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
   };
 
   const handleSubmit = () => {
-    if (!message.trim()) {
+    if (!message.trim() || !selectedOption) {
       toast({
         title: "Message Required",
         description: "Please provide details before submitting.",
@@ -44,81 +45,92 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
 
     setIsSubmitting(true);
     
-    // Small delay to show submitting state
-    setTimeout(() => {
-      createSupportChat(selectedOption!, message);
-      setIsSubmitting(false);
-      setDialogOpen(false);
-      setMessage('');
+    try {
+      // Create the support ticket
+      const ticketId = 'support-' + Date.now();
+      const subject = selectedOption.label;
+      
+      console.log('Creating support ticket:', {
+        type: selectedOption.id,
+        label: selectedOption.label,
+        message: message,
+        user: currentUser?.id || 'guest',
+        timestamp: new Date().toISOString()
+      });
+      
+      const newTicket = {
+        id: ticketId,
+        subject: subject,
+        createdAt: new Date().toISOString(),
+        status: 'open',
+        messages: [
+          {
+            id: Date.now().toString(),
+            text: message,
+            sender: {
+              id: currentUser?.id || 'anonymous',
+              name: currentUser?.name || 'Anonymous',
+              avatar: currentUser?.avatar || '/placeholder.svg',
+            },
+            timestamp: new Date().toISOString(),
+            isSupport: false
+          },
+          {
+            id: 'support-auto-' + Date.now(),
+            text: `Thank you for contacting support about "${subject}". A support agent will review your request and respond shortly.`,
+            sender: {
+              id: 'support',
+              name: 'Support Team',
+              avatar: '/placeholder.svg'
+            },
+            timestamp: new Date(Date.now() + 1000).toISOString(),
+            isSupport: true
+          }
+        ]
+      };
+      
+      // Save to localStorage
+      const existingTickets = localStorage.getItem('supportTickets');
+      const tickets = existingTickets ? JSON.parse(existingTickets) : [];
+      tickets.unshift(newTicket); // Add to beginning of array
+      localStorage.setItem('supportTickets', JSON.stringify(tickets));
+      
+      // Update unread messages
+      const unreadMessages = localStorage.getItem('unreadMessages');
+      const unreadMap = unreadMessages ? JSON.parse(unreadMessages) : {};
+      unreadMap[ticketId] = 1;
+      localStorage.setItem('unreadMessages', JSON.stringify(unreadMap));
+      
+      // Dispatch events to update UI
+      window.dispatchEvent(new CustomEvent('supportTicketCreated', { 
+        detail: { ticketId, count: 1 }
+      }));
+      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+      
+      // If callback exists, call it
+      if (onCreateSupportChat) {
+        onCreateSupportChat(ticketId, subject, message);
+      }
       
       toast({
         title: "Support Request Sent",
-        description: `Your ${selectedOption?.label.toLowerCase()} has been submitted. A support agent will get back to you soon.`,
+        description: `Your ${selectedOption.label.toLowerCase()} request has been submitted. A support agent will get back to you soon.`,
       });
-    }, 500);
-  };
-
-  const createSupportChat = (option: SupportOption, messageContent: string) => {
-    const ticketId = 'support-' + Date.now();
-    const subject = option.label;
-    
-    console.log('Support request created:', {
-      type: option.id,
-      label: option.label,
-      message: messageContent,
-      user: currentUser?.id || 'guest',
-      timestamp: new Date().toISOString()
-    });
-    
-    const newTicket = {
-      id: ticketId,
-      subject: subject,
-      createdAt: new Date().toISOString(),
-      messages: [
-        {
-          id: Date.now().toString(),
-          text: messageContent,
-          sender: {
-            id: currentUser?.id || 'anonymous',
-            name: currentUser?.name || 'Anonymous',
-            avatar: currentUser?.avatar || '/placeholder.svg',
-          },
-          timestamp: new Date().toISOString(),
-          isSupport: false
-        },
-        {
-          id: 'support-auto-' + Date.now(),
-          text: `Thank you for contacting support about "${subject}". A support agent will review your request and respond shortly.`,
-          sender: {
-            id: 'support',
-            name: 'Support Team',
-            avatar: '/placeholder.svg'
-          },
-          timestamp: new Date(Date.now() + 1000).toISOString(),
-          isSupport: true
-        }
-      ]
-    };
-    
-    const existingTickets = localStorage.getItem('supportTickets');
-    const tickets = existingTickets ? JSON.parse(existingTickets) : [];
-    tickets.push(newTicket);
-    localStorage.setItem('supportTickets', JSON.stringify(tickets));
-    
-    const unreadMessages = localStorage.getItem('unreadMessages');
-    const unreadMap = unreadMessages ? JSON.parse(unreadMessages) : {};
-    unreadMap[ticketId] = 1;
-    localStorage.setItem('unreadMessages', JSON.stringify(unreadMap));
-    
-    window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
-    window.dispatchEvent(new CustomEvent('supportTicketCreated', { 
-      detail: { ticketId, count: 1 }
-    }));
-    const event = new CustomEvent('notificationsUpdated');
-    window.dispatchEvent(event);
-    
-    if (onCreateSupportChat) {
-      onCreateSupportChat(ticketId, subject, messageContent);
+      
+      // Reset states
+      setDialogOpen(false);
+      setMessage('');
+      setSelectedOption(null);
+    } catch (error) {
+      console.error('Error creating support ticket:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create support ticket. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
