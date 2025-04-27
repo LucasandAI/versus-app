@@ -1,7 +1,6 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { SupportTicket } from '@/types/chat';
-import { HelpCircle, Trash2, XCircle } from 'lucide-react';
+import { HelpCircle, Trash2 } from 'lucide-react';
 
 interface SupportTicketsListProps {
   tickets: SupportTicket[];
@@ -17,16 +16,36 @@ interface SupportTicketsListProps {
 }
 
 const SupportTicketsList: React.FC<SupportTicketsListProps> = ({
-  tickets,
+  tickets: initialTickets,
   selectedTicket,
   onSelectTicket,
   onDeleteChat,
   unreadCounts,
   setChatToDelete
 }) => {
-  if (!tickets.length) return null;
+  const [localTickets, setLocalTickets] = useState(initialTickets);
+  
+  useEffect(() => {
+    setLocalTickets(initialTickets);
+  }, [initialTickets]);
+  
+  useEffect(() => {
+    const handleTicketDeleted = (event: CustomEvent) => {
+      const { ticketId } = event.detail;
+      setLocalTickets(current => 
+        current.filter(ticket => ticket.id !== ticketId)
+      );
+    };
+    
+    window.addEventListener('supportTicketDeleted', handleTicketDeleted as EventListener);
+    
+    return () => {
+      window.removeEventListener('supportTicketDeleted', handleTicketDeleted as EventListener);
+    };
+  }, []);
 
-  // Handler for selecting a ticket with logging
+  if (!localTickets.length) return null;
+
   const handleSelectTicket = (ticket: SupportTicket) => {
     console.log('[SupportTicketsList] Selecting ticket:', ticket.id, 
       'Current selection:', selectedTicket?.id);
@@ -40,7 +59,7 @@ const SupportTicketsList: React.FC<SupportTicketsListProps> = ({
       </div>
       
       <ul>
-        {tickets.map(ticket => {
+        {localTickets.map(ticket => {
           const isSelected = selectedTicket && ticket.id === selectedTicket.id;
           const unreadCount = unreadCounts[ticket.id] || 0;
           

@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { SupportTicket } from '@/types/chat';
 import { ArrowLeft } from 'lucide-react';
 import SupportOptions from './SupportOptions';
@@ -23,7 +22,7 @@ interface SupportTabContentProps {
 }
 
 const SupportTabContent: React.FC<SupportTabContentProps> = ({
-  supportTickets,
+  supportTickets: initialSupportTickets,
   onSelectTicket,
   handleSubmitSupportTicket,
   supportMessage,
@@ -35,8 +34,28 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
   setSelectedSupportOption,
   activeTab
 }) => {
-  const [supportOptionsOpen, setSupportOptionsOpen] = React.useState(false);
-  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [supportOptionsOpen, setSupportOptionsOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [localSupportTickets, setLocalSupportTickets] = useState(initialSupportTickets);
+  
+  useEffect(() => {
+    setLocalSupportTickets(initialSupportTickets);
+  }, [initialSupportTickets]);
+  
+  useEffect(() => {
+    const handleTicketDeleted = (event: CustomEvent) => {
+      const { ticketId } = event.detail;
+      setLocalSupportTickets(current => 
+        current.filter(ticket => ticket.id !== ticketId)
+      );
+    };
+    
+    window.addEventListener('supportTicketDeleted', handleTicketDeleted as EventListener);
+    
+    return () => {
+      window.removeEventListener('supportTicketDeleted', handleTicketDeleted as EventListener);
+    };
+  }, []);
 
   const handleTicketClosed = () => {
     onSelectTicket(null as any);
@@ -55,13 +74,13 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
             <h1 className="text-4xl font-bold">Support</h1>
           </div>
           <div className="flex-1 overflow-y-auto p-4">
-            {supportTickets.length === 0 ? (
+            {localSupportTickets.length === 0 ? (
               <div className="text-gray-500 text-center py-8">
                 No support tickets yet. Click "New Ticket" to create one.
               </div>
             ) : (
               <div className="space-y-3">
-                {supportTickets.map((ticket) => (
+                {localSupportTickets.map((ticket) => (
                   <div 
                     key={ticket.id} 
                     onClick={() => onSelectTicket(ticket)}

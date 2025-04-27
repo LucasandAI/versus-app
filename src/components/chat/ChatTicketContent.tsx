@@ -82,11 +82,12 @@ const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicket
   const handleCloseTicket = async () => {
     try {
       // Update local storage optimistically
+      let updatedTickets = [];
       try {
         const storedTickets = localStorage.getItem('supportTickets');
         if (storedTickets) {
           const parsedTickets = JSON.parse(storedTickets);
-          const updatedTickets = parsedTickets.filter((t: SupportTicket) => t.id !== ticket.id);
+          updatedTickets = parsedTickets.filter((t: SupportTicket) => t.id !== ticket.id);
           localStorage.setItem('supportTickets', JSON.stringify(updatedTickets));
         }
       } catch (error) {
@@ -140,7 +141,7 @@ const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicket
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
       <div className="border-b p-3 flex justify-between items-center">
         <div>
           <h3 className="font-semibold">{ticket.subject}</h3>
@@ -159,23 +160,21 @@ const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicket
         </Button>
       </div>
 
-      <div className="flex-1 flex flex-col h-full relative overflow-hidden">
-        <div className="flex-1 overflow-y-auto">
-          <ChatMessages 
-            messages={localMessages} 
-            clubMembers={currentUser ? [currentUser] : []}
-            isSupport={true}
-          />
-          <div ref={messagesEndRef} />
-        </div>
-        
-        <div className="sticky bottom-0 left-0 right-0 bg-white border-t min-h-[64px]">
-          <ChatInput 
-            onSendMessage={handleSendMessage}
-            conversationId={ticket.id}
-            conversationType="support" 
-          />
-        </div>
+      <div className="flex-1 overflow-y-auto pb-16">
+        <ChatMessages 
+          messages={localMessages} 
+          clubMembers={currentUser ? [currentUser] : []}
+          isSupport={true}
+        />
+        <div ref={messagesEndRef} />
+      </div>
+      
+      <div className="absolute bottom-0 left-0 right-0 bg-white border-t">
+        <ChatInput 
+          onSendMessage={handleSendMessage}
+          conversationId={ticket.id}
+          conversationType="support" 
+        />
       </div>
     </div>
   );
