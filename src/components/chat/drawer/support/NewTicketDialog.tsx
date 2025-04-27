@@ -56,6 +56,7 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
         description: "Please select a support topic before submitting",
         variant: "destructive"
       });
+      console.error("Submit attempted with no selectedOption:", selectedOption);
       return;
     }
     

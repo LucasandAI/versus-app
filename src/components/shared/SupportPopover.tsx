@@ -11,6 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { useApp } from '@/context/AppContext';
 import { SupportOptionsList, type SupportOption } from './support/SupportOptionsList';
 import NewTicketDialog from '../chat/drawer/support/NewTicketDialog';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SupportPopoverProps {
   onCreateSupportChat?: (ticketId: string, subject: string, message: string) => void;
@@ -33,7 +34,7 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
     setDialogOpen(true);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!message.trim() || !selectedOption) {
       toast({
         title: "Message Required",
@@ -45,21 +46,60 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
 
     setIsSubmitting(true);
     
+    console.log('[Submitting Support Ticket]', {
+      subject: selectedOption?.label,
+      message: message
+    });
+    
     try {
-      // Create the support ticket
+      // Create the support ticket in Supabase
       const ticketId = 'support-' + Date.now();
       const subject = selectedOption.label;
       
-      console.log('Creating support ticket:', {
-        type: selectedOption.id,
-        label: selectedOption.label,
-        message: message,
-        user: currentUser?.id || 'guest',
-        timestamp: new Date().toISOString()
-      });
+      // Insert into Supabase
+      const { data, error } = await supabase
+        .from('support_tickets')
+        .insert({
+          subject: selectedOption.label,
+          user_id: currentUser?.id || 'anonymous',
+          status: 'open'
+        })
+        .select()
+        .single();
       
+      if (error) {
+        console.error('Error inserting support ticket:', error);
+        throw new Error(`Failed to create ticket: ${error.message}`);
+      }
+      
+      // Now add the first message to this ticket
+      const { error: messageError } = await supabase
+        .from('support_messages')
+        .insert({
+          ticket_id: data.id,
+          text: message,
+          sender_id: currentUser?.id,
+          is_support: false
+        });
+      
+      if (messageError) {
+        console.error('Error inserting support message:', messageError);
+        throw new Error(`Failed to create message: ${messageError.message}`);
+      }
+      
+      // Add auto-response from support
+      await supabase
+        .from('support_messages')
+        .insert({
+          ticket_id: data.id,
+          text: `Thank you for contacting support about "${subject}". A support agent will review your request and respond shortly.`,
+          sender_id: null,
+          is_support: true
+        });
+      
+      // For backwards compatibility with localStorage implementation
       const newTicket = {
-        id: ticketId,
+        id: data.id,
         subject: subject,
         createdAt: new Date().toISOString(),
         status: 'open',
@@ -89,7 +129,7 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
         ]
       };
       
-      // Save to localStorage
+      // Save to localStorage for compatibility with existing code
       const existingTickets = localStorage.getItem('supportTickets');
       const tickets = existingTickets ? JSON.parse(existingTickets) : [];
       tickets.unshift(newTicket); // Add to beginning of array
@@ -98,19 +138,19 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
       // Update unread messages
       const unreadMessages = localStorage.getItem('unreadMessages');
       const unreadMap = unreadMessages ? JSON.parse(unreadMessages) : {};
-      unreadMap[ticketId] = 1;
+      unreadMap[data.id] = 1;
       localStorage.setItem('unreadMessages', JSON.stringify(unreadMap));
       
       // Dispatch events to update UI
       window.dispatchEvent(new CustomEvent('supportTicketCreated', { 
-        detail: { ticketId, count: 1 }
+        detail: { ticketId: data.id, count: 1 }
       }));
       window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
       window.dispatchEvent(new CustomEvent('notificationsUpdated'));
       
       // If callback exists, call it
       if (onCreateSupportChat) {
-        onCreateSupportChat(ticketId, subject, message);
+        onCreateSupportChat(data.id, subject, message);
       }
       
       toast({
@@ -155,7 +195,7 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
       <NewTicketDialog
         open={dialogOpen}
         onOpenChange={(value) => {
-          if (!value) {
+          if (!value && !isSubmitting) {
             setDialogOpen(false);
           }
         }}
