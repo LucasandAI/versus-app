@@ -1,5 +1,6 @@
+
 import { useEffect, useState } from 'react';
-import { SupportTicket } from '@/types/chat';
+import { SupportTicket, ChatMessage } from '@/types/chat';
 import { useSupportTicketStorage } from './support/useSupportTicketStorage';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -16,6 +17,7 @@ export const useSupportTicketEffects = (
     
     const loadTickets = async () => {
       const tickets = await fetchTicketsFromSupabase();
+      // The fetchTicketsFromSupabase function now handles the mapping correctly
       setTickets(tickets);
       setInitialLoadDone(true);
     };
@@ -27,7 +29,16 @@ export const useSupportTicketEffects = (
         const parsedTickets = JSON.parse(storedTickets);
         if (Array.isArray(parsedTickets) && parsedTickets.length > 0) {
           console.log("[useSupportTicketEffects] Loaded tickets from localStorage:", parsedTickets.length);
-          setTickets(parsedTickets);
+          // Ensure the parsed tickets match our SupportTicket type
+          const validTickets = parsedTickets.filter(
+            (ticket): ticket is SupportTicket => 
+              'id' in ticket && 
+              'subject' in ticket && 
+              'createdAt' in ticket && 
+              'status' in ticket && 
+              'messages' in ticket
+          );
+          setTickets(validTickets);
         }
       }
     } catch (error) {
@@ -49,7 +60,16 @@ export const useSupportTicketEffects = (
           const parsedTickets = JSON.parse(storedTickets);
           if (Array.isArray(parsedTickets)) {
             console.log("[useSupportTicketEffects] Updating tickets after event:", parsedTickets.length);
-            setTickets(parsedTickets);
+            // Ensure the parsed tickets match our SupportTicket type
+            const validTickets = parsedTickets.filter(
+              (ticket): ticket is SupportTicket => 
+                'id' in ticket && 
+                'subject' in ticket && 
+                'createdAt' in ticket && 
+                'status' in ticket && 
+                'messages' in ticket
+            );
+            setTickets(validTickets);
           }
         }
       } catch (error) {

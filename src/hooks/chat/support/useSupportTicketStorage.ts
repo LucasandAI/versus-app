@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SupportTicket, ChatMessage } from '@/types/chat';
@@ -38,7 +37,10 @@ export const useSupportTicketStorage = () => {
         if (messagesError) {
           console.error('[useSupportTicketStorage] Error fetching messages:', messagesError);
           return {
-            ...ticket,
+            id: ticket.id,
+            subject: ticket.subject,
+            createdAt: ticket.created_at,
+            status: ticket.status,
             messages: []
           };
         }
@@ -56,6 +58,7 @@ export const useSupportTicketStorage = () => {
           isSupport: msg.is_support
         }));
         
+        // Map the database structure to our application structure
         return {
           id: ticket.id,
           subject: ticket.subject,
@@ -142,7 +145,7 @@ export const useSupportTicketStorage = () => {
       const newTicket: SupportTicket = {
         id: ticketData.id,
         subject,
-        createdAt: new Date().toISOString(),
+        createdAt: ticketData.created_at,
         status: 'open',
         messages: [
           {
