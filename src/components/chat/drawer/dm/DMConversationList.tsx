@@ -15,7 +15,7 @@ const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) =
   const { hideConversation, hiddenDMs } = useHiddenDMs();
   const { conversations } = useConversations(hiddenDMs);
   const { query, setQuery, searchUsers } = useUserSearch();
-
+  
   const handleHideConversation = (
     e: React.MouseEvent,
     userId: string
@@ -34,7 +34,11 @@ const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) =
   return (
     <div className="flex flex-col h-full bg-white">
       <h1 className="text-4xl font-bold p-4">Messages</h1>
-      <SearchBar value={query} onChange={handleSearchChange} />
+      <SearchBar 
+        value={query} 
+        onChange={handleSearchChange} 
+        showResults={false} 
+      />
       
       <div className="flex-1 overflow-auto">
         {conversations.length === 0 ? (
