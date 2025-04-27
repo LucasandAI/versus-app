@@ -80,7 +80,9 @@ export const useConversations = (hiddenDMs: string[]) => {
       const sortedConversations = Array.from(conversationsMap.values())
         .sort((a, b) => new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime());
 
-      setConversations(sortedConversations);
+      // Force a complete state update to trigger a re-render
+      setConversations([...sortedConversations]);
+      console.log('[useConversations] Updated conversations:', sortedConversations.length);
     } catch (error) {
       console.error('Error loading conversations:', error);
       toast({
@@ -97,17 +99,35 @@ export const useConversations = (hiddenDMs: string[]) => {
 
     console.log('[useConversations] Setting up real-time subscription');
     
-    const channel = supabase
-      .channel('dm-changes')
+    // Create a channel for outgoing messages (sent by current user)
+    const outgoingChannel = supabase
+      .channel('dm-outgoing')
       .on('postgres_changes', 
         { 
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'direct_messages',
-          filter: `sender_id=eq.${currentUser.id},receiver_id=eq.${currentUser.id}` 
+          filter: `sender_id=eq.${currentUser.id}`
         },
         (payload) => {
-          console.log('[useConversations] DM change detected, refreshing conversations');
+          console.log('[useConversations] Outgoing DM detected, refreshing conversations');
+          fetchConversations();
+        }
+      )
+      .subscribe();
+    
+    // Create a channel for incoming messages (received by current user)
+    const incomingChannel = supabase
+      .channel('dm-incoming')
+      .on('postgres_changes', 
+        { 
+          event: 'INSERT',
+          schema: 'public',
+          table: 'direct_messages',
+          filter: `receiver_id=eq.${currentUser.id}`
+        },
+        (payload) => {
+          console.log('[useConversations] Incoming DM detected, refreshing conversations');
           fetchConversations();
         }
       )
@@ -116,9 +136,10 @@ export const useConversations = (hiddenDMs: string[]) => {
     fetchConversations();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(outgoingChannel);
+      supabase.removeChannel(incomingChannel);
     };
-  }, [currentUser?.id, fetchConversations, hiddenDMs]);
+  }, [currentUser?.id, fetchConversations]);
 
   return { conversations, fetchConversations };
 };

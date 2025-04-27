@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 import ConversationItem from './ConversationItem';
 import { useConversations } from '@/hooks/chat/dm/useConversations';
@@ -12,6 +12,11 @@ interface Props {
 const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) => {
   const { hideConversation, isConversationHidden, hiddenDMs } = useHiddenDMs();
   const { conversations, fetchConversations } = useConversations(hiddenDMs);
+
+  // Force refresh conversations when the component mounts
+  useEffect(() => {
+    fetchConversations();
+  }, [fetchConversations]);
 
   const handleHideConversation = (
     e: React.MouseEvent,
