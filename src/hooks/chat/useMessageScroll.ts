@@ -9,7 +9,7 @@ export const useMessageScroll = (messages: any[]) => {
     if (lastMessageRef.current) {
       lastMessageRef.current.scrollIntoView({
         behavior: smooth ? 'smooth' : 'auto',
-        block: 'end'  // Ensure the last message is aligned to the bottom
+        block: 'end'
       });
     } else if (scrollRef.current) {
       // Fallback if there's no last message ref
