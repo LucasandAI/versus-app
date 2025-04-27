@@ -1,14 +1,16 @@
 
-import React, { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import { toast } from '@/hooks/use-toast';
-import ChatHeader from '../../ChatHeader';
+import DMHeader from './DMHeader';
 import ChatInput from '../../ChatInput';
 import MessageList from '../../message/MessageList';
 import { useConversations } from '@/hooks/chat/dm/useConversations';
 import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
+import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
+import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
+import AppHeader from '@/components/shared/AppHeader';
 
 interface DMConversationProps {
   userId: string;
@@ -22,6 +24,8 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
   const [isSending, setIsSending] = useState(false);
   const { hiddenDMs, refreshConversations } = useHiddenDMs();
   const { refreshConversations: updateConversationsList } = useConversations(hiddenDMs);
+  const { formatTime } = useMessageFormatting();
+  const { scrollRef, lastMessageRef, scrollToBottom } = useMessageScroll(messages);
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -36,6 +40,11 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
 
         if (error) throw error;
         setMessages(data || []);
+        
+        // Scroll to the bottom when messages load
+        setTimeout(() => {
+          scrollToBottom();
+        }, 100);
       } catch (error) {
         console.error('Error fetching DM messages:', error);
         toast({
@@ -61,6 +70,11 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
         (payload) => {
           // Add the new message to the conversation
           setMessages(prev => [...prev, payload.new as any]);
+          
+          // Scroll to the bottom when a new message arrives
+          setTimeout(() => {
+            scrollToBottom();
+          }, 100);
         }
       )
       .subscribe();
@@ -68,7 +82,7 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentUser?.id, userId]);
+  }, [currentUser?.id, userId, scrollToBottom]);
 
   const handleSendMessage = async (text: string) => {
     try {
@@ -118,19 +132,27 @@ const DMConversation: React.FC<DMConversationProps> = ({ userId, userName, userA
     };
   };
 
+  // Create a dummy array of club members for MessageList
+  const dummyClubMembers = [
+    { id: currentUser?.id || '', name: currentUser?.name || 'You' },
+    { id: userId, name: userName }
+  ];
+
   return (
     <div className="flex flex-col h-full w-full">
-      <ChatHeader 
+      <AppHeader
         title={userName}
-        avatar={userAvatar}
-        subtitle="Direct Message"
-        backButton={true}
+        onBack={() => window.history.back()}
       />
       
-      <div className="flex-1 overflow-y-auto p-4">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4">
         <MessageList 
-          messages={messages.map(formatMessage)} 
-          currentUserId={currentUser?.id || ''} 
+          messages={messages.map(formatMessage)}
+          clubMembers={dummyClubMembers}
+          formatTime={formatTime}
+          currentUserAvatar={currentUser?.avatar || ''}
+          currentUserId={currentUser?.id || ''}
+          lastMessageRef={lastMessageRef}
         />
       </div>
       
