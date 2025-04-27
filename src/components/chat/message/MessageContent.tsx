@@ -14,6 +14,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
   isUserMessage,
   isSupport,
 }) => {
+  // Use distinctive styling based on message ownership and type
   return (
     <div 
       className={`p-3 rounded-lg break-words ${

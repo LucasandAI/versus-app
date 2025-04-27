@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SupportTicket, ChatMessage } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
@@ -13,10 +13,14 @@ export const useSupportTicketStorage = () => {
    * Fetch all support tickets from the database for the current user
    */
   const fetchTicketsFromSupabase = async () => {
-    if (!currentUser) return [];
+    if (!currentUser) {
+      console.log('[useSupportTicketStorage] No current user, not fetching tickets');
+      return [];
+    }
     
     try {
       setIsLoading(true);
+      console.log('[useSupportTicketStorage] Fetching tickets for user:', currentUser.id);
       
       // Fetch tickets for the current user
       const { data: tickets, error } = await supabase
@@ -25,7 +29,12 @@ export const useSupportTicketStorage = () => {
         .eq('user_id', currentUser.id)
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('[useSupportTicketStorage] Error fetching tickets:', error);
+        throw error;
+      }
+      
+      console.log('[useSupportTicketStorage] Found tickets:', tickets?.length || 0);
       
       // For each ticket, fetch its messages
       const ticketsWithMessages = await Promise.all(tickets.map(async (ticket) => {
@@ -36,7 +45,7 @@ export const useSupportTicketStorage = () => {
           .order('timestamp', { ascending: true });
         
         if (messagesError) {
-          console.error('[useSupportTicketStorage] Error fetching messages:', messagesError);
+          console.error('[useSupportTicketStorage] Error fetching messages for ticket', ticket.id, messagesError);
           return {
             id: ticket.id,
             subject: ticket.subject,
@@ -67,6 +76,8 @@ export const useSupportTicketStorage = () => {
         };
       }));
       
+      console.log('[useSupportTicketStorage] Processed tickets with messages:', ticketsWithMessages.length);
+      
       // Update localStorage for optimistic UI
       localStorage.setItem('supportTickets', JSON.stringify(ticketsWithMessages));
       
@@ -74,14 +85,8 @@ export const useSupportTicketStorage = () => {
       return ticketsWithMessages;
       
     } catch (error) {
-      console.error('[useSupportTicketStorage] Error fetching tickets:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load support tickets.",
-        variant: "destructive"
-      });
-      
-      // Return empty array on error
+      console.error('[useSupportTicketStorage] Error in fetchTicketsFromSupabase:', error);
+      // Don't show toast here, let the caller handle it
       return [];
     } finally {
       setIsLoading(false);
@@ -102,6 +107,8 @@ export const useSupportTicketStorage = () => {
     }
     
     try {
+      console.log('[useSupportTicketStorage] Creating new ticket:', subject);
+      
       // Step 1: Create the ticket
       const { data: ticketData, error: ticketError } = await supabase
         .from('support_tickets')
@@ -112,8 +119,17 @@ export const useSupportTicketStorage = () => {
         .select()
         .single();
 
-      if (ticketError) throw ticketError;
-      if (!ticketData) throw new Error("No ticket data returned");
+      if (ticketError) {
+        console.error('[useSupportTicketStorage] Error creating ticket:', ticketError);
+        throw ticketError;
+      }
+      
+      if (!ticketData) {
+        console.error('[useSupportTicketStorage] No ticket data returned');
+        throw new Error("No ticket data returned");
+      }
+
+      console.log('[useSupportTicketStorage] Ticket created:', ticketData.id);
 
       // Step 2: Add the initial message
       const { error: messageError } = await supabase
@@ -125,7 +141,10 @@ export const useSupportTicketStorage = () => {
           is_support: false
         });
 
-      if (messageError) throw messageError;
+      if (messageError) {
+        console.error('[useSupportTicketStorage] Error adding initial message:', messageError);
+        throw messageError;
+      }
 
       // Step 3: Add auto-response
       const { error: autoResponseError } = await supabase
@@ -137,7 +156,10 @@ export const useSupportTicketStorage = () => {
           is_support: true
         });
 
-      if (autoResponseError) throw autoResponseError;
+      if (autoResponseError) {
+        console.error('[useSupportTicketStorage] Error adding auto-response:', autoResponseError);
+        throw autoResponseError;
+      }
 
       // Create optimistic ticket object
       const newTicket: SupportTicket = {
@@ -179,9 +201,11 @@ export const useSupportTicketStorage = () => {
       }));
       window.dispatchEvent(new Event('ticketUpdated'));
       
+      console.log('[useSupportTicketStorage] Ticket creation complete');
+      
       return newTicket;
     } catch (error) {
-      console.error('[useSupportTicketStorage] Error creating ticket:', error);
+      console.error('[useSupportTicketStorage] Error in createTicketInSupabase:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create support ticket",
@@ -196,13 +220,18 @@ export const useSupportTicketStorage = () => {
    */
   const deleteTicketFromSupabase = async (ticketId: string) => {
     try {
+      console.log('[useSupportTicketStorage] Deleting ticket:', ticketId);
+      
       // First delete related messages
       const { error: messagesError } = await supabase
         .from('support_messages')
         .delete()
         .eq('ticket_id', ticketId);
       
-      if (messagesError) throw messagesError;
+      if (messagesError) {
+        console.error('[useSupportTicketStorage] Error deleting messages:', messagesError);
+        throw messagesError;
+      }
       
       // Then delete the ticket
       const { error: ticketError } = await supabase
@@ -210,7 +239,10 @@ export const useSupportTicketStorage = () => {
         .delete()
         .eq('id', ticketId);
         
-      if (ticketError) throw ticketError;
+      if (ticketError) {
+        console.error('[useSupportTicketStorage] Error deleting ticket:', ticketError);
+        throw ticketError;
+      }
       
       // Update localStorage for optimistic UI
       removeTicketFromLocalStorage(ticketId);
@@ -220,9 +252,11 @@ export const useSupportTicketStorage = () => {
         detail: { ticketId }
       }));
       
+      console.log('[useSupportTicketStorage] Ticket deletion complete');
+      
       return true;
     } catch (error) {
-      console.error('[useSupportTicketStorage] Error deleting ticket:', error);
+      console.error('[useSupportTicketStorage] Error in deleteTicketFromSupabase:', error);
       toast({
         title: "Error",
         description: "Failed to delete the support ticket",
@@ -246,6 +280,8 @@ export const useSupportTicketStorage = () => {
     }
     
     try {
+      console.log('[useSupportTicketStorage] Sending message to ticket:', ticketId);
+      
       // Send message to Supabase
       const { data, error } = await supabase
         .from('support_messages')
@@ -258,7 +294,10 @@ export const useSupportTicketStorage = () => {
         .select()
         .single();
         
-      if (error) throw error;
+      if (error) {
+        console.error('[useSupportTicketStorage] Error sending message:', error);
+        throw error;
+      }
       
       // Create optimistic message
       const optimisticMessage = {
@@ -281,9 +320,11 @@ export const useSupportTicketStorage = () => {
         detail: { ticketId }
       }));
       
+      console.log('[useSupportTicketStorage] Message sent successfully');
+      
       return true;
     } catch (error) {
-      console.error('[useSupportTicketStorage] Error sending message:', error);
+      console.error('[useSupportTicketStorage] Error in sendMessageToTicket:', error);
       toast({
         title: "Error",
         description: "Message sent but failed to sync with server",

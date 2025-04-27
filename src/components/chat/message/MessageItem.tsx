@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -6,7 +7,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect } from 'react';
 import { useNavigation } from '@/hooks/useNavigation';
 import MessageDeleteButton from './MessageDeleteButton';
-import { Trash2 } from 'lucide-react';
 
 interface MessageItemProps {
   message: ChatMessage;
@@ -68,7 +68,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   };
 
   const renderDeleteButton = () => {
-    if (!isUserMessage || isSupport || !canDelete || !onDeleteMessage) {
+    if (!isUserMessage || !canDelete || !onDeleteMessage) {
       return (
         <div className="w-8 h-8 opacity-0" aria-hidden="true">
           {/* Placeholder to maintain layout */}
@@ -83,8 +83,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
     );
   };
 
+  // The key fix here - Use the proper alignment for messages
   return (
     <div className={`flex ${isUserMessage ? 'justify-end mr-4' : 'justify-start ml-4'} mb-6 group`}>
+      {/* Avatar appears only for non-user messages (support messages) */}
       {!isUserMessage && (
         <UserAvatar
           name={message.sender?.name || "Unknown"}
@@ -96,6 +98,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
       )}
 
       <div className={`flex flex-col ${isUserMessage ? 'items-end' : 'items-start'} max-w-[75%]`}>
+        {/* Sender name appears only for non-user messages */}
         {!isUserMessage && (
           <button
             className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left w-full`}
@@ -117,9 +120,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
         </div>
       </div>
 
-      {isUserMessage && (
-        renderDeleteButton()
-      )}
+      {/* Avatar and delete button for user's own messages */}
+      {isUserMessage && renderDeleteButton()}
     </div>
   );
 };

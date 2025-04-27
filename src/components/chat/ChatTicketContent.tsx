@@ -16,7 +16,11 @@ interface ChatTicketContentProps {
   onTicketClosed?: () => void;
 }
 
-const ChatTicketContent: React.FC<ChatTicketContentProps> = ({ ticket, onSendMessage, onTicketClosed }: ChatTicketContentProps) => {
+const ChatTicketContent: React.FC<ChatTicketContentProps> = ({ 
+  ticket, 
+  onSendMessage, 
+  onTicketClosed 
+}) => {
   const { currentUser } = useApp();
   const { deleteChat } = useChatDeletion();
   const { sendMessageToTicket } = useSupportTicketStorage();
@@ -32,10 +36,15 @@ const ChatTicketContent: React.FC<ChatTicketContentProps> = ({ ticket, onSendMes
   }, [localMessages]);
 
   useEffect(() => {
+    console.log('[ChatTicketContent] Ticket messages updated:', ticket.messages?.length || 0);
     setLocalMessages(ticket.messages || []);
   }, [ticket.messages]);
 
   const handleSendMessage = async (message: string) => {
+    if (!message.trim()) return;
+    
+    console.log('[ChatTicketContent] Sending message:', message);
+    
     // Create optimistic message for immediate UI update
     const optimisticMessage = {
       id: `temp-${Date.now()}`,
@@ -53,14 +62,23 @@ const ChatTicketContent: React.FC<ChatTicketContentProps> = ({ ticket, onSendMes
     setLocalMessages(prevMessages => [...prevMessages, optimisticMessage]);
 
     // Send message to database
-    await sendMessageToTicket(ticket.id, message);
+    const success = await sendMessageToTicket(ticket.id, message);
+    
+    if (!success) {
+      // Fallback handling if message fails to send
+      toast({
+        title: "Message not delivered",
+        description: "Your message couldn't be delivered to support",
+        variant: "destructive",
+      });
+    }
     
     // Call the parent handler
     onSendMessage(message);
   };
 
   const handleCloseTicket = () => {
-    console.log('[ChatTicketContent] Starting ticket closure process for ticket:', ticket.id);
+    console.log('[ChatTicketContent] Starting ticket closure/deletion for ticket:', ticket.id);
     
     // Delete ticket in the database and update UI
     deleteChat(ticket.id, true);
@@ -101,6 +119,7 @@ const ChatTicketContent: React.FC<ChatTicketContentProps> = ({ ticket, onSendMes
           messages={localMessages} 
           clubMembers={currentUser ? [currentUser] : []}
           isSupport={true}
+          currentUserAvatar={currentUser?.avatar || '/placeholder.svg'}
         />
         <div ref={messagesEndRef} />
       </div>

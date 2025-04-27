@@ -1,12 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { SupportTicket } from '@/types/chat';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import SupportOptions from './SupportOptions';
 import NewTicketDialog from './NewTicketDialog';
 import ChatTicketContent from '../../ChatTicketContent';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
 import { useSupportTicketEffects } from '@/hooks/chat/useSupportTicketEffects';
 
 interface SupportTabContentProps {
@@ -39,6 +38,7 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
   const [supportOptionsOpen, setSupportOptionsOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>(initialSupportTickets);
+  const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   
   // Load tickets from local storage and handle updates
   useSupportTicketEffects(activeTab === "support", setLocalSupportTickets);
@@ -46,29 +46,13 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
   // Also update from props when they change
   useEffect(() => {
     if (initialSupportTickets.length > 0) {
+      console.log('[SupportTabContent] Updating tickets from props:', initialSupportTickets.length);
       setLocalSupportTickets(initialSupportTickets);
     }
   }, [initialSupportTickets]);
 
-  // Effect to refresh tickets when navigating to support tab
-  useEffect(() => {
-    if (activeTab === "support") {
-      try {
-        const storedTickets = localStorage.getItem('supportTickets');
-        if (storedTickets) {
-          const parsedTickets = JSON.parse(storedTickets);
-          if (Array.isArray(parsedTickets) && parsedTickets.length > 0) {
-            console.log("Refreshed tickets from localStorage:", parsedTickets.length);
-            setLocalSupportTickets(parsedTickets);
-          }
-        }
-      } catch (error) {
-        console.error("Error parsing support tickets:", error);
-      }
-    }
-  }, [activeTab]);
-
   const handleTicketClosed = () => {
+    console.log('[SupportTabContent] Closing selected ticket');
     onSelectTicket(null as any);
   };
 
@@ -78,6 +62,8 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
     }
     
     try {
+      setIsCreatingTicket(true);
+      console.log('[SupportTabContent] Submitting new ticket');
       await handleSubmitSupportTicket();
       setDialogOpen(false);
       
@@ -87,16 +73,21 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
         try {
           const parsedTickets = JSON.parse(storedTickets);
           if (Array.isArray(parsedTickets)) {
+            console.log('[SupportTabContent] Refreshed tickets after submission:', parsedTickets.length);
             setLocalSupportTickets(parsedTickets);
           }
         } catch (error) {
-          console.error("Error refreshing tickets after submit:", error);
+          console.error("[SupportTabContent] Error refreshing tickets after submit:", error);
         }
       }
     } catch (error) {
-      console.error("Failed to submit ticket:", error);
+      console.error("[SupportTabContent] Failed to submit ticket:", error);
+    } finally {
+      setIsCreatingTicket(false);
     }
   };
+
+  const displaySubmittingStatus = isSubmitting || isCreatingTicket;
 
   return (
     <div className="flex flex-col w-full h-full bg-white">
@@ -111,9 +102,9 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
             <Button 
               className="w-full py-6 text-lg"
               onClick={() => setSupportOptionsOpen(true)}
-              disabled={isSubmitting}
+              disabled={displaySubmittingStatus}
             >
-              {isSubmitting ? (
+              {displaySubmittingStatus ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   Creating...
@@ -147,7 +138,6 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
               </div>
             )}
           </div>
-          {/* Removed the button from the bottom */}
         </div>
       ) : (
         <div className="flex flex-col h-full">
@@ -155,6 +145,7 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
             <button 
               onClick={handleTicketClosed} 
               className="p-2 hover:bg-gray-100 rounded-full"
+              aria-label="Go back to ticket list"
             >
               <ArrowLeft className="h-6 w-6" />
             </button>
@@ -186,12 +177,16 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
 
       <NewTicketDialog 
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(value) => {
+          if (!value && !displaySubmittingStatus) {
+            setDialogOpen(false);
+          }
+        }}
         selectedOption={selectedSupportOption}
         onSubmit={handleSubmitTicket}
         supportMessage={supportMessage}
         setSupportMessage={setSupportMessage}
-        isSubmitting={isSubmitting}
+        isSubmitting={displaySubmittingStatus}
       />
     </div>
   );

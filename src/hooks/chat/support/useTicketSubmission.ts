@@ -100,6 +100,7 @@ export const useTicketSubmission = (
         duration: 3000,
       });
       
+      // Important: Reset submission state to allow new submissions
       setIsSubmitting(false);
       return newTicket;
       
@@ -112,10 +113,11 @@ export const useTicketSubmission = (
         variant: "destructive",
         duration: 3000,
       });
+      // Always reset submission state on error
       setIsSubmitting(false);
       return null;
     }
-  }, [currentUser, selectedSupportOption, supportMessage]);
+  }, [currentUser, selectedSupportOption, supportMessage, createTicket, sendInitialMessage, sendAutoResponse, setIsSubmitting, updateStoredTickets, dispatchTicketEvents]);
 
   return {
     isSubmitting,
