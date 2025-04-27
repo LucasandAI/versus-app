@@ -6,9 +6,9 @@ import ChatInput from './ChatInput';
 import { useApp } from '@/context/AppContext';
 import { XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useChatDeletion } from '@/hooks/chat/useChatDeletion';
+import { useSupportTicketStorage } from '@/hooks/chat/support/useSupportTicketStorage';
 
 interface ChatTicketContentProps {
   ticket: SupportTicket;
@@ -19,6 +19,7 @@ interface ChatTicketContentProps {
 const ChatTicketContent: React.FC<ChatTicketContentProps> = ({ ticket, onSendMessage, onTicketClosed }: ChatTicketContentProps) => {
   const { currentUser } = useApp();
   const { deleteChat } = useChatDeletion();
+  const { sendMessageToTicket } = useSupportTicketStorage();
   const [localMessages, setLocalMessages] = useState(ticket.messages || []);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -34,7 +35,8 @@ const ChatTicketContent: React.FC<ChatTicketContentProps> = ({ ticket, onSendMes
     setLocalMessages(ticket.messages || []);
   }, [ticket.messages]);
 
-  const handleSendMessage = (message: string) => {
+  const handleSendMessage = async (message: string) => {
+    // Create optimistic message for immediate UI update
     const optimisticMessage = {
       id: `temp-${Date.now()}`,
       text: message,
@@ -47,38 +49,20 @@ const ChatTicketContent: React.FC<ChatTicketContentProps> = ({ ticket, onSendMes
       isSupport: false
     };
 
+    // Update local state immediately for optimistic UI
     setLocalMessages(prevMessages => [...prevMessages, optimisticMessage]);
 
-    try {
-      const storedTickets = localStorage.getItem('supportTickets');
-      if (storedTickets) {
-        const tickets = JSON.parse(storedTickets);
-        const updatedTickets = tickets.map((t: SupportTicket) => {
-          if (t.id === ticket.id) {
-            return {
-              ...t,
-              messages: [...t.messages, optimisticMessage]
-            };
-          }
-          return t;
-        });
-        localStorage.setItem('supportTickets', JSON.stringify(updatedTickets));
-      }
-      
-      window.dispatchEvent(new CustomEvent('ticketUpdated', { 
-        detail: { ticketId: ticket.id }
-      }));
-    } catch (error) {
-      console.error('Error updating localStorage:', error);
-    }
-
+    // Send message to database
+    await sendMessageToTicket(ticket.id, message);
+    
+    // Call the parent handler
     onSendMessage(message);
   };
 
-  const handleCloseTicket = async () => {
+  const handleCloseTicket = () => {
     console.log('[ChatTicketContent] Starting ticket closure process for ticket:', ticket.id);
     
-    // Use the deleteChat function from useChatDeletion hook which handles both UI updates and database deletion
+    // Delete ticket in the database and update UI
     deleteChat(ticket.id, true);
     
     // Close ticket view in the UI

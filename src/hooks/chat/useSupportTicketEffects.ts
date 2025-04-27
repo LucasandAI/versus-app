@@ -1,15 +1,26 @@
-
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { SupportTicket } from '@/types/chat';
+import { useSupportTicketStorage } from './support/useSupportTicketStorage';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useSupportTicketEffects = (
   isActive: boolean,
   setTickets: React.Dispatch<React.SetStateAction<SupportTicket[]>>
 ) => {
-  // Effect to refresh tickets from localStorage when needed
+  const { fetchTicketsFromSupabase } = useSupportTicketStorage();
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+
+  // Effect to load tickets from Supabase when the component becomes active
   useEffect(() => {
     if (!isActive) return;
     
+    const loadTickets = async () => {
+      const tickets = await fetchTicketsFromSupabase();
+      setTickets(tickets);
+      setInitialLoadDone(true);
+    };
+    
+    // Initial load from localStorage for immediate display
     try {
       const storedTickets = localStorage.getItem('supportTickets');
       if (storedTickets) {
@@ -22,9 +33,12 @@ export const useSupportTicketEffects = (
     } catch (error) {
       console.error("[useSupportTicketEffects] Error loading tickets from localStorage:", error);
     }
-  }, [isActive]);
+    
+    // Then load from Supabase for up-to-date data
+    loadTickets();
+  }, [isActive, fetchTicketsFromSupabase]);
 
-  // Listen for ticket updates
+  // Listen for ticket updates from localStorage (optimistic UI)
   useEffect(() => {
     if (!isActive) return;
     
@@ -63,6 +77,34 @@ export const useSupportTicketEffects = (
       window.removeEventListener('supportTicketDeleted', handleTicketDeleted as EventListener);
     };
   }, [isActive, setTickets]);
+
+  // Real-time subscription for new support messages
+  useEffect(() => {
+    if (!isActive || !initialLoadDone) return;
+    
+    // Use Supabase real-time subscription for messages
+    const subscription = supabase
+      .channel('support_messages_changes')
+      .on('postgres_changes', 
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'support_messages'
+        },
+        async (payload) => {
+          console.log('[useSupportTicketEffects] New support message:', payload);
+          
+          // Refresh tickets to get the latest messages
+          const tickets = await fetchTicketsFromSupabase();
+          setTickets(tickets);
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [isActive, initialLoadDone, fetchTicketsFromSupabase]);
 };
 
 export default useSupportTicketEffects;
