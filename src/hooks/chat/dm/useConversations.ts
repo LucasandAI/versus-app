@@ -10,33 +10,42 @@ import type { DMConversation } from './types';
 export type { DMConversation };
 
 export const useConversations = (hiddenDMs: string[]) => {
-  const [conversations, setConversations] = useState<DMConversation[]>([]);
+  const [allConversations, setAllConversations] = useState<DMConversation[]>([]);
+  const [visibleConversations, setVisibleConversations] = useState<DMConversation[]>([]);
   const { currentUser } = useApp();
   const { userCache, setUserCache, fetchUserData } = useUserData();
   const fetchConversations = useFetchConversations(currentUser?.id);
   const { saveConversationsToStorage, loadConversationsFromStorage } = useConversationsPersistence();
 
-  // Load persisted conversations on mount
+  // Load initial conversations from storage
   useEffect(() => {
     const storedConversations = loadConversationsFromStorage();
     if (storedConversations.length > 0) {
       console.log('[useConversations] Initializing with stored conversations:', storedConversations.length);
-      setConversations(storedConversations);
+      setAllConversations(storedConversations);
     }
   }, [loadConversationsFromStorage]);
 
-  // Save conversations whenever they change
+  // Persist conversations to storage
   useEffect(() => {
-    if (conversations.length > 0) {
-      console.log('[useConversations] Saving updated conversations:', conversations.length);
-      saveConversationsToStorage(conversations);
+    if (allConversations.length > 0) {
+      console.log('[useConversations] Saving updated conversations:', allConversations.length);
+      saveConversationsToStorage(allConversations);
     }
-  }, [conversations, saveConversationsToStorage]);
+  }, [allConversations, saveConversationsToStorage]);
+
+  // Recompute visible conversations whenever allConversations or hiddenDMs change
+  useEffect(() => {
+    console.log('[useConversations] Filtering visible conversations. Total:', allConversations.length, 'Hidden:', hiddenDMs.length);
+    setVisibleConversations(
+      allConversations.filter(conv => !hiddenDMs.includes(conv.userId))
+    );
+  }, [allConversations, hiddenDMs]);
 
   const updateConversation = useCallback((otherUserId: string, newMessage: string, otherUserName?: string, otherUserAvatar?: string) => {
     console.log('[updateConversation] Updating conversation for userId:', otherUserId, 'with message:', newMessage);
     
-    setConversations(prevConversations => {
+    setAllConversations(prevConversations => {
       const now = new Date().toISOString();
       const existingConvIndex = prevConversations.findIndex(
         conv => conv.userId === otherUserId
@@ -80,14 +89,8 @@ export const useConversations = (hiddenDMs: string[]) => {
   // Set up realtime subscriptions
   useRealtimeSubscriptions(currentUser?.id, userCache, fetchUserData, updateConversation);
 
-  // Calculate visible conversations as a derived state
-  // This will be recalculated whenever conversations OR hiddenDMs change
-  const visibleConversations = conversations.filter(
-    conv => !hiddenDMs.includes(conv.userId)
-  );
-
   return { 
-    conversations: visibleConversations, // Return filtered conversations
+    conversations: visibleConversations,
     updateConversation
   };
 };
