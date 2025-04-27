@@ -35,7 +35,7 @@ export const useTicketSubmission = () => {
         id: ticketData.id,
         subject: selectedOption.label,
         createdAt: new Date().toISOString(),
-        status: 'open',
+        status: 'open' as const, // Explicitly type as 'open', one of the allowed values
         messages: [
           {
             id: Date.now().toString(),
