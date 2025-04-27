@@ -4,14 +4,14 @@ import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 export const fetchMessageSender = async (senderId: string) => {
   try {
-    const { data: sender } = await supabase
+    const { data: sender, error } = await supabase
       .from('users')
       .select('id, name, avatar')
       .eq('id', senderId)
       .single();
 
-    if (!sender) {
-      console.error('[messageHandlerUtils] Error fetching sender');
+    if (error) {
+      console.error('[messageHandlerUtils] Error fetching sender:', error);
       return null;
     }
 

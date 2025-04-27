@@ -29,6 +29,7 @@ export const useInitialMessages = (
           
           console.log(`[useInitialMessages] Fetching messages for club ${clubId}`);
           
+          // Using select with join for better efficiency
           const { data, error } = await supabase
             .from('club_chat_messages')
             .select(`
@@ -53,6 +54,7 @@ export const useInitialMessages = (
             [clubId]: true
           }));
           
+          console.log(`[useInitialMessages] Loaded ${data?.length || 0} messages for club ${clubId}`);
           return [clubId, data || []];
         });
         
@@ -65,7 +67,7 @@ export const useInitialMessages = (
           messagesResults.forEach(([clubId, messages]) => {
             if (typeof clubId === 'string' && messages !== null) {
               updatedMessages[clubId] = Array.isArray(messages) ? messages : [];
-              console.log(`[useInitialMessages] Loaded ${updatedMessages[clubId].length} messages for club ${clubId}`);
+              console.log(`[useInitialMessages] Updated club ${clubId} with ${updatedMessages[clubId].length} messages`);
             }
           });
           

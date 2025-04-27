@@ -4,6 +4,7 @@ import { Club } from '@/types';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { createClubChannel, cleanupChannels } from './utils/subscriptionUtils';
 import { processNewMessage } from './utils/messageHandlerUtils';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useClubMessageSubscriptions = (
   userClubs: Club[],
@@ -36,7 +37,50 @@ export const useClubMessageSubscriptions = (
     
     activeSubscriptionsRef.current = {};
     
-    channelsRef.current = userClubs.map(club => {
+    // Set up subscription for message deletions
+    const deletionChannel = supabase.channel('club-message-deletions');
+    deletionChannel
+      .on('postgres_changes', 
+          { 
+            event: 'DELETE', 
+            schema: 'public', 
+            table: 'club_chat_messages',
+            filter: userClubs.length > 0 ? 
+              `club_id=in.(${userClubs.map(club => `'${club.id}'`).join(',')})` : 
+              undefined
+          },
+          (payload) => {
+            console.log('[useClubMessageSubscriptions] Message deletion event received:', payload);
+            
+            if (payload.old && payload.old.id && payload.old.club_id) {
+              const deletedMessageId = payload.old.id;
+              const clubId = payload.old.club_id;
+              
+              setClubMessages(prev => {
+                if (!prev[clubId]) return prev;
+                
+                const updatedClubMessages = prev[clubId].filter(msg => {
+                  const msgId = typeof msg.id === 'string' ? msg.id : 
+                              (msg.id ? String(msg.id) : null);
+                  const deleteId = typeof deletedMessageId === 'string' ? deletedMessageId : 
+                                  String(deletedMessageId);
+                  
+                  return msgId !== deleteId;
+                });
+                
+                return {
+                  ...prev,
+                  [clubId]: updatedClubMessages
+                };
+              });
+            }
+          })
+      .subscribe();
+      
+    channelsRef.current.push(deletionChannel);
+    
+    // Create individual channels for each club (for INSERT events)
+    userClubs.forEach(club => {
       const clubId = club.id;
       activeSubscriptionsRef.current[clubId] = true;
       
@@ -59,7 +103,7 @@ export const useClubMessageSubscriptions = (
         processNewMessage(payload, setClubMessages);
       });
 
-      return channel;
+      channelsRef.current.push(channel);
     });
     
     return () => {

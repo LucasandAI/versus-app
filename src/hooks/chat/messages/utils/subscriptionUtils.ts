@@ -1,24 +1,20 @@
 
 import { RealtimeChannel } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
-export const createClubChannel = (club: Club) => {
+export const createClubChannel = (club: Club): RealtimeChannel => {
   const clubId = club.id;
   console.log(`[subscriptionUtils] Creating channel for club ${clubId}`);
   
-  // Create a separate unique channel name for each club to avoid mixing events
-  return supabase.channel(`club-messages-${clubId}-${Date.now()}`)
-    .on('postgres_changes', {
-      event: 'INSERT',
-      schema: 'public',
-      table: 'club_chat_messages',
-      filter: `club_id=eq.${clubId}`
-    }, 
-    async (payload) => {
-      // This is just the configuration, the handler will be set in messageHandlerUtils
-      console.log(`[subscriptionUtils] Channel for club ${clubId} created`);
-    });
+  // Create a unique channel name with timestamp to avoid conflicts
+  return supabase.channel(`club-messages-${clubId}-${Date.now()}`, {
+    config: {
+      broadcast: {
+        self: false
+      }
+    }
+  });
 };
 
 export const cleanupChannels = (channels: RealtimeChannel[]) => {

@@ -17,7 +17,6 @@ export const useChatActions = () => {
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       
       // Create a fresh optimistic message with the current text input
-      // This ensures we're never reusing old message objects
       const optimisticMessage = {
         id: tempId,
         message: messageText,
@@ -43,7 +42,7 @@ export const useChatActions = () => {
             return prevMessages;
           }
           
-          console.log('[MainChatDrawer] Updated local messages with optimistic update:', [optimisticMessage]);
+          console.log('[useChatActions] Updated local messages with optimistic update');
           
           return {
             ...prevMessages,
@@ -91,10 +90,38 @@ export const useChatActions = () => {
             variant: "destructive"
           });
         }
+        
+        // Remove optimistic message on error if setClubMessages is provided
+        if (setClubMessages) {
+          setClubMessages(prevMessages => {
+            const clubMessages = prevMessages[clubId] || [];
+            
+            return {
+              ...prevMessages,
+              [clubId]: clubMessages.filter(msg => msg.id !== tempId)
+            };
+          });
+        }
+        
         return null;
       }
 
       console.log('[useChatActions] Message sent successfully:', insertedMessage);
+      
+      // Replace optimistic message with real one
+      if (setClubMessages && insertedMessage) {
+        setClubMessages(prevMessages => {
+          const clubMessages = prevMessages[clubId] || [];
+          
+          return {
+            ...prevMessages,
+            [clubId]: clubMessages.map(msg => 
+              msg.id === tempId ? insertedMessage : msg
+            )
+          };
+        });
+      }
+      
       return insertedMessage;
     } catch (error) {
       console.error('[useChatActions] Unexpected error sending message:', error);
@@ -136,28 +163,55 @@ export const useChatActions = () => {
       return true;
     }
 
-    // 3. Call Supabase in the background for real messages - no awaiting
+    // 3. Call Supabase for real messages
     try {
-      console.log('[useChatActions] Deleting message from Supabase in background:', messageId);
+      console.log('[useChatActions] Deleting message from Supabase:', messageId);
       
-      // Fire and forget - don't await the response
-      supabase
+      const { error } = await supabase
         .from('club_chat_messages')
         .delete()
-        .eq('id', messageId)
-        .then(({ error }) => {
-          if (error) {
-            console.error('[useChatActions] Background deletion failed:', error);
-            // Don't revert UI or show toast - just log the error
-          } else {
-            console.log('[useChatActions] Background deletion successful for message:', messageId);
-          }
-        });
+        .eq('id', messageId);
       
+      if (error) {
+        console.error('[useChatActions] Error deleting message:', error);
+        toast({
+          title: "Delete Error",
+          description: error.message || "Failed to delete message",
+          variant: "destructive"
+        });
+        
+        // Fetch the message again if deletion failed to restore it in UI
+        const { data: message } = await supabase
+          .from('club_chat_messages')
+          .select('*, sender:sender_id(*)')
+          .eq('id', messageId)
+          .single();
+        
+        if (message && setClubMessages) {
+          setClubMessages(prevMessages => {
+            const clubId = message.club_id;
+            const clubMessages = prevMessages[clubId] || [];
+            
+            return {
+              ...prevMessages,
+              [clubId]: [...clubMessages, message]
+            };
+          });
+        }
+        
+        return false;
+      }
+      
+      console.log('[useChatActions] Message deleted successfully:', messageId);
       return true;
     } catch (error) {
-      console.error('[useChatActions] Exception during background deletion:', error);
-      return true; // Still return true since UI is already updated
+      console.error('[useChatActions] Error deleting message:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while deleting the message",
+        variant: "destructive"
+      });
+      return false;
     }
   }, []);
 

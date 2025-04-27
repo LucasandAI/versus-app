@@ -86,6 +86,7 @@ const ChatClubContent = ({
             onSendMessage={handleSendMessage} 
             conversationType="club"
             conversationId={effectiveClubId} 
+            isSending={isSending}
           />
         </div>
       </div>
