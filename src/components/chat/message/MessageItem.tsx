@@ -67,7 +67,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   };
 
   return (
-    <div className={`flex items-start mb-6 group ${isUserMessage ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex ${isUserMessage ? 'justify-end mr-4' : 'justify-start'} mb-6 group`}>
       {!isUserMessage && (
         <UserAvatar
           name={message.sender.name || "Unknown"}
@@ -78,10 +78,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
         />
       )}
 
-      <div className={`flex flex-col items-end`}>
+      <div className="flex flex-col items-end max-w-[75%]">
         {!isUserMessage && (
           <button
-            className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left`}
+            className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left w-full`}
             onClick={!isSupport ? handleProfileClick : undefined}
           >
             {message.sender.name || "Unknown"}
@@ -93,7 +93,6 @@ const MessageItem: React.FC<MessageItemProps> = ({
           message={message}
           isUserMessage={isUserMessage}
           isSupport={isSupport}
-          onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
         />
 
         <div className="text-xs text-gray-500 mt-1 pr-1 w-full text-right">
@@ -101,19 +100,11 @@ const MessageItem: React.FC<MessageItemProps> = ({
         </div>
       </div>
 
-      {isUserMessage && (
-        <div className="flex items-center">
-          <UserAvatar
-            name="You"
-            image={currentUserAvatar}
-            size="sm"
-            className="flex-shrink-0 mx-2"
-          />
-          {canDelete && onDeleteMessage && !isSupport && (
-            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-              <MessageDeleteButton onDelete={handleDeleteClick} />
-            </div>
-          )}
+      {isUserMessage && canDelete && onDeleteMessage && !isSupport && (
+        <div className="ml-2">
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+            <MessageDeleteButton onDelete={handleDeleteClick} />
+          </div>
         </div>
       )}
     </div>

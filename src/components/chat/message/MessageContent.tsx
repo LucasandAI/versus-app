@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
-import MessageDeleteButton from './MessageDeleteButton';
 
 interface MessageContentProps {
   message: ChatMessage;
@@ -14,21 +13,18 @@ const MessageContent: React.FC<MessageContentProps> = ({
   message,
   isUserMessage,
   isSupport,
-  onDeleteMessage,
 }) => {
   return (
-    <div className="flex items-start">
-      <div 
-        className={`p-3 rounded-lg break-words max-w-[75%] ${
-          isUserMessage 
-            ? 'bg-primary text-white' 
-            : isSupport
-              ? 'bg-blue-100 text-blue-800'
-              : 'bg-gray-100 text-gray-800'
-        }`}
-      >
-        {message.text}
-      </div>
+    <div 
+      className={`p-3 rounded-lg break-words ${
+        isUserMessage 
+          ? 'bg-primary text-white' 
+          : isSupport
+            ? 'bg-blue-100 text-blue-800'
+            : 'bg-gray-100 text-gray-800'
+      }`}
+    >
+      {message.text}
     </div>
   );
 };
