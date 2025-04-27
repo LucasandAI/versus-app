@@ -57,7 +57,12 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog 
+      open={open} 
+      onOpenChange={(newState) => {
+        if (!newState) onOpenChange(false);
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
@@ -105,4 +110,3 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
 };
 
 export default NewTicketDialog;
-
