@@ -9,6 +9,7 @@ interface ChatDrawerProps {
   clubs: Club[];
   onNewMessage?: (count: number) => void;
   clubMessages?: Record<string, any[]>;
+  setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>; 
   onSendMessage?: (message: string, clubId?: string) => Promise<void> | void;
 }
 
