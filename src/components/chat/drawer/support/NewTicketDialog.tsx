@@ -47,7 +47,7 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
     
     if (!supportMessage.trim()) {
       toast({
-        title: "Message Required",
+        title: "Message Required", 
         description: "Please provide details before submitting.",
         variant: "destructive"
       });
@@ -57,12 +57,12 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
     onSubmit();
   };
 
+  const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setSupportMessage(e.target.value);
+  };
+
   return (
-    <AlertDialog open={open} onOpenChange={(isOpen) => {
-      if (!isSubmitting) {
-        onOpenChange(isOpen);
-      }
-    }}>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
@@ -76,17 +76,23 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
         <div className="grid gap-4 py-4">
           <Textarea 
             value={supportMessage}
-            onChange={(e) => setSupportMessage(e.target.value)}
+            onChange={handleMessageChange}
             placeholder="Describe your issue in detail..."
-            className="min-h-[100px] resize-none"
+            className="min-h-[100px]"
             disabled={isSubmitting}
           />
         </div>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => !isSubmitting && onOpenChange(false)} disabled={isSubmitting}>
+          <AlertDialogCancel 
+            onClick={() => !isSubmitting && onOpenChange(false)} 
+            disabled={isSubmitting}
+          >
             Cancel
           </AlertDialogCancel>
-          <AlertDialogAction onClick={handleSubmit} disabled={isSubmitting || !supportMessage.trim()}>
+          <AlertDialogAction 
+            onClick={handleSubmit} 
+            disabled={isSubmitting || !supportMessage.trim()}
+          >
             {isSubmitting ? (
               <div className="flex items-center">
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
