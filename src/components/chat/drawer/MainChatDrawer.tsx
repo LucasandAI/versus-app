@@ -43,6 +43,12 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     isSubmitting,
   } = useSupportTickets();
   
+  // Create a wrapper function that calls handleSubmitSupportTicket but returns void
+  const handleSubmitSupportTicketWrapper = async (): Promise<void> => {
+    await handleSubmitSupportTicket();
+    // Deliberately not returning anything to match the Promise<void> return type
+  };
+  
   useEffect(() => {
     const handleOpenDM = (event: CustomEvent<{
       userId: string;
@@ -103,7 +109,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             setSupportMessage={setSupportMessage}
             selectedSupportOption={selectedSupportOption}
             setSelectedSupportOption={setSelectedSupportOption}
-            handleSubmitSupportTicket={handleSubmitSupportTicket}
+            handleSubmitSupportTicket={handleSubmitSupportTicketWrapper}
             isSubmitting={isSubmitting}
           />
         </DrawerContent>
