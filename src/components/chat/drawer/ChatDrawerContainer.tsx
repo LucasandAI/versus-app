@@ -21,13 +21,12 @@ interface ChatDrawerContainerProps {
   handleNewMessage: (chatId: string, message: any, isOpen: boolean) => void;
   markTicketAsRead?: (ticketId: string) => void;
   onSendMessage: (message: string, clubId?: string) => void;
-  supportMessage?: string;
-  setSupportMessage?: (message: string) => void;
-  selectedSupportOption?: { id: string, label: string } | null;
-  setSelectedSupportOption?: (option: { id: string, label: string } | null) => void;
-  handleSubmitSupportTicket?: () => Promise<void>;
-  isSubmitting?: boolean;
-  setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
+  supportMessage: string;
+  setSupportMessage: (message: string) => void;
+  selectedSupportOption: { id: string, label: string } | null;
+  setSelectedSupportOption: (option: { id: string, label: string } | null) => void;
+  handleSubmitSupportTicket: () => Promise<void>;
+  isSubmitting: boolean;
   directMessageUser?: {
     userId: string;
     userName: string;
@@ -58,7 +57,6 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   setSelectedSupportOption,
   handleSubmitSupportTicket,
   isSubmitting,
-  setClubMessages,
   directMessageUser,
   setDirectMessageUser
 }) => {
@@ -73,15 +71,6 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
     }
   }, [activeTab]);
 
-  useEffect(() => {
-    console.log('[ChatDrawerContainer] Selection changed:', {
-      selectedClub: selectedLocalClub?.id,
-      selectedTicket: selectedTicket?.id,
-      activeTab,
-      directMessageUser
-    });
-  }, [selectedLocalClub, selectedTicket, activeTab, directMessageUser]);
-  
   switch (activeTab) {
     case "clubs":
       return (
@@ -94,7 +83,6 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
             onSendMessage={onSendMessage}
             unreadCounts={unreadMessages}
             onDeleteChat={deleteChat}
-            setClubMessages={setClubMessages}
           />
         </div>
       );
@@ -114,13 +102,13 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
             supportTickets={localSupportTickets} 
             selectedTicket={selectedTicket} 
             onSelectTicket={onSelectTicket} 
-            supportMessage={supportMessage || ""} 
-            setSupportMessage={setSupportMessage || (() => {})} 
-            handleSubmitSupportTicket={handleSubmitSupportTicket || (async () => {})} 
+            supportMessage={supportMessage}
+            setSupportMessage={setSupportMessage}
+            handleSubmitSupportTicket={handleSubmitSupportTicket}
             isSubmitting={isSubmitting}
             onSendMessage={onSendMessage}
-            selectedSupportOption={selectedSupportOption || null}
-            setSelectedSupportOption={setSelectedSupportOption || (() => {})}
+            selectedSupportOption={selectedSupportOption}
+            setSelectedSupportOption={setSelectedSupportOption}
             activeTab={activeTab}
           />
         </div>
