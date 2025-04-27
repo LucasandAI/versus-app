@@ -5,12 +5,12 @@ import UserAvatar from '../../shared/UserAvatar';
 import ClubMembersPopover from './ClubMembersPopover';
 import { useNavigation } from '@/hooks/useNavigation';
 import { formatDistanceToNow } from 'date-fns';
+import { useClubLastMessages } from '@/hooks/chat/messages/useClubLastMessages';
 
 interface ClubsListProps {
   clubs: Club[];
   selectedClub: Club | null;
   onSelectClub: (club: Club) => void;
-  onDeleteChat?: (chatId: string, isTicket: boolean) => void;
   unreadCounts: Record<string, number>;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   setChatToDelete: (data: {
@@ -18,7 +18,6 @@ interface ClubsListProps {
     name: string;
     isTicket: boolean;
   } | null) => void;
-  clubMessages?: Record<string, any[]>;  // Add this prop to receive messages
 }
 
 const ClubsList: React.FC<ClubsListProps> = ({
@@ -28,9 +27,9 @@ const ClubsList: React.FC<ClubsListProps> = ({
   unreadCounts,
   onSelectUser,
   setChatToDelete,
-  clubMessages = {} // Default to empty object if not provided
 }) => {
   const { navigateToClubDetail } = useNavigation();
+  const lastMessages = useClubLastMessages(clubs);
   
   const handleClubClick = (club: Club, e: React.MouseEvent) => {
     e.preventDefault();
@@ -44,9 +43,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
       
       <div className="space-y-1">
         {clubs.map(club => {
-          const clubId = club.id;
-          const messages = clubMessages[clubId] || [];
-          const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+          const lastMessage = lastMessages[club.id];
           const formattedTime = lastMessage?.timestamp 
             ? formatDistanceToNow(new Date(lastMessage.timestamp), { addSuffix: false })
             : '';
