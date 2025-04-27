@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
@@ -26,6 +27,7 @@ export const useConversations = (hiddenDMs: string[]) => {
       let updatedConversations = [...prevConversations];
       
       if (existingConversationIndex >= 0) {
+        // Update existing conversation
         updatedConversations[existingConversationIndex] = {
           ...updatedConversations[existingConversationIndex],
           lastMessage: newMessage,
@@ -34,6 +36,7 @@ export const useConversations = (hiddenDMs: string[]) => {
           ...(otherUserAvatar && { userAvatar: otherUserAvatar })
         };
       } else if (otherUserName) {
+        // Add new conversation
         updatedConversations = [{
           userId: otherUserId,
           userName: otherUserName,
@@ -43,6 +46,7 @@ export const useConversations = (hiddenDMs: string[]) => {
         }, ...updatedConversations];
       }
       
+      // Sort by latest message
       return updatedConversations.sort(
         (a, b) => new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime()
       );
@@ -124,6 +128,7 @@ export const useConversations = (hiddenDMs: string[]) => {
 
     console.log('[useConversations] Setting up real-time subscription');
     
+    // Subscribe to outgoing messages
     const outgoingChannel = supabase
       .channel('dm-outgoing')
       .on('postgres_changes', 
@@ -135,11 +140,13 @@ export const useConversations = (hiddenDMs: string[]) => {
         },
         (payload: any) => {
           console.log('[useConversations] Outgoing DM detected');
+          // Instantly update conversation for outgoing messages
           updateConversation(payload.new.receiver_id, payload.new.text);
         }
       )
       .subscribe();
     
+    // Subscribe to incoming messages
     const incomingChannel = supabase
       .channel('dm-incoming')
       .on('postgres_changes', 
@@ -151,6 +158,7 @@ export const useConversations = (hiddenDMs: string[]) => {
         },
         async (payload: any) => {
           console.log('[useConversations] Incoming DM detected');
+          // Fetch sender info and instantly update conversation
           const { data: senderData } = await supabase
             .from('users')
             .select('name, avatar')
@@ -167,6 +175,7 @@ export const useConversations = (hiddenDMs: string[]) => {
       )
       .subscribe();
 
+    // Initial fetch of conversations
     fetchConversations();
 
     return () => {
