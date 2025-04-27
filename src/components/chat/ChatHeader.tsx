@@ -4,7 +4,7 @@ import { Users, ChevronDown, Trophy } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Club } from '@/types';
 import UserAvatar from '../shared/UserAvatar';
-import { useNavigation } from '@/context/AppContext';
+import { useNavigation } from '@/hooks/useNavigation';
 
 interface ChatHeaderProps {
   club: Club;
