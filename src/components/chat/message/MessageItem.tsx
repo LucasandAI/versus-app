@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -78,7 +79,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
         />
       )}
       
-      <div className={`max-w-[70%] ${isUserMessage ? 'order-1' : 'order-1'} relative`}>
+      <div className="flex flex-col items-end max-w-[70%]">
         {!isUserMessage && (
           <button 
             className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left`}
@@ -89,16 +90,18 @@ const MessageItem: React.FC<MessageItemProps> = ({
           </button>
         )}
         
-        <MessageContent 
-          message={message}
-          isUserMessage={isUserMessage}
-          isSupport={isSupport}
-          onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
-        />
-        
-        <p className={`text-xs text-gray-500 mt-1 ${isUserMessage ? 'text-right' : ''}`}>
-          {formatTime(getTimestamp())}
-        </p>
+        <div className="flex flex-col items-end">
+          <MessageContent 
+            message={message}
+            isUserMessage={isUserMessage}
+            isSupport={isSupport}
+            onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
+          />
+          
+          <p className={`text-xs text-gray-500 mt-1 ${isUserMessage ? 'text-right' : ''}`}>
+            {formatTime(getTimestamp())}
+          </p>
+        </div>
       </div>
       
       {isUserMessage && (
