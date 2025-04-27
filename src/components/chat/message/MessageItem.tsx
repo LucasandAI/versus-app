@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -7,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect } from 'react';
 import { useNavigation } from '@/hooks/useNavigation';
 import MessageDeleteButton from './MessageDeleteButton';
+import { Trash2 } from 'lucide-react';
 
 interface MessageItemProps {
   message: ChatMessage;
@@ -67,6 +67,22 @@ const MessageItem: React.FC<MessageItemProps> = ({
     return message.timestamp;
   };
 
+  const renderDeleteButton = () => {
+    if (!isUserMessage || isSupport || !canDelete || !onDeleteMessage) {
+      return (
+        <div className="w-8 h-8 opacity-0" aria-hidden="true">
+          {/* Placeholder to maintain layout */}
+        </div>
+      );
+    }
+
+    return (
+      <div className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <MessageDeleteButton onDelete={handleDeleteClick} />
+      </div>
+    );
+  };
+
   return (
     <div className={`flex ${isUserMessage ? 'justify-end mr-4' : 'justify-start ml-4'} mb-6 group`}>
       {!isUserMessage && (
@@ -101,12 +117,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
         </div>
       </div>
 
-      {isUserMessage && canDelete && onDeleteMessage && !isSupport && (
-        <div className="ml-2">
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-            <MessageDeleteButton onDelete={handleDeleteClick} />
-          </div>
-        </div>
+      {isUserMessage && (
+        renderDeleteButton()
       )}
     </div>
   );
