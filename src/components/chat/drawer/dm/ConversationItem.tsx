@@ -1,20 +1,8 @@
-
 import React, { useState } from 'react';
 import { EyeOff } from 'lucide-react';
 import { DMConversation } from '@/hooks/chat/dm/useConversations';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { formatDistanceToNow } from 'date-fns';
-import { useIsMobile } from '@/hooks/use-mobile';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 interface ConversationItemProps {
   conversation: DMConversation;
@@ -30,7 +18,6 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
   onHide
 }) => {
   const [isHideDialogOpen, setIsHideDialogOpen] = useState(false);
-  const isMobile = useIsMobile();
 
   const formattedTime = conversation.timestamp 
     ? formatDistanceToNow(new Date(conversation.timestamp), { addSuffix: false })
@@ -44,10 +31,6 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
   const handleConfirmHide = () => {
     onHide(null as any);
     setIsHideDialogOpen(false);
-  };
-
-  const truncateMessage = (text: string) => {
-    return text.length > 50 ? `${text.substring(0, 50)}...` : text;
   };
 
   return (
@@ -69,25 +52,26 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
             <h2 className="font-medium text-lg truncate">
               {conversation.userName}
             </h2>
-            {!isMobile && formattedTime && (
-              <span className="text-sm text-gray-500 ml-2">
+            {formattedTime && (
+              <span className="text-sm text-gray-500 ml-2 shrink-0">
                 {formattedTime}
               </span>
             )}
           </div>
           
-          <p className="text-sm text-gray-600 truncate mt-1">
-            {truncateMessage(conversation.lastMessage)}
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm text-gray-600 truncate">
+              {conversation.lastMessage}
+            </p>
+            <button
+              onClick={handleHideClick}
+              className="shrink-0 p-2 rounded-full hover:bg-gray-200 transition-colors"
+              aria-label={`Hide conversation with ${conversation.userName}`}
+            >
+              <EyeOff size={20} className="text-gray-400" />
+            </button>
+          </div>
         </div>
-        
-        <button
-          onClick={handleHideClick}
-          className="ml-2 p-2 rounded-full hover:bg-gray-200 transition-colors"
-          aria-label={`Hide conversation with ${conversation.userName}`}
-        >
-          <EyeOff size={20} className="text-gray-400" />
-        </button>
       </div>
 
       <AlertDialog open={isHideDialogOpen} onOpenChange={setIsHideDialogOpen}>
