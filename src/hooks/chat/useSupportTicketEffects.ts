@@ -1,6 +1,5 @@
-
 import { useEffect, useState, useRef } from 'react';
-import { SupportTicket, ChatMessage } from '@/types/chat';
+import { SupportTicket } from '@/types/chat';
 import { useSupportTicketStorage } from './support/useSupportTicketStorage';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -21,49 +20,36 @@ export const useSupportTicketEffects = (
     let isMounted = true;
     
     const loadTickets = async () => {
-      // Prevent multiple concurrent fetch operations
-      if (fetchInProgressRef.current) return;
-      
-      fetchInProgressRef.current = true;
-      console.log('[useSupportTicketEffects] Starting to fetch tickets from Supabase');
-      
       try {
+        console.log('[useSupportTicketEffects] Starting to fetch tickets from Supabase');
         const tickets = await fetchTicketsFromSupabase();
         
-        // Only update state if component is still mounted
         if (isMounted) {
-          console.log('[useSupportTicketEffects] Fetched tickets:', tickets.length);
-          setTickets(tickets as SupportTicket[]);
+          console.log('[useSupportTicketEffects] Successfully fetched tickets:', tickets.length);
+          setTickets(tickets);
           setInitialLoadDone(true);
-          // Reset toast flag on successful load
           toastShownRef.current = false;
         }
       } catch (error) {
         console.error("[useSupportTicketEffects] Error fetching tickets:", error);
-        
-        // Only show toast once for the same error session
         if (!toastShownRef.current && isMounted) {
           toast({
             title: "Error",
             description: "Failed to load support tickets. Please try again later.",
             variant: "destructive",
-            duration: 3000,
           });
           toastShownRef.current = true;
         }
-      } finally {
-        fetchInProgressRef.current = false;
       }
     };
     
-    // Initial load from Supabase immediately when tab becomes active
+    // Load tickets immediately when tab becomes active
     loadTickets();
     
-    // Set up cleanup
     return () => {
       isMounted = false;
     };
-  }, [isActive, fetchTicketsFromSupabase]);
+  }, [isActive, fetchTicketsFromSupabase, setTickets]);
 
   // Listen for ticket updates from events (optimistic UI)
   useEffect(() => {
@@ -72,7 +58,7 @@ export const useSupportTicketEffects = (
     const handleTicketUpdated = () => {
       if (!fetchInProgressRef.current) {
         fetchTicketsFromSupabase()
-          .then(tickets => setTickets(tickets as SupportTicket[]))
+          .then(tickets => setTickets(tickets))
           .catch(error => console.error("[useSupportTicketEffects] Error updating tickets after event:", error));
       }
     };
@@ -117,7 +103,7 @@ export const useSupportTicketEffects = (
           // Refresh tickets to get the latest messages
           if (!fetchInProgressRef.current) {
             const tickets = await fetchTicketsFromSupabase();
-            setTickets(tickets as SupportTicket[]);
+            setTickets(tickets);
           }
         }
       )

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { SupportTicket } from '@/types/chat';
 import { ArrowLeft, Loader2 } from 'lucide-react';
@@ -37,39 +36,16 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
 }) => {
   const [supportOptionsOpen, setSupportOptionsOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>(initialSupportTickets);
+  const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>([]);
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
   // Use the ticket effects hook to handle loading and updating tickets
   useSupportTicketEffects(activeTab === "support", (tickets) => {
     setLocalSupportTickets(tickets);
-    setIsLoading(false); // Set loading to false once we have tickets
+    setIsLoading(false);
   });
   
-  // Also update from props when they change
-  useEffect(() => {
-    if (initialSupportTickets.length > 0) {
-      console.log('[SupportTabContent] Updating tickets from props:', initialSupportTickets.length);
-      setLocalSupportTickets(initialSupportTickets);
-      setIsLoading(false);
-    }
-  }, [initialSupportTickets]);
-
-  // Set loading state when tab changes to support
-  useEffect(() => {
-    if (activeTab === "support") {
-      // Only show loading state briefly to prevent flicker if tickets load quickly
-      const timer = setTimeout(() => {
-        if (localSupportTickets.length === 0) {
-          setIsLoading(true);
-        }
-      }, 100);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [activeTab, localSupportTickets.length]);
-
   const handleTicketClosed = () => {
     console.log('[SupportTabContent] Closing selected ticket');
     onSelectTicket(null as any);
