@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
@@ -15,32 +16,40 @@ export const useConversations = (hiddenDMs: string[]) => {
   const [conversations, setConversations] = useState<DMConversation[]>([]);
   const { currentUser } = useApp();
 
-  const updateConversation = useCallback((otherUserId: string, newMessage: string) => {
+  const updateConversation = useCallback((otherUserId: string, newMessage: string, otherUserName?: string, otherUserAvatar?: string) => {
     setConversations(prevConversations => {
       const now = new Date().toISOString();
       const existingConversationIndex = prevConversations.findIndex(
         conv => conv.userId === otherUserId
       );
 
+      let updatedConversations = [...prevConversations];
+      
       if (existingConversationIndex >= 0) {
-        const updatedConversations = [...prevConversations];
+        // Update existing conversation
         updatedConversations[existingConversationIndex] = {
           ...updatedConversations[existingConversationIndex],
           lastMessage: newMessage,
-          timestamp: now
+          timestamp: now,
+          // Only update name and avatar if provided
+          ...(otherUserName && { userName: otherUserName }),
+          ...(otherUserAvatar && { userAvatar: otherUserAvatar })
         };
-        
-        return updatedConversations.sort(
-          (a, b) => new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime()
-        );
+      } else if (otherUserName) {
+        // Add new conversation only if we have the user name
+        updatedConversations = [{
+          userId: otherUserId,
+          userName: otherUserName,
+          userAvatar: otherUserAvatar,
+          lastMessage: newMessage,
+          timestamp: now
+        }, ...updatedConversations];
       }
       
-      return [{
-        userId: otherUserId,
-        userName: 'Loading...',
-        lastMessage: newMessage,
-        timestamp: now
-      }, ...prevConversations];
+      // Sort conversations by timestamp, most recent first
+      return updatedConversations.sort(
+        (a, b) => new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime()
+      );
     });
   }, []);
 
@@ -143,9 +152,20 @@ export const useConversations = (hiddenDMs: string[]) => {
           table: 'direct_messages',
           filter: `receiver_id=eq.${currentUser.id}`
         },
-        (payload: any) => {
+        async (payload: any) => {
           console.log('[useConversations] Incoming DM detected');
-          updateConversation(payload.new.sender_id, payload.new.text);
+          const { data: senderData } = await supabase
+            .from('users')
+            .select('name, avatar')
+            .eq('id', payload.new.sender_id)
+            .single();
+            
+          updateConversation(
+            payload.new.sender_id, 
+            payload.new.text,
+            senderData?.name,
+            senderData?.avatar
+          );
         }
       )
       .subscribe();

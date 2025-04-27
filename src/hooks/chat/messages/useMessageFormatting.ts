@@ -1,4 +1,3 @@
-
 export const useMessageFormatting = () => {
   const formatTime = (isoString: string) => {
     const date = new Date(isoString);
