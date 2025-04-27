@@ -15,6 +15,8 @@ export const useTicketSubmission = (
   const { updateStoredTickets, dispatchTicketEvents } = useLocalStorageUpdate();
 
   const handleSubmitSupportTicket = useCallback(async () => {
+    console.log('[useTicketSubmission] Starting ticket submission process...');
+    
     if (!currentUser) {
       toast({
         title: "Error",
@@ -48,12 +50,15 @@ export const useTicketSubmission = (
     setIsSubmitting(true);
 
     try {
+      console.log('[useTicketSubmission] Creating ticket in Supabase...');
       const ticketData = await createTicket(selectedSupportOption.label);
       if (!ticketData) {
         throw new Error("Failed to create ticket");
       }
 
+      console.log('[useTicketSubmission] Sending initial message...');
       await sendInitialMessage(ticketData.id, supportMessage, currentUser.id);
+      console.log('[useTicketSubmission] Sending auto-response...');
       await sendAutoResponse(ticketData.id);
 
       const newTicket: SupportTicket = {
@@ -101,7 +106,7 @@ export const useTicketSubmission = (
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      console.error('Error creating support ticket:', error);
+      console.error('[useTicketSubmission] Error creating support ticket:', error);
       toast({
         title: "Error",
         description: `Failed to create support ticket: ${errorMessage}`,
