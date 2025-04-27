@@ -19,16 +19,11 @@ const MessageContent: React.FC<MessageContentProps> = ({
     <div 
       className={`p-3 rounded-lg break-words ${
         isUserMessage 
-          ? 'bg-primary text-white ml-auto' // Use ml-auto to align user messages to the right
-          : isSupport && message.isSupport
+          ? 'bg-primary text-white' 
+          : isSupport
             ? 'bg-blue-100 text-blue-800'
             : 'bg-gray-100 text-gray-800'
       }`}
-      style={{ 
-        maxWidth: '85%',
-        // Use marginLeft: auto to align user messages to the right (this is a backup style)
-        ...(isUserMessage ? { marginLeft: 'auto' } : {})
-      }}
     >
       {message.text}
     </div>

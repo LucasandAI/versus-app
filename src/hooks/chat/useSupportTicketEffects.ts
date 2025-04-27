@@ -13,7 +13,6 @@ export const useSupportTicketEffects = (
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const toastShownRef = useRef(false);
   const fetchInProgressRef = useRef(false);
-  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Effect to load tickets from Supabase when the component becomes active
   useEffect(() => {
@@ -28,12 +27,10 @@ export const useSupportTicketEffects = (
       fetchInProgressRef.current = true;
       
       try {
-        console.log('[useSupportTicketEffects] Fetching tickets...');
         const tickets = await fetchTicketsFromSupabase();
         
         // Only update state if component is still mounted
         if (isMounted) {
-          console.log('[useSupportTicketEffects] Setting tickets:', tickets.length);
           setTickets(tickets as SupportTicket[]);
           setInitialLoadDone(true);
           // Reset toast flag on successful load
@@ -57,17 +54,14 @@ export const useSupportTicketEffects = (
       }
     };
     
-    // Load tickets immediately when the tab becomes active
+    // Initial load from Supabase - no localStorage dependency
     loadTickets();
     
     // Set up cleanup
     return () => {
       isMounted = false;
-      if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current);
-      }
     };
-  }, [isActive, fetchTicketsFromSupabase, setTickets]);
+  }, [isActive, fetchTicketsFromSupabase]);
 
   // Listen for ticket updates from events (optimistic UI)
   useEffect(() => {
@@ -115,7 +109,9 @@ export const useSupportTicketEffects = (
           schema: 'public', 
           table: 'support_messages'
         },
-        async () => {
+        async (payload) => {
+          console.log('[useSupportTicketEffects] New support message:', payload);
+          
           // Refresh tickets to get the latest messages
           if (!fetchInProgressRef.current) {
             const tickets = await fetchTicketsFromSupabase();
@@ -128,7 +124,7 @@ export const useSupportTicketEffects = (
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [isActive, initialLoadDone, fetchTicketsFromSupabase, setTickets]);
+  }, [isActive, initialLoadDone, fetchTicketsFromSupabase]);
 };
 
 export default useSupportTicketEffects;

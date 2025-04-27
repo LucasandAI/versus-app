@@ -1,77 +1,46 @@
-
 import React, { useState, useEffect } from 'react';
 import { Send } from 'lucide-react';
 
 interface ChatInputProps {
-  onSendMessage?: (message: string) => void;
-  value?: string;
-  onChange?: (value: string) => void;
+  onSendMessage: (message: string) => void;
   isSending?: boolean;
   placeholder?: string;
   clubId?: string; // Used for chat context tracking
   conversationId?: string; // Unified ID for any conversation (club, dm, support)
   conversationType?: 'club' | 'dm' | 'support'; // Type of conversation
-  disabled?: boolean;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({ 
   onSendMessage, 
-  value,
-  onChange,
   isSending = false,
   placeholder = "Type a message...",
   clubId,
   conversationId,
-  conversationType = 'club',
-  disabled = false
+  conversationType = 'club'
 }) => {
-  const [internalMessage, setInternalMessage] = useState('');
+  const [message, setMessage] = useState('');
   const contextId = conversationId || clubId || 'unknown';
   
-  // Use either controlled or uncontrolled input based on whether value/onChange are provided
-  const isControlled = value !== undefined && onChange !== undefined;
-  const message = isControlled ? value : internalMessage;
-  
   useEffect(() => {
-    if (!isControlled) {
-      console.log(`[ChatInput] Reset input for ${conversationType} conversation: ${contextId}`);
-      setInternalMessage('');
-    }
-  }, [contextId, conversationType, isControlled]);
-  
-  const handleMessageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isControlled) {
-      onChange?.(e.target.value);
-    } else {
-      setInternalMessage(e.target.value);
-    }
-  };
+    console.log(`[ChatInput] Reset input for ${conversationType} conversation: ${contextId}`);
+    setMessage('');
+  }, [contextId, conversationType]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (message.trim() && !isSending && !disabled) {
+    if (message.trim() && !isSending) {
       const messageToSend = message.trim();
       console.log(`[ChatInput] Submitting message for ${conversationType}:${contextId}:`, 
         messageToSend.substring(0, 20));
       
-      if (isControlled) {
-        onChange?.('');
-      } else {
-        setInternalMessage('');
-      }
+      setMessage('');
       
       try {
-        if (onSendMessage) {
-          await onSendMessage(messageToSend);
-        }
+        await onSendMessage(messageToSend);
       } catch (error) {
         console.error(`[ChatInput] Error sending message for ${conversationType}:${contextId}:`, error);
-        if (isControlled) {
-          onChange?.(messageToSend);
-        } else {
-          setInternalMessage(messageToSend);
-        }
+        setMessage(messageToSend);
       }
     }
   };
@@ -93,16 +62,16 @@ const ChatInput: React.FC<ChatInputProps> = ({
       <input
         type="text"
         value={message}
-        onChange={handleMessageChange}
+        onChange={(e) => setMessage(e.target.value)}
         onKeyPress={handleKeyPress}
         placeholder={placeholder}
         className="flex-1 border rounded-full py-2 px-4 focus:outline-none focus:ring-1 focus:ring-primary"
-        disabled={isSending || disabled}
+        disabled={isSending}
       />
       <button 
         type="submit"
         className="p-2 rounded-full bg-primary text-white flex items-center justify-center disabled:opacity-50 flex-shrink-0"
-        disabled={!message.trim() || isSending || disabled}
+        disabled={!message.trim() || isSending}
       >
         {isSending ? (
           <span className="animate-pulse">...</span>

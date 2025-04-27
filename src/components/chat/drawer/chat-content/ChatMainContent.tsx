@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
@@ -44,11 +45,6 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
           onSendMessage={(message) => {
             console.log('[ChatMainContent] Sending support ticket message');
             onSendMessage(message);
-          }}
-          onTicketClosed={() => {
-            console.log('[ChatMainContent] Ticket closed');
-            // This function is just a placeholder, as it's necessary for the type
-            // The actual closing functionality is handled in ChatTicketContent component
           }}
         />
       </div>

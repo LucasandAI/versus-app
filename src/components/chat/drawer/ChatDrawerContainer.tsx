@@ -37,7 +37,6 @@ interface ChatDrawerContainerProps {
     userName: string;
     userAvatar?: string;
   } | null>>;
-  isLoading?: boolean;
 }
 
 const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
@@ -59,8 +58,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   handleSubmitSupportTicket,
   isSubmitting,
   directMessageUser,
-  setDirectMessageUser,
-  isLoading = false
+  setDirectMessageUser
 }) => {
   useEffect(() => {
     if (activeTab === "clubs") {
