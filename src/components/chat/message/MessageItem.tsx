@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -6,7 +5,6 @@ import MessageContent from './MessageContent';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect } from 'react';
 import { useNavigation } from '@/hooks/useNavigation';
-import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
 
 interface MessageItemProps {
   message: ChatMessage;
@@ -69,20 +67,16 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
   return (
     <div className={`flex mb-4 group ${isUserMessage ? 'justify-end' : ''}`}>
-      {/* Container for avatar and message */}
-      <div className="flex items-end max-w-[80%]">
-        {/* Avatar (always to the left of the message bubble) */}
+      <div className="relative flex max-w-[80%]">
         <UserAvatar
           name={message.sender.name || (isUserMessage ? "You" : "Unknown")}
           image={isUserMessage ? currentUserAvatar : message.sender.avatar}
           size="sm"
-          className={`flex-shrink-0 ${!isSupport && !isUserMessage ? 'cursor-pointer hover:opacity-80' : ''}`}
+          className={`flex-shrink-0 mr-2 ${!isSupport && !isUserMessage ? 'cursor-pointer hover:opacity-80' : ''}`}
           onClick={!isSupport && !isUserMessage ? handleProfileClick : undefined}
         />
 
-        {/* Message bubble and timestamp */}
-        <div className="flex flex-col ml-2">
-          {/* Optional sender name */}
+        <div className="flex flex-col">
           {!isUserMessage && (
             <button
               className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left`}
@@ -93,17 +87,17 @@ const MessageItem: React.FC<MessageItemProps> = ({
             </button>
           )}
 
-          {/* Message bubble */}
-          <MessageContent
-            message={message}
-            isUserMessage={isUserMessage}
-            isSupport={isSupport}
-            onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
-          />
+          <div className="relative">
+            <MessageContent
+              message={message}
+              isUserMessage={isUserMessage}
+              isSupport={isSupport}
+              onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
+            />
 
-          {/* Timestamp directly below, aligned to the left */}
-          <div className="text-xs text-gray-500 mt-1">
-            {formatTime(getTimestamp())}
+            <div className="absolute left-0 bottom-[-18px] text-xs text-gray-500">
+              {formatTime(getTimestamp())}
+            </div>
           </div>
         </div>
       </div>
