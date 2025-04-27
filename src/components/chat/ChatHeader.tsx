@@ -1,18 +1,15 @@
-
 import React from 'react';
 import { Users, ChevronDown, Trophy } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Club } from '@/types';
 import UserAvatar from '../shared/UserAvatar';
 import { useNavigation } from '@/hooks/useNavigation';
-
 interface ChatHeaderProps {
   club: Club;
   onMatchClick: () => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   onClubClick?: () => void;
 }
-
 const ChatHeader: React.FC<ChatHeaderProps> = ({
   club,
   onMatchClick,
@@ -20,32 +17,10 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   onClubClick
 }) => {
   const currentMatch = club.currentMatch;
-  
-  return (
-    <div className="border-b p-3">
-      <div 
-        className="flex items-center gap-2 mb-2 cursor-pointer hover:opacity-80" 
-        onClick={onClubClick}
-      >
-        <UserAvatar 
-          name={club.name} 
-          image={club.logo} 
-          size="sm" 
-          onClick={onClubClick} 
-        />
-        <h3 
-          className="font-semibold text-lg cursor-pointer hover:text-primary" 
-          onClick={onClubClick}
-        >
-          {club.name}
-        </h3>
-      </div>
+  return <div className="border-b p-3">
       
-      {currentMatch && (
-        <div 
-          className="mt-1 mb-2 bg-gray-50 rounded-md p-2 text-xs cursor-pointer hover:bg-gray-100" 
-          onClick={onMatchClick}
-        >
+      
+      {currentMatch && <div className="mt-1 mb-2 bg-gray-50 rounded-md p-2 text-xs cursor-pointer hover:bg-gray-100" onClick={onMatchClick}>
           <div className="flex items-center gap-1 text-primary font-medium">
             <Trophy className="h-3 w-3" />
             <span>Current Match</span>
@@ -63,8 +38,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             {currentMatch.status === 'active' ? 'Ends on ' : 'Starting on '}
             {new Date(currentMatch.endDate).toLocaleDateString()}
           </div>
-        </div>
-      )}
+        </div>}
       
       <Popover>
         <PopoverTrigger asChild>
@@ -77,36 +51,18 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         <PopoverContent className="w-60 p-2" align="start">
           <h4 className="text-sm font-medium mb-2">Club Members</h4>
           <div className="space-y-2 max-h-60 overflow-y-auto">
-            {club.members.map(member => (
-              <div 
-                key={member.id} 
-                className="w-full flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-md"
-              >
-                <UserAvatar 
-                  name={member.name} 
-                  image={member.avatar} 
-                  size="sm" 
-                  className="cursor-pointer" 
-                  onClick={() => onSelectUser(member.id, member.name, member.avatar)} 
-                />
-                <span 
-                  className="text-sm truncate cursor-pointer hover:text-primary" 
-                  onClick={() => onSelectUser(member.id, member.name, member.avatar)}
-                >
+            {club.members.map(member => <div key={member.id} className="w-full flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-md">
+                <UserAvatar name={member.name} image={member.avatar} size="sm" className="cursor-pointer" onClick={() => onSelectUser(member.id, member.name, member.avatar)} />
+                <span className="text-sm truncate cursor-pointer hover:text-primary" onClick={() => onSelectUser(member.id, member.name, member.avatar)}>
                   {member.name}
                 </span>
-                {member.isAdmin && (
-                  <span className="text-xs bg-primary/10 text-primary px-1 py-0.5 rounded ml-auto">
+                {member.isAdmin && <span className="text-xs bg-primary/10 text-primary px-1 py-0.5 rounded ml-auto">
                     Admin
-                  </span>
-                )}
-              </div>
-            ))}
+                  </span>}
+              </div>)}
           </div>
         </PopoverContent>
       </Popover>
-    </div>
-  );
+    </div>;
 };
-
 export default ChatHeader;
