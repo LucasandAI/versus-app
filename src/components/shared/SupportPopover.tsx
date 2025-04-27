@@ -35,6 +35,10 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
   };
 
   const handleTicketSubmit = async (submittedMessage: string) => {
+    console.log('[SupportPopover] Starting ticket submission process...');
+    console.log('[SupportPopover] Current user:', currentUser?.id);
+    console.log('[SupportPopover] Selected option:', selectedOption?.label);
+
     if (!selectedOption) {
       toast({
         title: "Error",
@@ -46,6 +50,7 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
 
     // Make sure we have a valid user
     if (!currentUser?.id) {
+      console.error('[SupportPopover] No current user found');
       toast({
         title: "Error",
         description: "You must be logged in to submit a support ticket",
@@ -57,6 +62,7 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
     setIsSubmitting(true);
     
     try {
+      console.log('[SupportPopover] Attempting to insert into support_tickets...');
       // Step 1: Create the ticket
       const { data: ticketData, error: ticketError } = await supabase
         .from('support_tickets')
@@ -68,16 +74,21 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
         .select()
         .single();
 
+      console.log('[SupportPopover] Ticket creation result:', { ticketData, ticketError });
+
       if (ticketError) {
+        console.error('[SupportPopover] Failed to create ticket:', ticketError);
         throw new Error('Failed to create support ticket');
       }
 
       if (!ticketData) {
+        console.error('[SupportPopover] No ticket data returned');
         throw new Error('No ticket data returned');
       }
 
+      console.log('[SupportPopover] Attempting to insert initial message...');
       // Step 2: Create the initial message
-      const { error: messageError } = await supabase
+      const { data: messageData, error: messageError } = await supabase
         .from('support_messages')
         .insert({
           ticket_id: ticketData.id,
@@ -86,12 +97,16 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
           is_support: false
         });
 
+      console.log('[SupportPopover] Message creation result:', { messageData, messageError });
+
       if (messageError) {
+        console.error('[SupportPopover] Failed to create message:', messageError);
         throw new Error('Failed to create support message');
       }
 
+      console.log('[SupportPopover] Attempting to insert auto-response...');
       // Step 3: Create auto-response
-      const { error: autoResponseError } = await supabase
+      const { data: autoResponseData, error: autoResponseError } = await supabase
         .from('support_messages')
         .insert({
           ticket_id: ticketData.id,
@@ -100,7 +115,10 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
           is_support: true
         });
 
+      console.log('[SupportPopover] Auto-response creation result:', { autoResponseData, autoResponseError });
+
       if (autoResponseError) {
+        console.error('[SupportPopover] Failed to create auto-response:', autoResponseError);
         throw new Error('Failed to create auto-response');
       }
 
@@ -112,6 +130,7 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
 
       // Open the newly created chat if callback provided
       if (onCreateSupportChat) {
+        console.log('[SupportPopover] Opening new chat with ticket:', ticketData.id);
         onCreateSupportChat(ticketData.id, selectedOption.label, submittedMessage);
       }
 
@@ -121,7 +140,7 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
       setSelectedOption(null);
       
     } catch (error) {
-      console.error('Error submitting support ticket:', error);
+      console.error('[SupportPopover] Error in ticket submission:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create support ticket. Please try again.",

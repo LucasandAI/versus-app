@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { SupportTicket } from '@/types/chat';
 import ChatMessages from './ChatMessages';
@@ -15,7 +14,7 @@ interface ChatTicketContentProps {
   onTicketClosed?: () => void;
 }
 
-const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicketContentProps) => {
+const ChatTicketContent: React.FC<ChatTicketContentProps> = ({ ticket, onSendMessage, onTicketClosed }: ChatTicketContentProps) => {
   const { currentUser } = useApp();
   const [localMessages, setLocalMessages] = useState(ticket.messages || []);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -29,12 +28,10 @@ const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicket
   }, [localMessages]);
 
   useEffect(() => {
-    // Update local messages when ticket messages change
     setLocalMessages(ticket.messages || []);
   }, [ticket.messages]);
 
   const handleSendMessage = (message: string) => {
-    // Create optimistic message
     const optimisticMessage = {
       id: `temp-${Date.now()}`,
       text: message,
@@ -47,10 +44,8 @@ const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicket
       isSupport: false
     };
 
-    // Update local state immediately
     setLocalMessages(prevMessages => [...prevMessages, optimisticMessage]);
 
-    // Update localStorage optimistically
     try {
       const storedTickets = localStorage.getItem('supportTickets');
       if (storedTickets) {
@@ -67,7 +62,6 @@ const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicket
         localStorage.setItem('supportTickets', JSON.stringify(updatedTickets));
       }
       
-      // Dispatch event to update UI immediately
       window.dispatchEvent(new CustomEvent('ticketUpdated', { 
         detail: { ticketId: ticket.id }
       }));
@@ -75,15 +69,16 @@ const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicket
       console.error('Error updating localStorage:', error);
     }
 
-    // Call onSendMessage for background Supabase insert
     onSendMessage(message);
   };
 
   const handleCloseTicket = async () => {
+    console.log('[ChatTicketContent] Starting ticket closure process for ticket:', ticket.id);
+    
     try {
-      // Update local storage optimistically
       let updatedTickets = [];
       try {
+        console.log('[ChatTicketContent] Updating local storage');
         const storedTickets = localStorage.getItem('supportTickets');
         if (storedTickets) {
           const parsedTickets = JSON.parse(storedTickets);
@@ -91,15 +86,13 @@ const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicket
           localStorage.setItem('supportTickets', JSON.stringify(updatedTickets));
         }
       } catch (error) {
-        console.error('Error updating localStorage:', error);
+        console.error('[ChatTicketContent] Error updating localStorage:', error);
       }
 
-      // Trigger custom event to notify other components about the deletion
       window.dispatchEvent(new CustomEvent('supportTicketDeleted', { 
         detail: { ticketId: ticket.id }
       }));
       
-      // Call the onTicketClosed callback to update parent component state
       if (onTicketClosed) {
         onTicketClosed();
       }
@@ -109,14 +102,15 @@ const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicket
         description: "The support ticket has been successfully deleted.",
       });
       
-      // Delete the ticket and its messages from Supabase in the background
       const { error: messagesError } = await supabase
         .from('support_messages')
         .delete()
         .eq('ticket_id', ticket.id);
       
+      console.log('[ChatTicketContent] Messages deletion result:', { messagesError });
+      
       if (messagesError) {
-        console.error('Error deleting ticket messages:', messagesError);
+        console.error('[ChatTicketContent] Error deleting ticket messages:', messagesError);
         throw messagesError;
       }
       
@@ -125,13 +119,15 @@ const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicket
         .delete()
         .eq('id', ticket.id);
         
+      console.log('[ChatTicketContent] Ticket deletion result:', { ticketError });
+      
       if (ticketError) {
-        console.error('Error deleting ticket:', ticketError);
+        console.error('[ChatTicketContent] Error deleting ticket:', ticketError);
         throw ticketError;
       }
       
     } catch (error) {
-      console.error('Error closing ticket:', error);
+      console.error('[ChatTicketContent] Error in closeTicket:', error);
       toast({
         title: "Error",
         description: "Failed to delete the ticket. Please try again.",
