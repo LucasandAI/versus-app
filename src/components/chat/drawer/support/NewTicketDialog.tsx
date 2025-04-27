@@ -1,15 +1,14 @@
 
 import React from 'react';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Textarea } from "@/components/ui/textarea";
@@ -58,17 +57,17 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
             {selectedOption?.label || "Create Support Ticket"}
-          </AlertDialogTitle>
-          <AlertDialogDescription>
+          </DialogTitle>
+          <DialogDescription>
             Please provide details about your issue.
             Our team will review your submission and respond in the support chat.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+          </DialogDescription>
+        </DialogHeader>
         <div className="grid gap-4 py-4">
           <Textarea 
             value={supportMessage}
@@ -78,15 +77,16 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
             disabled={isSubmitting}
           />
         </div>
-        <AlertDialogFooter>
-          <AlertDialogCancel 
-            onClick={() => !isSubmitting && onOpenChange(false)} 
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => !isSubmitting && onOpenChange(false)}
             disabled={isSubmitting}
           >
             Cancel
-          </AlertDialogCancel>
-          <AlertDialogAction 
-            onClick={handleSubmit} 
+          </Button>
+          <Button
+            onClick={handleSubmit}
             disabled={isSubmitting || !supportMessage.trim()}
           >
             {isSubmitting ? (
@@ -97,11 +97,12 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
             ) : (
               'Submit'
             )}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 
 export default NewTicketDialog;
+
