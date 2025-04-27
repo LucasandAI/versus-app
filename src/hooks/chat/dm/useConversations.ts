@@ -19,7 +19,8 @@ export const useConversations = (hiddenDMs: string[]) => {
   const [userCache, setUserCache] = useState<Record<string, { name: string; avatar?: string }>>({});
 
   const updateConversation = useCallback((otherUserId: string, newMessage: string, otherUserName?: string, otherUserAvatar?: string) => {
-    console.log('[useConversations] Updating conversation:', { otherUserId, newMessage });
+    // Debug log for updateConversation calls
+    console.log('[updateConversation] Called for userId:', otherUserId, 'with message:', newMessage, 'userName:', otherUserName || 'not provided', 'timestamp:', new Date().toISOString());
     
     setConversations(prevConversations => {
       const now = new Date().toISOString();
@@ -89,7 +90,7 @@ export const useConversations = (hiddenDMs: string[]) => {
   useEffect(() => {
     if (!currentUser?.id) return;
 
-    console.log('[useConversations] Setting up real-time subscriptions');
+    console.log('[useConversations] Setting up real-time subscriptions for user:', currentUser.id);
     
     const outgoingChannel = supabase
       .channel('dm-outgoing')
@@ -101,7 +102,9 @@ export const useConversations = (hiddenDMs: string[]) => {
           filter: `sender_id=eq.${currentUser.id}`
         },
         (payload: any) => {
-          console.log('[useConversations] Outgoing DM detected:', payload);
+          // Debug log for outgoing DM events
+          console.log('[RealTime] Outgoing DM detected:', payload, 'timestamp:', new Date().toISOString());
+          
           const receiverId = payload.new.receiver_id;
           const cachedUser = userCache[receiverId];
           
@@ -128,7 +131,9 @@ export const useConversations = (hiddenDMs: string[]) => {
           filter: `receiver_id=eq.${currentUser.id}`
         },
         async (payload: any) => {
-          console.log('[useConversations] Incoming DM detected:', payload);
+          // Debug log for incoming DM events
+          console.log('[RealTime] Incoming DM detected:', payload, 'timestamp:', new Date().toISOString());
+          
           const senderId = payload.new.sender_id;
           const cachedUser = userCache[senderId];
           
@@ -148,6 +153,7 @@ export const useConversations = (hiddenDMs: string[]) => {
     fetchConversations();
 
     return () => {
+      console.log('[useConversations] Cleaning up real-time subscriptions');
       supabase.removeChannel(outgoingChannel);
       supabase.removeChannel(incomingChannel);
     };
@@ -157,7 +163,8 @@ export const useConversations = (hiddenDMs: string[]) => {
     try {
       if (!currentUser?.id) return;
 
-      console.log('[useConversations] Fetching conversations...');
+      // Debug log for fetching conversations
+      console.log('[fetchConversations] Fetching conversations for user:', currentUser.id);
 
       const { data: messages, error: messagesError } = await supabase
         .from('direct_messages')
@@ -168,16 +175,21 @@ export const useConversations = (hiddenDMs: string[]) => {
       if (messagesError) throw messagesError;
       
       if (!messages || messages.length === 0) {
+        console.log('[fetchConversations] No messages found');
         setConversations([]);
         return;
       }
 
+      console.log('[fetchConversations] Found messages:', messages.length);
+      
       const uniqueUserIds = new Set<string>();
       messages.forEach(msg => {
         const otherUserId = msg.sender_id === currentUser.id ? msg.receiver_id : msg.sender_id;
         uniqueUserIds.add(otherUserId);
       });
 
+      console.log('[fetchConversations] Unique conversation partners:', Array.from(uniqueUserIds));
+      
       const { data: users, error: usersError } = await supabase
         .from('users')
         .select('id, name, avatar')
@@ -211,6 +223,8 @@ export const useConversations = (hiddenDMs: string[]) => {
       const sortedConversations = Array.from(conversationsMap.values())
         .sort((a, b) => new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime());
 
+      console.log('[fetchConversations] Created conversations list:', sortedConversations.length);
+      
       setConversations(sortedConversations);
     } catch (error) {
       console.error('Error loading conversations:', error);
@@ -229,3 +243,4 @@ export const useConversations = (hiddenDMs: string[]) => {
     refreshVersion 
   };
 };
+
