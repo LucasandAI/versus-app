@@ -1,15 +1,21 @@
-
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useConversationsPersistence } from './useConversationsPersistence';
 import type { DMConversation } from './types';
 
 export const useFetchConversations = (currentUserId: string | undefined) => {
+  const { loadConversationsFromStorage } = useConversationsPersistence();
+
   const fetchConversations = useCallback(async () => {
     try {
       if (!currentUserId) return [];
 
       console.log('[fetchConversations] Fetching conversations for user:', currentUserId);
+
+      // Load stored conversations first
+      const storedConversations = loadConversationsFromStorage();
+      console.log('[fetchConversations] Loaded stored conversations:', storedConversations.length);
 
       const { data: messages, error: messagesError } = await supabase
         .from('direct_messages')
@@ -20,11 +26,11 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
       if (messagesError) throw messagesError;
       
       if (!messages || messages.length === 0) {
-        console.log('[fetchConversations] No messages found');
-        return [];
+        console.log('[fetchConversations] No messages found in database');
+        return storedConversations;
       }
 
-      console.log('[fetchConversations] Found messages:', messages.length);
+      console.log('[fetchConversations] Found messages in database:', messages.length);
       
       const uniqueUserIds = new Set<string>();
       messages.forEach(msg => {
@@ -64,12 +70,18 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
         }
       });
 
-      const sortedConversations = Array.from(conversationsMap.values())
-        .sort((a, b) => new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime());
+      // Merge database conversations with stored ones, prioritizing newer timestamps
+      const mergedConversations = Array.from(conversationsMap.values())
+        .concat(storedConversations)
+        .sort((a, b) => new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime())
+        // Remove duplicates based on userId
+        .filter((conv, index, self) => 
+          index === self.findIndex(c => c.userId === conv.userId)
+        );
 
-      console.log('[fetchConversations] Created conversations list:', sortedConversations.length);
+      console.log('[fetchConversations] Created merged conversations list:', mergedConversations.length);
       
-      return sortedConversations;
+      return mergedConversations;
     } catch (error) {
       console.error('Error loading conversations:', error);
       toast({
@@ -77,9 +89,9 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
         description: "Could not load conversations",
         variant: "destructive"
       });
-      return [];
+      return loadConversationsFromStorage(); // Fallback to stored conversations on error
     }
-  }, [currentUserId]);
+  }, [currentUserId, loadConversationsFromStorage]);
 
   return fetchConversations;
 };

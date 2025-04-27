@@ -1,9 +1,10 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useUserData } from './useUserData';
 import { useRealtimeSubscriptions } from './useRealtimeSubscriptions';
 import { useFetchConversations } from './useFetchConversations';
+import { useConversationsPersistence } from './useConversationsPersistence';
 import type { DMConversation } from './types';
 
 export type { DMConversation };
@@ -14,6 +15,24 @@ export const useConversations = (hiddenDMs: string[]) => {
   const { currentUser } = useApp();
   const { userCache, setUserCache, fetchUserData } = useUserData();
   const fetchConversations = useFetchConversations(currentUser?.id);
+  const { saveConversationsToStorage, loadConversationsFromStorage } = useConversationsPersistence();
+
+  // Load persisted conversations on mount
+  useEffect(() => {
+    const storedConversations = loadConversationsFromStorage();
+    if (storedConversations.length > 0) {
+      console.log('[useConversations] Initializing with stored conversations:', storedConversations.length);
+      setConversations(storedConversations);
+    }
+  }, [loadConversationsFromStorage]);
+
+  // Save conversations whenever they change
+  useEffect(() => {
+    if (conversations.length > 0) {
+      console.log('[useConversations] Saving updated conversations:', conversations.length);
+      saveConversationsToStorage(conversations);
+    }
+  }, [conversations, saveConversationsToStorage]);
 
   const updateConversation = useCallback((otherUserId: string, newMessage: string, otherUserName?: string, otherUserAvatar?: string) => {
     console.log('[updateConversation] Called for userId:', otherUserId, 'with message:', newMessage, 'userName:', otherUserName || 'not provided', 'timestamp:', new Date().toISOString());
