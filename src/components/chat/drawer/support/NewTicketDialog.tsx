@@ -57,10 +57,6 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
     onSubmit();
   };
 
-  const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setSupportMessage(e.target.value);
-  };
-
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -76,7 +72,7 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
         <div className="grid gap-4 py-4">
           <Textarea 
             value={supportMessage}
-            onChange={handleMessageChange}
+            onChange={(e) => setSupportMessage(e.target.value)}
             placeholder="Describe your issue in detail..."
             className="min-h-[100px]"
             disabled={isSubmitting}
