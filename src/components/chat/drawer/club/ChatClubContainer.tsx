@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 import UserAvatar from '@/components/shared/UserAvatar';
 import ClubsList from '../../sidebar/ClubsList';
 import ChatClubContent from '../../ChatClubContent';
+import { useNavigation } from '@/hooks/useNavigation';
 
 interface ChatClubContainerProps {
   clubs: Club[];
@@ -27,12 +28,22 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   onDeleteChat,
   setClubMessages
 }) => {
+  const { navigateToClubDetail } = useNavigation();
+  
   const handleGoBack = () => {
     onSelectClub(null as any);
   };
 
   const handleMatchClick = () => {
     console.log('[ChatClubContainer] Match clicked');
+  };
+  
+  const handleClubClick = () => {
+    if (selectedClub && selectedClub.id) {
+      navigateToClubDetail(selectedClub.id, selectedClub);
+      const event = new CustomEvent('chatDrawerClosed');
+      window.dispatchEvent(event);
+    }
   };
 
   return (
@@ -60,13 +71,23 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
             <button onClick={handleGoBack} className="p-2 hover:bg-gray-100 rounded-full">
               <ArrowLeft className="h-6 w-6" />
             </button>
-            <div className="flex items-center gap-3 flex-1 justify-center">
+            <div 
+              className="flex items-center gap-3 flex-1 justify-center cursor-pointer hover:opacity-80"
+              onClick={handleClubClick}
+            >
               <UserAvatar 
                 name={selectedClub.name} 
                 image={selectedClub.logo || ''} 
                 size="sm"
+                onClick={handleClubClick}
+                className="cursor-pointer"
               />
-              <span className="font-semibold text-lg">{selectedClub.name}</span>
+              <span 
+                className="font-semibold text-lg cursor-pointer hover:text-primary"
+                onClick={handleClubClick}
+              >
+                {selectedClub.name}
+              </span>
             </div>
             <div className="w-10" /> {/* Spacer for alignment */}
           </div>
