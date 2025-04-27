@@ -41,7 +41,6 @@ export const useSupportTicketStorage = () => {
             id: ticket.id,
             subject: ticket.subject,
             createdAt: ticket.created_at,
-            status: (ticket.status === 'open' ? 'open' : 'closed') as 'open' | 'closed',
             messages: []
           };
         }
@@ -60,12 +59,10 @@ export const useSupportTicketStorage = () => {
         }));
         
         // Map the database structure to our application structure
-        // Ensure status is properly typed as 'open' or 'closed'
         return {
           id: ticket.id,
           subject: ticket.subject,
           createdAt: ticket.created_at,
-          status: (ticket.status === 'open' ? 'open' : 'closed') as 'open' | 'closed',
           messages: formattedMessages
         };
       }));
@@ -110,8 +107,7 @@ export const useSupportTicketStorage = () => {
         .from('support_tickets')
         .insert({
           subject,
-          user_id: currentUser.id,
-          status: 'open'
+          user_id: currentUser.id
         })
         .select()
         .single();
@@ -148,7 +144,6 @@ export const useSupportTicketStorage = () => {
         id: ticketData.id,
         subject,
         createdAt: ticketData.created_at,
-        status: 'open',
         messages: [
           {
             id: Date.now().toString(),

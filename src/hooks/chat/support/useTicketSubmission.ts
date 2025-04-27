@@ -65,7 +65,6 @@ export const useTicketSubmission = (
         id: ticketData.id,
         subject: selectedSupportOption.label,
         createdAt: new Date().toISOString(),
-        status: 'open',
         messages: [
           {
             id: Date.now().toString(),

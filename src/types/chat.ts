@@ -1,3 +1,4 @@
+
 import { Club } from './index';
 
 export interface ChatMessage {
@@ -16,7 +17,6 @@ export interface SupportTicket {
   id: string;
   subject: string;
   createdAt: string;
-  status: 'open' | 'closed';
   messages: ChatMessage[];
 }
 

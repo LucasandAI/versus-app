@@ -19,8 +19,7 @@ export const useTicketCreation = () => {
       .from('support_tickets')
       .insert({
         subject,
-        user_id: currentUser.id,
-        status: 'open'
+        user_id: currentUser.id
       })
       .select()
       .single();
