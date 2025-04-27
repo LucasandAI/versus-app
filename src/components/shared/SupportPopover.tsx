@@ -136,7 +136,11 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
 
       <NewTicketDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(value) => {
+          if (!value) {
+            setDialogOpen(false);
+          }
+        }}
         selectedOption={selectedOption}
         onSubmit={handleSubmit}
         supportMessage={message}
