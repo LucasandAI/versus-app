@@ -40,6 +40,7 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>(initialSupportTickets);
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Load tickets from Supabase and handle updates
   useSupportTicketEffects(activeTab === "support", setLocalSupportTickets);
@@ -49,6 +50,7 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
   useEffect(() => {
     console.log('[SupportTabContent] Updating tickets from props:', initialSupportTickets.length);
     setLocalSupportTickets(initialSupportTickets);
+    setIsLoading(false);
   }, [initialSupportTickets]);
 
   // Log when component renders to help debug
@@ -110,7 +112,11 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
           </div>
           
           <div className="flex-1 overflow-y-auto p-4">
-            {localSupportTickets.length === 0 ? (
+            {isLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : localSupportTickets.length === 0 ? (
               <div className="text-gray-500 text-center py-8">
                 No support tickets yet. Click "New Ticket" to create one.
               </div>

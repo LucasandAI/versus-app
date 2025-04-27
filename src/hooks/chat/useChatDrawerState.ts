@@ -3,44 +3,52 @@ import { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
 import { supabase } from '@/integrations/supabase/client';
+import { useSupportTicketStorage } from './support/useSupportTicketStorage';
 
 export const useChatDrawerState = (open: boolean, supportTickets: SupportTicket[] = []) => {
   const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>(supportTickets);
+  const { fetchTicketsFromSupabase } = useSupportTicketStorage();
 
-  // Load tickets from localStorage when drawer opens or when tickets are updated
+  // Load tickets directly from Supabase when drawer opens
   useEffect(() => {
-    const loadTickets = () => {
-      if (open) {
-        try {
-          const storedTickets = localStorage.getItem('supportTickets');
-          if (storedTickets) {
-            const parsedTickets = JSON.parse(storedTickets);
-            setLocalSupportTickets(parsedTickets);
-            
-            // If we have a selected ticket, check if it still exists
-            if (selectedTicket) {
-              const ticketStillExists = parsedTickets.find((t: SupportTicket) => t.id === selectedTicket.id);
-              if (!ticketStillExists) {
-                setSelectedTicket(null);
-              }
+    if (open) {
+      // Load tickets directly from Supabase on drawer open
+      fetchTicketsFromSupabase()
+        .then(tickets => {
+          console.log('[useChatDrawerState] Loaded tickets from Supabase:', tickets.length);
+          setLocalSupportTickets(tickets as SupportTicket[]);
+          
+          // If we have a selected ticket, check if it still exists
+          if (selectedTicket) {
+            const ticketStillExists = tickets.find((t: any) => t.id === selectedTicket.id);
+            if (!ticketStillExists) {
+              setSelectedTicket(null);
             }
           }
-        } catch (error) {
-          console.error("Error parsing support tickets:", error);
-        }
-      }
+        })
+        .catch(error => {
+          console.error('[useChatDrawerState] Error loading tickets:', error);
+        });
+    }
+  }, [open, fetchTicketsFromSupabase, selectedTicket]);
+  
+  // Listen for ticket updates
+  useEffect(() => {
+    const handleTicketUpdated = () => {
+      fetchTicketsFromSupabase()
+        .then(tickets => setLocalSupportTickets(tickets as SupportTicket[]))
+        .catch(error => console.error('[useChatDrawerState] Error updating tickets:', error));
     };
-
-    loadTickets();
     
-    // Listen for ticket updates
-    const handleTicketUpdated = () => loadTickets();
     const handleTicketDeleted = (event: CustomEvent) => {
-      loadTickets();
+      const { ticketId } = event.detail;
+      // Update the local state to remove the deleted ticket
+      setLocalSupportTickets(current => current.filter(ticket => ticket.id !== ticketId));
+      
       // If the deleted ticket was selected, clear the selection
-      if (selectedTicket && selectedTicket.id === event.detail.ticketId) {
+      if (selectedTicket && selectedTicket.id === ticketId) {
         setSelectedTicket(null);
       }
     };
@@ -56,7 +64,7 @@ export const useChatDrawerState = (open: boolean, supportTickets: SupportTicket[
       window.removeEventListener('ticketUpdated', handleTicketUpdated);
       window.removeEventListener('supportTicketDeleted', handleTicketDeleted as EventListener);
     };
-  }, [open, supportTickets, selectedTicket]);
+  }, [selectedTicket, fetchTicketsFromSupabase]);
 
   // Load messages from Supabase when a ticket is selected
   useEffect(() => {
@@ -69,7 +77,7 @@ export const useChatDrawerState = (open: boolean, supportTickets: SupportTicket[
           .order('timestamp', { ascending: true });
         
         if (error) {
-          console.error('Error loading support messages:', error);
+          console.error('[useChatDrawerState] Error loading support messages:', error);
           return;
         }
         
@@ -94,20 +102,6 @@ export const useChatDrawerState = (open: boolean, supportTickets: SupportTicket[
           };
           
           setSelectedTicket(updatedTicket);
-          
-          // Update in localStorage
-          try {
-            const storedTickets = localStorage.getItem('supportTickets');
-            if (storedTickets) {
-              const parsedTickets = JSON.parse(storedTickets);
-              const updatedTickets = parsedTickets.map((t: SupportTicket) => 
-                t.id === selectedTicket.id ? updatedTicket : t
-              );
-              localStorage.setItem('supportTickets', JSON.stringify(updatedTickets));
-            }
-          } catch (error) {
-            console.error('Error updating localStorage tickets:', error);
-          }
         }
       };
       

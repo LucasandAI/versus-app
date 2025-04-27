@@ -56,14 +56,8 @@ export const useSupportTicketEffects = (
       }
     };
     
-    // Initial load from Supabase with debouncing
-    if (fetchTimeoutRef.current) {
-      clearTimeout(fetchTimeoutRef.current);
-    }
-    
-    fetchTimeoutRef.current = setTimeout(() => {
-      loadTickets();
-    }, 300);
+    // Load tickets immediately when the tab becomes active
+    loadTickets();
     
     // Set up cleanup
     return () => {
@@ -72,7 +66,7 @@ export const useSupportTicketEffects = (
         clearTimeout(fetchTimeoutRef.current);
       }
     };
-  }, [isActive, fetchTicketsFromSupabase]);
+  }, [isActive, fetchTicketsFromSupabase, setTickets]);
 
   // Listen for ticket updates from events (optimistic UI)
   useEffect(() => {
@@ -120,9 +114,7 @@ export const useSupportTicketEffects = (
           schema: 'public', 
           table: 'support_messages'
         },
-        async (payload) => {
-          console.log('[useSupportTicketEffects] New support message:', payload);
-          
+        async () => {
           // Refresh tickets to get the latest messages
           if (!fetchInProgressRef.current) {
             const tickets = await fetchTicketsFromSupabase();
@@ -135,7 +127,7 @@ export const useSupportTicketEffects = (
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [isActive, initialLoadDone, fetchTicketsFromSupabase]);
+  }, [isActive, initialLoadDone, fetchTicketsFromSupabase, setTickets]);
 };
 
 export default useSupportTicketEffects;

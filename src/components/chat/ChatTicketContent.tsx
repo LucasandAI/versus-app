@@ -1,135 +1,151 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { SupportTicket } from '@/types/chat';
+import { Button } from '@/components/ui/button';
+import { ArrowDown } from 'lucide-react';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
-import { useApp } from '@/context/AppContext';
-import { XCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { toast } from '@/hooks/use-toast';
-import { useChatDeletion } from '@/hooks/chat/useChatDeletion';
 import { useSupportTicketStorage } from '@/hooks/chat/support/useSupportTicketStorage';
+import { toast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
 interface ChatTicketContentProps {
   ticket: SupportTicket;
   onSendMessage: (message: string) => void;
-  onTicketClosed?: () => void;
+  onTicketClosed: () => void;
 }
 
-const ChatTicketContent: React.FC<ChatTicketContentProps> = ({ 
-  ticket, 
-  onSendMessage, 
-  onTicketClosed 
+const ChatTicketContent: React.FC<ChatTicketContentProps> = ({
+  ticket,
+  onSendMessage,
+  onTicketClosed
 }) => {
-  const { currentUser } = useApp();
-  const { deleteChat } = useChatDeletion();
-  const { sendMessageToTicket } = useSupportTicketStorage();
-  const [localMessages, setLocalMessages] = useState(ticket.messages || []);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [localMessages]);
-
-  useEffect(() => {
-    console.log('[ChatTicketContent] Ticket messages updated:', ticket.messages?.length || 0);
-    setLocalMessages(ticket.messages || []);
-  }, [ticket.messages]);
-
-  const handleSendMessage = async (message: string) => {
-    if (!message.trim()) return;
+  const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const lastMessageRef = useRef<HTMLDivElement>(null);
+  const [isClosing, setIsClosing] = useState(false);
+  const { deleteTicketFromSupabase } = useSupportTicketStorage();
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim() || isSubmitting) return;
     
-    console.log('[ChatTicketContent] Sending message:', message);
+    setIsSubmitting(true);
     
-    // Create optimistic message for immediate UI update
-    const optimisticMessage = {
-      id: `temp-${Date.now()}`,
-      text: message,
-      sender: {
-        id: currentUser?.id || 'unknown',
-        name: currentUser?.name || 'You',
-        avatar: currentUser?.avatar || '/placeholder.svg'
-      },
-      timestamp: new Date().toISOString(),
-      isSupport: false
-    };
-
-    // Update local state immediately for optimistic UI
-    setLocalMessages(prevMessages => [...prevMessages, optimisticMessage]);
-
-    // Send message to database
-    const success = await sendMessageToTicket(ticket.id, message);
-    
-    if (!success) {
-      // Fallback handling if message fails to send
+    try {
+      await onSendMessage(message);
+      setMessage('');
+      
+      // Scroll to the new message
+      setTimeout(() => {
+        lastMessageRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } catch (error) {
+      console.error('Failed to send message:', error);
       toast({
-        title: "Message not delivered",
-        description: "Your message couldn't be delivered to support",
-        variant: "destructive",
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    // Call the parent handler
-    onSendMessage(message);
+  };
+  
+  const handleCloseTicket = async () => {
+    setIsClosing(true);
+    try {
+      // Delete ticket from database
+      await deleteTicketFromSupabase(ticket.id);
+      toast({
+        title: "Ticket Closed",
+        description: "Support ticket has been closed successfully."
+      });
+      onTicketClosed();
+    } catch (error) {
+      console.error('Failed to close ticket:', error);
+      toast({
+        title: "Error",
+        description: "Failed to close the support ticket. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsClosing(false);
+    }
   };
 
-  const handleCloseTicket = () => {
-    console.log('[ChatTicketContent] Starting ticket closure/deletion for ticket:', ticket.id);
-    
-    // Delete ticket in the database and update UI
-    deleteChat(ticket.id, true);
-    
-    // Close ticket view in the UI
-    if (onTicketClosed) {
-      onTicketClosed();
+  const formatTimeCustom = (isoString: string) => {
+    try {
+      return format(new Date(isoString), 'MMM d, h:mm a');
+    } catch (error) {
+      return 'Invalid time';
     }
-    
-    toast({
-      title: "Ticket Deleted",
-      description: "The support ticket has been successfully deleted.",
-    });
   };
+
+  // Check if there are messages to display
+  if (!ticket.messages || ticket.messages.length === 0) {
+    return (
+      <div className="flex flex-col h-full p-4">
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-gray-500">No messages in this ticket.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col h-full relative">
-      <div className="border-b p-3 flex justify-between items-center">
-        <div>
-          <h3 className="font-semibold">{ticket.subject}</h3>
-          <p className="text-xs text-gray-500">
-            Created {new Date(ticket.createdAt).toLocaleDateString()}
-          </p>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleCloseTicket}
-          className="text-gray-500 hover:text-gray-700"
-        >
-          <XCircle className="w-4 h-4 mr-2" />
-          Close Ticket
-        </Button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto pb-16">
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-auto relative">
         <ChatMessages 
-          messages={localMessages} 
-          clubMembers={currentUser ? [currentUser] : []}
+          messages={ticket.messages}
           isSupport={true}
-          currentUserAvatar={currentUser?.avatar || '/placeholder.svg'}
+          lastMessageRef={lastMessageRef}
+          formatTime={formatTimeCustom}
         />
-        <div ref={messagesEndRef} />
+        
+        <div className="sticky bottom-4 right-4 flex justify-end px-4">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => {
+              lastMessageRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-full shadow-md"
+          >
+            <ArrowDown className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
       
-      <div className="absolute bottom-0 left-0 right-0 bg-white border-t">
-        <ChatInput 
-          onSendMessage={handleSendMessage}
-          conversationId={ticket.id}
-          conversationType="support" 
-        />
+      <div className="p-4 border-t">
+        <div className="flex justify-between mb-2">
+          <p className="text-xs text-gray-500">
+            Ticket created: {new Date(ticket.createdAt).toLocaleDateString()}
+          </p>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleCloseTicket}
+            disabled={isClosing}
+          >
+            {isClosing ? "Closing..." : "Close Ticket"}
+          </Button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="flex items-end gap-2">
+          <ChatInput
+            value={message}
+            onChange={setMessage}
+            placeholder="Type your reply..."
+            disabled={isSubmitting}
+          />
+          <Button 
+            type="submit" 
+            disabled={!message.trim() || isSubmitting}
+          >
+            {isSubmitting ? "Sending..." : "Send"}
+          </Button>
+        </form>
       </div>
     </div>
   );
