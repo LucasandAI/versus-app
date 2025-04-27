@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
@@ -16,13 +15,41 @@ export const useConversations = (hiddenDMs: string[]) => {
   const [conversations, setConversations] = useState<DMConversation[]>([]);
   const { currentUser } = useApp();
 
+  const updateConversation = useCallback((otherUserId: string, newMessage: string) => {
+    setConversations(prevConversations => {
+      const now = new Date().toISOString();
+      const existingConversationIndex = prevConversations.findIndex(
+        conv => conv.userId === otherUserId
+      );
+
+      if (existingConversationIndex >= 0) {
+        const updatedConversations = [...prevConversations];
+        updatedConversations[existingConversationIndex] = {
+          ...updatedConversations[existingConversationIndex],
+          lastMessage: newMessage,
+          timestamp: now
+        };
+        
+        return updatedConversations.sort(
+          (a, b) => new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime()
+        );
+      }
+      
+      return [{
+        userId: otherUserId,
+        userName: 'Loading...',
+        lastMessage: newMessage,
+        timestamp: now
+      }, ...prevConversations];
+    });
+  }, []);
+
   const fetchConversations = useCallback(async () => {
     try {
       if (!currentUser?.id) return;
 
       console.log('[useConversations] Fetching conversations...');
 
-      // Fetch messages with a more efficient query
       const { data: messages, error: messagesError } = await supabase
         .from('direct_messages')
         .select('id, sender_id, receiver_id, text, timestamp')
@@ -36,14 +63,12 @@ export const useConversations = (hiddenDMs: string[]) => {
         return;
       }
 
-      // Get unique user IDs from conversations
       const uniqueUserIds = new Set<string>();
       messages.forEach(msg => {
         const otherUserId = msg.sender_id === currentUser.id ? msg.receiver_id : msg.sender_id;
         uniqueUserIds.add(otherUserId);
       });
 
-      // Fetch user details
       const { data: users, error: usersError } = await supabase
         .from('users')
         .select('id, name, avatar')
@@ -52,13 +77,11 @@ export const useConversations = (hiddenDMs: string[]) => {
       if (usersError) throw usersError;
       if (!users) return;
 
-      // Create a map for quick user lookup
       const userMap = users.reduce((map: Record<string, any>, user) => {
         map[user.id] = user;
         return map;
       }, {});
 
-      // Process messages into conversations with latest message first
       const conversationsMap = new Map<string, DMConversation>();
       messages.forEach(msg => {
         const otherUserId = msg.sender_id === currentUser.id ? msg.receiver_id : msg.sender_id;
@@ -76,13 +99,10 @@ export const useConversations = (hiddenDMs: string[]) => {
         }
       });
 
-      // Sort conversations by timestamp
       const sortedConversations = Array.from(conversationsMap.values())
         .sort((a, b) => new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime());
 
-      // Force a complete state update to trigger a re-render
-      setConversations([...sortedConversations]);
-      console.log('[useConversations] Updated conversations:', sortedConversations.length);
+      setConversations(sortedConversations);
     } catch (error) {
       console.error('Error loading conversations:', error);
       toast({
@@ -93,13 +113,11 @@ export const useConversations = (hiddenDMs: string[]) => {
     }
   }, [currentUser?.id]);
 
-  // Set up real-time subscriptions for messages
   useEffect(() => {
     if (!currentUser?.id) return;
 
     console.log('[useConversations] Setting up real-time subscription');
     
-    // Create a channel for outgoing messages (sent by current user)
     const outgoingChannel = supabase
       .channel('dm-outgoing')
       .on('postgres_changes', 
@@ -109,14 +127,13 @@ export const useConversations = (hiddenDMs: string[]) => {
           table: 'direct_messages',
           filter: `sender_id=eq.${currentUser.id}`
         },
-        (payload) => {
-          console.log('[useConversations] Outgoing DM detected, refreshing conversations');
-          fetchConversations();
+        (payload: any) => {
+          console.log('[useConversations] Outgoing DM detected');
+          updateConversation(payload.new.receiver_id, payload.new.text);
         }
       )
       .subscribe();
     
-    // Create a channel for incoming messages (received by current user)
     const incomingChannel = supabase
       .channel('dm-incoming')
       .on('postgres_changes', 
@@ -126,9 +143,9 @@ export const useConversations = (hiddenDMs: string[]) => {
           table: 'direct_messages',
           filter: `receiver_id=eq.${currentUser.id}`
         },
-        (payload) => {
-          console.log('[useConversations] Incoming DM detected, refreshing conversations');
-          fetchConversations();
+        (payload: any) => {
+          console.log('[useConversations] Incoming DM detected');
+          updateConversation(payload.new.sender_id, payload.new.text);
         }
       )
       .subscribe();
@@ -139,7 +156,7 @@ export const useConversations = (hiddenDMs: string[]) => {
       supabase.removeChannel(outgoingChannel);
       supabase.removeChannel(incomingChannel);
     };
-  }, [currentUser?.id, fetchConversations]);
+  }, [currentUser?.id, fetchConversations, updateConversation]);
 
-  return { conversations, fetchConversations };
+  return { conversations, fetchConversations, updateConversation };
 };
