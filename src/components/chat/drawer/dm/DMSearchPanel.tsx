@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import SearchBar from './SearchBar';
 import UserSearchResults from './UserSearchResults';
@@ -49,20 +49,22 @@ const DMSearchPanel: React.FC = () => {
   return (
     <div className="flex h-full w-full">
       <div className="w-[240px] border-r flex flex-col h-full">
-        <div ref={searchContainerRef} className="relative z-10">
-          <SearchBar 
-            value={query} 
-            onChange={handleInputChange}
-            onFocus={() => setShowResults(true)}
-            showResults={showResults}
-          />
-          
-          <UserSearchResults
-            results={searchResults}
-            isLoading={isLoading}
-            onSelectUser={handleSelectUser}
-            visible={showResults}
-          />
+        <div className="sticky top-0 z-10">
+          <div ref={searchContainerRef} className="relative">
+            <SearchBar 
+              value={query} 
+              onChange={handleInputChange}
+              onFocus={() => setShowResults(true)}
+              showResults={showResults}
+            />
+            
+            <UserSearchResults
+              results={searchResults}
+              isLoading={isLoading}
+              onSelectUser={handleSelectUser}
+              visible={showResults}
+            />
+          </div>
         </div>
         
         <ScrollArea className="flex-1">
