@@ -58,7 +58,6 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
               clubs={clubs}
               selectedClub={selectedClub}
               onSelectClub={onSelectClub}
-              onDeleteChat={onDeleteChat}
               unreadCounts={unreadCounts}
               onSelectUser={() => {}}
               setChatToDelete={() => {}}

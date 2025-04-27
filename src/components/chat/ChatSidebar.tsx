@@ -74,11 +74,9 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
           clubs={clubs}
           selectedClub={selectedClub}
           onSelectClub={onSelectClub}
-          onDeleteChat={onDeleteChat}
           unreadCounts={unreadCounts}
           onSelectUser={onSelectUser}
           setChatToDelete={setChatToDelete}
-          clubMessages={clubMessages}
         />
       )}
 
