@@ -1,13 +1,11 @@
 
 import React from 'react';
 import { Club } from '@/types';
-import { SupportTicket } from '@/types/chat';
 import ChatEmpty from '../ChatEmpty';
 import ChatMainContent from './chat-content/ChatMainContent';
 
 interface ChatDrawerContentProps {
   selectedClub: Club | null;
-  selectedTicket: SupportTicket | null;
   messages: Record<string, any[]>;
   onMatchClick: (club: Club) => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
@@ -17,7 +15,6 @@ interface ChatDrawerContentProps {
 
 const ChatDrawerContent: React.FC<ChatDrawerContentProps> = ({
   selectedClub,
-  selectedTicket,
   messages,
   onMatchClick,
   onSelectUser,
@@ -26,12 +23,10 @@ const ChatDrawerContent: React.FC<ChatDrawerContentProps> = ({
 }) => {
   console.log('[ChatDrawerContent] Rendering with:', { 
     hasSelectedClub: !!selectedClub, 
-    hasSelectedTicket: !!selectedTicket,
-    clubId: selectedClub?.id,
-    ticketId: selectedTicket?.id
+    clubId: selectedClub?.id
   });
   
-  if (!selectedClub && !selectedTicket) {
+  if (!selectedClub) {
     return <ChatEmpty />;
   }
   
@@ -39,7 +34,7 @@ const ChatDrawerContent: React.FC<ChatDrawerContentProps> = ({
     <div className="h-full flex flex-col">
       <ChatMainContent
         selectedClub={selectedClub}
-        selectedTicket={selectedTicket}
+        selectedTicket={null}
         messages={messages}
         onMatchClick={onMatchClick}
         onSelectUser={onSelectUser}

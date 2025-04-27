@@ -10,14 +10,6 @@ export interface ChatMessage {
     avatar?: string;
   };
   timestamp: string;
-  isSupport?: boolean;
-}
-
-export interface SupportTicket {
-  id: string;
-  subject: string;
-  createdAt: string;
-  messages: ChatMessage[];
 }
 
 export interface DirectMessage {
@@ -30,6 +22,5 @@ export interface DirectMessage {
 
 export interface ChatState {
   messages: Record<string, ChatMessage[]>;
-  supportTickets: Record<string, SupportTicket>;
   unreadMessages: Record<string, number>;
 }

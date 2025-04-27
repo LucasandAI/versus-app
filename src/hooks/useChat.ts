@@ -8,13 +8,10 @@ import { useChatDeletion } from './chat/useChatDeletion';
 
 export const useChat = (open: boolean, onNewMessage?: (count: number) => void) => {
   const [refreshKey, setRefreshKey] = useState(Date.now());
-  const [supportTickets, setSupportTickets] = useState<Record<string, any>>({});
   
   const {
     loadFromStorage,
-    saveMessages,
-    saveUnreadMessages,
-    saveSupportTickets
+    saveMessages
   } = useLocalStorage();
 
   const { unreadMessages, updateUnreadCount } = useUnreadNotifications(open, onNewMessage);
@@ -27,7 +24,6 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
   useEffect(() => {
     const data = loadFromStorage();
     setMessages(data.messages);
-    setSupportTickets(data.supportTickets);
   }, [loadFromStorage, setMessages]);
 
   const refreshChats = () => {
@@ -36,14 +32,12 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
 
   return {
     messages,
-    supportTickets,
     unreadMessages,
     refreshKey,
     refreshChats,
     handleNewMessage,
     sendMessageToClub,
     setUnreadMessages: updateUnreadCount,
-    markTicketAsRead: (ticketId: string) => updateUnreadCount(ticketId, 0),
     deleteChat
   };
 };

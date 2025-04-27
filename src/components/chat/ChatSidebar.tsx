@@ -1,9 +1,7 @@
 
 import React, { useState } from 'react';
 import { Club } from '@/types';
-import { SupportTicket } from '@/types/chat';
 import { useApp } from '@/context/AppContext';
-import { toast } from '@/hooks/use-toast';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,60 +12,41 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import SupportTicketsList from './sidebar/SupportTicketsList';
 import ClubsList from './sidebar/ClubsList';
 
 interface ChatSidebarProps {
   clubs: Club[];
   selectedClub: Club | null;
-  selectedTicket: SupportTicket | null;
-  supportTickets: SupportTicket[];
   onSelectClub: (club: Club) => void;
-  onSelectTicket: (ticket: SupportTicket) => void;
-  onDeleteChat?: (chatId: string, isTicket?: boolean) => void;
+  onDeleteChat?: (chatId: string) => void;
   unreadCounts?: Record<string, number>;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
-  activeTab?: "clubs" | "dm" | "support";
-  clubMessages?: Record<string, any[]>; // Add this prop
+  activeTab?: "clubs" | "dm";
+  clubMessages?: Record<string, any[]>;
 }
 
 const ChatSidebar: React.FC<ChatSidebarProps> = ({ 
   clubs, 
   selectedClub, 
-  selectedTicket,
-  supportTickets,
   onSelectClub,
-  onSelectTicket,
   onDeleteChat,
   unreadCounts = {},
   onSelectUser,
   activeTab = "clubs",
-  clubMessages = {} // Default to empty object
+  clubMessages = {}
 }) => {
   const { setCurrentView, setSelectedUser } = useApp();
-  const [chatToDelete, setChatToDelete] = useState<{id: string, name: string, isTicket: boolean} | null>(null);
+  const [chatToDelete, setChatToDelete] = useState<{id: string, name: string} | null>(null);
 
   const handleDeleteChat = () => {
     if (chatToDelete && onDeleteChat) {
-      onDeleteChat(chatToDelete.id, chatToDelete.isTicket);
+      onDeleteChat(chatToDelete.id);
       setChatToDelete(null);
     }
   };
 
   return (
     <div className="w-[240px] border-r overflow-auto">
-      {/* Only show support tickets when the support tab is active */}
-      {activeTab === "support" && (
-        <SupportTicketsList
-          tickets={supportTickets}
-          selectedTicket={selectedTicket}
-          onSelectTicket={onSelectTicket}
-          onDeleteChat={onDeleteChat}
-          unreadCounts={unreadCounts}
-          setChatToDelete={setChatToDelete}
-        />
-      )}
-
       {/* Only show clubs when the clubs tab is active */}
       {activeTab === "clubs" && (
         <ClubsList

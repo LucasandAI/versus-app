@@ -1,4 +1,3 @@
-
 // This is a simplified version of the hook that only contains what's needed
 // for SupportPopover to work correctly
 

@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Club } from '@/types';
-import { SupportTicket } from '@/types/chat';
 import ChatDrawer from '../chat/ChatDrawer';
 import { useClubMessages } from '@/hooks/chat/useClubMessages';
 import { useApp } from '@/context/AppContext';
@@ -10,14 +9,12 @@ import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
 interface ChatDrawerHandlerProps {
   userClubs: Club[];
   onSelectUser: (userId: string, name: string) => void;
-  supportTickets: SupportTicket[];
   setUnreadMessages: (count: number) => void;
 }
 
 const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
   userClubs,
   onSelectUser,
-  supportTickets,
   setUnreadMessages
 }) => {
   const { isOpen, close } = useChatDrawerGlobal();
@@ -35,7 +32,6 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
         if (!open) close();
       }} 
       clubs={userClubs}
-      supportTickets={supportTickets}
       clubMessages={clubMessages}
       onNewMessage={setUnreadMessages}
     />

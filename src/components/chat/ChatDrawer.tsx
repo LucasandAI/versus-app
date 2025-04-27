@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Club } from '@/types';
-import { SupportTicket } from '@/types/chat';
 import MainChatDrawer from './drawer/MainChatDrawer';
 
 interface ChatDrawerProps {
@@ -9,7 +8,6 @@ interface ChatDrawerProps {
   onOpenChange: (open: boolean) => void;
   clubs: Club[];
   onNewMessage?: (count: number) => void;
-  supportTickets?: SupportTicket[];
   clubMessages?: Record<string, any[]>;
   onSendMessage?: (message: string, clubId?: string) => Promise<void> | void;
 }
