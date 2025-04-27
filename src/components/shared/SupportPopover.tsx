@@ -9,7 +9,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { SupportOptionsList, type SupportOption } from './support/SupportOptionsList';
 import NewTicketDialog from '../chat/drawer/support/NewTicketDialog';
-import { useTicketSubmission } from '@/hooks/support/useTicketSubmission';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import { toast } from "@/hooks/use-toast";
