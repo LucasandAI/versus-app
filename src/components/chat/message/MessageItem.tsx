@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -6,6 +5,7 @@ import MessageContent from './MessageContent';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect } from 'react';
 import { useNavigation } from '@/hooks/useNavigation';
+import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
 
 interface MessageItemProps {
   message: ChatMessage;
@@ -28,7 +28,6 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const [canDelete, setCanDelete] = useState(false);
   const { navigateToUserProfile } = useNavigation();
   
-  // Determine if the current user can delete this message
   useEffect(() => {
     const checkDeletePermission = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -71,7 +70,6 @@ const MessageItem: React.FC<MessageItemProps> = ({
       )}
       
       <div className={`max-w-[70%] ${isUserMessage ? 'order-1' : 'order-1'}`}>
-        {/* Show sender name for non-user messages */}
         {!isUserMessage && (
           <button 
             className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left`}
