@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from 'react';
-import { useConversations } from '@/hooks/chat/dm/useConversations';
 
 const HIDDEN_DMS_KEY = 'hiddenDMs';
 
@@ -26,15 +25,10 @@ export const useHiddenDMs = () => {
     return hiddenDMs.includes(userId);
   };
 
-  // We're not actually using the conversations here, but we need to expose the refreshConversations method
-  // This is a bit of a hack, but it allows components that use useHiddenDMs to also refresh conversations
-  const { refreshConversations } = useConversations(hiddenDMs);
-
   return {
     hiddenDMs,
     hideConversation,
     unhideConversation,
-    isConversationHidden,
-    refreshConversations
+    isConversationHidden
   };
 };

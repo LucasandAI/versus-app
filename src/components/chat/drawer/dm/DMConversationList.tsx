@@ -11,12 +11,7 @@ interface Props {
 
 const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) => {
   const { hideConversation, isConversationHidden, hiddenDMs } = useHiddenDMs();
-  const { conversations, refreshConversations } = useConversations(hiddenDMs);
-
-  // Manually refresh conversations when component mounts
-  React.useEffect(() => {
-    refreshConversations();
-  }, [refreshConversations]);
+  const { conversations } = useConversations(hiddenDMs);
 
   const handleHideConversation = (
     e: React.MouseEvent,
