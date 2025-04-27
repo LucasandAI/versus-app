@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { toast } from '@/hooks/use-toast';
+import { toast } from "@/hooks/use-toast";
 import { Loader2 } from 'lucide-react';
 import { Textarea } from "@/components/ui/textarea";
 
@@ -32,6 +32,21 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
   setSupportMessage,
   isSubmitting = false
 }) => {
+  // Local state to manage textarea content
+  const [localMessage, setLocalMessage] = useState('');
+  
+  // Sync local state with prop when dialog opens
+  useEffect(() => {
+    if (open) {
+      setLocalMessage(supportMessage || '');
+    }
+  }, [open, supportMessage]);
+  
+  // Update parent state when local state changes
+  useEffect(() => {
+    setSupportMessage(localMessage);
+  }, [localMessage, setSupportMessage]);
+
   const handleSubmit = () => {
     if (isSubmitting) return;
     
@@ -44,7 +59,7 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
       return;
     }
     
-    if (!supportMessage.trim()) {
+    if (!localMessage.trim()) {
       toast({
         title: "Message Required", 
         description: "Please provide details before submitting.",
@@ -75,11 +90,11 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <Textarea 
-            value={supportMessage}
-            onChange={(e) => setSupportMessage(e.target.value)}
+            value={localMessage}
+            onChange={(e) => setLocalMessage(e.target.value)}
             placeholder="Describe your issue in detail..."
             className="min-h-[100px]"
-            disabled={isSubmitting}
+            disabled={isSubmitting === true}
           />
         </div>
         <DialogFooter>
@@ -92,7 +107,7 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || !supportMessage.trim()}
+            disabled={isSubmitting || !localMessage.trim()}
           >
             {isSubmitting ? (
               <div className="flex items-center">

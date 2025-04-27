@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { HelpCircle } from 'lucide-react';
 import { 
@@ -24,9 +23,11 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState<SupportOption | null>(null);
   const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleOptionClick = (option: SupportOption) => {
     setSelectedOption(option);
+    setMessage(''); // Reset message when selecting a new option
     setOpen(false);
     setDialogOpen(true);
   };
@@ -41,15 +42,20 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
       return;
     }
 
-    createSupportChat(selectedOption!, message);
+    setIsSubmitting(true);
     
-    toast({
-      title: "Support Request Sent",
-      description: `Your ${selectedOption?.label.toLowerCase()} has been submitted. A support agent will get back to you soon.`,
-    });
-    
-    setDialogOpen(false);
-    setMessage('');
+    // Small delay to show submitting state
+    setTimeout(() => {
+      createSupportChat(selectedOption!, message);
+      setIsSubmitting(false);
+      setDialogOpen(false);
+      setMessage('');
+      
+      toast({
+        title: "Support Request Sent",
+        description: `Your ${selectedOption?.label.toLowerCase()} has been submitted. A support agent will get back to you soon.`,
+      });
+    }, 500);
   };
 
   const createSupportChat = (option: SupportOption, messageContent: string) => {
@@ -145,6 +151,7 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
         onSubmit={handleSubmit}
         supportMessage={message}
         setSupportMessage={setMessage}
+        isSubmitting={isSubmitting}
       />
     </>
   );
