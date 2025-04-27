@@ -66,8 +66,6 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
     setIsSubmitting(true);
     
     try {
-      console.log("Creating support ticket with subject:", selectedOption.label);
-      
       // Step 1: Create the ticket
       const { data: ticketData, error: ticketError } = await supabase
         .from('support_tickets')
@@ -80,12 +78,16 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
         .single();
 
       if (ticketError) {
-        throw ticketError;
+        throw new Error('Failed to create support ticket');
       }
 
-      console.log("Ticket created successfully:", ticketData);
+      if (!ticketData) {
+        throw new Error('No ticket data returned');
+      }
+
+      console.log("Support ticket created:", ticketData);
       
-      // Step 2: Create the initial message from the user
+      // Step 2: Create the initial message
       const { error: messageError } = await supabase
         .from('support_messages')
         .insert({
@@ -96,12 +98,10 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
         });
 
       if (messageError) {
-        throw messageError;
+        throw new Error('Failed to create support message');
       }
 
-      console.log("User message created successfully");
-      
-      // Step 3: Create the auto-response
+      // Step 3: Create auto-response
       const { error: autoResponseError } = await supabase
         .from('support_messages')
         .insert({
@@ -112,71 +112,30 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
         });
 
       if (autoResponseError) {
-        throw autoResponseError;
+        throw new Error('Failed to create auto-response');
       }
 
-      console.log("Auto-response created successfully");
-
-      // Update local storage if needed
-      const newTicket = {
-        id: ticketData.id,
-        subject: selectedOption.label,
-        createdAt: new Date().toISOString(),
-        status: 'open' as const,
-        messages: [
-          {
-            id: Date.now().toString(),
-            text: message,
-            sender: {
-              id: currentUser?.id || 'anonymous',
-              name: currentUser?.name || 'Anonymous',
-              avatar: currentUser?.avatar || '/placeholder.svg',
-            },
-            timestamp: new Date().toISOString(),
-            isSupport: false
-          },
-          {
-            id: 'support-auto-' + Date.now(),
-            text: `Thank you for contacting support about "${selectedOption.label}". A support agent will review your request and respond shortly.`,
-            sender: {
-              id: 'support',
-              name: 'Support Team',
-              avatar: '/placeholder.svg'
-            },
-            timestamp: new Date(Date.now() + 1000).toISOString(),
-            isSupport: true
-          }
-        ]
-      };
-      
-      // Store in localStorage
-      const storedTickets = localStorage.getItem('supportTickets');
-      const ticketsArray = storedTickets ? JSON.parse(storedTickets) : [];
-      ticketsArray.unshift(newTicket);
-      localStorage.setItem('supportTickets', JSON.stringify(ticketsArray));
-      
-      // Dispatch an event to notify other components
-      window.dispatchEvent(new CustomEvent('supportTicketCreated', { 
-        detail: { ticketId: ticketData.id } 
-      }));
-
-      if (onCreateSupportChat) {
-        onCreateSupportChat(ticketData.id, selectedOption.label, message);
-      }
-
+      // Success - show toast and trigger callbacks
       toast({
         title: "Support Request Sent",
         description: `Your ${selectedOption.label.toLowerCase()} request has been submitted. A support agent will get back to you soon.`,
       });
 
+      // Open the newly created chat if callback provided
+      if (onCreateSupportChat) {
+        onCreateSupportChat(ticketData.id, selectedOption.label, message);
+      }
+
+      // Reset state and close dialog
       setDialogOpen(false);
       setMessage('');
       setSelectedOption(null);
+      
     } catch (error) {
       console.error('Error submitting support ticket:', error);
       toast({
         title: "Error",
-        description: "Failed to create support ticket. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to create support ticket. Please try again.",
         variant: "destructive"
       });
     } finally {
