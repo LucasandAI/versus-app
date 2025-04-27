@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import ChatMessages from '../../ChatMessages';
@@ -25,16 +24,11 @@ const DMConversation: React.FC<DMConversationProps> = ({
 }) => {
   const { currentUser } = useApp();
   const { navigateToUserProfile } = useNavigation();
-  const { 
-    messages, 
-    setMessages, 
-    isSending, 
-    setIsSending 
-  } = useDMMessages(userId, userName);
+  const { messages, setMessages, isSending, setIsSending } = useDMMessages(userId, userName);
+  const { fetchConversations } = useConversations([]);
+  const { unhideConversation } = useHiddenDMs();
+  const lastMessageRef = useRef<HTMLDivElement>(null);
   
-  const { unhideConversation, hiddenDMs } = useHiddenDMs();
-  const { fetchConversations } = useConversations(hiddenDMs);
-
   useDMSubscription(userId, currentUser?.id, setMessages);
 
   const handleSendMessage = async (message: string) => {
@@ -79,8 +73,8 @@ const DMConversation: React.FC<DMConversationProps> = ({
           } : msg)
         );
         
-        // Manually refresh conversations to immediately update the sidebar
-        fetchConversations();
+        // Immediately refresh conversations after successful send
+        await fetchConversations();
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -122,12 +116,15 @@ const DMConversation: React.FC<DMConversationProps> = ({
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         <div className="flex-1 min-h-0">
           <ChatMessages 
-            messages={messages} 
+            messages={messages}
             clubMembers={currentUser ? [currentUser] : []}
             onDeleteMessage={handleDeleteMessage}
             onSelectUser={(userId, userName, userAvatar) => 
               navigateToUserProfile(userId, userName, userAvatar)
             }
+            currentUserAvatar={currentUser?.avatar}
+            lastMessageRef={lastMessageRef}
+            formatTime={(timestamp: string) => new Date(timestamp).toLocaleTimeString()}
           />
         </div>
         
