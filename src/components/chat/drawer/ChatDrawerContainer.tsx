@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
 import DMContainer from './dm/DMContainer';
 import SupportTabContent from './support/SupportTabContent';
 import ChatClubContainer from './club/ChatClubContainer';
+import DMSearchPanel from './dm/DMSearchPanel';
 
 interface ChatDrawerContainerProps {
   activeTab: "clubs" | "dm" | "support";
@@ -50,7 +50,6 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   isSubmitting,
   setClubMessages
 }) => {
-  // Only reset selection that doesn't match the current tab
   useEffect(() => {
     if (activeTab === "clubs") {
       if (selectedTicket) onSelectTicket(null as any);
@@ -62,7 +61,6 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
     }
   }, [activeTab]);
 
-  // Debug log for selections
   useEffect(() => {
     console.log('[ChatDrawerContainer] Selection changed:', {
       selectedClub: selectedLocalClub?.id,
@@ -90,7 +88,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
     case "dm":
       return (
         <div className="flex h-full w-full">
-          <DMContainer />
+          <DMSearchPanel />
         </div>
       );
     case "support":
