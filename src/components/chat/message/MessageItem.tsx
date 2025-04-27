@@ -90,17 +90,17 @@ const MessageItem: React.FC<MessageItemProps> = ({
           </button>
         )}
         
-        <div className={`flex flex-col ${isUserMessage ? 'items-end' : ''}`}>
-          <MessageContent 
-            message={message}
-            isUserMessage={isUserMessage}
-            isSupport={isSupport}
-            onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
-          />
-        </div>
-        
-        <div className={`w-full ${isUserMessage ? 'text-right' : ''}`}>
-          <p className="text-xs text-gray-500 mt-1 inline-block">
+        <div className="relative">
+          <div className={`flex flex-col ${isUserMessage ? 'items-end' : ''}`}>
+            <MessageContent 
+              message={message}
+              isUserMessage={isUserMessage}
+              isSupport={isSupport}
+              onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
+            />
+          </div>
+          
+          <p className={`text-xs text-gray-500 mt-1 absolute ${isUserMessage ? 'right-0' : 'left-0'}`} style={{ top: '100%', marginTop: '4px' }}>
             {formatTime(getTimestamp())}
           </p>
         </div>
