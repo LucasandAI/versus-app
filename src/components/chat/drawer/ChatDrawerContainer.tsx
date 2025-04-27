@@ -1,10 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
 import ChatSidebar from '../ChatSidebar';
-import DMSearchPanel from './dm/DMSearchPanel';
-import DMConversation from './dm/DMConversation';
+import DMContainer from './dm/DMContainer';
 import SupportTabContent from './support/SupportTabContent';
 import ChatDrawerContent from './ChatDrawerContent';
 
@@ -59,26 +57,11 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
     console.log('[ChatDrawerContainer] Match clicked for club:', club.id);
   };
 
-  const [selectedDMUser, setSelectedDMUser] = useState<{
-    id: string;
-    name: string;
-    avatar?: string;
-  } | null>(null);
-
-  const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
-    setSelectedDMUser({
-      id: userId,
-      name: userName,
-      avatar: userAvatar
-    });
-  };
-
   // Only reset selection that doesn't match the current tab
   useEffect(() => {
     if (activeTab === "clubs") {
       // Keep club selection, clear ticket selection only if switching tabs
       if (selectedTicket) onSelectTicket(null as any);
-      setSelectedDMUser(null);
     } else if (activeTab === "dm") {
       // Keep DM selection, clear other selections
       if (selectedLocalClub) onSelectClub(null as any);
@@ -86,7 +69,6 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
     } else if (activeTab === "support") {
       // Keep ticket selection, clear club selection only if switching tabs
       if (selectedLocalClub) onSelectClub(null as any);
-      setSelectedDMUser(null);
     }
   }, [activeTab]);
 
@@ -101,8 +83,8 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
 
   useEffect(() => {
     const handleOpenDM = async (event: CustomEvent) => {
-      const { userId, userName, userAvatar } = event.detail;
-      handleSelectUser(userId, userName, userAvatar);
+      // We no longer need to handle this here as it's managed by DMContainer
+      // The event is still useful for opening the DM tab
     };
 
     window.addEventListener('openDirectMessage', handleOpenDM as EventListener);
@@ -128,8 +110,8 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
               onSelectClub={onSelectClub} 
               onSelectTicket={onSelectTicket} 
               onDeleteChat={deleteChat} 
-              unreadCounts={unreadMessages} 
-              onSelectUser={handleSelectUser}
+              unreadCounts={unreadMessages}
+              onSelectUser={() => {}}
               activeTab={activeTab}
             />
           </div>
@@ -137,10 +119,10 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
           <div className="flex-1 h-full">
             <ChatDrawerContent 
               selectedClub={selectedLocalClub}
-              selectedTicket={null} // We're in clubs tab, so don't show tickets
+              selectedTicket={null}
               messages={messages} 
               onMatchClick={handleMatchClick} 
-              onSelectUser={handleSelectUser} 
+              onSelectUser={() => {}}
               onSendMessage={onSendMessage} 
               setClubMessages={setClubMessages}
             />
@@ -150,15 +132,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
     case "dm":
       return (
         <div className="flex h-full w-full">
-          {!selectedDMUser ? (
-            <DMSearchPanel />
-          ) : (
-            <DMConversation 
-              userId={selectedDMUser.id} 
-              userName={selectedDMUser.name} 
-              userAvatar={selectedDMUser.avatar} 
-            />
-          )}
+          <DMContainer />
         </div>
       );
     case "support":

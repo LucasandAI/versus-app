@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import ChatMessages from '../../ChatMessages';
 import ChatInput from '../../ChatInput';
-import DMHeader from './DMHeader';
 import { useDMMessages } from '@/hooks/chat/dm/useDMMessages';
 import { useDMSubscription } from '@/hooks/chat/dm/useDMSubscription';
 import { useNavigation } from '@/hooks/useNavigation';
@@ -114,8 +113,6 @@ const DMConversation: React.FC<DMConversationProps> = ({
 
   return (
     <div className="flex flex-col h-full w-full">
-      <DMHeader userId={userId} userName={userName} userAvatar={userAvatar} />
-      
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         <div className="flex-1 min-h-0">
           <ChatMessages 
