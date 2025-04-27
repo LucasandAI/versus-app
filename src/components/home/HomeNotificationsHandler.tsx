@@ -11,14 +11,12 @@ interface HomeNotificationsHandlerProps {
   userClubs: Club[];
   onJoinClub: (clubId: string, clubName: string) => void;
   onSelectUser: (userId: string, name: string) => void;
-  supportTickets: any[];
 }
 
 const HomeNotificationsHandler: React.FC<HomeNotificationsHandlerProps> = ({
   userClubs,
   onJoinClub,
-  onSelectUser,
-  supportTickets
+  onSelectUser
 }) => {
   const { currentUser } = useApp();
   const {
@@ -73,7 +71,6 @@ const HomeNotificationsHandler: React.FC<HomeNotificationsHandlerProps> = ({
       <ChatDrawerHandler 
         userClubs={userClubs}
         onSelectUser={onSelectUser}
-        supportTickets={supportTickets}
         setUnreadMessages={setUnreadMessages}
       />
     </>

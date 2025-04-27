@@ -2,8 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
-import { SupportTicket } from '@/types/chat';
-import SupportPopover from './shared/SupportPopover';
 import CreateClubDialog from './club/CreateClubDialog';
 import SearchClubDialog from './club/SearchClubDialog';
 import HomeHeader from './home/HomeHeader';
@@ -11,7 +9,6 @@ import HomeClubsSection from './home/HomeClubsSection';
 import HomeNotifications from './home/HomeNotifications';
 import ChatDrawerHandler from './home/ChatDrawerHandler';
 import { useClubActions } from '@/hooks/home/useClubActions';
-import { useSupportActions } from '@/hooks/home/useSupportActions';
 import { useHomeNotifications } from '@/hooks/home/useHomeNotifications';
 import { useChatDrawer } from '@/hooks/home/useChatDrawer';
 
@@ -35,7 +32,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
     availableClubs
   } = useClubActions();
 
-  const { supportTickets, handleCreateSupportTicket } = useSupportActions();
   const { setUnreadMessages: updateUnreadMessages } = useHomeNotifications();
 
   useEffect(() => {
@@ -136,7 +132,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
       <ChatDrawerHandler 
         userClubs={userClubs}
         onSelectUser={handleSelectUser}
-        supportTickets={supportTickets}
         setUnreadMessages={updateUnreadMessages}
       />
 
@@ -151,8 +146,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
         open={createClubDialogOpen}
         onOpenChange={setCreateClubDialogOpen}
       />
-      
-      <SupportPopover onCreateSupportChat={handleCreateSupportTicket} />
     </div>
   );
 };

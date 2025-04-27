@@ -10,6 +10,7 @@ export interface ChatMessage {
     avatar?: string;
   };
   timestamp: string;
+  isSupport?: boolean;
 }
 
 export interface DirectMessage {
@@ -24,3 +25,4 @@ export interface ChatState {
   messages: Record<string, ChatMessage[]>;
   unreadMessages: Record<string, number>;
 }
+

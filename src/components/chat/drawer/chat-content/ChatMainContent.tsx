@@ -1,13 +1,11 @@
 
 import React, { useEffect } from 'react';
 import { Club } from '@/types';
-import { SupportTicket } from '@/types/chat';
 import ChatClubContent from '../../ChatClubContent';
-import ChatTicketContent from '../../ChatTicketContent';
 
 interface ChatMainContentProps {
   selectedClub: Club | null;
-  selectedTicket: SupportTicket | null;
+  selectedTicket: null;
   messages: Record<string, any[]>;
   onMatchClick: (club: Club) => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
@@ -17,7 +15,6 @@ interface ChatMainContentProps {
 
 const ChatMainContent: React.FC<ChatMainContentProps> = ({
   selectedClub,
-  selectedTicket,
   messages,
   onMatchClick,
   onSelectUser,
@@ -28,28 +25,9 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   useEffect(() => {
     console.log('[ChatMainContent] Rendering with:', {
       hasSelectedClub: !!selectedClub,
-      hasSelectedTicket: !!selectedTicket,
-      clubId: selectedClub?.id,
-      ticketId: selectedTicket?.id
+      clubId: selectedClub?.id
     });
-  }, [selectedClub, selectedTicket]);
-
-  // Render ticket content if there's a selected ticket
-  if (selectedTicket) {
-    console.log('[ChatMainContent] Rendering support ticket content for:', selectedTicket.id);
-    return (
-      <div className="flex-1 h-full flex flex-col">
-        <ChatTicketContent 
-          key={selectedTicket.id} // Force re-render when ticket changes
-          ticket={selectedTicket}
-          onSendMessage={(message) => {
-            console.log('[ChatMainContent] Sending support ticket message');
-            onSendMessage(message);
-          }}
-        />
-      </div>
-    );
-  }
+  }, [selectedClub]);
 
   // If we have a selected club, render the club content
   if (selectedClub) {

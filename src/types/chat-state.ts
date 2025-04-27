@@ -11,3 +11,4 @@ export interface ChatActions {
   markMessagesAsRead: (clubId: string) => void;
   deleteChat: (chatId: string) => void;
 }
+

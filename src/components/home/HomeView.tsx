@@ -8,7 +8,6 @@ import HomeHeader from './HomeHeader';
 import HomeClubsSection from './HomeClubsSection';
 import HomeNotificationsHandler from './HomeNotificationsHandler';
 import { useClubActions } from '@/hooks/home/useClubActions';
-import { useSupportActions } from '@/hooks/home/useSupportActions';
 import { useHomeNotifications } from '@/hooks/home/useHomeNotifications';
 import { ChatDrawerProvider } from '@/context/ChatDrawerContext';
 import ChatDrawerHandler from './ChatDrawerHandler';
@@ -30,7 +29,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
     availableClubs
   } = useClubActions();
 
-  const { supportTickets, handleCreateSupportTicket } = useSupportActions();
   const {
     notifications,
     setNotifications,
@@ -77,7 +75,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
             userClubs={userClubs}
             onJoinClub={handleJoinClub}
             onSelectUser={handleSelectUser}
-            supportTickets={supportTickets}
           />
           
           <HomeHeader 
@@ -103,7 +100,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
         <ChatDrawerHandler 
           userClubs={userClubs}
           onSelectUser={handleSelectUser}
-          supportTickets={supportTickets}
           setUnreadMessages={setUnreadMessages}
         />
         <SearchClubDialog

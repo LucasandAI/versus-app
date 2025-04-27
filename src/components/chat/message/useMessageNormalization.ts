@@ -14,7 +14,7 @@ export const useMessageNormalization = (currentUserId: string | null, getMemberN
           avatar: message.sender.avatar || '/placeholder.svg'
         },
         timestamp: message.timestamp || message.created_at || new Date().toISOString(),
-        isSupport: message.isSupport || false
+        isSupport: Boolean(message.isSupport)
       };
     }
     
@@ -40,7 +40,8 @@ export const useMessageNormalization = (currentUserId: string | null, getMemberN
         sender: {
           ...message.sender,
           id: String(message.sender.id)
-        }
+        },
+        isSupport: Boolean(message.isSupport)
       };
     }
     
