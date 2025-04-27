@@ -20,7 +20,7 @@ interface ChatDrawerContainerProps {
   deleteChat: (chatId: string, isTicket: boolean) => void;
   unreadMessages: Record<string, number>;
   handleNewMessage: (chatId: string, message: any, isOpen: boolean) => void;
-  markTicketAsRead: (ticketId: string) => void;
+  markTicketAsRead?: (ticketId: string) => void;
   onSendMessage: (message: string, clubId?: string) => void;
   supportMessage?: string;
   setSupportMessage?: (message: string) => void;
@@ -29,6 +29,16 @@ interface ChatDrawerContainerProps {
   handleSubmitSupportTicket?: () => Promise<void>;
   isSubmitting?: boolean;
   setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
+  directMessageUser?: {
+    userId: string;
+    userName: string;
+    userAvatar?: string;
+  } | null;
+  setDirectMessageUser?: React.Dispatch<React.SetStateAction<{
+    userId: string;
+    userName: string;
+    userAvatar?: string;
+  } | null>>;
 }
 
 const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
@@ -49,7 +59,9 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   setSelectedSupportOption,
   handleSubmitSupportTicket,
   isSubmitting,
-  setClubMessages
+  setClubMessages,
+  directMessageUser,
+  setDirectMessageUser
 }) => {
   useEffect(() => {
     if (activeTab === "clubs") {
@@ -67,8 +79,9 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
       selectedClub: selectedLocalClub?.id,
       selectedTicket: selectedTicket?.id,
       activeTab,
+      directMessageUser
     });
-  }, [selectedLocalClub, selectedTicket, activeTab]);
+  }, [selectedLocalClub, selectedTicket, activeTab, directMessageUser]);
   
   switch (activeTab) {
     case "clubs":
@@ -89,7 +102,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
     case "dm":
       return (
         <div className="flex h-full w-full">
-          <DMSearchPanel />
+          <DMContainer initialSelectedUser={directMessageUser} setDirectMessageUser={setDirectMessageUser} />
         </div>
       );
     case "support":

@@ -36,7 +36,7 @@ const UserInviteSection: React.FC<UserInviteSectionProps> = ({
     // Open the chat drawer first
     openChatDrawer();
     
-    // Small delay to ensure drawer is open before switching tabs
+    // Small delay to ensure drawer is open before dispatching the event
     setTimeout(() => {
       // Dispatch custom event to open DM with this user
       const event = new CustomEvent('openDirectMessage', {
@@ -47,9 +47,8 @@ const UserInviteSection: React.FC<UserInviteSectionProps> = ({
         }
       });
       window.dispatchEvent(event);
+      console.log('Message button clicked for user:', selectedUser.name, 'Event dispatched');
     }, 100);
-    
-    console.log('Message button clicked for user:', selectedUser.name);
   };
 
   return (

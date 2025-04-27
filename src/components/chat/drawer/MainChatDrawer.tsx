@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
 import ChatDrawerContainer from './ChatDrawerContainer';
@@ -27,6 +27,12 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const [activeTab, setActiveTab] = useState<"clubs"|"dm"|"support">("clubs");
   const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  // Store direct message user details
+  const [directMessageUser, setDirectMessageUser] = useState<{
+    userId: string;
+    userName: string;
+    userAvatar?: string;
+  } | null>(null);
   
   // Listen for direct message events
   useEffect(() => {
@@ -37,6 +43,13 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     }>) => {
       // Switch to DM tab when event is received
       setActiveTab("dm");
+      // Store the user details for the DM conversation
+      setDirectMessageUser({
+        userId: event.detail.userId,
+        userName: event.detail.userName,
+        userAvatar: event.detail.userAvatar
+      });
+      console.log('DM event received for user:', event.detail.userName);
     };
 
     window.addEventListener('openDirectMessage', handleOpenDM as EventListener);
@@ -81,6 +94,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             handleNewMessage={() => {}}
             markTicketAsRead={() => {}}
             onSendMessage={() => {}}
+            directMessageUser={directMessageUser}
+            setDirectMessageUser={setDirectMessageUser}
           />
         </DrawerContent>
       </Drawer>

@@ -12,20 +12,44 @@ type SelectedUser = {
   avatar?: string;
 } | null;
 
-const DMContainer: React.FC = () => {
-  const [selectedUser, setSelectedUser] = useState<SelectedUser>(null);
+interface DMContainerProps {
+  initialSelectedUser?: SelectedUser;
+  setDirectMessageUser?: React.Dispatch<React.SetStateAction<SelectedUser>>;
+}
+
+const DMContainer: React.FC<DMContainerProps> = ({ 
+  initialSelectedUser = null,
+  setDirectMessageUser
+}) => {
+  const [selectedUser, setSelectedUser] = useState<SelectedUser>(initialSelectedUser);
   const { hideConversation, hiddenDMs } = useHiddenDMs();
 
+  // Apply initialSelectedUser when it changes, this handles the case
+  // when a user clicks on "Message" from a profile
+  useEffect(() => {
+    if (initialSelectedUser) {
+      console.log('[DMContainer] Setting initial selected user:', initialSelectedUser.name);
+      setSelectedUser(initialSelectedUser);
+    }
+  }, [initialSelectedUser]);
+
   const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
-    setSelectedUser({
+    const user = {
       id: userId,
       name: userName,
       avatar: userAvatar
-    });
+    };
+    setSelectedUser(user);
+    if (setDirectMessageUser) {
+      setDirectMessageUser(user);
+    }
   };
 
   const handleGoBack = () => {
     setSelectedUser(null);
+    if (setDirectMessageUser) {
+      setDirectMessageUser(null);
+    }
   };
 
   // Listen for openDirectMessage events 
