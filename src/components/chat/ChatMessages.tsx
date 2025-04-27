@@ -16,8 +16,8 @@ interface ChatMessagesProps {
   onSelectUser?: (userId: string, userName: string, userAvatar?: string) => void;
   isSupport?: boolean;
   currentUserAvatar?: string;
-  // Add the missing lastMessageRef prop to fix the TypeScript error
   lastMessageRef?: React.RefObject<HTMLDivElement>;
+  formatTime?: (isoString: string) => string; // Add formatTime prop
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({
@@ -27,25 +27,26 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   onSelectUser,
   isSupport = false,
   currentUserAvatar = '/placeholder.svg',
-  // Add the lastMessageRef prop to the component props
-  lastMessageRef
+  lastMessageRef,
+  formatTime: externalFormatTime // Accept the external formatTime function
 }) => {
-  // Create a default ref if one is not provided
   const defaultLastMessageRef = useRef<HTMLDivElement>(null);
   const [hasScrolled, setHasScrolled] = useState(false);
   const { currentUser } = useApp();
   
-  // Use the provided ref or fall back to the default one
   const messageRef = lastMessageRef || defaultLastMessageRef;
 
   useEffect(() => {
-    // Scroll to bottom when messages change if we haven't manually scrolled up
     if (messageRef.current && !hasScrolled) {
       messageRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, hasScrolled, messageRef]);
 
-  const formatTime = (isoString: string) => {
+  // Use provided formatTime function or fall back to default implementation
+  const formatTimeInternal = (isoString: string) => {
+    if (externalFormatTime) {
+      return externalFormatTime(isoString);
+    }
     try {
       return format(new Date(isoString), 'h:mm a');
     } catch (error) {
@@ -70,7 +71,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
         isSupport={isSupport}
         onDeleteMessage={onDeleteMessage}
         onSelectUser={onSelectUser}
-        formatTime={formatTime}
+        formatTime={formatTimeInternal}
         currentUserAvatar={currentUserAvatar || '/placeholder.svg'}
         currentUserId={currentUser?.id || null}
         lastMessageRef={messageRef}
