@@ -37,6 +37,10 @@ const ClubsList: React.FC<ClubsListProps> = ({
     console.log('[ClubsList] Club selected for chat:', club.id);
   };
 
+  const truncateMessage = (text: string) => {
+    return text.length > 50 ? `${text.substring(0, 50)}...` : text;
+  };
+
   return (
     <div className="p-3">
       <h3 className="text-sm font-medium mb-2">Your Clubs</h3>
@@ -71,9 +75,16 @@ const ClubsList: React.FC<ClubsListProps> = ({
                   </div>
                   
                   <div className="flex items-center justify-between mt-1">
-                    <p className="text-sm text-gray-600 truncate pr-2">
-                      {lastMessage?.message || "No messages yet"}
-                    </p>
+                    {lastMessage ? (
+                      <p className="text-sm text-gray-600 truncate pr-2">
+                        <span className="font-medium">{lastMessage.sender?.name || 'Unknown'}: </span>
+                        {truncateMessage(lastMessage.message)}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-600 truncate pr-2">
+                        No messages yet
+                      </p>
+                    )}
                     {unreadCounts[club.id] > 0 && (
                       <span className="ml-1 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
                         {unreadCounts[club.id] > 9 ? '9+' : unreadCounts[club.id]}

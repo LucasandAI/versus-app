@@ -14,7 +14,13 @@ export const useClubLastMessages = (clubs: Club[]) => {
       
       const { data, error } = await supabase
         .from('club_chat_messages')
-        .select('*')
+        .select(`
+          *,
+          sender:sender_id (
+            id,
+            name
+          )
+        `)
         .in('club_id', clubIds)
         .order('timestamp', { ascending: false });
 

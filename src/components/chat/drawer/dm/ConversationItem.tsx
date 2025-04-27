@@ -44,6 +44,10 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
     setIsHideDialogOpen(false);
   };
 
+  const truncateMessage = (text: string) => {
+    return text.length > 50 ? `${text.substring(0, 50)}...` : text;
+  };
+
   return (
     <>
       <div 
@@ -69,7 +73,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
           </div>
           
           <p className="text-gray-600 truncate mt-1">
-            {conversation.lastMessage}
+            {truncateMessage(conversation.lastMessage)}
           </p>
         </div>
         
