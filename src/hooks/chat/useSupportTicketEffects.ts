@@ -35,7 +35,7 @@ export const useSupportTicketEffects = (
               'id' in ticket && 
               'subject' in ticket && 
               'createdAt' in ticket && 
-              'status' in ticket && 
+              (ticket.status === 'open' || ticket.status === 'closed') && 
               'messages' in ticket
           );
           setTickets(validTickets);
@@ -66,7 +66,7 @@ export const useSupportTicketEffects = (
                 'id' in ticket && 
                 'subject' in ticket && 
                 'createdAt' in ticket && 
-                'status' in ticket && 
+                (ticket.status === 'open' || ticket.status === 'closed') && 
                 'messages' in ticket
             );
             setTickets(validTickets);

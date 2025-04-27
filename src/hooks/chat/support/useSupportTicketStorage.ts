@@ -40,7 +40,7 @@ export const useSupportTicketStorage = () => {
             id: ticket.id,
             subject: ticket.subject,
             createdAt: ticket.created_at,
-            status: ticket.status,
+            status: ticket.status === 'open' ? 'open' : 'closed',
             messages: []
           };
         }
@@ -59,11 +59,12 @@ export const useSupportTicketStorage = () => {
         }));
         
         // Map the database structure to our application structure
+        // Ensure status is properly typed as 'open' or 'closed'
         return {
           id: ticket.id,
           subject: ticket.subject,
           createdAt: ticket.created_at,
-          status: ticket.status,
+          status: ticket.status === 'open' ? 'open' : 'closed',
           messages: formattedMessages
         };
       }));
