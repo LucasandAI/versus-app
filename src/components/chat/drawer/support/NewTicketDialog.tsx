@@ -17,7 +17,7 @@ interface NewTicketDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedOption: { id: string; label: string } | null;
-  onSubmit: () => void;
+  onSubmit: (message: string) => void;
   supportMessage: string;
   setSupportMessage: (message: string) => void;
   isSubmitting?: boolean;
@@ -60,9 +60,8 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
       return;
     }
     
-    console.log("Submitting support ticket with message:", localMessage);
-    // Call the onSubmit handler from parent component
-    onSubmit();
+    // Call parent onSubmit with the message
+    onSubmit(localMessage);
   };
 
   return (

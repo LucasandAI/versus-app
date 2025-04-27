@@ -34,20 +34,11 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
     setDialogOpen(true);
   };
 
-  const handleTicketSubmit = async () => {
+  const handleTicketSubmit = async (submittedMessage: string) => {
     if (!selectedOption) {
       toast({
         title: "Error",
         description: "No support topic selected.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!message.trim()) {
-      toast({
-        title: "Message Required",
-        description: "Please provide details before submitting.",
         variant: "destructive"
       });
       return;
@@ -85,15 +76,13 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
         throw new Error('No ticket data returned');
       }
 
-      console.log("Support ticket created:", ticketData);
-      
       // Step 2: Create the initial message
       const { error: messageError } = await supabase
         .from('support_messages')
         .insert({
           ticket_id: ticketData.id,
           sender_id: currentUser.id,
-          text: message,
+          text: submittedMessage,
           is_support: false
         });
 
@@ -123,7 +112,7 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
 
       // Open the newly created chat if callback provided
       if (onCreateSupportChat) {
-        onCreateSupportChat(ticketData.id, selectedOption.label, message);
+        onCreateSupportChat(ticketData.id, selectedOption.label, submittedMessage);
       }
 
       // Reset state and close dialog
