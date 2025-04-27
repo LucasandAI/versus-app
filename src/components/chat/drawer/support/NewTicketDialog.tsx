@@ -75,10 +75,10 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
         </AlertDialogHeader>
         <div className="grid gap-4 py-4">
           <Textarea 
-            className="w-full min-h-[100px] p-2 border rounded-md resize-none" 
-            placeholder="Describe your issue in detail..."
             value={supportMessage}
             onChange={(e) => setSupportMessage(e.target.value)}
+            placeholder="Describe your issue in detail..."
+            className="min-h-[100px] resize-none"
             disabled={isSubmitting}
           />
         </div>
