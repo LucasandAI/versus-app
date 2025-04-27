@@ -1,18 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { Drawer, DrawerContent as UIDrawerContent } from '@/components/ui/drawer';
-import { ChatProvider } from '@/context/ChatContext';
 import { Club } from '@/types';
 import { SupportTicket } from '@/types/chat';
-import { toast } from '@/hooks/use-toast';
-import { useChat } from '@/hooks/chat/useChat';
-import { useChatDrawerState } from '@/hooks/chat/useChatDrawerState';
-import { useSupportTickets } from '@/hooks/chat/useSupportTickets';
-import { useClubMessages } from '@/hooks/chat/useClubMessages';
-import { useSupportTicketEffects } from '@/hooks/chat/useSupportTicketEffects';
-import DrawerHeader from './DrawerHeader';
 import ChatDrawerContainer from './ChatDrawerContainer';
-import { useApp } from '@/context/AppContext';
+import DrawerHeader from './DrawerHeader';
+import { ChatProvider } from '@/context/ChatContext';
+import { Drawer, DrawerContent } from '@/components/ui/drawer';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -31,88 +24,29 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   supportTickets = [],
   clubMessages = {}
 }) => {
-  const { currentUser } = useApp();
   const [activeTab, setActiveTab] = useState<"clubs"|"dm"|"support">("clubs");
-  const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>(supportTickets);
 
-  // Use the club messages hook directly to handle real-time messages
-  const { clubMessages: localClubMessages, setClubMessages } = useClubMessages(clubs, open, onNewMessage);
-
-  const {
-    supportMessage,
-    setSupportMessage,
-    selectedSupportOption,
-    setSelectedSupportOption,
-    handleSubmitSupportTicket,
-    isSubmitting,
-    sendSupportMessage
-  } = useSupportTickets();
-
-  const {
-    selectedLocalClub,
-    selectedTicket,
-    handleSelectClub,
-    handleSelectTicket,
-  } = useChatDrawerState(open, localSupportTickets);
-
-  // Debug log for selection change
+  // Listen for direct message events
   useEffect(() => {
-    console.log('[MainChatDrawer] Selection changed:', { 
-      selectedClub: selectedLocalClub?.id, 
-      selectedTicket: selectedTicket?.id,
-      activeTab
-    });
-  }, [selectedLocalClub, selectedTicket, activeTab]);
+    const handleOpenDM = (event: CustomEvent<{
+      userId: string;
+      userName: string;
+      userAvatar?: string;
+    }>) => {
+      // Switch to DM tab when event is received
+      setActiveTab("dm");
+    };
 
-  // Use both hooks for chat functionality
-  const chat = useChat(open, onNewMessage);
-  const { 
-    messages, 
-    unreadMessages, 
-    refreshKey, 
-    handleNewMessage,
-    markTicketAsRead,
-    deleteChat,
-  } = chat;
+    window.addEventListener('openDirectMessage', handleOpenDM as EventListener);
+    return () => {
+      window.removeEventListener('openDirectMessage', handleOpenDM as EventListener);
+    };
+  }, []);
 
-  const handleSendClubMessage = async (message: string, clubId?: string) => {
-    if (!clubId) return;
-    return chat.sendMessageToClub(message, clubId, setClubMessages);
-  };
-
-  const handleSendSupportMessage = async (message: string) => {
-    if (!selectedTicket) return;
-    return sendSupportMessage(selectedTicket.id, message);
-  };
-
-  useSupportTicketEffects(open, setLocalSupportTickets);
-
-  const handleSubmitTicket = async () => {
-    try {
-      const newTicket = await handleSubmitSupportTicket();
-      if (newTicket) {
-        setActiveTab("support");
-        handleSelectTicket(newTicket);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      toast({
-        title: "Support Ticket Error",
-        description: `Error submitting support ticket: ${errorMessage}`,
-        variant: "destructive"
-      });
-    }
-  };
-  
-  // Debug log to see messages being passed to container
-  console.log('[MainChatDrawer] Rendering with active tab:', activeTab, 
-    'selectedClub:', selectedLocalClub?.id,
-    'messages count:', Object.keys(localClubMessages).length);
-  
   return (
     <ChatProvider>
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <UIDrawerContent className="h-[80vh] rounded-t-xl p-0 flex flex-col">
+        <DrawerContent className="h-[80vh] rounded-t-xl p-0 flex flex-col">
           <DrawerHeader 
             activeTab={activeTab} 
             setActiveTab={setActiveTab} 
@@ -121,30 +55,11 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
           <ChatDrawerContainer 
             activeTab={activeTab}
             clubs={clubs}
-            selectedLocalClub={selectedLocalClub}
-            selectedTicket={selectedTicket}
-            localSupportTickets={localSupportTickets}
-            onSelectClub={handleSelectClub}
-            onSelectTicket={handleSelectTicket}
-            refreshKey={refreshKey}
-            messages={localClubMessages}
-            deleteChat={deleteChat}
-            unreadMessages={unreadMessages}
-            handleNewMessage={handleNewMessage}
-            markTicketAsRead={markTicketAsRead}
-            onSendMessage={activeTab === "support" ? 
-              handleSendSupportMessage : 
-              handleSendClubMessage
-            }
-            supportMessage={supportMessage}
-            setSupportMessage={setSupportMessage}
-            selectedSupportOption={selectedSupportOption}
-            setSelectedSupportOption={setSelectedSupportOption}
-            handleSubmitSupportTicket={handleSubmitTicket}
-            isSubmitting={isSubmitting}
-            setClubMessages={setClubMessages}
+            supportTickets={supportTickets}
+            messages={clubMessages}
+            onNewMessage={onNewMessage}
           />
-        </UIDrawerContent>
+        </DrawerContent>
       </Drawer>
     </ChatProvider>
   );

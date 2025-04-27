@@ -6,7 +6,6 @@ import ClubInviteDialog from '../admin/ClubInviteDialog';
 import { User, Club } from '@/types';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
 import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
-import { toast } from '@/hooks/use-toast';
 
 interface UserInviteSectionProps {
   showInviteButton: boolean;
@@ -37,15 +36,18 @@ const UserInviteSection: React.FC<UserInviteSectionProps> = ({
     // Open the chat drawer first
     openChatDrawer();
     
-    // Dispatch custom event to open DM with this user
-    const event = new CustomEvent('openDirectMessage', {
-      detail: {
-        userId: selectedUser.id,
-        userName: selectedUser.name,
-        userAvatar: selectedUser.avatar
-      }
-    });
-    window.dispatchEvent(event);
+    // Small delay to ensure drawer is open before switching tabs
+    setTimeout(() => {
+      // Dispatch custom event to open DM with this user
+      const event = new CustomEvent('openDirectMessage', {
+        detail: {
+          userId: selectedUser.id,
+          userName: selectedUser.name,
+          userAvatar: selectedUser.avatar
+        }
+      });
+      window.dispatchEvent(event);
+    }, 100);
     
     console.log('Message button clicked for user:', selectedUser.name);
   };
