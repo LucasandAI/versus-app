@@ -50,16 +50,7 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
   const handleSubmit = () => {
     if (isSubmitting) return;
     
-    if (!selectedOption) {
-      toast({
-        title: "Support Option Required",
-        description: "Please select a support topic before submitting",
-        variant: "destructive"
-      });
-      console.error("Submit attempted with no selectedOption:", selectedOption);
-      return;
-    }
-    
+    // Only check if the message is non-empty
     if (!localMessage.trim()) {
       toast({
         title: "Message Required", 
@@ -69,6 +60,7 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
       return;
     }
     
+    // Call the onSubmit handler
     onSubmit();
   };
 

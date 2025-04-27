@@ -35,7 +35,7 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
   };
 
   const handleSubmit = async () => {
-    if (!message.trim() || !selectedOption) {
+    if (!message.trim()) {
       toast({
         title: "Message Required",
         description: "Please provide details before submitting.",
@@ -44,19 +44,22 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
       return;
     }
 
+    if (!selectedOption) {
+      // This shouldn't happen as we only open the dialog when an option is selected,
+      // but as a safeguard:
+      console.error('Attempting to submit without a selected option');
+      return;
+    }
+
     setIsSubmitting(true);
     
     console.log('[Submitting Support Ticket]', {
-      subject: selectedOption?.label,
+      subject: selectedOption.label,
       message: message
     });
     
     try {
       // Create the support ticket in Supabase
-      const ticketId = 'support-' + Date.now();
-      const subject = selectedOption.label;
-      
-      // Insert into Supabase
       const { data, error } = await supabase
         .from('support_tickets')
         .insert({
@@ -92,7 +95,7 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
         .from('support_messages')
         .insert({
           ticket_id: data.id,
-          text: `Thank you for contacting support about "${subject}". A support agent will review your request and respond shortly.`,
+          text: `Thank you for contacting support about "${selectedOption.label}". A support agent will review your request and respond shortly.`,
           sender_id: null,
           is_support: true
         });
@@ -100,7 +103,7 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
       // For backwards compatibility with localStorage implementation
       const newTicket = {
         id: data.id,
-        subject: subject,
+        subject: selectedOption.label,
         createdAt: new Date().toISOString(),
         status: 'open',
         messages: [
@@ -117,7 +120,7 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
           },
           {
             id: 'support-auto-' + Date.now(),
-            text: `Thank you for contacting support about "${subject}". A support agent will review your request and respond shortly.`,
+            text: `Thank you for contacting support about "${selectedOption.label}". A support agent will review your request and respond shortly.`,
             sender: {
               id: 'support',
               name: 'Support Team',
@@ -150,7 +153,7 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
       
       // If callback exists, call it
       if (onCreateSupportChat) {
-        onCreateSupportChat(data.id, subject, message);
+        onCreateSupportChat(data.id, selectedOption.label, message);
       }
       
       toast({
