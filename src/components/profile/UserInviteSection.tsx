@@ -6,6 +6,7 @@ import ClubInviteDialog from '../admin/ClubInviteDialog';
 import { User, Club } from '@/types';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
 import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
+import { toast } from '@/hooks/use-toast';
 
 interface UserInviteSectionProps {
   showInviteButton: boolean;
@@ -24,7 +25,22 @@ const UserInviteSection: React.FC<UserInviteSectionProps> = ({
   adminClubs,
   isCurrentUserProfile
 }) => {
-  const { open: openChatDrawer } = useChatDrawerGlobal();
+  // Use try/catch to handle the case where the context is not available
+  let chatDrawerOpen;
+  try {
+    const { open } = useChatDrawerGlobal();
+    chatDrawerOpen = open;
+  } catch (error) {
+    // Provide a fallback if the context is not available
+    chatDrawerOpen = () => {
+      toast({
+        title: "Chat drawer not available",
+        description: "Please try again later.",
+        variant: "destructive"
+      });
+    };
+  }
+  
   const { unhideConversation } = useHiddenDMs();
 
   if (isCurrentUserProfile) return null;
@@ -44,7 +60,7 @@ const UserInviteSection: React.FC<UserInviteSectionProps> = ({
     window.dispatchEvent(event);
 
     // Open the chat drawer
-    openChatDrawer();
+    chatDrawerOpen();
   };
 
   return (
