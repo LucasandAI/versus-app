@@ -4,6 +4,7 @@ import { EyeOff } from 'lucide-react';
 import { DMConversation } from '@/hooks/chat/dm/useConversations';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { formatDistanceToNow } from 'date-fns';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +30,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
   onHide
 }) => {
   const [isHideDialogOpen, setIsHideDialogOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const formattedTime = conversation.timestamp 
     ? formatDistanceToNow(new Date(conversation.timestamp), { addSuffix: false })
@@ -67,7 +69,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
             <h2 className="font-medium text-lg truncate">
               {conversation.userName}
             </h2>
-            {formattedTime && (
+            {!isMobile && formattedTime && (
               <span className="text-sm text-gray-500 ml-2">
                 {formattedTime}
               </span>
