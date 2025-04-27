@@ -11,7 +11,7 @@ interface Props {
 
 const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) => {
   const { hideConversation, isConversationHidden, hiddenDMs } = useHiddenDMs();
-  const { conversations } = useConversations(hiddenDMs);
+  const { conversations, fetchConversations } = useConversations(hiddenDMs);
 
   const handleHideConversation = (
     e: React.MouseEvent,

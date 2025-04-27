@@ -9,6 +9,8 @@ import { useDMMessages } from '@/hooks/chat/dm/useDMMessages';
 import { useDMSubscription } from '@/hooks/chat/dm/useDMSubscription';
 import { useNavigation } from '@/hooks/useNavigation';
 import { toast } from '@/hooks/use-toast';
+import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
+import { useConversations } from '@/hooks/chat/dm/useConversations';
 
 interface DMConversationProps {
   userId: string;
@@ -29,12 +31,18 @@ const DMConversation: React.FC<DMConversationProps> = ({
     isSending, 
     setIsSending 
   } = useDMMessages(userId, userName);
+  
+  const { unhideConversation, hiddenDMs } = useHiddenDMs();
+  const { fetchConversations } = useConversations(hiddenDMs);
 
   useDMSubscription(userId, currentUser?.id, setMessages);
 
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || !currentUser?.id || !userId) return;
     setIsSending(true);
+    
+    // Unhide the conversation to ensure it appears in the sidebar
+    unhideConversation(userId);
     
     const optimisticId = `temp-${Date.now()}`;
     const newMessageObj = {
@@ -70,6 +78,9 @@ const DMConversation: React.FC<DMConversationProps> = ({
             id: data.id
           } : msg)
         );
+        
+        // Manually refresh conversations to immediately update the sidebar
+        fetchConversations();
       }
     } catch (error) {
       console.error('Error sending message:', error);
