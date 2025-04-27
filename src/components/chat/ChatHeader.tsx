@@ -27,8 +27,18 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         className="flex items-center gap-2 mb-2 cursor-pointer hover:opacity-80" 
         onClick={onClubClick}
       >
-        <UserAvatar name={club.name} image={club.logo} size="sm" />
-        <h3 className="font-semibold text-lg">{club.name}</h3>
+        <UserAvatar 
+          name={club.name} 
+          image={club.logo} 
+          size="sm" 
+          onClick={onClubClick} 
+        />
+        <h3 
+          className="font-semibold text-lg cursor-pointer hover:text-primary" 
+          onClick={onClubClick}
+        >
+          {club.name}
+        </h3>
       </div>
       
       {currentMatch && (
