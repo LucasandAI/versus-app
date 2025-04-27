@@ -79,7 +79,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
         />
       )}
       
-      <div className="flex flex-col items-end max-w-[70%]">
+      <div className={`flex flex-col ${isUserMessage ? 'items-end' : ''} max-w-[70%]`}>
         {!isUserMessage && (
           <button 
             className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left`}
@@ -90,15 +90,17 @@ const MessageItem: React.FC<MessageItemProps> = ({
           </button>
         )}
         
-        <div className="flex flex-col items-end">
+        <div className={`flex flex-col ${isUserMessage ? 'items-end' : ''}`}>
           <MessageContent 
             message={message}
             isUserMessage={isUserMessage}
             isSupport={isSupport}
             onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
           />
-          
-          <p className={`text-xs text-gray-500 mt-1 ${isUserMessage ? 'text-right' : ''}`}>
+        </div>
+        
+        <div className={`w-full ${isUserMessage ? 'text-right' : ''}`}>
+          <p className="text-xs text-gray-500 mt-1 inline-block">
             {formatTime(getTimestamp())}
           </p>
         </div>
