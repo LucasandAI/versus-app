@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -24,6 +25,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   onDeleteMessage,
   formatTime,
   currentUserAvatar,
+  onSelectUser
 }) => {
   const [canDelete, setCanDelete] = useState(false);
   const { navigateToUserProfile } = useNavigation();
