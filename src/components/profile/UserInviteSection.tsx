@@ -25,22 +25,8 @@ const UserInviteSection: React.FC<UserInviteSectionProps> = ({
   adminClubs,
   isCurrentUserProfile
 }) => {
-  // Use try/catch to handle the case where the context is not available
-  let chatDrawerOpen;
-  try {
-    const { open } = useChatDrawerGlobal();
-    chatDrawerOpen = open;
-  } catch (error) {
-    // Provide a fallback if the context is not available
-    chatDrawerOpen = () => {
-      toast({
-        title: "Chat drawer not available",
-        description: "Please try again later.",
-        variant: "destructive"
-      });
-    };
-  }
-  
+  // Get the chat drawer context functions
+  const { open: openChatDrawer } = useChatDrawerGlobal();
   const { unhideConversation } = useHiddenDMs();
 
   if (isCurrentUserProfile) return null;
@@ -60,7 +46,9 @@ const UserInviteSection: React.FC<UserInviteSectionProps> = ({
     window.dispatchEvent(event);
 
     // Open the chat drawer
-    chatDrawerOpen();
+    openChatDrawer();
+    
+    console.log('Message button clicked for user:', selectedUser.name);
   };
 
   return (

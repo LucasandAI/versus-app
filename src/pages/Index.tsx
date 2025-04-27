@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { AppProvider, useApp } from '@/context/AppContext';
 import ConnectScreen from '@/components/ConnectScreen';
@@ -7,10 +8,13 @@ import Leaderboard from '@/components/Leaderboard';
 import UserProfile from '@/components/UserProfile';
 import Navigation from '@/components/Navigation';
 import { Toaster } from '@/components/ui/toaster';
+import ChatDrawer from '@/components/chat/ChatDrawer';
+import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
 
 const AppContent: React.FC = () => {
   const { currentView, currentUser } = useApp();
   const [chatNotifications, setChatNotifications] = React.useState(0);
+  const { isOpen: chatDrawerOpen, open: openChatDrawer, close: closeChatDrawer } = useChatDrawerGlobal();
 
   useEffect(() => {
     console.log('[Index] Current view:', currentView, 'Current user:', currentUser ? currentUser.id : 'null');
@@ -101,6 +105,13 @@ const AppContent: React.FC = () => {
     <>
       {renderView()}
       {currentUser && currentView !== 'connect' && <Navigation />}
+      {currentUser && (
+        <ChatDrawer 
+          open={chatDrawerOpen} 
+          onOpenChange={open => open ? openChatDrawer() : closeChatDrawer()}
+          clubs={currentUser.clubs || []}
+        />
+      )}
       <Toaster />
     </>
   );
