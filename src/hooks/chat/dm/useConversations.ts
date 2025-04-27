@@ -20,6 +20,7 @@ export const useConversations = (hiddenDMs: string[]) => {
     try {
       if (!currentUser?.id) return;
 
+      // Fetch messages with a more efficient query
       const { data: messages, error: messagesError } = await supabase
         .from('direct_messages')
         .select('id, sender_id, receiver_id, text, timestamp')
@@ -27,32 +28,36 @@ export const useConversations = (hiddenDMs: string[]) => {
         .order('timestamp', { ascending: false });
 
       if (messagesError) throw messagesError;
+      
       if (!messages || messages.length === 0) {
         setConversations([]);
         return;
       }
 
+      // Get unique user IDs from conversations
       const uniqueUserIds = new Set<string>();
       messages.forEach(msg => {
         const otherUserId = msg.sender_id === currentUser.id ? msg.receiver_id : msg.sender_id;
         uniqueUserIds.add(otherUserId);
       });
 
+      // Fetch user details
       const { data: users, error: usersError } = await supabase
         .from('users')
         .select('id, name, avatar')
         .in('id', Array.from(uniqueUserIds));
-      
+
       if (usersError) throw usersError;
       if (!users) return;
 
+      // Create a map for quick user lookup
       const userMap = users.reduce((map: Record<string, any>, user) => {
         map[user.id] = user;
         return map;
       }, {});
 
+      // Process messages into conversations with latest message first
       const conversationsMap = new Map<string, DMConversation>();
-      
       messages.forEach(msg => {
         const otherUserId = msg.sender_id === currentUser.id ? msg.receiver_id : msg.sender_id;
         const otherUser = userMap[otherUserId];
@@ -69,6 +74,7 @@ export const useConversations = (hiddenDMs: string[]) => {
         }
       });
 
+      // Sort conversations by timestamp
       const sortedConversations = Array.from(conversationsMap.values())
         .sort((a, b) => new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime());
 
@@ -83,6 +89,7 @@ export const useConversations = (hiddenDMs: string[]) => {
     }
   };
 
+  // Set up real-time subscriptions for messages
   useEffect(() => {
     if (!currentUser?.id) return;
 
@@ -95,7 +102,7 @@ export const useConversations = (hiddenDMs: string[]) => {
           table: 'direct_messages',
           filter: `sender_id=eq.${currentUser.id},receiver_id=eq.${currentUser.id}` 
         },
-        () => {
+        (payload) => {
           console.log('DM change detected, refreshing conversations');
           fetchConversations();
         }
@@ -111,3 +118,4 @@ export const useConversations = (hiddenDMs: string[]) => {
 
   return { conversations };
 };
+
