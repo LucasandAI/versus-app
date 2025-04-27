@@ -232,6 +232,8 @@ export const useSupportTicketStorage = () => {
         throw messagesError;
       }
       
+      console.log('[useSupportTicketStorage] Messages deleted, now deleting ticket');
+      
       // Then delete the ticket
       const { error: ticketError } = await supabase
         .from('support_tickets')
@@ -252,6 +254,11 @@ export const useSupportTicketStorage = () => {
       }));
       
       console.log('[useSupportTicketStorage] Ticket deletion complete');
+      toast({
+        title: "Success",
+        description: "Support ticket deleted successfully",
+        duration: 3000,
+      });
       
       return true;
     } catch (error) {

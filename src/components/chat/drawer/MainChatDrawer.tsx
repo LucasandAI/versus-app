@@ -7,6 +7,7 @@ import DrawerHeader from './DrawerHeader';
 import { ChatProvider } from '@/context/ChatContext';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { useSupportTickets } from '@/hooks/chat/useSupportTickets';
+import { useChatDrawerState } from '@/hooks/chat/useChatDrawerState';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -26,13 +27,20 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   clubMessages = {}
 }) => {
   const [activeTab, setActiveTab] = useState<"clubs"|"dm"|"support">("clubs");
-  const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(null);
-  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [directMessageUser, setDirectMessageUser] = useState<{
     userId: string;
     userName: string;
     userAvatar?: string;
   } | null>(null);
+
+  const {
+    selectedLocalClub,
+    selectedTicket,
+    localSupportTickets,
+    isLoading,
+    handleSelectClub,
+    handleSelectTicket
+  } = useChatDrawerState(open, supportTickets);
 
   const {
     supportMessage,
@@ -69,16 +77,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     };
   }, []);
 
-  const handleSelectClub = (club: Club) => {
-    setSelectedLocalClub(club);
-    setSelectedTicket(null);
-  };
-
-  const handleSelectTicket = (ticket: SupportTicket) => {
-    setSelectedTicket(ticket);
-    setSelectedLocalClub(null);
-  };
-
   return (
     <ChatProvider>
       <Drawer open={open} onOpenChange={onOpenChange}>
@@ -93,7 +91,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             clubs={clubs}
             selectedLocalClub={selectedLocalClub}
             selectedTicket={selectedTicket}
-            localSupportTickets={supportTickets}
+            localSupportTickets={localSupportTickets}
             onSelectClub={handleSelectClub}
             onSelectTicket={handleSelectTicket}
             refreshKey={0}
@@ -111,6 +109,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             setSelectedSupportOption={setSelectedSupportOption}
             handleSubmitSupportTicket={handleSubmitSupportTicketWrapper}
             isSubmitting={isSubmitting}
+            isLoading={isLoading}
           />
         </DrawerContent>
       </Drawer>

@@ -28,6 +28,7 @@ export const useSupportTicketEffects = (
       fetchInProgressRef.current = true;
       
       try {
+        console.log('[useSupportTicketEffects] Fetching tickets...');
         const tickets = await fetchTicketsFromSupabase();
         
         // Only update state if component is still mounted

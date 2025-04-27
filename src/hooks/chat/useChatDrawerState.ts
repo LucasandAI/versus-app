@@ -9,11 +9,13 @@ export const useChatDrawerState = (open: boolean, supportTickets: SupportTicket[
   const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>(supportTickets);
+  const [isLoading, setIsLoading] = useState(false);
   const { fetchTicketsFromSupabase } = useSupportTicketStorage();
 
   // Load tickets directly from Supabase when drawer opens
   useEffect(() => {
     if (open) {
+      setIsLoading(true);
       // Load tickets directly from Supabase on drawer open
       fetchTicketsFromSupabase()
         .then(tickets => {
@@ -30,6 +32,9 @@ export const useChatDrawerState = (open: boolean, supportTickets: SupportTicket[
         })
         .catch(error => {
           console.error('[useChatDrawerState] Error loading tickets:', error);
+        })
+        .finally(() => {
+          setIsLoading(false);
         });
     }
   }, [open, fetchTicketsFromSupabase, selectedTicket]);
@@ -37,9 +42,16 @@ export const useChatDrawerState = (open: boolean, supportTickets: SupportTicket[
   // Listen for ticket updates
   useEffect(() => {
     const handleTicketUpdated = () => {
+      setIsLoading(true);
       fetchTicketsFromSupabase()
-        .then(tickets => setLocalSupportTickets(tickets as SupportTicket[]))
-        .catch(error => console.error('[useChatDrawerState] Error updating tickets:', error));
+        .then(tickets => {
+          setLocalSupportTickets(tickets as SupportTicket[]);
+          setIsLoading(false);
+        })
+        .catch(error => {
+          console.error('[useChatDrawerState] Error updating tickets:', error);
+          setIsLoading(false);
+        });
     };
     
     const handleTicketDeleted = (event: CustomEvent) => {
@@ -137,6 +149,7 @@ export const useChatDrawerState = (open: boolean, supportTickets: SupportTicket[
     selectedLocalClub,
     selectedTicket,
     localSupportTickets,
+    isLoading,
     handleSelectClub,
     handleSelectTicket,
   };
