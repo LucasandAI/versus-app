@@ -14,6 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ConversationItemProps {
   conversation: DMConversation;
@@ -29,6 +30,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
   onHide
 }) => {
   const [isHideDialogOpen, setIsHideDialogOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const formattedTime = conversation.timestamp 
     ? formatDistanceToNow(new Date(conversation.timestamp), { addSuffix: false })
@@ -44,10 +46,11 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
     setIsHideDialogOpen(false);
   };
 
-  // Truncate message to 50 characters
+  // Truncate message to a shorter length on mobile
+  const characterLimit = isMobile ? 25 : 50;
   const truncatedMessage = conversation.lastMessage
-    ? conversation.lastMessage.length > 50
-      ? `${conversation.lastMessage.substring(0, 50)}...`
+    ? conversation.lastMessage.length > characterLimit
+      ? `${conversation.lastMessage.substring(0, characterLimit)}...`
       : conversation.lastMessage
     : '';
 
@@ -65,28 +68,28 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
           className="flex-shrink-0 mr-3"
         />
         
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 overflow-hidden">
           <div className="flex items-center justify-between mb-1">
-            <h2 className="font-medium text-lg truncate pr-2">
+            <h2 className="font-medium text-lg truncate max-w-[60%]">
               {conversation.userName}
             </h2>
             {formattedTime && (
-              <span className="text-sm text-gray-500 flex-shrink-0">
+              <span className="text-xs text-gray-500 flex-shrink-0 ml-auto">
                 {formattedTime}
               </span>
             )}
           </div>
           
-          <div className="flex items-center gap-2">
-            <p className="text-sm text-gray-600 truncate flex-1 pr-2">
+          <div className="flex items-center">
+            <p className="text-sm text-gray-600 truncate flex-1">
               {truncatedMessage}
             </p>
             <button
               onClick={handleHideClick}
-              className="flex-shrink-0 p-2 rounded-full hover:bg-gray-200 transition-colors"
+              className="flex-shrink-0 p-1.5 ml-2 rounded-full hover:bg-gray-200 transition-colors"
               aria-label={`Hide conversation with ${conversation.userName}`}
             >
-              <EyeOff size={20} className="text-gray-400" />
+              <EyeOff size={isMobile ? 16 : 20} className="text-gray-400" />
             </button>
           </div>
         </div>
