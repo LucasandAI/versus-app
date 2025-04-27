@@ -68,18 +68,18 @@ const MessageItem: React.FC<MessageItemProps> = ({
   };
 
   return (
-    <div className={`flex ${isUserMessage ? 'justify-end' : 'justify-start'} group`}>
-      {!isUserMessage && (
-        <UserAvatar 
-          name={message.sender.name || "Unknown"} 
-          image={message.sender.avatar} 
-          size="sm" 
-          className={`mr-2 flex-shrink-0 ${!isSupport ? 'cursor-pointer hover:opacity-80' : ''}`}
-          onClick={!isSupport ? handleProfileClick : undefined}
-        />
-      )}
+    <div className="flex items-start mb-4 group">
+      {/* Always position avatar on the left */}
+      <UserAvatar 
+        name={message.sender.name || (isUserMessage ? "You" : "Unknown")} 
+        image={isUserMessage ? currentUserAvatar : message.sender.avatar} 
+        size="sm" 
+        className={`flex-shrink-0 ${!isSupport && !isUserMessage ? 'cursor-pointer hover:opacity-80' : ''}`}
+        onClick={!isSupport && !isUserMessage ? handleProfileClick : undefined}
+      />
       
-      <div className={`flex flex-col ${isUserMessage ? 'items-end' : ''} max-w-[70%]`}>
+      <div className={`flex flex-col ml-2 max-w-[70%] ${isUserMessage ? 'ml-auto mr-0' : ''}`}>
+        {/* Only show sender name for non-user messages */}
         {!isUserMessage && (
           <button 
             className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left`}
@@ -90,7 +90,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
           </button>
         )}
         
-        <div className={`flex flex-col ${isUserMessage ? 'items-end' : ''}`}>
+        <div className="flex flex-col">
           <MessageContent 
             message={message}
             isUserMessage={isUserMessage}
@@ -99,21 +99,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
           />
         </div>
         
-        <div className={`w-full ${isUserMessage ? 'text-right' : ''}`}>
-          <p className="text-xs text-gray-500 mt-1 inline-block">
-            {formatTime(getTimestamp())}
-          </p>
+        <div className="text-xs text-gray-500 mt-1">
+          {formatTime(getTimestamp())}
         </div>
       </div>
-      
-      {isUserMessage && (
-        <UserAvatar 
-          name={message.sender.name || "You"} 
-          image={currentUserAvatar} 
-          size="sm" 
-          className="ml-2 flex-shrink-0"
-        />
-      )}
     </div>
   );
 };
