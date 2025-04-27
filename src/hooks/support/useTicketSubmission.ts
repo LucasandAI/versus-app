@@ -4,10 +4,13 @@ import { useTicketCreation } from './useTicketCreation';
 import { useLocalStorageSync } from './useLocalStorageSync';
 import { toast } from "@/hooks/use-toast";
 import { SupportOption } from '@/components/shared/support/SupportOptionsList';
+import { useState } from 'react';
+import { SupportTicket } from '@/types/chat';
 
 export const useTicketSubmission = () => {
   const { currentUser } = useApp();
-  const { isSubmitting, setIsSubmitting, createTicket, createInitialMessage, createAutoResponse } = useTicketCreation();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { createTicket, createInitialMessage, createAutoResponse } = useTicketCreation();
   const { updateStoredTickets, updateUnreadMessages, dispatchEvents } = useLocalStorageSync();
 
   const handleSubmit = async (
@@ -21,17 +24,40 @@ export const useTicketSubmission = () => {
         description: "Please provide details before submitting.",
         variant: "destructive"
       });
-      return;
+      return false;
+    }
+
+    // Make sure we have a valid user
+    if (!currentUser?.id) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to submit a support ticket",
+        variant: "destructive"
+      });
+      return false;
     }
 
     setIsSubmitting(true);
     
     try {
+      console.log("Creating ticket with subject:", selectedOption.label);
       const ticketData = await createTicket(selectedOption.label);
+      
+      if (!ticketData || !ticketData.id) {
+        throw new Error("Failed to create ticket - no ticket data returned");
+      }
+      
+      console.log("Ticket created successfully, ID:", ticketData.id);
+      
+      // Send the initial message from user
       await createInitialMessage(ticketData.id, message, currentUser?.id || 'anonymous');
+      console.log("Initial message created");
+      
+      // Send auto response from support
       await createAutoResponse(ticketData.id, selectedOption.label);
+      console.log("Auto response created");
 
-      const newTicket = {
+      const newTicket: SupportTicket = {
         id: ticketData.id,
         subject: selectedOption.label,
         createdAt: new Date().toISOString(),

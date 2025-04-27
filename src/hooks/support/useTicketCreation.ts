@@ -1,9 +1,7 @@
 
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from "@/hooks/use-toast";
 import { useApp } from '@/context/AppContext';
-import { SupportTicket } from '@/types/chat';
 
 export const useTicketCreation = () => {
   const { currentUser } = useApp();
@@ -13,6 +11,8 @@ export const useTicketCreation = () => {
     if (!currentUser?.id) {
       throw new Error('User must be logged in to create a ticket');
     }
+
+    console.log("Creating ticket in Supabase with subject:", subject);
 
     const { data, error } = await supabase
       .from('support_tickets')
@@ -24,11 +24,18 @@ export const useTicketCreation = () => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error creating ticket:", error);
+      throw error;
+    }
+    
+    console.log("Ticket created successfully:", data);
     return data;
   };
 
   const createInitialMessage = async (ticketId: string, message: string, userId: string) => {
+    console.log("Creating initial message for ticket", ticketId);
+    
     const { error } = await supabase
       .from('support_messages')
       .insert({
@@ -38,10 +45,17 @@ export const useTicketCreation = () => {
         is_support: false
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error creating initial message:", error);
+      throw error;
+    }
+    
+    console.log("Initial message created successfully");
   };
 
   const createAutoResponse = async (ticketId: string, subject: string) => {
+    console.log("Creating auto response for ticket", ticketId);
+    
     const { error } = await supabase
       .from('support_messages')
       .insert({
@@ -51,7 +65,12 @@ export const useTicketCreation = () => {
         is_support: true
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error creating auto response:", error);
+      throw error;
+    }
+    
+    console.log("Auto response created successfully");
   };
 
   return {

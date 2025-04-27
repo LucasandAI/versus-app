@@ -60,6 +60,7 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
       return;
     }
     
+    console.log("Submitting support ticket with message:", localMessage);
     // Call the onSubmit handler
     onSubmit();
   };
