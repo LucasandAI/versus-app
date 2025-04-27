@@ -28,6 +28,7 @@ interface ChatSidebarProps {
   unreadCounts?: Record<string, number>;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   activeTab?: "clubs" | "dm" | "support";
+  clubMessages?: Record<string, any[]>; // Add this prop
 }
 
 const ChatSidebar: React.FC<ChatSidebarProps> = ({ 
@@ -40,7 +41,8 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onDeleteChat,
   unreadCounts = {},
   onSelectUser,
-  activeTab = "clubs"
+  activeTab = "clubs",
+  clubMessages = {} // Default to empty object
 }) => {
   const { setCurrentView, setSelectedUser } = useApp();
   const [chatToDelete, setChatToDelete] = useState<{id: string, name: string, isTicket: boolean} | null>(null);
@@ -76,6 +78,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
           unreadCounts={unreadCounts}
           onSelectUser={onSelectUser}
           setChatToDelete={setChatToDelete}
+          clubMessages={clubMessages}
         />
       )}
 

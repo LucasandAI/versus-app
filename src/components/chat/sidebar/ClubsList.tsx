@@ -18,6 +18,7 @@ interface ClubsListProps {
     name: string;
     isTicket: boolean;
   } | null) => void;
+  clubMessages?: Record<string, any[]>;  // Add this prop to receive messages
 }
 
 const ClubsList: React.FC<ClubsListProps> = ({
@@ -26,7 +27,8 @@ const ClubsList: React.FC<ClubsListProps> = ({
   onSelectClub,
   unreadCounts,
   onSelectUser,
-  setChatToDelete
+  setChatToDelete,
+  clubMessages = {} // Default to empty object if not provided
 }) => {
   const { navigateToClubDetail } = useNavigation();
   
@@ -42,7 +44,9 @@ const ClubsList: React.FC<ClubsListProps> = ({
       
       <div className="space-y-1">
         {clubs.map(club => {
-          const lastMessage = club.messages?.[club.messages.length - 1];
+          const clubId = club.id;
+          const messages = clubMessages[clubId] || [];
+          const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
           const formattedTime = lastMessage?.timestamp 
             ? formatDistanceToNow(new Date(lastMessage.timestamp), { addSuffix: false })
             : '';
@@ -71,7 +75,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
                   
                   <div className="flex items-center justify-between mt-1">
                     <p className="text-sm text-gray-600 truncate pr-2">
-                      {lastMessage?.text || "No messages yet"}
+                      {lastMessage?.message || "No messages yet"}
                     </p>
                     {unreadCounts[club.id] > 0 && (
                       <span className="ml-1 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
@@ -98,4 +102,3 @@ const ClubsList: React.FC<ClubsListProps> = ({
 };
 
 export default ClubsList;
-
