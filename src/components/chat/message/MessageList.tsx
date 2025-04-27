@@ -42,6 +42,9 @@ const MessageList: React.FC<MessageListProps> = ({
           const isUserMessage = currentUserId && 
                                message.sender && 
                                String(message.sender.id) === String(currentUserId);
+                               
+          console.log(`[MessageList] Message #${index} - Sender: ${message.sender?.id}, CurrentUser: ${currentUserId}, isUserMessage: ${isUserMessage}, isSupport: ${message.isSupport}`);
+          
           const isLastMessage = index === messages.length - 1;
           
           return (

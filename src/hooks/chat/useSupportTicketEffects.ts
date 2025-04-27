@@ -13,6 +13,7 @@ export const useSupportTicketEffects = (
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const toastShownRef = useRef(false);
   const fetchInProgressRef = useRef(false);
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Effect to load tickets from Supabase when the component becomes active
   useEffect(() => {
@@ -31,6 +32,7 @@ export const useSupportTicketEffects = (
         
         // Only update state if component is still mounted
         if (isMounted) {
+          console.log('[useSupportTicketEffects] Setting tickets:', tickets.length);
           setTickets(tickets as SupportTicket[]);
           setInitialLoadDone(true);
           // Reset toast flag on successful load
@@ -54,12 +56,21 @@ export const useSupportTicketEffects = (
       }
     };
     
-    // Initial load from Supabase - no localStorage dependency
-    loadTickets();
+    // Initial load from Supabase with debouncing
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
+    }
+    
+    fetchTimeoutRef.current = setTimeout(() => {
+      loadTickets();
+    }, 300);
     
     // Set up cleanup
     return () => {
       isMounted = false;
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
     };
   }, [isActive, fetchTicketsFromSupabase]);
 

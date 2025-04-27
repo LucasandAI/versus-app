@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SupportTicket, ChatMessage } from '@/types/chat';
@@ -35,6 +34,10 @@ export const useSupportTicketStorage = () => {
       }
       
       console.log('[useSupportTicketStorage] Found tickets:', tickets?.length || 0);
+      
+      if (!tickets || tickets.length === 0) {
+        return [];
+      }
       
       // For each ticket, fetch its messages
       const ticketsWithMessages = await Promise.all(tickets.map(async (ticket) => {
@@ -78,15 +81,10 @@ export const useSupportTicketStorage = () => {
       
       console.log('[useSupportTicketStorage] Processed tickets with messages:', ticketsWithMessages.length);
       
-      // Update localStorage for optimistic UI
-      localStorage.setItem('supportTickets', JSON.stringify(ticketsWithMessages));
-      
-      // Return the tickets with messages
       return ticketsWithMessages;
       
     } catch (error) {
       console.error('[useSupportTicketStorage] Error in fetchTicketsFromSupabase:', error);
-      // Don't show toast here, let the caller handle it
       return [];
     } finally {
       setIsLoading(false);

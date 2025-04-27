@@ -7,10 +7,11 @@ import NewTicketDialog from './NewTicketDialog';
 import ChatTicketContent from '../../ChatTicketContent';
 import { Button } from '@/components/ui/button';
 import { useSupportTicketEffects } from '@/hooks/chat/useSupportTicketEffects';
+import { useApp } from '@/context/AppContext';
 
 interface SupportTabContentProps {
   supportTickets: SupportTicket[];
-  onSelectTicket: (ticket: SupportTicket) => void;
+  onSelectTicket: (ticket: SupportTicket | null) => void;
   handleSubmitSupportTicket: () => Promise<void>;
   supportMessage: string;
   setSupportMessage: (message: string) => void;
@@ -40,20 +41,26 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
   const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>(initialSupportTickets);
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   
-  // Load tickets from local storage and handle updates
+  // Load tickets from Supabase and handle updates
   useSupportTicketEffects(activeTab === "support", setLocalSupportTickets);
+  const { currentUser } = useApp();
   
   // Also update from props when they change
   useEffect(() => {
-    if (initialSupportTickets.length > 0) {
-      console.log('[SupportTabContent] Updating tickets from props:', initialSupportTickets.length);
-      setLocalSupportTickets(initialSupportTickets);
-    }
+    console.log('[SupportTabContent] Updating tickets from props:', initialSupportTickets.length);
+    setLocalSupportTickets(initialSupportTickets);
   }, [initialSupportTickets]);
+
+  // Log when component renders to help debug
+  useEffect(() => {
+    console.log('[SupportTabContent] Rendering with local tickets:', localSupportTickets.length);
+    console.log('[SupportTabContent] Current user:', currentUser?.id);
+    console.log('[SupportTabContent] Active tab:', activeTab);
+  }, [localSupportTickets, currentUser, activeTab]);
 
   const handleTicketClosed = () => {
     console.log('[SupportTabContent] Closing selected ticket');
-    onSelectTicket(null as any);
+    onSelectTicket(null);
   };
 
   const handleSubmitTicket = async () => {
@@ -66,20 +73,6 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
       console.log('[SupportTabContent] Submitting new ticket');
       await handleSubmitSupportTicket();
       setDialogOpen(false);
-      
-      // Refresh tickets after submission
-      const storedTickets = localStorage.getItem('supportTickets');
-      if (storedTickets) {
-        try {
-          const parsedTickets = JSON.parse(storedTickets);
-          if (Array.isArray(parsedTickets)) {
-            console.log('[SupportTabContent] Refreshed tickets after submission:', parsedTickets.length);
-            setLocalSupportTickets(parsedTickets);
-          }
-        } catch (error) {
-          console.error("[SupportTabContent] Error refreshing tickets after submit:", error);
-        }
-      }
     } catch (error) {
       console.error("[SupportTabContent] Failed to submit ticket:", error);
     } finally {
@@ -95,6 +88,7 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
         <div className="flex flex-col h-full">
           <div className="p-4 border-b">
             <h1 className="text-4xl font-bold">Support</h1>
+            {currentUser ? <p className="text-gray-500 mt-1">Showing tickets for {currentUser.name}</p> : null}
           </div>
           
           {/* New Support Ticket button moved above the ticket list */}
