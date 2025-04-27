@@ -16,6 +16,8 @@ interface ChatMessagesProps {
   onSelectUser?: (userId: string, userName: string, userAvatar?: string) => void;
   isSupport?: boolean;
   currentUserAvatar?: string;
+  // Add the missing lastMessageRef prop to fix the TypeScript error
+  lastMessageRef?: React.RefObject<HTMLDivElement>;
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({
@@ -24,18 +26,24 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   onDeleteMessage,
   onSelectUser,
   isSupport = false,
-  currentUserAvatar = '/placeholder.svg'
+  currentUserAvatar = '/placeholder.svg',
+  // Add the lastMessageRef prop to the component props
+  lastMessageRef
 }) => {
-  const lastMessageRef = useRef<HTMLDivElement>(null);
+  // Create a default ref if one is not provided
+  const defaultLastMessageRef = useRef<HTMLDivElement>(null);
   const [hasScrolled, setHasScrolled] = useState(false);
   const { currentUser } = useApp();
+  
+  // Use the provided ref or fall back to the default one
+  const messageRef = lastMessageRef || defaultLastMessageRef;
 
   useEffect(() => {
     // Scroll to bottom when messages change if we haven't manually scrolled up
-    if (lastMessageRef.current && !hasScrolled) {
-      lastMessageRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (messageRef.current && !hasScrolled) {
+      messageRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, hasScrolled]);
+  }, [messages, hasScrolled, messageRef]);
 
   const formatTime = (isoString: string) => {
     try {
@@ -65,7 +73,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
         formatTime={formatTime}
         currentUserAvatar={currentUserAvatar || '/placeholder.svg'}
         currentUserId={currentUser?.id || null}
-        lastMessageRef={lastMessageRef}
+        lastMessageRef={messageRef}
       />
     </div>
   );
