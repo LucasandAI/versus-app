@@ -91,14 +91,18 @@ const MessageItem: React.FC<MessageItemProps> = ({
           </button>
         )}
         
-        <MessageContent 
-          message={message}
-          isUserMessage={isUserMessage}
-          isSupport={isSupport}
-          onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
-        />
-        
-        <p className="text-xs text-gray-500 mt-1">{formatTime(getTimestamp())}</p>
+        <div className="flex flex-col">
+          <MessageContent 
+            message={message}
+            isUserMessage={isUserMessage}
+            isSupport={isSupport}
+            onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
+          />
+          
+          <p className={`text-xs text-gray-500 mt-1 ${isUserMessage ? 'text-right' : ''}`}>
+            {formatTime(getTimestamp())}
+          </p>
+        </div>
       </div>
       
       {isUserMessage && (
