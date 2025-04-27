@@ -1,32 +1,19 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Club } from '@/types';
-import { SupportTicket } from '@/types/chat';
 import DMContainer from './dm/DMContainer';
-import SupportTabContent from './support/SupportTabContent';
 import ChatClubContainer from './club/ChatClubContainer';
 
 interface ChatDrawerContainerProps {
-  activeTab: "clubs" | "dm" | "support";
+  activeTab: "clubs" | "dm";
   clubs: Club[];
   selectedLocalClub: Club | null;
-  selectedTicket: SupportTicket | null;
-  localSupportTickets: SupportTicket[];
   onSelectClub: (club: Club) => void;
-  onSelectTicket: (ticket: SupportTicket) => void;
-  refreshKey: number;
   messages: Record<string, any[]>;
-  deleteChat: (chatId: string, isTicket: boolean) => void;
+  deleteChat: (chatId: string) => void;
   unreadMessages: Record<string, number>;
   handleNewMessage: (chatId: string, message: any, isOpen: boolean) => void;
-  markTicketAsRead?: (ticketId: string) => void;
   onSendMessage: (message: string, clubId?: string) => void;
-  supportMessage: string;
-  setSupportMessage: (message: string) => void;
-  selectedSupportOption: { id: string, label: string } | null;
-  setSelectedSupportOption: (option: { id: string, label: string } | null) => void;
-  handleSubmitSupportTicket: () => Promise<void>;
-  isSubmitting: boolean;
   directMessageUser?: {
     userId: string;
     userName: string;
@@ -43,41 +30,22 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   activeTab,
   clubs,
   selectedLocalClub,
-  selectedTicket,
-  localSupportTickets,
   onSelectClub,
-  onSelectTicket,
   messages,
   deleteChat,
   unreadMessages,
   onSendMessage,
-  supportMessage,
-  setSupportMessage,
-  selectedSupportOption,
-  setSelectedSupportOption,
-  handleSubmitSupportTicket,
-  isSubmitting,
   directMessageUser,
   setDirectMessageUser
 }) => {
   // Clear selections when switching tabs
-  useEffect(() => {
+  React.useEffect(() => {
     if (activeTab === "clubs") {
-      if (selectedTicket) onSelectTicket(null as any);
+      if (directMessageUser && setDirectMessageUser) setDirectMessageUser(null);
     } else if (activeTab === "dm") {
       if (selectedLocalClub) onSelectClub(null as any);
-      if (selectedTicket) onSelectTicket(null as any);
-    } else if (activeTab === "support") {
-      if (selectedLocalClub) onSelectClub(null as any);
     }
-  }, [activeTab, selectedTicket, selectedLocalClub, onSelectClub, onSelectTicket]);
-
-  // Debug logs to help track tab and data changes
-  useEffect(() => {
-    if (activeTab === "support") {
-      console.log('[ChatDrawerContainer] Support tab active, tickets count:', localSupportTickets?.length || 0);
-    }
-  }, [activeTab, localSupportTickets]);
+  }, [activeTab, selectedLocalClub, directMessageUser, setDirectMessageUser, onSelectClub]);
 
   switch (activeTab) {
     case "clubs":
@@ -100,24 +68,6 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
           <DMContainer 
             initialSelectedUser={directMessageUser}
             setDirectMessageUser={setDirectMessageUser}
-          />
-        </div>
-      );
-    case "support":
-      return (
-        <div className="flex h-full w-full">
-          <SupportTabContent 
-            supportTickets={localSupportTickets || []} 
-            selectedTicket={selectedTicket} 
-            onSelectTicket={onSelectTicket} 
-            supportMessage={supportMessage}
-            setSupportMessage={setSupportMessage}
-            handleSubmitSupportTicket={handleSubmitSupportTicket}
-            isSubmitting={isSubmitting}
-            onSendMessage={onSendMessage}
-            selectedSupportOption={selectedSupportOption}
-            setSelectedSupportOption={setSelectedSupportOption}
-            activeTab={activeTab}
           />
         </div>
       );

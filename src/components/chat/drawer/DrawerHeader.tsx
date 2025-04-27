@@ -4,8 +4,8 @@ import ChatDrawerHeader from './ChatDrawerHeader';
 import ChatDrawerTabs from './ChatDrawerTabs';
 
 interface DrawerHeaderProps {
-  activeTab: "clubs" | "dm" | "support";
-  setActiveTab: (tab: "clubs" | "dm" | "support") => void;
+  activeTab: "clubs" | "dm";
+  setActiveTab: (tab: "clubs" | "dm") => void;
 }
 
 const DrawerHeader: React.FC<DrawerHeaderProps> = ({
