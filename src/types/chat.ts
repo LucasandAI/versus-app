@@ -26,3 +26,11 @@ export interface ChatState {
   unreadMessages: Record<string, number>;
 }
 
+// Adding SupportTicket type definition as a temporary solution
+// This will be removed in future refactoring
+export interface SupportTicket {
+  id: string;
+  subject: string;
+  createdAt: string;
+  messages: ChatMessage[];
+}

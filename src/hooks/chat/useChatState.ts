@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from 'react';
-import { SupportTicket } from '@/types/chat';
 import { useLocalStorage } from './useLocalStorage';
 import { useMessageHandling } from './useMessageHandling';
 import { useUnreadNotifications } from './useUnreadNotifications';
@@ -9,13 +8,10 @@ import { useChatDeletion } from './useChatDeletion';
 import { useRefreshState } from './useRefreshState';
 
 export const useChatState = (open: boolean, onNewMessage?: (count: number) => void) => {
-  const [supportTickets, setSupportTickets] = useState<Record<string, any>>({});
-  
   const {
     loadFromStorage,
     saveMessages,
     saveUnreadMessages,
-    saveSupportTickets
   } = useLocalStorage();
 
   const { unreadMessages, updateUnreadCount } = useUnreadNotifications(open, onNewMessage);
@@ -28,7 +24,6 @@ export const useChatState = (open: boolean, onNewMessage?: (count: number) => vo
   useEffect(() => {
     const data = loadFromStorage();
     setMessages(data.messages);
-    setSupportTickets(data.supportTickets);
   }, [loadFromStorage, setMessages]);
 
   const handleSendClubMessage = async (message: string, clubId: string, setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>) => {
@@ -53,14 +48,12 @@ export const useChatState = (open: boolean, onNewMessage?: (count: number) => vo
 
   return {
     messages,
-    supportTickets,
     unreadMessages,
     refreshKey,
     refreshChats,
     handleNewMessage,
     sendMessageToClub: handleSendClubMessage,
     setUnreadMessages: updateUnreadCount,
-    markTicketAsRead: (ticketId: string) => updateUnreadCount(ticketId, 0),
     deleteChat
   };
 };

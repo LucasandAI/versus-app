@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
@@ -98,7 +97,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   };
 
   const userClubs = currentUser?.clubs || [];
-  const isAtClubCapacity = userClubs.length >= 3;
 
   return (
     <div className="pb-20 pt-6">
