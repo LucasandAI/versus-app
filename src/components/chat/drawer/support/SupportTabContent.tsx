@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { SupportTicket } from '@/types/chat';
 import { ArrowLeft } from 'lucide-react';
@@ -128,7 +129,7 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
             <div className="w-10" /> {/* Spacer for alignment */}
           </div>
           
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden h-full relative">
             <ChatTicketContent 
               ticket={selectedTicket} 
               onSendMessage={onSendMessage}
