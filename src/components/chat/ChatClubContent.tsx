@@ -12,7 +12,8 @@ interface ChatClubContentProps {
   messages: any[];
   onMatchClick: () => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, clubId?: string) => void;
+  onDeleteMessage?: (messageId: string) => void;
   setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
   clubId?: string;
 }
@@ -23,6 +24,7 @@ const ChatClubContent = ({
   onMatchClick,
   onSelectUser,
   onSendMessage,
+  onDeleteMessage,
   setClubMessages,
   clubId
 }: ChatClubContentProps) => {
@@ -38,7 +40,13 @@ const ChatClubContent = ({
 
   const handleDeleteMessage = async (messageId: string) => {
     console.log('[ChatClubContent] Deleting message:', messageId);
-    await deleteMessage(messageId, setClubMessages);
+    
+    if (onDeleteMessage) {
+      await onDeleteMessage(messageId);
+    } else if (setClubMessages) {
+      // Fallback to direct deleteMessage if no handler provided
+      await deleteMessage(messageId, setClubMessages);
+    }
   };
 
   const handleClubClick = () => {
@@ -54,7 +62,9 @@ const ChatClubContent = ({
     setIsSending(true);
     try {
       const messageToSend = message.trim();
-      await onSendMessage(messageToSend);
+      if (effectiveClubId) {
+        await onSendMessage(messageToSend, effectiveClubId);
+      }
     } catch (error) {
       console.error('[ChatClubContent] Error sending club message:', error);
     } finally {

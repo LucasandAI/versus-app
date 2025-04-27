@@ -25,6 +25,11 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
 
   console.log('[ChatDrawerHandler] Rendering with clubMessages:', clubMessages);
 
+  const handleSendMessage = async (message: string, clubId?: string) => {
+    console.log('[ChatDrawerHandler] Send message requested:', { message, clubId });
+    // This is just a passthrough function - the actual implementation is in MainChatDrawer
+  };
+
   return (
     <ChatDrawer 
       open={isOpen} 
@@ -35,6 +40,7 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
       clubMessages={clubMessages}
       onNewMessage={setUnreadMessages}
       setClubMessages={setClubMessages}
+      onSendMessage={handleSendMessage}
     />
   );
 };

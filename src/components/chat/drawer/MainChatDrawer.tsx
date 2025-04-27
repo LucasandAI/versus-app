@@ -5,6 +5,7 @@ import ChatDrawerContainer from './ChatDrawerContainer';
 import DrawerHeader from './DrawerHeader';
 import { ChatProvider } from '@/context/ChatContext';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
+import { useChatActions } from '@/hooks/chat/useChatActions';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -12,6 +13,7 @@ interface MainChatDrawerProps {
   clubs: Club[];
   onNewMessage?: (count: number) => void;
   clubMessages?: Record<string, any[]>;
+  setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
 }
 
 const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
@@ -19,7 +21,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   onOpenChange,
   clubs,
   onNewMessage,
-  clubMessages = {}
+  clubMessages = {},
+  setClubMessages
 }) => {
   const [activeTab, setActiveTab] = useState<"clubs"|"dm">("clubs");
   const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(null);
@@ -29,6 +32,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     userAvatar?: string;
   } | null>(null);
   
+  const { sendMessageToClub, deleteMessage } = useChatActions();
+
   useEffect(() => {
     const handleOpenDM = (event: CustomEvent<{
       userId: string;
@@ -53,6 +58,22 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     setSelectedLocalClub(club);
   };
 
+  // Handle sending a new message
+  const handleSendMessage = async (message: string, clubId?: string) => {
+    if (message && clubId && setClubMessages) {
+      console.log('[MainChatDrawer] Sending message to club:', clubId);
+      return await sendMessageToClub(clubId, message, setClubMessages);
+    }
+  };
+  
+  // Handle deleting a message
+  const handleDeleteMessage = async (messageId: string) => {
+    if (messageId && setClubMessages) {
+      console.log('[MainChatDrawer] Deleting message:', messageId);
+      return await deleteMessage(messageId, setClubMessages);
+    }
+  };
+
   return (
     <ChatProvider>
       <Drawer open={open} onOpenChange={onOpenChange}>
@@ -71,7 +92,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             deleteChat={() => {}}
             unreadMessages={{}}
             handleNewMessage={() => {}}
-            onSendMessage={() => {}}
+            onSendMessage={handleSendMessage}
+            onDeleteMessage={handleDeleteMessage}
             directMessageUser={directMessageUser}
             setDirectMessageUser={setDirectMessageUser}
           />

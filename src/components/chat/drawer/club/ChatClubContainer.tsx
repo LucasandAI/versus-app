@@ -1,109 +1,63 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Club } from '@/types';
-import { ArrowLeft } from 'lucide-react';
-import UserAvatar from '@/components/shared/UserAvatar';
-import ClubsList from '../../sidebar/ClubsList';
-import ChatClubContent from '../../ChatClubContent';
-import { useNavigation } from '@/hooks/useNavigation';
+import ChatSidebarContent from '../ChatSidebarContent';
+import ChatClubContent from '../../../chat/ChatClubContent';
 
 interface ChatClubContainerProps {
   clubs: Club[];
   selectedClub: Club | null;
   onSelectClub: (club: Club) => void;
-  messages: Record<string, any[]>;
+  messages?: Record<string, any[]>;
   onSendMessage: (message: string, clubId?: string) => void;
-  unreadCounts: Record<string, number>;
-  onDeleteChat?: (chatId: string, isTicket?: boolean) => void;
-  setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
+  onDeleteMessage?: (messageId: string) => void;
 }
 
 const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   clubs,
   selectedClub,
   onSelectClub,
-  messages,
+  messages = {},
   onSendMessage,
-  unreadCounts,
-  onDeleteChat,
-  setClubMessages
+  onDeleteMessage
 }) => {
-  const { navigateToClubDetail } = useNavigation();
-  
-  const handleGoBack = () => {
-    onSelectClub(null as any);
+  const handleMatchClick = () => {
+    // Future implementation
   };
 
-  const handleMatchClick = () => {
-    console.log('[ChatClubContainer] Match clicked');
-  };
-  
-  const handleClubClick = () => {
-    if (selectedClub && selectedClub.id) {
-      navigateToClubDetail(selectedClub.id, selectedClub);
-      const event = new CustomEvent('chatDrawerClosed');
-      window.dispatchEvent(event);
-    }
+  const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
+    const event = new CustomEvent('openDirectMessage', {
+      detail: { userId, userName, userAvatar }
+    });
+    window.dispatchEvent(event);
   };
 
   return (
-    <div className="flex flex-col w-full h-full bg-white">
-      {!selectedClub ? (
-        <div className="flex flex-col h-full">
-          <div className="p-4 border-b">
-            <h1 className="text-4xl font-bold">Club Chats</h1>
+    <div className="flex h-full">
+      <div className="w-1/3 border-r">
+        <ChatSidebarContent 
+          clubs={clubs}
+          selectedClub={selectedClub}
+          onSelectClub={onSelectClub}
+        />
+      </div>
+      
+      <div className="w-2/3">
+        {selectedClub ? (
+          <ChatClubContent 
+            club={selectedClub}
+            messages={messages[selectedClub.id] || []}
+            onMatchClick={handleMatchClick}
+            onSelectUser={handleSelectUser}
+            onSendMessage={onSendMessage}
+            onDeleteMessage={onDeleteMessage}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500">Select a club to start chatting</p>
           </div>
-          <div className="flex-1 overflow-y-auto">
-            <ClubsList
-              clubs={clubs}
-              selectedClub={selectedClub}
-              onSelectClub={onSelectClub}
-              unreadCounts={unreadCounts}
-              onSelectUser={() => {}}
-              setChatToDelete={() => {}}
-            />
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-col h-full">
-          <div className="flex items-center border-b p-3 gap-3">
-            <button onClick={handleGoBack} className="p-2 hover:bg-gray-100 rounded-full">
-              <ArrowLeft className="h-6 w-6" />
-            </button>
-            <div 
-              className="flex items-center gap-3 flex-1 justify-center cursor-pointer hover:opacity-80"
-              onClick={handleClubClick}
-            >
-              <UserAvatar 
-                name={selectedClub.name} 
-                image={selectedClub.logo || ''} 
-                size="sm"
-                onClick={handleClubClick}
-                className="cursor-pointer"
-              />
-              <span 
-                className="font-semibold text-lg cursor-pointer hover:text-primary"
-                onClick={handleClubClick}
-              >
-                {selectedClub.name}
-              </span>
-            </div>
-            <div className="w-10" /> {/* Spacer for alignment */}
-          </div>
-          
-          <div className="flex-1 overflow-hidden">
-            <ChatClubContent
-              club={selectedClub}
-              messages={messages[selectedClub.id] || []}
-              onMatchClick={handleMatchClick}
-              onSelectUser={() => {}}
-              onSendMessage={(message) => onSendMessage(message, selectedClub.id)}
-              setClubMessages={setClubMessages}
-              clubId={selectedClub.id}
-            />
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
