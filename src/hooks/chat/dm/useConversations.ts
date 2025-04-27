@@ -1,25 +1,21 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import { toast } from '@/hooks/use-toast';
+import { useUserData } from './useUserData';
+import { useRealtimeSubscriptions } from './useRealtimeSubscriptions';
+import type { DMConversation } from './types';
 
-export interface DMConversation {
-  userId: string;
-  userName: string;
-  userAvatar?: string;
-  lastMessage?: string;
-  timestamp?: string;
-}
+export type { DMConversation };
 
 export const useConversations = (hiddenDMs: string[]) => {
   const [conversations, setConversations] = useState<DMConversation[]>([]);
   const [refreshVersion, setRefreshVersion] = useState(0);
   const { currentUser } = useApp();
-  const [userCache, setUserCache] = useState<Record<string, { name: string; avatar?: string }>>({});
+  const { userCache, setUserCache, fetchUserData } = useUserData();
 
   const updateConversation = useCallback((otherUserId: string, newMessage: string, otherUserName?: string, otherUserAvatar?: string) => {
-    // Debug log for updateConversation calls
     console.log('[updateConversation] Called for userId:', otherUserId, 'with message:', newMessage, 'userName:', otherUserName || 'not provided', 'timestamp:', new Date().toISOString());
     
     setConversations(prevConversations => {
@@ -28,7 +24,6 @@ export const useConversations = (hiddenDMs: string[]) => {
         conv => conv.userId === otherUserId
       );
 
-      // Cache the user data if provided
       if (otherUserName) {
         setUserCache(prev => ({
           ...prev,
@@ -39,7 +34,6 @@ export const useConversations = (hiddenDMs: string[]) => {
       let updatedConversations = [...prevConversations];
       
       if (existingConvIndex >= 0) {
-        // Move existing conversation to top and update
         const existingConv = { ...updatedConversations[existingConvIndex] };
         updatedConversations.splice(existingConvIndex, 1);
         updatedConversations.unshift({
@@ -50,7 +44,6 @@ export const useConversations = (hiddenDMs: string[]) => {
           ...(otherUserAvatar && { userAvatar: otherUserAvatar })
         });
       } else if (otherUserName) {
-        // Add new conversation at the top
         updatedConversations.unshift({
           userId: otherUserId,
           userName: otherUserName,
@@ -62,108 +55,12 @@ export const useConversations = (hiddenDMs: string[]) => {
 
       return updatedConversations;
     });
-  }, []);
-
-  // Fetch user data if not in cache
-  const fetchUserData = useCallback(async (userId: string) => {
-    try {
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('name, avatar')
-        .eq('id', userId)
-        .single();
-
-      if (error) throw error;
-
-      if (userData) {
-        setUserCache(prev => ({
-          ...prev,
-          [userId]: { name: userData.name, avatar: userData.avatar }
-        }));
-        return userData;
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!currentUser?.id) return;
-
-    console.log('[useConversations] Setting up real-time subscriptions for user:', currentUser.id);
-    
-    const outgoingChannel = supabase
-      .channel('dm-outgoing')
-      .on('postgres_changes', 
-        { 
-          event: 'INSERT',
-          schema: 'public',
-          table: 'direct_messages',
-          filter: `sender_id=eq.${currentUser.id}`
-        },
-        (payload: any) => {
-          // Debug log for outgoing DM events
-          console.log('[RealTime] Outgoing DM detected:', payload, 'timestamp:', new Date().toISOString());
-          
-          const receiverId = payload.new.receiver_id;
-          const cachedUser = userCache[receiverId];
-          
-          if (cachedUser) {
-            updateConversation(receiverId, payload.new.text, cachedUser.name, cachedUser.avatar);
-          } else {
-            fetchUserData(receiverId).then(userData => {
-              if (userData) {
-                updateConversation(receiverId, payload.new.text, userData.name, userData.avatar);
-              }
-            });
-          }
-        }
-      )
-      .subscribe();
-    
-    const incomingChannel = supabase
-      .channel('dm-incoming')
-      .on('postgres_changes', 
-        { 
-          event: 'INSERT',
-          schema: 'public',
-          table: 'direct_messages',
-          filter: `receiver_id=eq.${currentUser.id}`
-        },
-        async (payload: any) => {
-          // Debug log for incoming DM events
-          console.log('[RealTime] Incoming DM detected:', payload, 'timestamp:', new Date().toISOString());
-          
-          const senderId = payload.new.sender_id;
-          const cachedUser = userCache[senderId];
-          
-          if (cachedUser) {
-            updateConversation(senderId, payload.new.text, cachedUser.name, cachedUser.avatar);
-          } else {
-            const userData = await fetchUserData(senderId);
-            if (userData) {
-              updateConversation(senderId, payload.new.text, userData.name, userData.avatar);
-            }
-          }
-        }
-      )
-      .subscribe();
-
-    // Initial fetch of conversations
-    fetchConversations();
-
-    return () => {
-      console.log('[useConversations] Cleaning up real-time subscriptions');
-      supabase.removeChannel(outgoingChannel);
-      supabase.removeChannel(incomingChannel);
-    };
-  }, [currentUser?.id, updateConversation, fetchUserData, userCache]);
+  }, [setUserCache]);
 
   const fetchConversations = useCallback(async () => {
     try {
       if (!currentUser?.id) return;
 
-      // Debug log for fetching conversations
       console.log('[fetchConversations] Fetching conversations for user:', currentUser.id);
 
       const { data: messages, error: messagesError } = await supabase
@@ -236,6 +133,9 @@ export const useConversations = (hiddenDMs: string[]) => {
     }
   }, [currentUser?.id]);
 
+  // Set up realtime subscriptions
+  useRealtimeSubscriptions(currentUser?.id, userCache, fetchUserData, updateConversation);
+
   return { 
     conversations, 
     fetchConversations, 
@@ -243,4 +143,3 @@ export const useConversations = (hiddenDMs: string[]) => {
     refreshVersion 
   };
 };
-
