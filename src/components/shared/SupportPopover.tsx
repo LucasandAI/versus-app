@@ -122,6 +122,7 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
       setDialogOpen(false);
       setMessage('');
       setSelectedOption(null);
+      setIsSubmitting(false);
     } catch (error) {
       console.error('Error creating support ticket:', error);
       toast({
@@ -129,7 +130,6 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
         description: "Failed to create support ticket. Please try again.",
         variant: "destructive"
       });
-    } finally {
       setIsSubmitting(false);
     }
   };

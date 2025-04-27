@@ -35,12 +35,12 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
   // Local state to manage textarea content
   const [localMessage, setLocalMessage] = useState('');
   
-  // Sync local state with prop when dialog opens
+  // Sync local state with prop when dialog opens or selectedOption changes
   useEffect(() => {
     if (open) {
       setLocalMessage(supportMessage || '');
     }
-  }, [open, supportMessage]);
+  }, [open, supportMessage, selectedOption]);
   
   // Update parent state when local state changes
   useEffect(() => {
@@ -75,7 +75,7 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
     <Dialog 
       open={open} 
       onOpenChange={(newState) => {
-        if (!newState) onOpenChange(false);
+        if (!newState && !isSubmitting) onOpenChange(false);
       }}
     >
       <DialogContent>

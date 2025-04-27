@@ -22,6 +22,7 @@ export const useSupportTicketEffects = (
       }
     };
     
+    // Load tickets immediately when visible
     if (isVisible) {
       loadStoredTickets();
     }
