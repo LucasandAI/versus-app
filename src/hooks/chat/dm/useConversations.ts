@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import { toast } from '@/hooks/use-toast';
@@ -16,10 +16,12 @@ export const useConversations = (hiddenDMs: string[]) => {
   const [conversations, setConversations] = useState<DMConversation[]>([]);
   const { currentUser } = useApp();
 
-  const fetchConversations = async () => {
+  const fetchConversations = useCallback(async () => {
     try {
       if (!currentUser?.id) return;
 
+      console.log('[useConversations] Fetching conversations');
+      
       // Fetch messages with a more efficient query
       const { data: messages, error: messagesError } = await supabase
         .from('direct_messages')
@@ -87,23 +89,37 @@ export const useConversations = (hiddenDMs: string[]) => {
         variant: "destructive"
       });
     }
-  };
+  }, [currentUser?.id]);
 
   // Set up real-time subscriptions for messages
   useEffect(() => {
     if (!currentUser?.id) return;
 
+    // Subscribe to ALL direct message inserts that involve the current user
+    // Using a simpler filter to catch all relevant messages
     const channel = supabase
       .channel('dm-changes')
       .on('postgres_changes', 
         { 
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'direct_messages',
-          filter: `sender_id=eq.${currentUser.id},receiver_id=eq.${currentUser.id}` 
+          filter: `sender_id=eq.${currentUser.id}` 
         },
-        (payload) => {
-          console.log('DM change detected, refreshing conversations');
+        () => {
+          console.log('Outgoing DM detected, refreshing conversations');
+          fetchConversations();
+        }
+      )
+      .on('postgres_changes', 
+        { 
+          event: 'INSERT',
+          schema: 'public',
+          table: 'direct_messages',
+          filter: `receiver_id=eq.${currentUser.id}` 
+        },
+        () => {
+          console.log('Incoming DM detected, refreshing conversations');
           fetchConversations();
         }
       )
@@ -114,8 +130,7 @@ export const useConversations = (hiddenDMs: string[]) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentUser?.id, hiddenDMs]);
+  }, [currentUser?.id, hiddenDMs, fetchConversations]);
 
-  return { conversations };
+  return { conversations, refreshConversations: fetchConversations };
 };
-
