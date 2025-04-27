@@ -1,10 +1,12 @@
+
 import React from 'react';
 import { SupportTicket } from '@/types/chat';
 import { ArrowLeft } from 'lucide-react';
 import SupportOptions from './SupportOptions';
 import NewTicketDialog from './NewTicketDialog';
 import ChatTicketContent from '../../ChatTicketContent';
-import SupportTicketList from './SupportTicketList';
+import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
 interface SupportTabContentProps {
   supportTickets: SupportTicket[];
@@ -52,14 +54,44 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
           <div className="p-4 border-b">
             <h1 className="text-4xl font-bold">Support</h1>
           </div>
-          <div className="flex-1">
-            <SupportTicketList
-              supportTickets={supportTickets}
-              onSelectTicket={onSelectTicket}
-              selectedTicketId={selectedTicket?.id}
-              isSubmitting={isSubmitting}
-              onCreateTicket={(e) => setSupportOptionsOpen(true)}
-            />
+          <div className="flex-1 overflow-y-auto p-4">
+            {supportTickets.length === 0 ? (
+              <div className="text-gray-500 text-center py-8">
+                No support tickets yet. Click "New Ticket" to create one.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {supportTickets.map((ticket) => (
+                  <div 
+                    key={ticket.id} 
+                    onClick={() => onSelectTicket(ticket)}
+                    className="p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition"
+                  >
+                    <div className="font-medium text-lg">{ticket.subject}</div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      Created: {new Date(ticket.createdAt).toLocaleDateString()} 
+                      • {ticket.messages.length} message{ticket.messages.length !== 1 ? 's' : ''}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="p-4 border-t">
+            <Button 
+              className="w-full py-6 text-lg"
+              onClick={() => setSupportOptionsOpen(true)}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Creating...
+                </>
+              ) : (
+                'New Support Ticket'
+              )}
+            </Button>
           </div>
         </div>
       ) : (
