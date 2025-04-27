@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -66,7 +67,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   };
 
   return (
-    <div className={`flex mb-4 group ${isUserMessage ? 'justify-end' : ''}`}>
+    <div className={`flex mb-6 group ${isUserMessage ? 'justify-end' : ''}`}>
       <div className="relative flex max-w-[80%]">
         <UserAvatar
           name={message.sender.name || (isUserMessage ? "You" : "Unknown")}
@@ -95,7 +96,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
               onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
             />
 
-            <div className="absolute left-0 bottom-[-18px] text-xs text-gray-500">
+            <div className="absolute -bottom-5 left-0 whitespace-nowrap text-xs text-gray-500">
               {formatTime(getTimestamp())}
             </div>
           </div>
