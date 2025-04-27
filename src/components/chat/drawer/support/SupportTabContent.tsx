@@ -39,17 +39,36 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [localSupportTickets, setLocalSupportTickets] = useState<SupportTicket[]>(initialSupportTickets);
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Load tickets from local storage and handle updates
-  useSupportTicketEffects(activeTab === "support", setLocalSupportTickets);
+  // Use the ticket effects hook to handle loading and updating tickets
+  useSupportTicketEffects(activeTab === "support", (tickets) => {
+    setLocalSupportTickets(tickets);
+    setIsLoading(false); // Set loading to false once we have tickets
+  });
   
   // Also update from props when they change
   useEffect(() => {
     if (initialSupportTickets.length > 0) {
       console.log('[SupportTabContent] Updating tickets from props:', initialSupportTickets.length);
       setLocalSupportTickets(initialSupportTickets);
+      setIsLoading(false);
     }
   }, [initialSupportTickets]);
+
+  // Set loading state when tab changes to support
+  useEffect(() => {
+    if (activeTab === "support") {
+      // Only show loading state briefly to prevent flicker if tickets load quickly
+      const timer = setTimeout(() => {
+        if (localSupportTickets.length === 0) {
+          setIsLoading(true);
+        }
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, localSupportTickets.length]);
 
   const handleTicketClosed = () => {
     console.log('[SupportTabContent] Closing selected ticket');
@@ -66,20 +85,9 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
       console.log('[SupportTabContent] Submitting new ticket');
       await handleSubmitSupportTicket();
       setDialogOpen(false);
+      setIsLoading(true); // Show loading indicator while we fetch updated tickets
       
-      // Refresh tickets after submission
-      const storedTickets = localStorage.getItem('supportTickets');
-      if (storedTickets) {
-        try {
-          const parsedTickets = JSON.parse(storedTickets);
-          if (Array.isArray(parsedTickets)) {
-            console.log('[SupportTabContent] Refreshed tickets after submission:', parsedTickets.length);
-            setLocalSupportTickets(parsedTickets);
-          }
-        } catch (error) {
-          console.error("[SupportTabContent] Error refreshing tickets after submit:", error);
-        }
-      }
+      // Refresh tickets after submission handled by useSupportTicketEffects
     } catch (error) {
       console.error("[SupportTabContent] Failed to submit ticket:", error);
     } finally {
@@ -116,7 +124,12 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
           </div>
           
           <div className="flex-1 overflow-y-auto p-4">
-            {localSupportTickets.length === 0 ? (
+            {isLoading ? (
+              <div className="flex justify-center items-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2 text-gray-600">Loading tickets...</span>
+              </div>
+            ) : localSupportTickets.length === 0 ? (
               <div className="text-gray-500 text-center py-8">
                 No support tickets yet. Click "New Ticket" to create one.
               </div>

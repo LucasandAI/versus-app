@@ -60,6 +60,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   directMessageUser,
   setDirectMessageUser
 }) => {
+  // Clear selections when switching tabs
   useEffect(() => {
     if (activeTab === "clubs") {
       if (selectedTicket) onSelectTicket(null as any);
@@ -69,7 +70,14 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
     } else if (activeTab === "support") {
       if (selectedLocalClub) onSelectClub(null as any);
     }
-  }, [activeTab]);
+  }, [activeTab, selectedTicket, selectedLocalClub, onSelectClub, onSelectTicket]);
+
+  // Debug logs to help track tab and data changes
+  useEffect(() => {
+    if (activeTab === "support") {
+      console.log('[ChatDrawerContainer] Support tab active, tickets count:', localSupportTickets?.length || 0);
+    }
+  }, [activeTab, localSupportTickets]);
 
   switch (activeTab) {
     case "clubs":
@@ -99,7 +107,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
       return (
         <div className="flex h-full w-full">
           <SupportTabContent 
-            supportTickets={localSupportTickets} 
+            supportTickets={localSupportTickets || []} 
             selectedTicket={selectedTicket} 
             onSelectTicket={onSelectTicket} 
             supportMessage={supportMessage}

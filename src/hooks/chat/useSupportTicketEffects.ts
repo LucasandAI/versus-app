@@ -25,12 +25,14 @@ export const useSupportTicketEffects = (
       if (fetchInProgressRef.current) return;
       
       fetchInProgressRef.current = true;
+      console.log('[useSupportTicketEffects] Starting to fetch tickets from Supabase');
       
       try {
         const tickets = await fetchTicketsFromSupabase();
         
         // Only update state if component is still mounted
         if (isMounted) {
+          console.log('[useSupportTicketEffects] Fetched tickets:', tickets.length);
           setTickets(tickets as SupportTicket[]);
           setInitialLoadDone(true);
           // Reset toast flag on successful load
@@ -54,7 +56,7 @@ export const useSupportTicketEffects = (
       }
     };
     
-    // Initial load from Supabase - no localStorage dependency
+    // Initial load from Supabase immediately when tab becomes active
     loadTickets();
     
     // Set up cleanup

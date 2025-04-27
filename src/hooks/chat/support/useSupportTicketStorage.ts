@@ -36,6 +36,11 @@ export const useSupportTicketStorage = () => {
       
       console.log('[useSupportTicketStorage] Found tickets:', tickets?.length || 0);
       
+      if (!tickets || tickets.length === 0) {
+        localStorage.setItem('supportTickets', JSON.stringify([]));
+        return [];
+      }
+      
       // For each ticket, fetch its messages
       const ticketsWithMessages = await Promise.all(tickets.map(async (ticket) => {
         const { data: messages, error: messagesError } = await supabase
@@ -86,7 +91,6 @@ export const useSupportTicketStorage = () => {
       
     } catch (error) {
       console.error('[useSupportTicketStorage] Error in fetchTicketsFromSupabase:', error);
-      // Don't show toast here, let the caller handle it
       return [];
     } finally {
       setIsLoading(false);
