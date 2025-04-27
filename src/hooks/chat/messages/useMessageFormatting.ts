@@ -1,4 +1,3 @@
-
 export const useMessageFormatting = () => {
   const formatTime = (isoString: string) => {
     const date = new Date(isoString);
@@ -26,22 +25,32 @@ export const useMessageFormatting = () => {
       })}`;
     }
 
-    const options: Intl.DateTimeFormatOptions = {
-      day: '2-digit',
-      month: 'short', // e.g., "Apr"
+    // For older dates
+    const formattedTime = date.toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit',
       hour12: false
-    };
+    });
+
+    const formattedDate = date.toLocaleDateString(undefined, {
+      day: '2-digit',
+      month: 'short'
+    });
+
+    let result = `${formattedDate} ${formattedTime}`;
 
     // Add year if it's not the current year
     if (date.getFullYear() !== now.getFullYear()) {
-      options.year = 'numeric';
+      result = date.toLocaleDateString(undefined, {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      }) + ` ${formattedTime}`;
     }
 
-    return date.toLocaleDateString(undefined, options);
+    return result;
   };
-  
+
   const getMemberName = (senderId: string, currentUserId: string | null, clubMembers: Array<{ id: string; name: string }>) => {
     if (currentUserId && String(senderId) === String(currentUserId)) return 'You';
     const member = clubMembers.find(m => String(m.id) === String(senderId));
