@@ -2,8 +2,13 @@
 import { supabase } from '@/integrations/supabase/client';
 import { SupportTicket } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
+import { useTicketInitialMessage } from './ticket/useTicketInitialMessage';
+import { useTicketAutoResponse } from './ticket/useTicketAutoResponse';
 
 export const useTicketCreationService = () => {
+  const { sendInitialMessage } = useTicketInitialMessage();
+  const { sendAutoResponse } = useTicketAutoResponse();
+
   const createTicketInSupabase = async (subject: string, message: string) => {
     try {
       // Step 1: Create the ticket
@@ -25,7 +30,7 @@ export const useTicketCreationService = () => {
         throw new Error("No ticket data returned");
       }
 
-      // Step 2: Add the initial message
+      // Step 2: Add the initial message and auto-response
       await sendInitialMessage(ticketData.id, message);
       await sendAutoResponse(ticketData.id);
 
@@ -69,36 +74,6 @@ export const useTicketCreationService = () => {
         variant: "destructive"
       });
       return null;
-    }
-  };
-
-  const sendInitialMessage = async (ticketId: string, message: string) => {
-    const { error } = await supabase
-      .from('support_messages')
-      .insert({
-        ticket_id: ticketId,
-        text: message,
-        is_support: false
-      });
-
-    if (error) {
-      console.error('[useTicketCreationService] Error sending initial message:', error);
-      throw error;
-    }
-  };
-
-  const sendAutoResponse = async (ticketId: string) => {
-    const { error } = await supabase
-      .from('support_messages')
-      .insert({
-        ticket_id: ticketId,
-        text: `Thank you for contacting support. A support agent will review your request and respond shortly.`,
-        is_support: true
-      });
-
-    if (error) {
-      console.error('[useTicketCreationService] Error sending auto-response:', error);
-      throw error;
     }
   };
 
