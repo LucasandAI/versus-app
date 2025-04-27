@@ -68,21 +68,23 @@ const MessageItem: React.FC<MessageItemProps> = ({
   };
 
   return (
-    <div className="flex mb-4 group">
-      <div className={`flex max-w-[80%] ${isUserMessage ? 'ml-auto flex-row-reverse' : ''}`}>
-        {/* Avatar positioned to the left of the message box */}
-        <UserAvatar 
-          name={message.sender.name || (isUserMessage ? "You" : "Unknown")} 
-          image={isUserMessage ? currentUserAvatar : message.sender.avatar} 
-          size="sm" 
-          className={`flex-shrink-0 mx-2 ${!isSupport && !isUserMessage ? 'cursor-pointer hover:opacity-80' : ''}`}
+    <div className={`flex mb-4 group ${isUserMessage ? 'justify-end' : ''}`}>
+      {/* Container for avatar and message */}
+      <div className="flex items-end max-w-[80%]">
+        {/* Avatar (always to the left of the message bubble) */}
+        <UserAvatar
+          name={message.sender.name || (isUserMessage ? "You" : "Unknown")}
+          image={isUserMessage ? currentUserAvatar : message.sender.avatar}
+          size="sm"
+          className={`flex-shrink-0 ${!isSupport && !isUserMessage ? 'cursor-pointer hover:opacity-80' : ''}`}
           onClick={!isSupport && !isUserMessage ? handleProfileClick : undefined}
         />
-        
-        <div className="flex flex-col">
-          {/* Only show sender name for non-user messages */}
+
+        {/* Message bubble and timestamp */}
+        <div className="flex flex-col ml-2">
+          {/* Optional sender name */}
           {!isUserMessage && (
-            <button 
+            <button
               className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left`}
               onClick={!isSupport ? handleProfileClick : undefined}
             >
@@ -90,19 +92,18 @@ const MessageItem: React.FC<MessageItemProps> = ({
               {message.isSupport && <span className="ml-1 text-blue-500">(Support)</span>}
             </button>
           )}
-          
-          <div className="flex flex-col">
-            <MessageContent 
-              message={message}
-              isUserMessage={isUserMessage}
-              isSupport={isSupport}
-              onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
-            />
-            
-            {/* Timestamp aligned below message and not overflowing to the right */}
-            <div className={`text-xs text-gray-500 mt-1 ${isUserMessage ? 'text-right' : ''}`}>
-              {formatTime(getTimestamp())}
-            </div>
+
+          {/* Message bubble */}
+          <MessageContent
+            message={message}
+            isUserMessage={isUserMessage}
+            isSupport={isSupport}
+            onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
+          />
+
+          {/* Timestamp directly below, aligned to the left */}
+          <div className="text-xs text-gray-500 mt-1">
+            {formatTime(getTimestamp())}
           </div>
         </div>
       </div>
