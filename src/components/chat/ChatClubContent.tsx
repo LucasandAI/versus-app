@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import ChatHeader from './ChatHeader';
