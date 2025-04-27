@@ -68,39 +68,42 @@ const MessageItem: React.FC<MessageItemProps> = ({
   };
 
   return (
-    <div className="flex items-start mb-4 group">
-      {/* Always position avatar on the left */}
-      <UserAvatar 
-        name={message.sender.name || (isUserMessage ? "You" : "Unknown")} 
-        image={isUserMessage ? currentUserAvatar : message.sender.avatar} 
-        size="sm" 
-        className={`flex-shrink-0 ${!isSupport && !isUserMessage ? 'cursor-pointer hover:opacity-80' : ''}`}
-        onClick={!isSupport && !isUserMessage ? handleProfileClick : undefined}
-      />
-      
-      <div className={`flex flex-col ml-2 max-w-[70%] ${isUserMessage ? 'ml-auto mr-0' : ''}`}>
-        {/* Only show sender name for non-user messages */}
-        {!isUserMessage && (
-          <button 
-            className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left`}
-            onClick={!isSupport ? handleProfileClick : undefined}
-          >
-            {message.sender.name || "Unknown"}
-            {message.isSupport && <span className="ml-1 text-blue-500">(Support)</span>}
-          </button>
-        )}
+    <div className="flex mb-4 group">
+      <div className={`flex max-w-[80%] ${isUserMessage ? 'ml-auto flex-row-reverse' : ''}`}>
+        {/* Avatar positioned to the left of the message box */}
+        <UserAvatar 
+          name={message.sender.name || (isUserMessage ? "You" : "Unknown")} 
+          image={isUserMessage ? currentUserAvatar : message.sender.avatar} 
+          size="sm" 
+          className={`flex-shrink-0 mx-2 ${!isSupport && !isUserMessage ? 'cursor-pointer hover:opacity-80' : ''}`}
+          onClick={!isSupport && !isUserMessage ? handleProfileClick : undefined}
+        />
         
         <div className="flex flex-col">
-          <MessageContent 
-            message={message}
-            isUserMessage={isUserMessage}
-            isSupport={isSupport}
-            onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
-          />
-        </div>
-        
-        <div className="text-xs text-gray-500 mt-1">
-          {formatTime(getTimestamp())}
+          {/* Only show sender name for non-user messages */}
+          {!isUserMessage && (
+            <button 
+              className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left`}
+              onClick={!isSupport ? handleProfileClick : undefined}
+            >
+              {message.sender.name || "Unknown"}
+              {message.isSupport && <span className="ml-1 text-blue-500">(Support)</span>}
+            </button>
+          )}
+          
+          <div className="flex flex-col">
+            <MessageContent 
+              message={message}
+              isUserMessage={isUserMessage}
+              isSupport={isSupport}
+              onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
+            />
+            
+            {/* Timestamp aligned below message and not overflowing to the right */}
+            <div className={`text-xs text-gray-500 mt-1 ${isUserMessage ? 'text-right' : ''}`}>
+              {formatTime(getTimestamp())}
+            </div>
+          </div>
         </div>
       </div>
     </div>
