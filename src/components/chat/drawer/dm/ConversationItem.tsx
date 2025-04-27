@@ -64,7 +64,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
         
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-center w-full mb-0.5">
-            <span className="font-medium truncate max-w-[60%]">
+            <span className="font-medium">
               {conversation.userName}
             </span>
             {conversation.timestamp && (
@@ -81,7 +81,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
 
         <button
           onClick={handleHideClick}
-          className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 hover:bg-gray-200 rounded transition-all"
+          className="absolute right-2 top-[60%] -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 hover:bg-gray-200 rounded transition-all"
           aria-label="Hide conversation"
         >
           <X className="h-4 w-4 text-gray-500" />
