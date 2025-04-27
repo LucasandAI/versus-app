@@ -61,7 +61,7 @@ const NewTicketDialog: React.FC<NewTicketDialogProps> = ({
     }
     
     console.log("Submitting support ticket with message:", localMessage);
-    // Call the onSubmit handler
+    // Call the onSubmit handler from parent component
     onSubmit();
   };
 

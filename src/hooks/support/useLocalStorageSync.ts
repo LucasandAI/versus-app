@@ -1,27 +1,35 @@
 
-import { SupportTicket } from '@/types/chat';
+// This is a simplified version of the hook that only contains what's needed
+// for SupportPopover to work correctly
 
 export const useLocalStorageSync = () => {
-  const updateStoredTickets = (newTicket: SupportTicket) => {
-    const existingTickets = localStorage.getItem('supportTickets');
-    const tickets = existingTickets ? JSON.parse(existingTickets) : [];
-    tickets.unshift(newTicket);
-    localStorage.setItem('supportTickets', JSON.stringify(tickets));
+  const updateStoredTickets = (newTicket: any) => {
+    try {
+      const storedTickets = localStorage.getItem('supportTickets');
+      const ticketsArray = storedTickets ? JSON.parse(storedTickets) : [];
+      ticketsArray.unshift(newTicket);
+      localStorage.setItem('supportTickets', JSON.stringify(ticketsArray));
+    } catch (error) {
+      console.error("Error updating stored tickets:", error);
+    }
   };
 
   const updateUnreadMessages = (ticketId: string) => {
-    const unreadMessages = localStorage.getItem('unreadMessages');
-    const unreadMap = unreadMessages ? JSON.parse(unreadMessages) : {};
-    unreadMap[ticketId] = 1;
-    localStorage.setItem('unreadMessages', JSON.stringify(unreadMap));
+    try {
+      const unreadCounts = JSON.parse(localStorage.getItem('unreadMessages') || '{}');
+      unreadCounts[ticketId] = (unreadCounts[ticketId] || 0) + 1;
+      localStorage.setItem('unreadMessages', JSON.stringify(unreadCounts));
+    } catch (error) {
+      console.error("Error updating unread messages:", error);
+    }
   };
 
   const dispatchEvents = (ticketId: string) => {
     window.dispatchEvent(new CustomEvent('supportTicketCreated', { 
-      detail: { ticketId, count: 1 }
+      detail: { ticketId } 
     }));
-    window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
-    window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+    
+    window.dispatchEvent(new Event('ticketUpdated'));
   };
 
   return {
