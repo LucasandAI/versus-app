@@ -27,7 +27,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
   const { currentUser } = useApp();
   const { navigateToUserProfile } = useNavigation();
   const { messages, setMessages, isSending, setIsSending } = useDMMessages(userId, userName);
-  const { fetchConversations } = useConversations([]);
+  const { updateConversation } = useConversations([]);
   const { unhideConversation } = useHiddenDMs();
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const { formatTime } = useMessageFormatting();
@@ -38,7 +38,6 @@ const DMConversation: React.FC<DMConversationProps> = ({
     if (!message.trim() || !currentUser?.id || !userId) return;
     setIsSending(true);
     
-    // Unhide the conversation to ensure it appears in the sidebar
     unhideConversation(userId);
     
     const optimisticId = `temp-${Date.now()}`;
@@ -53,7 +52,11 @@ const DMConversation: React.FC<DMConversationProps> = ({
       timestamp: new Date().toISOString()
     };
 
+    // Add message to the chat window
     setMessages(prev => [...prev, newMessageObj]);
+    
+    // Update the conversation list immediately
+    updateConversation(userId, message, userName, userAvatar);
 
     try {
       const { data, error } = await supabase
@@ -75,9 +78,6 @@ const DMConversation: React.FC<DMConversationProps> = ({
             id: data.id
           } : msg)
         );
-        
-        // Immediately refresh conversations after successful send
-        await fetchConversations();
       }
     } catch (error) {
       console.error('Error sending message:', error);
