@@ -28,6 +28,11 @@ const ChatTicketContent = ({ ticket, onSendMessage, onTicketClosed }: ChatTicket
     scrollToBottom();
   }, [localMessages]);
 
+  useEffect(() => {
+    // Update local messages when ticket messages change
+    setLocalMessages(ticket.messages || []);
+  }, [ticket.messages]);
+
   const handleSendMessage = (message: string) => {
     // Create optimistic message
     const optimisticMessage = {
