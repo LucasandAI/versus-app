@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card } from '../ui/card';
 import ProfileHeader from './ProfileHeader';
@@ -103,6 +102,7 @@ const UserProfileMainContent: React.FC<UserProfileMainContentProps> = ({
             setInviteDialogOpen={setInviteDialogOpen}
             selectedUser={selectedUser}
             adminClubs={adminClubs}
+            isCurrentUserProfile={isCurrentUserProfile}
           />
         </Card>
         <UserClubs
