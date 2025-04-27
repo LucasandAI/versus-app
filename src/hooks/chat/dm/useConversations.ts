@@ -80,8 +80,14 @@ export const useConversations = (hiddenDMs: string[]) => {
   // Set up realtime subscriptions
   useRealtimeSubscriptions(currentUser?.id, userCache, fetchUserData, updateConversation);
 
+  // Calculate visible conversations as a derived state
+  // This will be recalculated whenever conversations OR hiddenDMs change
+  const visibleConversations = conversations.filter(
+    conv => !hiddenDMs.includes(conv.userId)
+  );
+
   return { 
-    conversations, // Return ALL conversations without filtering
+    conversations: visibleConversations, // Return filtered conversations
     updateConversation
   };
 };
