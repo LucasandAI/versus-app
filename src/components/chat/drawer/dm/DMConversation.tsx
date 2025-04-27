@@ -1,3 +1,4 @@
+
 import React, { useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
@@ -10,6 +11,7 @@ import { useNavigation } from '@/hooks/useNavigation';
 import { toast } from '@/hooks/use-toast';
 import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 import { useConversations } from '@/hooks/chat/dm/useConversations';
+import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
 
 interface DMConversationProps {
   userId: string;
@@ -28,6 +30,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
   const { fetchConversations } = useConversations([]);
   const { unhideConversation } = useHiddenDMs();
   const lastMessageRef = useRef<HTMLDivElement>(null);
+  const { formatTime } = useMessageFormatting();
   
   useDMSubscription(userId, currentUser?.id, setMessages);
 
@@ -124,7 +127,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
             }
             currentUserAvatar={currentUser?.avatar}
             lastMessageRef={lastMessageRef}
-            formatTime={(timestamp: string) => new Date(timestamp).toLocaleTimeString()}
+            formatTime={formatTime}
           />
         </div>
         

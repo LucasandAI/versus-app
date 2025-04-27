@@ -59,6 +59,15 @@ const MessageItem: React.FC<MessageItemProps> = ({
     }
   };
 
+  // Ensure we always have a valid timestamp string
+  const getTimestamp = () => {
+    if (!message.timestamp) {
+      console.warn('[MessageItem] Message has no timestamp:', message.id);
+      return new Date().toISOString(); // Fallback to current time
+    }
+    return message.timestamp;
+  };
+
   return (
     <div className={`flex ${isUserMessage ? 'justify-end' : 'justify-start'} group`}>
       {!isUserMessage && (
@@ -89,7 +98,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
           onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
         />
         
-        <p className="text-xs text-gray-500 mt-1">{formatTime(message.timestamp)}</p>
+        <p className="text-xs text-gray-500 mt-1">{formatTime(getTimestamp())}</p>
       </div>
       
       {isUserMessage && (
