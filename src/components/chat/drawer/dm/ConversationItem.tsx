@@ -44,10 +44,17 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
     setIsHideDialogOpen(false);
   };
 
+  // Truncate message to 50 characters
+  const truncatedMessage = conversation.lastMessage
+    ? conversation.lastMessage.length > 50
+      ? `${conversation.lastMessage.substring(0, 50)}...`
+      : conversation.lastMessage
+    : '';
+
   return (
     <>
       <div 
-        className={`flex items-center px-4 py-3 cursor-pointer hover:bg-gray-50 relative group
+        className={`flex items-start px-4 py-3 cursor-pointer hover:bg-gray-50 relative group
           ${isSelected ? 'bg-primary/10 text-primary' : ''}`}
         onClick={onSelect}
       >
@@ -59,24 +66,24 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
         />
         
         <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-baseline">
-            <h2 className="font-medium text-lg truncate">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-medium text-lg truncate pr-2">
               {conversation.userName}
             </h2>
             {formattedTime && (
-              <span className="text-sm text-gray-500 ml-2 shrink-0">
+              <span className="text-sm text-gray-500 flex-shrink-0">
                 {formattedTime}
               </span>
             )}
           </div>
           
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm text-gray-600 truncate">
-              {conversation.lastMessage}
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-gray-600 truncate flex-1 pr-2">
+              {truncatedMessage}
             </p>
             <button
               onClick={handleHideClick}
-              className="shrink-0 p-2 rounded-full hover:bg-gray-200 transition-colors"
+              className="flex-shrink-0 p-2 rounded-full hover:bg-gray-200 transition-colors"
               aria-label={`Hide conversation with ${conversation.userName}`}
             >
               <EyeOff size={20} className="text-gray-400" />
