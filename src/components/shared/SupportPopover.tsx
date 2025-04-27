@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { HelpCircle } from 'lucide-react';
 import { 
@@ -9,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from "@/hooks/use-toast";
 import { useApp } from '@/context/AppContext';
 import { SupportOptionsList, type SupportOption } from './support/SupportOptionsList';
-import SupportDialog from './support/SupportDialog';
+import NewTicketDialog from '../chat/drawer/support/NewTicketDialog';
 
 interface SupportPopoverProps {
   onCreateSupportChat?: (ticketId: string, subject: string, message: string) => void;
@@ -133,13 +134,13 @@ const SupportPopover: React.FC<SupportPopoverProps> = ({
         </PopoverContent>
       </Popover>
 
-      <SupportDialog
+      <NewTicketDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         selectedOption={selectedOption}
-        message={message}
-        onMessageChange={setMessage}
         onSubmit={handleSubmit}
+        supportMessage={message}
+        setSupportMessage={setMessage}
       />
     </>
   );
