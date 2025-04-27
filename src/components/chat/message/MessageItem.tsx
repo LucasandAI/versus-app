@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -22,9 +23,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
   isUserMessage,
   isSupport,
   onDeleteMessage,
+  onSelectUser,
   formatTime,
-  currentUserAvatar,
-  onSelectUser
+  currentUserAvatar
 }) => {
   const [canDelete, setCanDelete] = useState(false);
   const { navigateToUserProfile } = useNavigation();
@@ -67,24 +68,24 @@ const MessageItem: React.FC<MessageItemProps> = ({
   };
 
   return (
-    <div className={`flex ${isUserMessage ? 'justify-end mr-4' : 'justify-start'} mb-6 group`}>
+    <div className={`flex ${isUserMessage ? 'justify-end mr-4' : 'justify-start ml-4'} mb-6 group`}>
       {!isUserMessage && (
         <UserAvatar
-          name={message.sender.name || "Unknown"}
-          image={message.sender.avatar}
+          name={message.sender?.name || "Unknown"}
+          image={message.sender?.avatar}
           size="sm"
           className={`flex-shrink-0 mr-2 ${!isSupport ? 'cursor-pointer hover:opacity-80' : ''}`}
           onClick={!isSupport ? handleProfileClick : undefined}
         />
       )}
 
-      <div className="flex flex-col items-end max-w-[75%]">
+      <div className={`flex flex-col ${isUserMessage ? 'items-end' : 'items-start'} max-w-[75%]`}>
         {!isUserMessage && (
           <button
             className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left w-full`}
             onClick={!isSupport ? handleProfileClick : undefined}
           >
-            {message.sender.name || "Unknown"}
+            {message.sender?.name || "Unknown"}
             {message.isSupport && <span className="ml-1 text-blue-500">(Support)</span>}
           </button>
         )}
@@ -95,7 +96,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
           isSupport={isSupport}
         />
 
-        <div className="text-xs text-gray-500 mt-1 pr-1 w-full text-right">
+        <div className={`text-xs text-gray-500 mt-1 ${isUserMessage ? 'pr-1 text-right' : 'pl-1 text-left'} w-full`}>
           {formatTime(getTimestamp())}
         </div>
       </div>
