@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { SupportTicket } from '@/types/chat';
 import ChatMessages from './ChatMessages';
@@ -7,6 +8,7 @@ import { XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useChatDeletion } from '@/hooks/chat/useChatDeletion';
 
 interface ChatTicketContentProps {
   ticket: SupportTicket;
@@ -16,6 +18,7 @@ interface ChatTicketContentProps {
 
 const ChatTicketContent: React.FC<ChatTicketContentProps> = ({ ticket, onSendMessage, onTicketClosed }: ChatTicketContentProps) => {
   const { currentUser } = useApp();
+  const { deleteChat } = useChatDeletion();
   const [localMessages, setLocalMessages] = useState(ticket.messages || []);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -75,65 +78,18 @@ const ChatTicketContent: React.FC<ChatTicketContentProps> = ({ ticket, onSendMes
   const handleCloseTicket = async () => {
     console.log('[ChatTicketContent] Starting ticket closure process for ticket:', ticket.id);
     
-    try {
-      let updatedTickets = [];
-      try {
-        console.log('[ChatTicketContent] Updating local storage');
-        const storedTickets = localStorage.getItem('supportTickets');
-        if (storedTickets) {
-          const parsedTickets = JSON.parse(storedTickets);
-          updatedTickets = parsedTickets.filter((t: SupportTicket) => t.id !== ticket.id);
-          localStorage.setItem('supportTickets', JSON.stringify(updatedTickets));
-        }
-      } catch (error) {
-        console.error('[ChatTicketContent] Error updating localStorage:', error);
-      }
-
-      window.dispatchEvent(new CustomEvent('supportTicketDeleted', { 
-        detail: { ticketId: ticket.id }
-      }));
-      
-      if (onTicketClosed) {
-        onTicketClosed();
-      }
-      
-      toast({
-        title: "Ticket Deleted",
-        description: "The support ticket has been successfully deleted.",
-      });
-      
-      const { error: messagesError } = await supabase
-        .from('support_messages')
-        .delete()
-        .eq('ticket_id', ticket.id);
-      
-      console.log('[ChatTicketContent] Messages deletion result:', { messagesError });
-      
-      if (messagesError) {
-        console.error('[ChatTicketContent] Error deleting ticket messages:', messagesError);
-        throw messagesError;
-      }
-      
-      const { error: ticketError } = await supabase
-        .from('support_tickets')
-        .delete()
-        .eq('id', ticket.id);
-        
-      console.log('[ChatTicketContent] Ticket deletion result:', { ticketError });
-      
-      if (ticketError) {
-        console.error('[ChatTicketContent] Error deleting ticket:', ticketError);
-        throw ticketError;
-      }
-      
-    } catch (error) {
-      console.error('[ChatTicketContent] Error in closeTicket:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete the ticket. Please try again.",
-        variant: "destructive"
-      });
+    // Use the deleteChat function from useChatDeletion hook which handles both UI updates and database deletion
+    deleteChat(ticket.id, true);
+    
+    // Close ticket view in the UI
+    if (onTicketClosed) {
+      onTicketClosed();
     }
+    
+    toast({
+      title: "Ticket Deleted",
+      description: "The support ticket has been successfully deleted.",
+    });
   };
 
   return (

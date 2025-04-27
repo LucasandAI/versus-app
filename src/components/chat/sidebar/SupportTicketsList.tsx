@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { SupportTicket } from '@/types/chat';
 import { HelpCircle, Trash2 } from 'lucide-react';

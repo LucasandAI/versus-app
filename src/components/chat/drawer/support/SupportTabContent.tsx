@@ -105,6 +105,25 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
           <div className="p-4 border-b">
             <h1 className="text-4xl font-bold">Support</h1>
           </div>
+          
+          {/* New Support Ticket button moved above the ticket list */}
+          <div className="p-4 border-b">
+            <Button 
+              className="w-full py-6 text-lg"
+              onClick={() => setSupportOptionsOpen(true)}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Creating...
+                </>
+              ) : (
+                'New Support Ticket'
+              )}
+            </Button>
+          </div>
+          
           <div className="flex-1 overflow-y-auto p-4">
             {localSupportTickets.length === 0 ? (
               <div className="text-gray-500 text-center py-8">
@@ -128,22 +147,7 @@ const SupportTabContent: React.FC<SupportTabContentProps> = ({
               </div>
             )}
           </div>
-          <div className="p-4 border-t">
-            <Button 
-              className="w-full py-6 text-lg"
-              onClick={() => setSupportOptionsOpen(true)}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Creating...
-                </>
-              ) : (
-                'New Support Ticket'
-              )}
-            </Button>
-          </div>
+          {/* Removed the button from the bottom */}
         </div>
       ) : (
         <div className="flex flex-col h-full">

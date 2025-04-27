@@ -1,93 +1,68 @@
 
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { SupportTicket } from '@/types/chat';
-import { supabase } from '@/integrations/supabase/client';
-import { useApp } from '@/context/AppContext';
 
 export const useSupportTicketEffects = (
-  isVisible: boolean,
-  setLocalSupportTickets: React.Dispatch<React.SetStateAction<SupportTicket[]>>,
+  isActive: boolean,
+  setTickets: React.Dispatch<React.SetStateAction<SupportTicket[]>>
 ) => {
-  const { currentUser } = useApp();
-
-  const loadStoredTickets = useCallback(async () => {
+  // Effect to refresh tickets from localStorage when needed
+  useEffect(() => {
+    if (!isActive) return;
+    
     try {
-      // First try to load from Supabase
-      if (currentUser?.id) {
-        const { data: ticketsData, error } = await supabase
-          .from('support_tickets')
-          .select('*, support_messages(*)')
-          .eq('user_id', currentUser.id)
-          .order('created_at', { ascending: false });
-
-        if (!error && ticketsData && ticketsData.length > 0) {
-          console.log("Loaded tickets from Supabase:", ticketsData.length);
-          
-          // Transform Supabase data to SupportTicket format
-          const formattedTickets: SupportTicket[] = ticketsData.map((ticket: any) => ({
-            id: ticket.id,
-            subject: ticket.subject,
-            createdAt: ticket.created_at,
-            status: ticket.status,
-            messages: ticket.support_messages?.map((msg: any) => ({
-              id: msg.id,
-              text: msg.text,
-              sender: {
-                id: msg.sender_id || 'system',
-                name: msg.is_support ? 'Support Team' : (currentUser.name || 'You'),
-                avatar: msg.is_support ? '/placeholder.svg' : (currentUser.avatar || '/placeholder.svg'),
-              },
-              timestamp: msg.timestamp,
-              isSupport: msg.is_support
-            })) || []
-          }));
-          
-          setLocalSupportTickets(formattedTickets);
-          
-          // Also update localStorage for compatibility
-          localStorage.setItem('supportTickets', JSON.stringify(formattedTickets));
-          return;
-        }
-      }
-      
-      // Fallback to localStorage if Supabase fails or user not logged in
       const storedTickets = localStorage.getItem('supportTickets');
       if (storedTickets) {
         const parsedTickets = JSON.parse(storedTickets);
         if (Array.isArray(parsedTickets) && parsedTickets.length > 0) {
-          console.log("Loaded tickets from localStorage:", parsedTickets.length);
-          setLocalSupportTickets(parsedTickets);
+          console.log("[useSupportTicketEffects] Loaded tickets from localStorage:", parsedTickets.length);
+          setTickets(parsedTickets);
         }
       }
     } catch (error) {
-      console.error("Error loading support tickets:", error);
+      console.error("[useSupportTicketEffects] Error loading tickets from localStorage:", error);
     }
-  }, [setLocalSupportTickets, currentUser]);
-  
+  }, [isActive]);
+
+  // Listen for ticket updates
   useEffect(() => {
-    // Load tickets immediately when visible
-    if (isVisible) {
-      loadStoredTickets();
-    }
+    if (!isActive) return;
     
     const handleTicketUpdated = () => {
-      console.log("Ticket update event received");
-      loadStoredTickets();
+      try {
+        const storedTickets = localStorage.getItem('supportTickets');
+        if (storedTickets) {
+          const parsedTickets = JSON.parse(storedTickets);
+          if (Array.isArray(parsedTickets)) {
+            console.log("[useSupportTicketEffects] Updating tickets after event:", parsedTickets.length);
+            setTickets(parsedTickets);
+          }
+        }
+      } catch (error) {
+        console.error("[useSupportTicketEffects] Error updating tickets after event:", error);
+      }
     };
-
-    const handleTicketCreated = (event: CustomEvent) => {
-      console.log("New ticket created:", event.detail);
-      loadStoredTickets();
+    
+    const handleTicketCreated = (event: CustomEvent<{ ticketId: string }>) => {
+      console.log("[useSupportTicketEffects] Ticket created:", event.detail.ticketId);
+      handleTicketUpdated();
     };
-
-    window.addEventListener('supportTicketCreated', handleTicketCreated as EventListener);
+    
+    const handleTicketDeleted = (event: CustomEvent<{ ticketId: string }>) => {
+      console.log("[useSupportTicketEffects] Ticket deleted:", event.detail.ticketId);
+      setTickets(current => current.filter(ticket => ticket.id !== event.detail.ticketId));
+    };
+    
     window.addEventListener('ticketUpdated', handleTicketUpdated);
-    window.addEventListener('notificationsUpdated', handleTicketUpdated);
+    window.addEventListener('supportTicketCreated', handleTicketCreated as EventListener);
+    window.addEventListener('supportTicketDeleted', handleTicketDeleted as EventListener);
     
     return () => {
-      window.removeEventListener('supportTicketCreated', handleTicketCreated as EventListener);
       window.removeEventListener('ticketUpdated', handleTicketUpdated);
-      window.removeEventListener('notificationsUpdated', handleTicketUpdated);
+      window.removeEventListener('supportTicketCreated', handleTicketCreated as EventListener);
+      window.removeEventListener('supportTicketDeleted', handleTicketDeleted as EventListener);
     };
-  }, [isVisible, loadStoredTickets]);
+  }, [isActive, setTickets]);
 };
+
+export default useSupportTicketEffects;
