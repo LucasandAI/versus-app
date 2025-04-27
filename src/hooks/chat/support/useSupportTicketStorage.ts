@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SupportTicket, ChatMessage } from '@/types/chat';
@@ -40,7 +41,7 @@ export const useSupportTicketStorage = () => {
             id: ticket.id,
             subject: ticket.subject,
             createdAt: ticket.created_at,
-            status: ticket.status === 'open' ? 'open' : 'closed',
+            status: (ticket.status === 'open' ? 'open' : 'closed') as 'open' | 'closed',
             messages: []
           };
         }
@@ -64,7 +65,7 @@ export const useSupportTicketStorage = () => {
           id: ticket.id,
           subject: ticket.subject,
           createdAt: ticket.created_at,
-          status: ticket.status === 'open' ? 'open' : 'closed',
+          status: (ticket.status === 'open' ? 'open' : 'closed') as 'open' | 'closed',
           messages: formattedMessages
         };
       }));

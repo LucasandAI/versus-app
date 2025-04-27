@@ -18,7 +18,7 @@ export const useSupportTicketEffects = (
     const loadTickets = async () => {
       const tickets = await fetchTicketsFromSupabase();
       // The fetchTicketsFromSupabase function now handles the mapping correctly
-      setTickets(tickets);
+      setTickets(tickets as SupportTicket[]);
       setInitialLoadDone(true);
     };
     
@@ -116,7 +116,7 @@ export const useSupportTicketEffects = (
           
           // Refresh tickets to get the latest messages
           const tickets = await fetchTicketsFromSupabase();
-          setTickets(tickets);
+          setTickets(tickets as SupportTicket[]);
         }
       )
       .subscribe();
