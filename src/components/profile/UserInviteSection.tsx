@@ -25,7 +25,6 @@ const UserInviteSection: React.FC<UserInviteSectionProps> = ({
   adminClubs,
   isCurrentUserProfile
 }) => {
-  // Get the chat drawer context functions
   const { open: openChatDrawer } = useChatDrawerGlobal();
   const { unhideConversation } = useHiddenDMs();
 
@@ -34,7 +33,10 @@ const UserInviteSection: React.FC<UserInviteSectionProps> = ({
   const handleMessageClick = () => {
     // Unhide the conversation if it was hidden
     unhideConversation(selectedUser.id);
-
+    
+    // Open the chat drawer first
+    openChatDrawer();
+    
     // Dispatch custom event to open DM with this user
     const event = new CustomEvent('openDirectMessage', {
       detail: {
@@ -44,9 +46,6 @@ const UserInviteSection: React.FC<UserInviteSectionProps> = ({
       }
     });
     window.dispatchEvent(event);
-
-    // Open the chat drawer
-    openChatDrawer();
     
     console.log('Message button clicked for user:', selectedUser.name);
   };
