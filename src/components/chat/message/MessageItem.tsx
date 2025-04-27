@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -6,6 +5,7 @@ import MessageContent from './MessageContent';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect } from 'react';
 import { useNavigation } from '@/hooks/useNavigation';
+import MessageDeleteButton from './MessageDeleteButton';
 
 interface MessageItemProps {
   message: ChatMessage;
@@ -67,7 +67,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   };
 
   return (
-    <div className={`flex items-start mb-4 ${isUserMessage ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex items-start mb-6 group ${isUserMessage ? 'justify-end' : 'justify-start'}`}>
       {!isUserMessage && (
         <UserAvatar
           name={message.sender.name || "Unknown"}
@@ -78,7 +78,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
         />
       )}
 
-      <div className={`flex flex-col ${isUserMessage ? 'items-end' : 'items-start'} max-w-sm`}>
+      <div className={`flex flex-col items-end`}>
         {!isUserMessage && (
           <button
             className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left`}
@@ -96,18 +96,25 @@ const MessageItem: React.FC<MessageItemProps> = ({
           onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
         />
 
-        <div className="text-xs text-gray-500 mt-1 pr-1">
+        <div className="text-xs text-gray-500 mt-1 pr-1 w-full text-right">
           {formatTime(getTimestamp())}
         </div>
       </div>
 
       {isUserMessage && (
-        <UserAvatar
-          name="You"
-          image={currentUserAvatar}
-          size="sm"
-          className="flex-shrink-0 ml-2"
-        />
+        <div className="flex items-center">
+          <UserAvatar
+            name="You"
+            image={currentUserAvatar}
+            size="sm"
+            className="flex-shrink-0 mx-2"
+          />
+          {canDelete && onDeleteMessage && !isSupport && (
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+              <MessageDeleteButton onDelete={handleDeleteClick} />
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

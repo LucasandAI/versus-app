@@ -17,9 +17,9 @@ const MessageContent: React.FC<MessageContentProps> = ({
   onDeleteMessage,
 }) => {
   return (
-    <div className="flex items-start gap-2">
+    <div className="flex items-start">
       <div 
-        className={`p-3 rounded-lg break-words ${
+        className={`p-3 rounded-lg break-words max-w-[75%] ${
           isUserMessage 
             ? 'bg-primary text-white' 
             : isSupport
@@ -29,10 +29,6 @@ const MessageContent: React.FC<MessageContentProps> = ({
       >
         {message.text}
       </div>
-
-      {isUserMessage && onDeleteMessage && !isSupport && (
-        <MessageDeleteButton onDelete={onDeleteMessage} />
-      )}
     </div>
   );
 };

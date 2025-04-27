@@ -23,22 +23,18 @@ const MessageDeleteButton: React.FC<MessageDeleteButtonProps> = ({ onDelete }) =
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="opacity-0 group-hover:opacity-100 transition-opacity"
-        >
+        <button className="p-1 rounded-full text-gray-400 hover:text-red-500 transition-colors">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Trash2 className="h-4 w-4 text-gray-500 hover:text-red-500" />
+                <Trash2 className="h-4 w-4" />
               </TooltipTrigger>
               <TooltipContent>
                 <p>Delete message</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-        </Button>
+        </button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -62,4 +58,3 @@ const MessageDeleteButton: React.FC<MessageDeleteButtonProps> = ({ onDelete }) =
 };
 
 export default MessageDeleteButton;
-
