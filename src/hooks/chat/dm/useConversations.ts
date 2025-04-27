@@ -80,12 +80,8 @@ export const useConversations = (hiddenDMs: string[]) => {
   // Set up realtime subscriptions
   useRealtimeSubscriptions(currentUser?.id, userCache, fetchUserData, updateConversation);
 
-  const visibleConversations = conversations.filter(
-    conv => !hiddenDMs.includes(conv.userId)
-  );
-
   return { 
-    conversations: visibleConversations, // Return filtered conversations
+    conversations, // Return ALL conversations without filtering
     updateConversation
   };
 };

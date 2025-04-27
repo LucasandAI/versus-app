@@ -12,11 +12,16 @@ interface Props {
 const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) => {
   const { hideConversation, isConversationHidden, hiddenDMs } = useHiddenDMs();
   const { conversations } = useConversations(hiddenDMs);
+  
+  // Apply the filter here in the component, not in the hook
+  const visibleConversations = conversations.filter(
+    conv => !hiddenDMs.includes(conv.userId)
+  );
 
   useEffect(() => {
     // Debug log for conversation updates
-    console.log('[DMConversationList] Conversations updated:', conversations.length);
-  }, [conversations]);
+    console.log('[DMConversationList] Conversations updated:', conversations.length, 'visible:', visibleConversations.length);
+  }, [conversations, visibleConversations.length]);
 
   const handleHideConversation = (
     e: React.MouseEvent,
@@ -30,7 +35,7 @@ const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) =
   return (
     <div className="flex flex-col space-y-2 p-4">
       <h2 className="font-semibold text-lg mb-2">Messages</h2>
-      {conversations.map((conversation) => (
+      {visibleConversations.map((conversation) => (
         <ConversationItem
           key={conversation.userId}
           conversation={conversation}
@@ -43,7 +48,7 @@ const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) =
           onHide={(e) => handleHideConversation(e, conversation.userId)}
         />
       ))}
-      {conversations.length === 0 && (
+      {visibleConversations.length === 0 && (
         <p className="text-center text-gray-500 py-4">No conversations yet</p>
       )}
     </div>
