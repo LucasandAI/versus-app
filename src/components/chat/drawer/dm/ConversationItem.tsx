@@ -1,8 +1,19 @@
+
 import React, { useState } from 'react';
 import { EyeOff } from 'lucide-react';
 import { DMConversation } from '@/hooks/chat/dm/useConversations';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { formatDistanceToNow } from 'date-fns';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ConversationItemProps {
   conversation: DMConversation;
