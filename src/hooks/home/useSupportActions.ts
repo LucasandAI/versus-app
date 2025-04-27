@@ -14,7 +14,6 @@ export const useSupportActions = () => {
       id: ticketId,
       subject,
       createdAt: new Date().toISOString(),
-      status: 'open', // Adding the missing status property
       messages: [
         {
           id: Date.now().toString(),
