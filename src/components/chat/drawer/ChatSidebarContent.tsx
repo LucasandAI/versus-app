@@ -11,6 +11,7 @@ interface ChatSidebarContentProps {
   unreadCounts?: Record<string, number>;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   activeTab: "clubs" | "dm";
+  clubMessages?: Record<string, any[]>;
 }
 
 const ChatSidebarContent: React.FC<ChatSidebarContentProps> = (props) => {
@@ -20,3 +21,4 @@ const ChatSidebarContent: React.FC<ChatSidebarContentProps> = (props) => {
 };
 
 export default ChatSidebarContent;
+

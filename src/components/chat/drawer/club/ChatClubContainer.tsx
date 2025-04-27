@@ -39,6 +39,8 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
           clubs={clubs}
           selectedClub={selectedClub}
           onSelectClub={onSelectClub}
+          onSelectUser={handleSelectUser}
+          activeTab="clubs"
         />
       </div>
       
@@ -63,3 +65,4 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
 };
 
 export default ChatClubContainer;
+

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import DMConversationList from './DMConversationList';
@@ -24,11 +23,17 @@ interface DMContainerProps {
     userName: string;
     userAvatar?: string;
   } | null>>;
+  directMessageUser?: {
+    userId: string;
+    userName: string;
+    userAvatar?: string;
+  } | null;
 }
 
 const DMContainer: React.FC<DMContainerProps> = ({ 
   initialSelectedUser = null,
-  setDirectMessageUser
+  setDirectMessageUser,
+  directMessageUser
 }) => {
   // Convert the initialSelectedUser format to the internal format
   const convertedInitialUser = initialSelectedUser ? {
@@ -37,13 +42,26 @@ const DMContainer: React.FC<DMContainerProps> = ({
     avatar: initialSelectedUser.userAvatar
   } : null;
   
-  const [selectedUser, setSelectedUser] = useState<SelectedUser>(convertedInitialUser);
+  // If directMessageUser is provided, use it to create the initial user
+  const initialUserFromProps = directMessageUser ? {
+    id: directMessageUser.userId,
+    name: directMessageUser.userName,
+    avatar: directMessageUser.userAvatar
+  } : convertedInitialUser;
+  
+  const [selectedUser, setSelectedUser] = useState<SelectedUser>(initialUserFromProps);
   const { hideConversation, hiddenDMs } = useHiddenDMs();
 
-  // Apply initialSelectedUser when it changes, this handles the case
-  // when a user clicks on "Message" from a profile
+  // Apply initialSelectedUser or directMessageUser when they change
   useEffect(() => {
-    if (initialSelectedUser) {
+    if (directMessageUser) {
+      console.log('[DMContainer] Setting directMessageUser:', directMessageUser.userName);
+      setSelectedUser({
+        id: directMessageUser.userId,
+        name: directMessageUser.userName,
+        avatar: directMessageUser.userAvatar
+      });
+    } else if (initialSelectedUser) {
       console.log('[DMContainer] Setting initial selected user:', initialSelectedUser.userName);
       setSelectedUser({
         id: initialSelectedUser.userId,
@@ -51,7 +69,7 @@ const DMContainer: React.FC<DMContainerProps> = ({
         avatar: initialSelectedUser.userAvatar
       });
     }
-  }, [initialSelectedUser]);
+  }, [initialSelectedUser, directMessageUser]);
 
   const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
     const user = {
