@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -59,7 +58,6 @@ const MessageItem: React.FC<MessageItemProps> = ({
     }
   };
 
-  // Ensure we always have a valid timestamp string
   const getTimestamp = () => {
     if (!message.timestamp) {
       console.warn('[MessageItem] Message has no timestamp:', message.id);
@@ -80,7 +78,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
         />
       )}
       
-      <div className={`max-w-[70%] ${isUserMessage ? 'order-1' : 'order-1'}`}>
+      <div className={`max-w-[70%] ${isUserMessage ? 'order-1' : 'order-1'} relative`}>
         {!isUserMessage && (
           <button 
             className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left`}
@@ -91,18 +89,16 @@ const MessageItem: React.FC<MessageItemProps> = ({
           </button>
         )}
         
-        <div className="flex flex-col">
-          <MessageContent 
-            message={message}
-            isUserMessage={isUserMessage}
-            isSupport={isSupport}
-            onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
-          />
-          
-          <p className={`text-xs text-gray-500 mt-1 ${isUserMessage ? 'text-right' : ''}`}>
-            {formatTime(getTimestamp())}
-          </p>
-        </div>
+        <MessageContent 
+          message={message}
+          isUserMessage={isUserMessage}
+          isSupport={isSupport}
+          onDeleteMessage={canDelete && onDeleteMessage ? handleDeleteClick : undefined}
+        />
+        
+        <p className={`text-xs text-gray-500 mt-1 ${isUserMessage ? 'text-right' : ''}`}>
+          {formatTime(getTimestamp())}
+        </p>
       </div>
       
       {isUserMessage && (
