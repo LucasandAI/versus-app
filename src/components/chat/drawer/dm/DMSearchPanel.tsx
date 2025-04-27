@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import SearchBar from './SearchBar';
 import UserSearchResults from './UserSearchResults';
