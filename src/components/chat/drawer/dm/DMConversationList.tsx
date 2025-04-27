@@ -11,25 +11,12 @@ interface Props {
 
 const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) => {
   const { hideConversation, isConversationHidden, hiddenDMs } = useHiddenDMs();
-  const { conversations, refreshVersion } = useConversations(hiddenDMs);
+  const { conversations } = useConversations(hiddenDMs);
 
   useEffect(() => {
-    // Debug log for conversation refreshes
-    console.log('[DMConversationList] Conversation list refreshed', { 
-      refreshVersion, 
-      conversationsCount: conversations.length
-    });
-  }, [refreshVersion, conversations.length]);
-
-  // Debug log for rendering with the current conversation list
-  console.log('[DMConversationList] Rendering conversations:', 
-    conversations.map(conv => ({
-      userId: conv.userId,
-      userName: conv.userName,
-      lastMessage: conv.lastMessage,
-      timestamp: conv.timestamp
-    }))
-  );
+    // Debug log for conversation updates
+    console.log('[DMConversationList] Conversations updated:', conversations.length);
+  }, [conversations]);
 
   const handleHideConversation = (
     e: React.MouseEvent,
@@ -40,14 +27,10 @@ const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) =
     hideConversation(userId);
   };
 
-  const visibleConversations = conversations.filter(
-    conv => !isConversationHidden(conv.userId)
-  );
-
   return (
     <div className="flex flex-col space-y-2 p-4">
       <h2 className="font-semibold text-lg mb-2">Messages</h2>
-      {visibleConversations.map((conversation) => (
+      {conversations.map((conversation) => (
         <ConversationItem
           key={conversation.userId}
           conversation={conversation}
@@ -60,7 +43,7 @@ const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) =
           onHide={(e) => handleHideConversation(e, conversation.userId)}
         />
       ))}
-      {visibleConversations.length === 0 && (
+      {conversations.length === 0 && (
         <p className="text-center text-gray-500 py-4">No conversations yet</p>
       )}
     </div>

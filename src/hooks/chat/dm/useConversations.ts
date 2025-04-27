@@ -11,7 +11,6 @@ export type { DMConversation };
 
 export const useConversations = (hiddenDMs: string[]) => {
   const [conversations, setConversations] = useState<DMConversation[]>([]);
-  const [refreshVersion, setRefreshVersion] = useState(0);
   const { currentUser } = useApp();
   const { userCache, setUserCache, fetchUserData } = useUserData();
   const fetchConversations = useFetchConversations(currentUser?.id);
@@ -35,7 +34,7 @@ export const useConversations = (hiddenDMs: string[]) => {
   }, [conversations, saveConversationsToStorage]);
 
   const updateConversation = useCallback((otherUserId: string, newMessage: string, otherUserName?: string, otherUserAvatar?: string) => {
-    console.log('[updateConversation] Called for userId:', otherUserId, 'with message:', newMessage, 'userName:', otherUserName || 'not provided', 'timestamp:', new Date().toISOString());
+    console.log('[updateConversation] Updating conversation for userId:', otherUserId, 'with message:', newMessage);
     
     setConversations(prevConversations => {
       const now = new Date().toISOString();
@@ -53,6 +52,7 @@ export const useConversations = (hiddenDMs: string[]) => {
       let updatedConversations = [...prevConversations];
       
       if (existingConvIndex >= 0) {
+        // Update existing conversation
         const existingConv = { ...updatedConversations[existingConvIndex] };
         updatedConversations.splice(existingConvIndex, 1);
         updatedConversations.unshift({
@@ -63,6 +63,7 @@ export const useConversations = (hiddenDMs: string[]) => {
           ...(otherUserAvatar && { userAvatar: otherUserAvatar })
         });
       } else if (otherUserName) {
+        // Create new conversation
         updatedConversations.unshift({
           userId: otherUserId,
           userName: otherUserName,
@@ -79,10 +80,12 @@ export const useConversations = (hiddenDMs: string[]) => {
   // Set up realtime subscriptions
   useRealtimeSubscriptions(currentUser?.id, userCache, fetchUserData, updateConversation);
 
+  const visibleConversations = conversations.filter(
+    conv => !hiddenDMs.includes(conv.userId)
+  );
+
   return { 
-    conversations, 
-    fetchConversations, 
-    updateConversation, 
-    refreshVersion 
+    conversations: visibleConversations, // Return filtered conversations
+    updateConversation
   };
 };
