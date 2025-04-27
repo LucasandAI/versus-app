@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -32,14 +33,17 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
 
       console.log('[fetchConversations] Found messages in database:', messages.length);
       
+      // Get unique IDs of the other participants in conversations
       const uniqueUserIds = new Set<string>();
       messages.forEach(msg => {
+        // The other participant is the one who is not the current user
         const otherUserId = msg.sender_id === currentUserId ? msg.receiver_id : msg.sender_id;
         uniqueUserIds.add(otherUserId);
       });
 
       console.log('[fetchConversations] Unique conversation partners:', Array.from(uniqueUserIds));
       
+      // Fetch user information for all conversation participants
       const { data: users, error: usersError } = await supabase
         .from('users')
         .select('id, name, avatar')
@@ -53,10 +57,13 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
         return map;
       }, {});
 
+      // Create conversation objects showing the OTHER user's information
       const conversationsMap = new Map<string, DMConversation>();
       messages.forEach(msg => {
+        // Determine which user is the other participant
         const otherUserId = msg.sender_id === currentUserId ? msg.receiver_id : msg.sender_id;
         const otherUser = userMap[otherUserId];
+        const isInitiator = msg.sender_id === currentUserId;
         
         if (otherUser && (!conversationsMap.has(otherUserId) || 
             new Date(msg.timestamp) > new Date(conversationsMap.get(otherUserId)?.timestamp || ''))) {
@@ -65,7 +72,8 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
             userName: otherUser.name,
             userAvatar: otherUser.avatar,
             lastMessage: msg.text,
-            timestamp: msg.timestamp
+            timestamp: msg.timestamp,
+            isInitiator: isInitiator
           });
         }
       });

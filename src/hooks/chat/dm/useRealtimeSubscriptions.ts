@@ -1,7 +1,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { UserCache, DMConversation } from './types';
+import type { UserCache } from './types';
 
 export const useRealtimeSubscriptions = (
   currentUserId: string | undefined,
@@ -14,6 +14,7 @@ export const useRealtimeSubscriptions = (
 
     console.log('[useConversations] Setting up real-time subscriptions for user:', currentUserId);
     
+    // Listen for messages sent by the current user
     const outgoingChannel = supabase
       .channel('dm-outgoing')
       .on('postgres_changes', 
@@ -26,6 +27,7 @@ export const useRealtimeSubscriptions = (
         (payload: any) => {
           console.log('[RealTime] Outgoing DM detected:', payload, 'timestamp:', new Date().toISOString());
           
+          // For outgoing messages, other user is the receiver
           const receiverId = payload.new.receiver_id;
           const cachedUser = userCache[receiverId];
           
@@ -42,6 +44,7 @@ export const useRealtimeSubscriptions = (
       )
       .subscribe();
     
+    // Listen for messages received by the current user
     const incomingChannel = supabase
       .channel('dm-incoming')
       .on('postgres_changes', 
@@ -54,6 +57,7 @@ export const useRealtimeSubscriptions = (
         async (payload: any) => {
           console.log('[RealTime] Incoming DM detected:', payload, 'timestamp:', new Date().toISOString());
           
+          // For incoming messages, other user is the sender
           const senderId = payload.new.sender_id;
           const cachedUser = userCache[senderId];
           
