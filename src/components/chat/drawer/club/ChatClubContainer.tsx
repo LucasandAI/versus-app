@@ -3,6 +3,7 @@ import React from 'react';
 import { Club } from '@/types';
 import ChatSidebarContent from '../ChatSidebarContent';
 import ChatClubContent from '../../../chat/ChatClubContent';
+import { ArrowLeft } from 'lucide-react';
 
 interface ChatClubContainerProps {
   clubs: Club[];
@@ -32,9 +33,14 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
     window.dispatchEvent(event);
   };
 
-  return (
-    <div className="flex h-full">
-      <div className="w-1/3 border-r">
+  const handleGoBack = () => {
+    onSelectClub(null);
+  };
+
+  // If no club is selected, show the clubs list
+  if (!selectedClub) {
+    return (
+      <div className="flex flex-col h-full">
         <ChatSidebarContent 
           clubs={clubs}
           selectedClub={selectedClub}
@@ -43,26 +49,37 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
           activeTab="clubs"
         />
       </div>
+    );
+  }
+
+  // If a club is selected, show the full-width chat
+  return (
+    <div className="flex flex-col h-full">
+      <div className="border-b p-3 flex items-center">
+        <button 
+          onClick={handleGoBack}
+          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <div className="flex-1 flex justify-center">
+          <h3 className="font-semibold">{selectedClub.name}</h3>
+        </div>
+        <div className="w-9"></div> {/* Spacer for alignment */}
+      </div>
       
-      <div className="w-2/3">
-        {selectedClub ? (
-          <ChatClubContent 
-            club={selectedClub}
-            messages={messages[selectedClub.id] || []}
-            onMatchClick={handleMatchClick}
-            onSelectUser={handleSelectUser}
-            onSendMessage={onSendMessage}
-            onDeleteMessage={onDeleteMessage}
-          />
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-gray-500">Select a club to start chatting</p>
-          </div>
-        )}
+      <div className="flex-1">
+        <ChatClubContent 
+          club={selectedClub}
+          messages={messages[selectedClub.id] || []}
+          onMatchClick={handleMatchClick}
+          onSelectUser={handleSelectUser}
+          onSendMessage={onSendMessage}
+          onDeleteMessage={onDeleteMessage}
+        />
       </div>
     </div>
   );
 };
 
 export default ChatClubContainer;
-
