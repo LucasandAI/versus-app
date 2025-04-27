@@ -13,23 +13,42 @@ type SelectedUser = {
 } | null;
 
 interface DMContainerProps {
-  initialSelectedUser?: SelectedUser;
-  setDirectMessageUser?: React.Dispatch<React.SetStateAction<SelectedUser>>;
+  initialSelectedUser?: {
+    userId: string;
+    userName: string;
+    userAvatar?: string;
+  } | null;
+  setDirectMessageUser?: React.Dispatch<React.SetStateAction<{
+    userId: string;
+    userName: string;
+    userAvatar?: string;
+  } | null>>;
 }
 
 const DMContainer: React.FC<DMContainerProps> = ({ 
   initialSelectedUser = null,
   setDirectMessageUser
 }) => {
-  const [selectedUser, setSelectedUser] = useState<SelectedUser>(initialSelectedUser);
+  // Convert the initialSelectedUser format to the internal format
+  const convertedInitialUser = initialSelectedUser ? {
+    id: initialSelectedUser.userId,
+    name: initialSelectedUser.userName,
+    avatar: initialSelectedUser.userAvatar
+  } : null;
+  
+  const [selectedUser, setSelectedUser] = useState<SelectedUser>(convertedInitialUser);
   const { hideConversation, hiddenDMs } = useHiddenDMs();
 
   // Apply initialSelectedUser when it changes, this handles the case
   // when a user clicks on "Message" from a profile
   useEffect(() => {
     if (initialSelectedUser) {
-      console.log('[DMContainer] Setting initial selected user:', initialSelectedUser.name);
-      setSelectedUser(initialSelectedUser);
+      console.log('[DMContainer] Setting initial selected user:', initialSelectedUser.userName);
+      setSelectedUser({
+        id: initialSelectedUser.userId,
+        name: initialSelectedUser.userName,
+        avatar: initialSelectedUser.userAvatar
+      });
     }
   }, [initialSelectedUser]);
 
@@ -41,7 +60,11 @@ const DMContainer: React.FC<DMContainerProps> = ({
     };
     setSelectedUser(user);
     if (setDirectMessageUser) {
-      setDirectMessageUser(user);
+      setDirectMessageUser({
+        userId: userId,
+        userName: userName,
+        userAvatar: userAvatar
+      });
     }
   };
 

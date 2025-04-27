@@ -102,7 +102,10 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
     case "dm":
       return (
         <div className="flex h-full w-full">
-          <DMContainer initialSelectedUser={directMessageUser} setDirectMessageUser={setDirectMessageUser} />
+          <DMContainer 
+            initialSelectedUser={directMessageUser}
+            setDirectMessageUser={setDirectMessageUser}
+          />
         </div>
       );
     case "support":
