@@ -51,13 +51,13 @@ const DMConversation: React.FC<DMConversationProps> = ({
       timestamp: new Date().toISOString()
     };
 
-    // Add message to the chat window
-    setMessages(prev => [...prev, newMessageObj]);
-    
-    // Update the conversation list immediately
-    updateConversation(userId, message, userName, userAvatar);
-
     try {
+      // Add message to the chat window immediately after attempting to send
+      setMessages(prev => [...prev, newMessageObj]);
+      
+      // Update the conversation list immediately
+      updateConversation(userId, message, userName, userAvatar);
+
       const { data, error } = await supabase
         .from('direct_messages')
         .insert({

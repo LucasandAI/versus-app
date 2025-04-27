@@ -8,6 +8,8 @@ import DMConversationList from './DMConversationList';
 import DMConversation from './DMConversation';
 import { useUserSearch } from '@/hooks/chat/dm/useUserSearch';
 import { useClickOutside } from '@/hooks/use-click-outside';
+import { useNavigation } from '@/hooks/useNavigation';
+import UserAvatar from '@/components/shared/UserAvatar';
 
 const DMSearchPanel: React.FC = () => {
   const { 
@@ -26,6 +28,8 @@ const DMSearchPanel: React.FC = () => {
     name: string;
     avatar?: string;
   } | null>(null);
+
+  const { navigateToUserProfile } = useNavigation();
 
   const searchContainerRef = useClickOutside(() => {
     setShowResults(false);
@@ -49,6 +53,12 @@ const DMSearchPanel: React.FC = () => {
 
   const handleBack = () => {
     setSelectedDMUser(null);
+  };
+
+  const handleUserProfileClick = () => {
+    if (selectedDMUser) {
+      navigateToUserProfile(selectedDMUser.id, selectedDMUser.name, selectedDMUser.avatar);
+    }
   };
 
   return (
@@ -90,7 +100,11 @@ const DMSearchPanel: React.FC = () => {
               <ArrowLeft className="h-5 w-5" />
             </button>
             
-            <div className="flex-1 flex justify-center">
+            <div 
+              className="flex-1 flex justify-center items-center gap-3 cursor-pointer hover:opacity-80"
+              onClick={handleUserProfileClick}
+            >
+              <UserAvatar name={selectedDMUser.name} image={selectedDMUser.avatar} size="sm" />
               <h3 className="font-semibold">{selectedDMUser.name}</h3>
             </div>
             
