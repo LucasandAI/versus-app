@@ -7,7 +7,7 @@ export const useRealtimeSubscriptions = (
   currentUserId: string | undefined,
   userCache: UserCache,
   fetchUserData: (userId: string) => Promise<any>,
-  updateConversation: (otherUserId: string, newMessage: string, otherUserName?: string, otherUserAvatar?: string) => void
+  updateConversation: (conversationId: string, userId: string, newMessage: string, otherUserName?: string, otherUserAvatar?: string) => void
 ) => {
   useEffect(() => {
     if (!currentUserId) return;
@@ -32,11 +32,11 @@ export const useRealtimeSubscriptions = (
           const cachedUser = userCache[receiverId];
           
           if (cachedUser) {
-            updateConversation(receiverId, payload.new.text, cachedUser.name, cachedUser.avatar);
+            updateConversation(payload.new.conversation_id || `temp_${receiverId}`, receiverId, payload.new.text, cachedUser.name, cachedUser.avatar);
           } else {
             fetchUserData(receiverId).then(userData => {
               if (userData) {
-                updateConversation(receiverId, payload.new.text, userData.name, userData.avatar);
+                updateConversation(payload.new.conversation_id || `temp_${receiverId}`, receiverId, payload.new.text, userData.name, userData.avatar);
               }
             });
           }
@@ -62,11 +62,11 @@ export const useRealtimeSubscriptions = (
           const cachedUser = userCache[senderId];
           
           if (cachedUser) {
-            updateConversation(senderId, payload.new.text, cachedUser.name, cachedUser.avatar);
+            updateConversation(payload.new.conversation_id || `temp_${senderId}`, senderId, payload.new.text, cachedUser.name, cachedUser.avatar);
           } else {
             const userData = await fetchUserData(senderId);
             if (userData) {
-              updateConversation(senderId, payload.new.text, userData.name, userData.avatar);
+              updateConversation(payload.new.conversation_id || `temp_${senderId}`, senderId, payload.new.text, userData.name, userData.avatar);
             }
           }
         }

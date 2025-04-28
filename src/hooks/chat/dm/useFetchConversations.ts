@@ -20,7 +20,7 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
 
       const { data: messages, error: messagesError } = await supabase
         .from('direct_messages')
-        .select('id, sender_id, receiver_id, text, timestamp')
+        .select('id, sender_id, receiver_id, text, timestamp, conversation_id')
         .or(`sender_id.eq.${currentUserId},receiver_id.eq.${currentUserId}`)
         .order('timestamp', { ascending: false });
 
@@ -64,6 +64,7 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
         if (otherUser && (!conversationsMap.has(otherUserId) || 
             new Date(msg.timestamp) > new Date(conversationsMap.get(otherUserId)?.timestamp || ''))) {
           conversationsMap.set(otherUserId, {
+            conversationId: msg.conversation_id || `temp_${otherUserId}`, // Use existing conversation ID or create a temporary one
             userId: otherUserId,
             userName: otherUser.name,
             userAvatar: otherUser.avatar,

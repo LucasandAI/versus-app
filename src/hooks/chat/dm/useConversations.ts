@@ -5,7 +5,7 @@ import { useApp } from '@/context/AppContext';
 import { useDirectConversations } from './useDirectConversations';
 import { DMConversation } from './types';
 
-export { DMConversation } from './types';
+export type { DMConversation } from './types';
 
 export const useConversations = (hiddenDMIds: string[] = []) => {
   const { currentUser } = useApp();

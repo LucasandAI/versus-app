@@ -17,3 +17,10 @@ export interface DirectMessage {
   conversation_id?: string;
   timestamp: string;
 }
+
+export interface UserCache {
+  [userId: string]: {
+    name: string;
+    avatar?: string;
+  };
+}
