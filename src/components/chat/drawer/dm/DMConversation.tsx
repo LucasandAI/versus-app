@@ -33,6 +33,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const { markConversationAsRead } = useUnreadMessages();
   
+  // Custom hooks
   const { createConversation } = useConversationManagement(currentUser?.id, userId);
   const { handleSendMessage, handleDeleteMessage } = useMessageHandling(
     currentUser?.id,
@@ -43,8 +44,10 @@ const DMConversation: React.FC<DMConversationProps> = ({
     createConversation
   );
   
+  // Use subscription hook
   useDMSubscription(conversationId, userId, currentUser?.id, setMessages, addMessage);
 
+  // Scroll to bottom on new messages
   React.useEffect(() => {
     if (lastMessageRef.current) {
       lastMessageRef.current.scrollIntoView({
@@ -54,6 +57,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
     }
   }, [messages.length]);
   
+  // Mark conversation as read when opened
   useEffect(() => {
     if (conversationId && conversationId !== 'new') {
       markConversationAsRead(conversationId);

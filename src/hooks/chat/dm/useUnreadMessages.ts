@@ -69,8 +69,7 @@ export const useUnreadMessages = () => {
         .upsert({
           user_id: currentUser.id,
           conversation_id: conversationId,
-          last_read_timestamp: new Date().toISOString(),
-          has_unread: false
+          last_read_timestamp: new Date().toISOString()
         }, { 
           onConflict: 'user_id,conversation_id'
         });
