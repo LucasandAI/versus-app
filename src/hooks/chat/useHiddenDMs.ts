@@ -1,24 +1,54 @@
 
 import { useState, useEffect } from 'react';
+import { toast } from '@/hooks/use-toast';
 
 const HIDDEN_DMS_KEY = 'hiddenDMs';
 
 export const useHiddenDMs = () => {
   const [hiddenDMs, setHiddenDMs] = useState<string[]>(() => {
-    const stored = localStorage.getItem(HIDDEN_DMS_KEY);
-    return stored ? JSON.parse(stored) : [];
+    try {
+      const stored = localStorage.getItem(HIDDEN_DMS_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error('[useHiddenDMs] Error loading hidden DMs from storage:', error);
+      return [];
+    }
   });
 
   useEffect(() => {
-    localStorage.setItem(HIDDEN_DMS_KEY, JSON.stringify(hiddenDMs));
+    try {
+      localStorage.setItem(HIDDEN_DMS_KEY, JSON.stringify(hiddenDMs));
+    } catch (error) {
+      console.error('[useHiddenDMs] Error saving hidden DMs to storage:', error);
+    }
   }, [hiddenDMs]);
 
   const hideConversation = (userId: string) => {
-    setHiddenDMs(prev => [...prev, userId]);
+    if (!userId) {
+      console.error('[useHiddenDMs] Attempted to hide conversation with undefined userId');
+      return;
+    }
+    
+    setHiddenDMs(prev => {
+      if (prev.includes(userId)) return prev;
+      return [...prev, userId];
+    });
+    
+    toast({
+      title: "Conversation hidden",
+      description: "You can unhide it later in settings",
+    });
   };
 
   const unhideConversation = (userId: string) => {
+    if (!userId) return;
+    
     setHiddenDMs(prev => prev.filter(id => id !== userId));
+    
+    toast({
+      title: "Conversation visible",
+      description: "Conversation has been unhidden",
+    });
   };
 
   const isConversationHidden = (userId: string) => {

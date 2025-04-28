@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 import ConversationItem from './ConversationItem';
@@ -43,11 +44,7 @@ const DMConversationList: React.FC<Props> = ({
   const showLoading = isInitialLoading && displayConversations.length === 0;
   const isEmpty = !showLoading && displayConversations.length === 0;
 
-  const handleHideConversation = (
-    e: React.MouseEvent,
-    userId: string
-  ) => {
-    e.stopPropagation();
+  const handleHideConversation = (userId: string) => {
     console.log('[DMConversationList] Hiding conversation for userId:', userId);
     hideConversation(userId);
   };
@@ -87,7 +84,7 @@ const DMConversationList: React.FC<Props> = ({
                   conversation.userAvatar,
                   conversation.conversationId
                 )}
-                onHide={(e) => handleHideConversation(e, conversation.userId)}
+                onHide={handleHideConversation}
                 isLoading={conversation.isLoading}
               />
             ))}

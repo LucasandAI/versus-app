@@ -21,7 +21,7 @@ interface ConversationItemProps {
   conversation: DMConversation;
   isSelected: boolean;
   onSelect: () => void;
-  onHide: (e: React.MouseEvent) => void;
+  onHide: (userId: string) => void;
   isLoading?: boolean;
 }
 
@@ -45,7 +45,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
   };
 
   const handleConfirmHide = () => {
-    onHide(null as any);
+    onHide(conversation.userId);
     setIsHideDialogOpen(false);
   };
 
