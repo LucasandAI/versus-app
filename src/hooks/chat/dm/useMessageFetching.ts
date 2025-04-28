@@ -40,12 +40,15 @@ export const useMessageFetching = (
           .select('id, name, avatar')
           .in('id', senderIds);
           
-        if (usersError) throw usersError;
-        
-        userMap = (usersData || []).reduce((acc: Record<string, any>, user) => {
-          acc[user.id] = user;
-          return acc;
-        }, {});
+        if (usersError) {
+          console.error('[useMessageFetching] Error fetching user data:', usersError);
+          // Continue with partial data rather than failing completely
+        } else {
+          userMap = (usersData || []).reduce((acc: Record<string, any>, user) => {
+            acc[user.id] = user;
+            return acc;
+          }, {});
+        }
       }
 
       return (data || []).map((msg): ChatMessage => {
@@ -68,11 +71,18 @@ export const useMessageFetching = (
       });
     } catch (error) {
       console.error('[useMessageFetching] Error fetching direct messages:', error);
-      toast({
-        title: "Error",
-        description: "Could not load messages",
-        variant: "destructive"
-      });
+      // Only show toast for network errors, not for expected missing data
+      const shouldShowToast = error instanceof Error && 
+        !error.message.includes('not found') && 
+        !error.message.includes('not ready');
+        
+      if (shouldShowToast) {
+        toast({
+          title: "Error",
+          description: "Could not load messages",
+          variant: "destructive"
+        });
+      }
       return [];
     }
   }, [userId, currentUser, userName, conversationId]);

@@ -74,13 +74,21 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
     setMessages(prev => prev.filter(msg => msg.id !== messageId));
   };
 
-  const refreshMessages = () => {
-    if (isSessionReady && conversationId && conversationId !== 'new') {
-      fetchMessages().then(fetchedMessages => {
-        if (isMounted.current) {
-          setMessages(prev => addMessagesWithoutDuplicates(prev, fetchedMessages));
-        }
-      });
+  const refreshMessages = async () => {
+    // Only run if session is ready, user is authenticated, and we have a valid conversation ID
+    if (!isSessionReady || !currentUser?.id || !conversationId || conversationId === 'new') {
+      console.log('[refreshMessages] Skipping refresh - session or conversation not ready');
+      return;
+    }
+    
+    try {
+      const fetchedMessages = await fetchMessages();
+      if (isMounted.current) {
+        setMessages(prev => addMessagesWithoutDuplicates(prev, fetchedMessages));
+      }
+    } catch (error) {
+      // Prevent error propagation to avoid infinite toasts
+      console.error('[refreshMessages] Error refreshing messages:', error);
     }
   };
 
