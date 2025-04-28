@@ -4,6 +4,7 @@ import { ChatMessage } from '@/types/chat';
 import { useMessageDeduplication } from './useMessageDeduplication';
 import { useMessageFetching } from './useMessageFetching';
 import { findMatchingMessage } from './utils/messageUtils';
+import { useApp } from '@/context/AppContext';
 
 export const useDMMessages = (userId: string, userName: string, conversationId: string) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
