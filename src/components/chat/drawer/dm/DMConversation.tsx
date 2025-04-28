@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import ChatMessages from '../../ChatMessages';
@@ -10,6 +9,7 @@ import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting
 import { useConversationManagement } from '@/hooks/chat/dm/useConversationManagement';
 import { useMessageHandling } from '@/hooks/chat/dm/useMessageHandling';
 import { useUnreadMessages } from '@/hooks/chat/dm/useUnreadMessages';
+import DMMessageInput from './DMMessageInput';
 
 interface DMConversationProps {
   userId: string;
@@ -32,7 +32,6 @@ const DMConversation: React.FC<DMConversationProps> = ({
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const { markDMAsRead } = useUnreadMessages();
   
-  // Custom hooks
   const { createConversation } = useConversationManagement(currentUser?.id, userId);
   const { handleSendMessage, handleDeleteMessage } = useMessageHandling(
     currentUser?.id,
@@ -43,10 +42,8 @@ const DMConversation: React.FC<DMConversationProps> = ({
     createConversation
   );
   
-  // Use subscription hook
   useDMSubscription(conversationId, userId, currentUser?.id, setMessages, addMessage);
 
-  // Scroll to bottom on new messages
   React.useEffect(() => {
     if (lastMessageRef.current) {
       lastMessageRef.current.scrollIntoView({
@@ -56,7 +53,6 @@ const DMConversation: React.FC<DMConversationProps> = ({
     }
   }, [messages.length]);
   
-  // Mark conversation as read when opened
   useEffect(() => {
     if (conversationId && conversationId !== 'new') {
       markDMAsRead(conversationId);
