@@ -12,8 +12,7 @@ export const useConversations = (hiddenDMIds: string[] = []) => {
   const { 
     conversations, 
     loading, 
-    fetchConversations, 
-    updateConversation 
+    fetchConversations
   } = useDirectConversations(hiddenDMIds);
   
   // Subscribe to real-time updates for conversations
@@ -62,7 +61,6 @@ export const useConversations = (hiddenDMIds: string[] = []) => {
   return {
     conversations,
     loading,
-    updateConversation,
     fetchConversations
   };
 };

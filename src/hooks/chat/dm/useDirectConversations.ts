@@ -138,7 +138,6 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
   return {
     conversations,
     loading,
-    fetchConversations,
-    updateConversation
+    fetchConversations
   };
 };

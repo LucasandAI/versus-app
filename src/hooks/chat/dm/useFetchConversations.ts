@@ -69,8 +69,7 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
             userName: otherUser.name,
             userAvatar: otherUser.avatar,
             lastMessage: msg.text,
-            timestamp: msg.timestamp,
-            isInitiator: msg.sender_id === currentUserId
+            timestamp: msg.timestamp
           });
         }
       });
