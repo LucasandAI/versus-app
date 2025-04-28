@@ -11,22 +11,14 @@ export const useDMSubscription = (
   otherUserId: string | undefined,
   currentUserId: string | undefined,
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
-  addMessage: (message: ChatMessage) => void
+  addMessage: (message: ChatMessage) => void,
+  processServerMessage?: (serverMessage: any) => void
 ) => {
   const subscriptionError = useRef(false);
   const isMounted = useRef(true);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const subscriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { isSessionReady } = useApp();
-
-  // Debounced function to handle adding new messages
-  const debouncedAddMessage = useRef(
-    debounce((chatMessage: ChatMessage) => {
-      if (isMounted.current) {
-        addMessage(chatMessage);
-      }
-    }, 100)
-  ).current;
 
   // Clean up function
   const cleanupSubscription = useCallback(() => {
@@ -48,10 +40,9 @@ export const useDMSubscription = (
     
     return () => {
       isMounted.current = false;
-      debouncedAddMessage.cancel();
       cleanupSubscription();
     };
-  }, [cleanupSubscription, debouncedAddMessage]);
+  }, [cleanupSubscription]);
 
   // Setup subscription when conversation details and session are ready
   useEffect(() => {
@@ -81,19 +72,30 @@ export const useDMSubscription = (
           
           const newMessage = payload.new;
           
-          // Format the message for the UI
-          const chatMessage: ChatMessage = {
-            id: newMessage.id,
-            text: newMessage.text,
-            sender: {
-              id: newMessage.sender_id,
-              name: newMessage.sender_id === currentUserId ? 'You' : 'User',
-            },
-            timestamp: newMessage.timestamp
-          };
+          // Skip processing if sent by current user (will be handled by optimistic UI)
+          if (newMessage.sender_id === currentUserId) {
+            console.log('[useDMSubscription] Skipping own message');
+            return;
+          }
           
-          // Add the new message to the state using the debounced function
-          debouncedAddMessage(chatMessage);
+          // Use the processServerMessage function if provided, otherwise fall back to the old behavior
+          if (processServerMessage) {
+            processServerMessage(newMessage);
+          } else {
+            // Legacy processing
+            const chatMessage: ChatMessage = {
+              id: newMessage.id,
+              text: newMessage.text,
+              sender: {
+                id: newMessage.sender_id,
+                name: newMessage.sender_id === currentUserId ? 'You' : 'User',
+              },
+              timestamp: newMessage.timestamp
+            };
+            
+            // Add the new message
+            addMessage(chatMessage);
+          }
         })
         .subscribe((status) => {
           console.log(`DM subscription status for ${conversationId}:`, status);
@@ -117,5 +119,5 @@ export const useDMSubscription = (
     }
     
     return cleanupSubscription;
-  }, [isSessionReady, conversationId, currentUserId, otherUserId, setMessages, addMessage, cleanupSubscription, debouncedAddMessage]);
+  }, [isSessionReady, conversationId, currentUserId, otherUserId, setMessages, addMessage, cleanupSubscription, processServerMessage]);
 };

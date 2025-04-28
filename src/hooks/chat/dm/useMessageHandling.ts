@@ -10,7 +10,8 @@ export const useMessageHandling = (
   conversationId: string,
   setMessages: React.Dispatch<React.SetStateAction<any[]>>,
   setIsSending: React.Dispatch<React.SetStateAction<boolean>>,
-  createConversation: () => Promise<string | null>
+  createConversation: () => Promise<string | null>,
+  addOptimisticMessage?: (message: any) => boolean
 ) => {
   const { unhideConversation } = useHiddenDMs();
   
@@ -31,11 +32,17 @@ export const useMessageHandling = (
         name: currentUserId,
         avatar: undefined
       },
-      timestamp
+      timestamp,
+      optimistic: true
     };
 
     try {
-      setMessages(prev => [...prev, newMessageObj]);
+      // Add optimistic message
+      if (addOptimisticMessage) {
+        addOptimisticMessage(newMessageObj);
+      } else {
+        setMessages(prev => [...prev, newMessageObj]);
+      }
       
       // Get or create a conversation ID
       let actualConversationId = conversationId;
@@ -87,12 +94,15 @@ export const useMessageHandling = (
     try {
       setMessages(prev => prev.filter(msg => msg.id !== messageId));
       
-      const { error } = await supabase
-        .from('direct_messages')
-        .delete()
-        .eq('id', messageId);
-
-      if (error) throw error;
+      // Only try to delete from database if it's not an optimistic message
+      if (!messageId.startsWith('temp-')) {
+        const { error } = await supabase
+          .from('direct_messages')
+          .delete()
+          .eq('id', messageId);
+  
+        if (error) throw error;
+      }
     } catch (error) {
       console.error('Error deleting message:', error);
       toast({
