@@ -17,7 +17,7 @@ export const useConversations = (hiddenDMIds: string[] = []) => {
     conversations, 
     loading, 
     fetchConversations
-  } = useDirectConversations(hiddenDMIds);
+  } = useDirectConversations([]);
   const subscriptionError = useRef(false);
   const subscriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMounted = useRef(true);

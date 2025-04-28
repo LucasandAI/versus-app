@@ -5,7 +5,6 @@ import { UserPlus, MessageCircle } from 'lucide-react';
 import ClubInviteDialog from '../admin/ClubInviteDialog';
 import { User, Club } from '@/types';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
-import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 
 interface UserInviteSectionProps {
   showInviteButton: boolean;
@@ -25,14 +24,10 @@ const UserInviteSection: React.FC<UserInviteSectionProps> = ({
   isCurrentUserProfile
 }) => {
   const { open: openChatDrawer } = useChatDrawerGlobal();
-  const { unhideConversation } = useHiddenDMs();
 
   if (isCurrentUserProfile) return null;
 
   const handleMessageClick = () => {
-    // Unhide the conversation if it was hidden
-    unhideConversation(selectedUser.id);
-    
     // Open the chat drawer first
     openChatDrawer();
     

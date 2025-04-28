@@ -8,7 +8,6 @@ import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { useChatActions } from '@/hooks/chat/useChatActions';
 import { useApp } from '@/context/AppContext';
 import { useConversations } from '@/hooks/chat/dm/useConversations';
-import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -38,10 +37,9 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   
   const { sendMessageToClub, deleteMessage } = useChatActions();
   const { currentUser } = useApp();
-  const { hiddenDMs } = useHiddenDMs();
   
   // Pre-fetch conversations when drawer opens for faster loading
-  const { fetchConversations } = useConversations(hiddenDMs);
+  const { fetchConversations } = useConversations([]);
   
   useEffect(() => {
     // Only pre-fetch conversations when drawer opens AND current user is available

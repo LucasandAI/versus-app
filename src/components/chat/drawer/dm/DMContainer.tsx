@@ -2,7 +2,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import DMSearchPanel from './DMSearchPanel';
 import DMConversationList from './DMConversationList';
-import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -23,7 +22,6 @@ interface DMContainerProps {
 
 const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectMessageUser }) => {
   const { currentUser } = useApp();
-  const { hiddenDMs } = useHiddenDMs();
   const [isLoading, setIsLoading] = useState(true);
   const [basicConversations, setBasicConversations] = useState<any[]>([]);
   const [fetchAttempted, setFetchAttempted] = useState(false);
@@ -94,11 +92,6 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
           const initialConversations = conversationsData.map(conv => {
             const otherUserId = conv.user1_id === currentUser.id ? conv.user2_id : conv.user1_id;
             
-            // Check if this conversation should be hidden
-            if (hiddenDMs.includes(otherUserId)) {
-              return null;
-            }
-            
             return {
               conversationId: conv.id,
               userId: otherUserId,
@@ -124,22 +117,7 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
         }
       }
     }, 300); // Increased delay for better reliability
-  }, [currentUser?.id, hiddenDMs, fetchAttempted]);
-
-  // Effect to refetch when hiddenDMs changes
-  useEffect(() => {
-    if (currentUser?.id && hasFetchedRef.current) {
-      console.log('DMContainer: hiddenDMs changed, refreshing conversations');
-      // Reset the fetch flag to allow a new fetch
-      hasFetchedRef.current = false;
-      // Clear any existing timeout
-      if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current);
-      }
-      // Set fetchAttempted to false to force a refetch
-      setFetchAttempted(false);
-    }
-  }, [hiddenDMs, currentUser?.id]);
+  }, [currentUser?.id, fetchAttempted]);
 
   const handleSelectUser = (userId: string, userName: string, userAvatar: string, conversationId: string) => {
     setDirectMessageUser({

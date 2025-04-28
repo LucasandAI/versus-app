@@ -1,7 +1,6 @@
 
 import React from 'react';
 import UserAvatar from '@/components/shared/UserAvatar';
-import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 
 interface SearchResult {
   id: string;
@@ -22,12 +21,9 @@ const UserSearchResults: React.FC<UserSearchResultsProps> = ({
   onSelectUser,
   visible,
 }) => {
-  const { unhideConversation } = useHiddenDMs();
-
   if (!visible) return null;
 
   const handleUserSelect = (user: SearchResult) => {
-    unhideConversation(user.id);
     onSelectUser(user.id, user.name, user.avatar);
   };
 

@@ -1,7 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 
 export const useMessageHandling = (
   currentUserId: string | undefined,
@@ -11,13 +10,10 @@ export const useMessageHandling = (
   setIsSending: React.Dispatch<React.SetStateAction<boolean>>,
   createConversation: () => Promise<string | null>
 ) => {
-  const { unhideConversation } = useHiddenDMs();
   
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || !currentUserId || !userId) return;
     setIsSending(true);
-    
-    unhideConversation(userId);
     
     // Generate a unique temp ID for optimistic UI
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;

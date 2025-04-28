@@ -49,10 +49,10 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
 
         const otherUserIds = conversationsData.map(conv => 
           conv.user1_id === userId ? conv.user2_id : conv.user1_id
-        ).filter(id => !hiddenDMIds.includes(id)); // Filter out hidden conversations
+        );
 
         if (otherUserIds.length === 0) {
-          console.log('All conversations are hidden');
+          console.log('No conversations found');
           setConversations([]);
           setLoading(false);
           return [];
@@ -60,8 +60,6 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
 
         const basicConversations = conversationsData.reduce((acc: Record<string, DMConversation>, conv) => {
           const otherUserId = conv.user1_id === userId ? conv.user2_id : conv.user1_id;
-          
-          if (hiddenDMIds.includes(otherUserId)) return acc;
           
           acc[otherUserId] = {
             conversationId: conv.id,
@@ -120,8 +118,6 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
         const updatedConversations = conversationsData
           .map(conv => {
             const otherUserId = conv.user1_id === userId ? conv.user2_id : conv.user1_id;
-            
-            if (hiddenDMIds.includes(otherUserId)) return null;
             
             const otherUser = userMap[otherUserId];
             const latestMessage = latestMessageMap[conv.id];
@@ -190,14 +186,6 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
       fetchConversations();
     }
   }, [isSessionReady, currentUser?.id, fetchConversations]);
-
-  // Add an effect to refetch when hiddenDMIds changes
-  useEffect(() => {
-    if (isSessionReady && currentUser?.id && attemptedFetch.current) {
-      console.log('[useDirectConversations] Hidden DMs changed, refreshing conversations');
-      fetchConversations();
-    }
-  }, [hiddenDMIds, isSessionReady, currentUser?.id, fetchConversations]);
 
   return {
     conversations,
