@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
@@ -9,50 +8,12 @@ import debounce from 'lodash/debounce';
 // Helper function to identify optimistic messages
 const isOptimisticMessage = (messageId: string) => messageId.startsWith('temp-');
 
-// Helper function to create a unique message ID for deduplication
-const createMessageId = (message: any): string => {
-  return `${message.text}-${message.sender?.id || 'unknown'}-${message.timestamp || Date.now()}`;
-};
-
-// Helper to find a matching optimistic message within a time window
-const findMatchingOptimisticMessage = (
-  messages: any[], 
-  confirmedMessage: any, 
-  timeWindowMs: number = 5000
-): { index: number; message: any } | null => {
-  if (!messages.length) return null;
-  
-  const confirmTimestamp = new Date(confirmedMessage.timestamp).getTime();
-  
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const message = messages[i];
-    
-    // Only check optimistic messages
-    if (!message.optimistic) continue;
-    
-    // Match on text and sender
-    if (message.text === confirmedMessage.text && 
-        message.sender.id === confirmedMessage.sender.id) {
-      
-      // Check if within time window
-      const msgTimestamp = new Date(message.timestamp).getTime();
-      const timeDiff = Math.abs(confirmTimestamp - msgTimestamp);
-      
-      if (timeDiff <= timeWindowMs) {
-        return { index: i, message };
-      }
-    }
-  }
-  
-  return null;
-};
-
 export const useDMMessages = (userId: string, userName: string, conversationId: string) => {
   const [messages, setMessages] = useState<any[]>([]);
   const [messageIds, setMessageIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
-  const { currentUser, isSessionReady } = useApp();
+  const { currentUser } = useApp();
   const { unhideConversation } = useHiddenDMs();
   const [errorToastShown, setErrorToastShown] = useState(false);
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -63,7 +24,7 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
   useEffect(() => {
     conversationIdRef.current = conversationId;
   }, [conversationId]);
-
+  
   // Function to add messages without duplicates
   const addMessagesWithoutDuplicates = useCallback((newMessages: any[]) => {
     setMessages(prevMessages => {
@@ -100,10 +61,10 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
     };
   }, []);
 
-  // Message fetching function without artificial delay
-  const fetchMessages = useCallback(async () => {
-    // Guard clause: early return if any required ID is missing or session not ready
-    if (!userId || !currentUser?.id || !conversationIdRef.current || !isSessionReady) {
+  // Debounced fetch function to avoid multiple rapid fetches
+  const fetchMessages = useCallback(debounce(async () => {
+    // Guard clause: early return if any required ID is missing
+    if (!userId || !currentUser?.id || !conversationIdRef.current) {
       if (conversationIdRef.current !== 'new') {
         setLoading(false);
       }
@@ -123,6 +84,7 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
     try {
       console.log(`Fetching messages for conversation ${conversationIdRef.current}`);
       
+      // Fetch messages using conversation ID
       const { data, error } = await supabase
         .from('direct_messages')
         .select(`
@@ -141,6 +103,7 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
       // Separately fetch user info for message senders
       const senderIds = [...new Set(data?.map(msg => msg.sender_id) || [])];
       
+      // Only fetch user data if we have sender IDs
       let userMap: Record<string, any> = {};
       if (senderIds.length > 0) {
         const { data: usersData, error: usersError } = await supabase
@@ -152,6 +115,7 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
         
         if (usersError) throw usersError;
         
+        // Create a map of user data by ID for quick lookup
         userMap = (usersData || []).reduce((acc: Record<string, any>, user) => {
           acc[user.id] = user;
           return acc;
@@ -161,6 +125,7 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
       if (!isMounted.current) return;
       
       const formattedMessages = (data || []).map((msg) => {
+        // Look up user info from our map
         const senderInfo = userMap[msg.sender_id] || {
           id: msg.sender_id,
           name: msg.sender_id === currentUser.id ? currentUser.name : userName,
@@ -176,37 +141,26 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
             avatar: senderInfo.avatar
           },
           timestamp: msg.timestamp,
-          optimistic: false
         };
       });
 
-      // Initialize message IDs set and remove any matching optimistic messages
-      const confirmedMessageIds = new Set<string>();
+      // Initialize message IDs set
+      const initialMessageIds = new Set<string>();
       formattedMessages.forEach(msg => {
-        confirmedMessageIds.add(createMessageId(msg));
+        initialMessageIds.add(createMessageId(msg));
       });
 
-      // Replace any optimistic messages with confirmed ones
-      setMessages(prevMessages => {
-        // First, filter out optimistic messages that match confirmed ones
-        const filteredMessages = prevMessages.filter(msg => {
-          if (msg.optimistic) {
-            return !confirmedMessageIds.has(createMessageId(msg));
-          }
-          return true;
-        });
-        // Then add the confirmed messages
-        return [...filteredMessages, ...formattedMessages];
-      });
+      if (!isMounted.current) return;
       
-      setMessageIds(confirmedMessageIds);
+      setMessages(formattedMessages);
+      setMessageIds(initialMessageIds);
       setErrorToastShown(false);
-      setLoading(false);
     } catch (error) {
       if (!isMounted.current) return;
       
       console.error('Error fetching direct messages:', error);
       
+      // Show toast only once per conversation
       if (!errorToastShown) {
         toast({
           title: "Error",
@@ -215,85 +169,46 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
         });
         setErrorToastShown(true);
       }
-      setLoading(false);
+    } finally {
+      if (isMounted.current) {
+        setLoading(false);
+      }
     }
-  }, [userId, currentUser?.id, userName, errorToastShown, addMessagesWithoutDuplicates, isSessionReady]);
+  }, 300), [userId, currentUser?.id, userName, errorToastShown]);
 
   // Effect to handle fetching messages when conversation details change
   useEffect(() => {
-    // Clean up any existing timeout
+    // Clear any existing timeout
     if (fetchTimeoutRef.current) {
       clearTimeout(fetchTimeoutRef.current);
     }
 
-    // Fetch immediately if session is ready
-    if (isSessionReady && conversationId && conversationId !== 'new') {
-      console.log('[useDMMessages] Session ready, fetching messages immediately');
-      fetchMessages();
-    }
+    // Set a small delay before fetching
+    fetchTimeoutRef.current = setTimeout(() => {
+      if (isMounted.current) {
+        fetchMessages();
+      }
+    }, FETCH_DELAY_MS);
     
     return () => {
       if (fetchTimeoutRef.current) {
         clearTimeout(fetchTimeoutRef.current);
+        fetchMessages.cancel(); // Cancel any pending debounced fetch
       }
     };
-  }, [userId, currentUser?.id, conversationId, fetchMessages, isSessionReady]);
+  }, [userId, currentUser?.id, conversationId, fetchMessages]);
 
   // Add a message without duplicates
-  const addMessageWithoutDuplicates = useCallback((message: any, isOptimistic: boolean = false) => {
-    const messageToAdd = {
-      ...message,
-      optimistic: isOptimistic
-    };
-    
-    const messageId = createMessageId(messageToAdd);
+  const addMessageWithoutDuplicates = useCallback((message: any) => {
+    const messageId = createMessageId(message);
     if (!messageIds.has(messageId)) {
-      console.log('[useDMMessages] Adding new message:', messageToAdd.id, isOptimistic ? '(optimistic)' : '');
-      setMessages(prev => [...prev, messageToAdd]);
+      console.log('[useDMMessages] Adding new message:', message.id, isOptimisticMessage(message.id) ? '(optimistic)' : '');
+      setMessages(prev => [...prev, message]);
       setMessageIds(prev => new Set(prev).add(messageId));
       return true;
     }
     return false;
   }, [messageIds]);
-
-  // Process a received server message
-  const processServerMessage = useCallback((serverMessage: any) => {
-    // Don't process if no current user or not mounted
-    if (!currentUser?.id || !isMounted.current) return;
-    
-    // Format the message object
-    const formattedMessage = {
-      id: serverMessage.id,
-      text: serverMessage.text,
-      sender: {
-        id: serverMessage.sender_id,
-        name: serverMessage.sender_id === currentUser.id ? currentUser.name : 'User',
-      },
-      timestamp: serverMessage.timestamp,
-      optimistic: false
-    };
-    
-    // Check if we have a matching optimistic message
-    setMessages(prevMessages => {
-      // Try to find a matching optimistic message within ±5 seconds
-      const match = findMatchingOptimisticMessage(prevMessages, formattedMessage);
-      
-      if (match) {
-        console.log('[useDMMessages] Found matching optimistic message, replacing:', match.message.id);
-        // Replace the optimistic message with the confirmed one
-        const updatedMessages = [...prevMessages];
-        updatedMessages[match.index] = formattedMessage;
-        return updatedMessages;
-      } else {
-        // No matching optimistic message found, add as new
-        console.log('[useDMMessages] No matching optimistic message, adding as new');
-        if (!messageIds.has(createMessageId(formattedMessage))) {
-          return [...prevMessages, formattedMessage];
-        }
-        return prevMessages;
-      }
-    });
-  }, [currentUser?.id, messageIds]);
 
   const handleDeleteMessage = useCallback(async (messageId: string) => {
     // First remove the message optimistically
@@ -334,10 +249,8 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
   return {
     messages,
     setMessages,
-    addMessage: (message: any) => addMessageWithoutDuplicates(message, false),
-    addOptimisticMessage: (message: any) => addMessageWithoutDuplicates(message, true),
+    addMessage: addMessageWithoutDuplicates,
     addMessages: addMessagesWithoutDuplicates,
-    processServerMessage,
     loading,
     isSending,
     setIsSending,

@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import ChatMessages from '../../ChatMessages';
@@ -26,42 +25,24 @@ const DMConversation: React.FC<DMConversationProps> = ({
 }) => {
   const { currentUser } = useApp();
   const { navigateToUserProfile } = useNavigation();
-  const { 
-    messages, 
-    setMessages, 
-    addOptimisticMessage, 
-    isSending, 
-    setIsSending, 
-    deleteMessage, 
-    processServerMessage 
-  } = useDMMessages(userId, userName, conversationId);
+  const { messages, setMessages, addMessage, isSending, setIsSending, deleteMessage } = useDMMessages(userId, userName, conversationId);
   const { conversations, fetchConversations } = useConversations([]);
   const { formatTime } = useMessageFormatting();
   const lastMessageRef = useRef<HTMLDivElement>(null);
   
   // Custom hooks
   const { createConversation } = useConversationManagement(currentUser?.id, userId);
-  
-  // Use custom hook for message handling with optimistic updates
-  const { handleSendMessage } = useMessageHandling(
+  const { handleSendMessage, handleDeleteMessage } = useMessageHandling(
     currentUser?.id,
     userId,
     conversationId,
     setMessages,
     setIsSending,
-    createConversation,
-    addOptimisticMessage
+    createConversation
   );
   
-  // Use subscription hook with improved server message processing
-  useDMSubscription(
-    conversationId, 
-    userId, 
-    currentUser?.id, 
-    setMessages, 
-    () => {}, // We'll use processServerMessage instead
-    processServerMessage
-  );
+  // Use subscription hook
+  useDMSubscription(conversationId, userId, currentUser?.id, setMessages, addMessage);
 
   // Scroll to bottom on new messages
   React.useEffect(() => {
