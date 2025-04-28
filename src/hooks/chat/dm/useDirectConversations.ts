@@ -1,10 +1,12 @@
-
 import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import { toast } from '@/hooks/use-toast';
 import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 import { DMConversation } from './types';
+
+// Ensure we always have an avatar by using a placeholder
+const DEFAULT_AVATAR = '/placeholder.svg';
 
 export const useDirectConversations = (hiddenDMIds: string[] = []) => {
   const [conversations, setConversations] = useState<DMConversation[]>([]);
@@ -92,14 +94,13 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
             conversationId: conv.id,
             userId: otherUser.id,
             userName: otherUser.name || 'Unknown User',
-            userAvatar: otherUser.avatar,
+            userAvatar: otherUser.avatar || DEFAULT_AVATAR, // Always provide an avatar
             lastMessage: latestMessage?.text || '',
             timestamp: latestMessage?.timestamp || conv.created_at,
             isInitiator: latestMessage ? latestMessage.senderId === currentUser.id : false
           };
         })
         .filter((conv): conv is DMConversation => 
-          // Filter out null values and hidden conversations
           conv !== null && !hiddenDMIds.includes(conv.userId)
         )
         .sort((a, b) => 
@@ -129,7 +130,7 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
   }, [fetchConversations]);
   
   // Function to add or update a conversation in the state
-  const updateConversation = useCallback((conversationId: string, userId: string, message: string, userName: string, userAvatar?: string) => {
+  const updateConversation = useCallback((conversationId: string, userId: string, message: string, userName: string, userAvatar: string) => {
     setConversations(prevConversations => {
       // Check if the conversation already exists
       const existingIndex = prevConversations.findIndex(

@@ -1,9 +1,8 @@
-
 export interface DMConversation {
   conversationId: string;
   userId: string;
   userName: string;
-  userAvatar?: string;  // Marked as optional explicitly
+  userAvatar: string;  // Now required, use placeholder if missing
   lastMessage: string;
   timestamp: string;
   isInitiator: boolean;
