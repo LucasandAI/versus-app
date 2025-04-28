@@ -23,16 +23,16 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
     <div className="px-4 py-2 border-b">
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "clubs" | "dm")}>
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="clubs" className="relative">
+          <TabsTrigger value="clubs" className="inline-flex items-center gap-2">
             Club Chat
             {clubUnreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full" />
+              <span className="inline-flex h-2 w-2 bg-red-500 rounded-full" />
             )}
           </TabsTrigger>
-          <TabsTrigger value="dm" className="relative">
+          <TabsTrigger value="dm" className="inline-flex items-center gap-2">
             Direct Messages
             {dmUnreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full" />
+              <span className="inline-flex h-2 w-2 bg-red-500 rounded-full" />
             )}
           </TabsTrigger>
         </TabsList>
