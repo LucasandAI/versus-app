@@ -31,7 +31,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   onSelectUser,
   currentUserAvatar: providedUserAvatar,
   lastMessageRef: providedLastMessageRef,
-  formatTime: providedFormatTime
+  formatTime: providedFormatTime,
 }) => {
   const {
     currentUserId,
@@ -74,8 +74,16 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
 
   const normalizedMessages = messages.map(message => normalizeMessage(message));
 
+  // Determine if this is a club chat by checking if there are club members
+  const isClubChat = clubMembers.length > 0;
+
   return (
-    <div ref={scrollRef} className="h-[calc(73vh-8rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+    <div 
+      ref={scrollRef} 
+      className={`overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent ${
+        isClubChat ? 'h-[calc(73vh-8rem)]' : 'h-[calc(73vh-6rem)]'
+      }`}
+    >
       <MessageList 
         messages={normalizedMessages} 
         clubMembers={clubMembers} 
