@@ -113,8 +113,8 @@ const DMConversation: React.FC<DMConversationProps> = ({
 
   return (
     <div className="flex flex-col h-full w-full">
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <div className="flex-1 overflow-hidden">
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+        <div className="flex-1 min-h-0">
           <ChatMessages 
             messages={messages}
             clubMembers={currentUser ? [currentUser] : []}
@@ -128,7 +128,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
           />
         </div>
         
-        <div className="sticky bottom-0 left-0 right-0 bg-white z-10">
+        <div className="absolute bottom-0 left-0 right-0 bg-white">
           <ChatInput 
             onSendMessage={handleSendMessage}
             isSending={isSending}
