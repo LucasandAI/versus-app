@@ -1,9 +1,7 @@
 
-import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
-import { ChatMessage } from '@/types/chat';
 
 export const useMessageHandling = (
   currentUserId: string | undefined,
@@ -25,13 +23,13 @@ export const useMessageHandling = (
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const timestamp = new Date().toISOString();
     
-    // Create optimistic message with flag
+    // Create optimistic message
     const optimisticMessage = {
       id: tempId,
       text: message,
       sender: {
         id: currentUserId,
-        name: currentUserId,
+        name: 'You',
         avatar: undefined
       },
       timestamp,

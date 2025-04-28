@@ -43,32 +43,7 @@ export const useDMSubscription = (
   const subscriptionError = useRef(false);
   const isMounted = useRef(true);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const subscriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { isSessionReady } = useApp();
-
-  // Debounced function to handle adding new messages
-  const debouncedAddMessage = useRef(
-    debounce((chatMessage: ChatMessage, currentMessages: ChatMessage[]) => {
-      if (isMounted.current) {
-        // Look for a matching optimistic message
-        const matchingOptimisticMessage = findMatchingOptimisticMessage(currentMessages, chatMessage);
-        
-        if (matchingOptimisticMessage) {
-          console.log('[useDMSubscription] Found matching optimistic message, replacing:', matchingOptimisticMessage.id);
-          // Replace the optimistic message with the confirmed one
-          setMessages(prevMessages => 
-            prevMessages.map(msg => 
-              msg.id === matchingOptimisticMessage.id ? chatMessage : msg
-            )
-          );
-        } else {
-          // No matching optimistic message found, add as normal
-          console.log('[useDMSubscription] No matching optimistic message found, adding new message');
-          addMessage(chatMessage);
-        }
-      }
-    }, 100)
-  ).current;
 
   // Clean up function
   const cleanupSubscription = useCallback(() => {
@@ -77,23 +52,16 @@ export const useDMSubscription = (
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
-    
-    if (subscriptionTimeoutRef.current) {
-      clearTimeout(subscriptionTimeoutRef.current);
-      subscriptionTimeoutRef.current = null;
-    }
   }, [conversationId]);
 
   // Clean up resources on unmount
   useEffect(() => {
     isMounted.current = true;
-    
     return () => {
       isMounted.current = false;
-      debouncedAddMessage.cancel();
       cleanupSubscription();
     };
-  }, [cleanupSubscription, debouncedAddMessage]);
+  }, [cleanupSubscription]);
 
   // Setup subscription when conversation details and session are ready
   useEffect(() => {
@@ -108,7 +76,6 @@ export const useDMSubscription = (
     try {
       console.log(`[useDMSubscription] Setting up subscription for conversation ${conversationId}, session ready`);
       
-      // Create a unique channel name with timestamp to avoid conflicts
       const channel = supabase
         .channel(`direct_messages:${conversationId}:${Date.now()}`)
         .on('postgres_changes', {
@@ -134,11 +101,20 @@ export const useDMSubscription = (
             timestamp: newMessage.timestamp
           };
           
-          // Get current messages to check for optimistic matches
-          setMessages(currentMessages => {
-            // Use debounced function to handle adding or replacing messages
-            debouncedAddMessage(chatMessage, currentMessages);
-            return currentMessages;
+          // Look for a matching optimistic message
+          setMessages(prevMessages => {
+            const matchingOptimisticMessage = findMatchingOptimisticMessage(prevMessages, chatMessage);
+            
+            if (matchingOptimisticMessage) {
+              console.log('[useDMSubscription] Found matching optimistic message, replacing:', matchingOptimisticMessage.id);
+              // Replace the optimistic message with the confirmed one
+              return prevMessages.map(msg => 
+                msg.id === matchingOptimisticMessage.id ? chatMessage : msg
+              );
+            } else {
+              console.log('[useDMSubscription] No matching optimistic message found, adding new message');
+              return [...prevMessages, chatMessage];
+            }
           });
         })
         .subscribe((status) => {
@@ -146,9 +122,8 @@ export const useDMSubscription = (
         });
       
       channelRef.current = channel;
-      
-      // Reset subscription error flag
       subscriptionError.current = false;
+      
     } catch (error) {
       console.error('[useDMSubscription] Error setting up subscription:', error);
       
@@ -163,5 +138,5 @@ export const useDMSubscription = (
     }
     
     return cleanupSubscription;
-  }, [isSessionReady, conversationId, currentUserId, otherUserId, setMessages, addMessage, cleanupSubscription, debouncedAddMessage]);
+  }, [isSessionReady, conversationId, currentUserId, otherUserId, setMessages, cleanupSubscription]);
 };
