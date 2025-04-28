@@ -6,6 +6,8 @@ import DrawerHeader from './DrawerHeader';
 import { ChatProvider } from '@/context/ChatContext';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { useChatActions } from '@/hooks/chat/useChatActions';
+import { useConversations } from '@/hooks/chat/dm/useConversations';
+import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -33,8 +35,19 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     conversationId: string;
   } | null>(null);
   
+  const { hiddenDMs } = useHiddenDMs();
+  const { fetchConversations } = useConversations(hiddenDMs);
   const { sendMessageToClub, deleteMessage } = useChatActions();
 
+  // Pre-fetch direct message conversations when drawer opens or tab changes
+  useEffect(() => {
+    if (open && activeTab === "dm") {
+      // Immediate fetch when the drawer opens and DM tab is active
+      fetchConversations();
+    }
+  }, [open, activeTab, fetchConversations]);
+
+  // Listen for events to open direct messages
   useEffect(() => {
     const handleOpenDM = (event: CustomEvent<{
       userId: string;
@@ -77,13 +90,23 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     }
   };
 
+  // Handle tab change
+  const handleTabChange = (tab: "clubs" | "dm") => {
+    setActiveTab(tab);
+    
+    // Pre-fetch conversations when switching to DM tab
+    if (tab === "dm") {
+      fetchConversations();
+    }
+  };
+
   return (
     <ChatProvider>
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="h-[80vh] rounded-t-xl p-0 flex flex-col">
           <DrawerHeader 
             activeTab={activeTab} 
-            setActiveTab={setActiveTab}
+            setActiveTab={handleTabChange}
             selectedClub={selectedLocalClub}
           />
           

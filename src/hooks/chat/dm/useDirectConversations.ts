@@ -15,9 +15,14 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
   const { currentUser } = useApp();
   const { unhideConversation } = useHiddenDMs();
   
-  // Fetch conversations from Supabase
+  // Pre-fetch conversations immediately when the hook is mounted
+  // and whenever the hiddenDMIds or currentUser changes
   const fetchConversations = useCallback(async () => {
-    if (!currentUser?.id) return [];
+    if (!currentUser?.id) {
+      setConversations([]);
+      setLoading(false);
+      return [];
+    }
     
     try {
       setLoading(true);
@@ -110,6 +115,7 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
         );
       
       setConversations(formattedConversations);
+      setLoading(false);
       return formattedConversations;
       
     } catch (error) {
@@ -119,16 +125,22 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
         description: "Could not load conversations",
         variant: "destructive"
       });
-      return [];
-    } finally {
       setLoading(false);
+      return [];
     }
   }, [currentUser?.id, hiddenDMIds, unhideConversation]);
   
   // Always fetch conversations immediately when the component mounts or dependencies change
   useEffect(() => {
-    fetchConversations();
-  }, [fetchConversations]);
+    if (currentUser?.id) {
+      // Immediate fetch when the hook mounts
+      fetchConversations();
+    } else {
+      // Clear conversations if user is not logged in
+      setConversations([]);
+      setLoading(false);
+    }
+  }, [fetchConversations, currentUser?.id]);
   
   // Function to add or update a conversation in the state
   const updateConversation = useCallback((conversationId: string, userId: string, message: string, userName: string, userAvatar: string) => {

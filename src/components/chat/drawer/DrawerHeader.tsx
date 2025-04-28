@@ -1,25 +1,20 @@
 
 import React from 'react';
-import ChatDrawerHeader from './ChatDrawerHeader';
-import ChatDrawerTabs from './ChatDrawerTabs';
 import { Club } from '@/types';
+import ChatDrawerTabs from './ChatDrawerTabs';
+import { X } from 'lucide-react';
 
 interface DrawerHeaderProps {
   activeTab: "clubs" | "dm";
-  setActiveTab: (tab: "clubs" | "dm") => void;
-  selectedClub?: Club | null;
+  setActiveTab: React.Dispatch<React.SetStateAction<"clubs" | "dm">>;
+  selectedClub: Club | null;
 }
 
-const DrawerHeader: React.FC<DrawerHeaderProps> = ({
-  activeTab,
-  setActiveTab,
-  selectedClub
-}) => {
+const DrawerHeader: React.FC<DrawerHeaderProps> = ({ activeTab, setActiveTab, selectedClub }) => {
   return (
-    <>
-      <ChatDrawerHeader selectedClub={selectedClub} />
+    <div className="sticky top-0 z-10 bg-white border-b p-2 flex items-center justify-between">
       <ChatDrawerTabs activeTab={activeTab} setActiveTab={setActiveTab} />
-    </>
+    </div>
   );
 };
 
