@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -139,6 +138,7 @@ export interface AppContextType {
   signOut: () => Promise<void>;
   createClub: (name: string, logo?: string) => Promise<Club | null>;
   refreshCurrentUser: () => Promise<User | null>;
+  isSessionReady: boolean;
 }
 
 export type { ChatMessage } from './chat';

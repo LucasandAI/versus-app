@@ -1,4 +1,3 @@
-
 import React, { useState, ReactNode, useEffect, useCallback } from 'react';
 import { AppContext } from './AppContext';
 import { AppContextType, User } from '@/types';
@@ -9,19 +8,20 @@ import { useViewState } from '@/hooks/navigation/useViewState';
 import { useAuthSessionEffect } from './useAuthSessionEffect';
 import { useLoadCurrentUser } from './useLoadCurrentUser';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [authChecked, setAuthChecked] = useState(true); // Default to true to avoid initial loading screen
+  const [authChecked, setAuthChecked] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [userLoading, setUserLoading] = useState(false); // Default to false to avoid initial loading screen
+  const [userLoading, setUserLoading] = useState(false);
+  const [isSessionReady, setIsSessionReady] = useState(false);
 
   const { signIn, signOut } = useAuth();
   const { currentView, setCurrentView, selectedClub, setSelectedClub, selectedUser, setSelectedUser } = useViewState();
   const { createClub } = useClubManagement(currentUser, setCurrentUser);
   const { loadCurrentUser } = useLoadCurrentUser();
 
-  // Function to refresh the current user data
   const refreshCurrentUser = useCallback(async () => {
     if (!currentUser?.id) return null;
     
@@ -46,7 +46,44 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [currentUser, loadCurrentUser]);
 
-  // Debugging state changes
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.id && currentUser?.id) {
+          console.log('[AppProvider] Session and user confirmed ready');
+          setIsSessionReady(true);
+        } else {
+          setIsSessionReady(false);
+        }
+      } catch (error) {
+        console.error('[AppProvider] Session check error:', error);
+        setIsSessionReady(false);
+      }
+    };
+
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_OUT') {
+          setIsSessionReady(false);
+        } else if (session?.user) {
+          timeoutId = setTimeout(() => {
+            checkSession();
+          }, 50);
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [currentUser?.id]);
+
   useEffect(() => {
     console.log('[AppProvider] State changed:', { 
       authChecked, 
@@ -56,7 +93,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   }, [authChecked, userLoading, currentUser, currentView]);
 
-  // Set a shorter timeout (5s) to ensure we don't get stuck in loading state
   useEffect(() => {
     if (!authChecked) {
       const timeoutId = setTimeout(() => {
@@ -70,7 +106,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [authChecked, setCurrentView]);
   
-  // Add another short timeout (5s) to prevent getting stuck in user loading state
   useEffect(() => {
     if (userLoading) {
       const timeoutId = setTimeout(() => {
@@ -78,7 +113,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setUserLoading(false);
         
         if (currentUser) {
-          // If we have a basic user but profile loading timed out, still show home
           setCurrentView('home');
           toast({
             title: "Profile partially loaded",
@@ -86,7 +120,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             variant: "destructive"
           });
         } else {
-          // If no user after timeout, go to connect
           setCurrentView('connect');
         }
       }, 5000);
@@ -95,7 +128,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [userLoading, currentUser, setCurrentView]);
 
-  // Set up auth session effect
   useAuthSessionEffect({
     setCurrentUser,
     setCurrentView,
@@ -115,9 +147,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       console.log('[AppProvider] Setting current user directly:', userOrFunction?.id);
       setCurrentUser(userOrFunction ? updateUserInfo(userOrFunction) : userOrFunction);
       
-      // If we're setting a user directly and we're not in home view, change the view
       if (userOrFunction && currentView === 'connect') {
-        console.log('[AppProvider] Changing view to home after user set');
         setCurrentView('home');
       }
     }
@@ -126,14 +156,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const handleSignIn = async (email: string, password: string): Promise<User | null> => {
     try {
       console.log('[AppProvider] handleSignIn called with email:', email);
-      // Set loading state when user explicitly tries to sign in
       setUserLoading(true);
       
       const user = await signIn(email, password);
       
       if (user) {
         console.log('[AppProvider] Sign-in returned user:', user.id);
-        // Set the basic user immediately to improve perceived performance
         setCurrentUserWithUpdates(user);
         return user;
       } else {
@@ -158,6 +186,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     currentView,
     selectedClub,
     selectedUser,
+    isSessionReady,
     setCurrentUser: setCurrentUserWithUpdates,
     setCurrentView,
     setSelectedClub,
@@ -168,7 +197,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     refreshCurrentUser
   };
 
-  // Only show loading screen when explicitly performing auth operations
   if (userLoading && !currentUser) {
     return <div className="flex items-center justify-center min-h-screen">
       <div className="flex flex-col items-center gap-2">

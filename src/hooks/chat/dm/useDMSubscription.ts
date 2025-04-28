@@ -1,11 +1,9 @@
-
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
 import debounce from 'lodash/debounce';
-
-const SUBSCRIPTION_DELAY_MS = 300; // Increased delay before setting up subscription
+import { useApp } from '@/context/AppContext';
 
 export const useDMSubscription = (
   conversationId: string | undefined,
@@ -15,9 +13,9 @@ export const useDMSubscription = (
   addMessage: (message: ChatMessage) => void
 ) => {
   const subscriptionError = useRef(false);
-  const subscriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMounted = useRef(true);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const { isSessionReady } = useApp();
 
   // Debounced function to handle adding new messages
   const debouncedAddMessage = useRef(
@@ -53,81 +51,69 @@ export const useDMSubscription = (
     };
   }, [cleanupSubscription, debouncedAddMessage]);
 
-  // Setup subscription when conversation details change
+  // Setup subscription when conversation details and session are ready
   useEffect(() => {
     // Clean up any existing subscription
     cleanupSubscription();
     
-    // Guard clause: early return if we don't have necessary IDs
-    if (!conversationId || !currentUserId || !otherUserId) {
+    // Guard clause: early return if not ready
+    if (!isSessionReady || !conversationId || !currentUserId || !otherUserId || conversationId === 'new') {
       return;
     }
     
-    // Only set up subscription for actual conversation IDs
-    if (conversationId === 'new') {
-      return;
-    }
-    
-    // Set a small delay before setting up subscription
-    subscriptionTimeoutRef.current = setTimeout(() => {
-      if (!isMounted.current) return;
+    try {
+      console.log(`[useDMSubscription] Setting up subscription for conversation ${conversationId}, session ready`);
       
-      try {
-        console.log(`Setting up subscription for conversation ${conversationId} after delay`);
-        
-        // Create a unique channel name with timestamp to avoid conflicts
-        const channel = supabase
-          .channel(`direct_messages:${conversationId}:${Date.now()}`)
-          .on('postgres_changes', {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'direct_messages',
-            filter: `conversation_id=eq.${conversationId}`
-          }, (payload) => {
-            if (!isMounted.current) return;
-            
-            console.log('New direct message received:', payload);
-            
-            const newMessage = payload.new;
-            
-            // Format the message for the UI
-            const chatMessage: ChatMessage = {
-              id: newMessage.id,
-              text: newMessage.text,
-              sender: {
-                id: newMessage.sender_id,
-                name: newMessage.sender_id === currentUserId ? 'You' : 'User',
-              },
-              timestamp: newMessage.timestamp
-            };
-            
-            // Add the new message to the state using the debounced function
-            debouncedAddMessage(chatMessage);
-          })
-          .subscribe((status) => {
-            console.log(`DM subscription status for ${conversationId}:`, status);
-          });
-        
-        channelRef.current = channel;
-        
-        // Reset subscription error flag
-        subscriptionError.current = false;
-      } catch (error) {
-        console.error('Error setting up DM subscription:', error);
-        
-        // Show toast only once
-        if (!subscriptionError.current && isMounted.current) {
-          toast({
-            title: "Connection Error",
-            description: "Could not set up real-time updates for messages.",
-            variant: "destructive"
-          });
-          subscriptionError.current = true;
-        }
+      // Create a unique channel name with timestamp to avoid conflicts
+      const channel = supabase
+        .channel(`direct_messages:${conversationId}:${Date.now()}`)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'direct_messages',
+          filter: `conversation_id=eq.${conversationId}`
+        }, (payload) => {
+          if (!isMounted.current) return;
+          
+          console.log('New direct message received:', payload);
+          
+          const newMessage = payload.new;
+          
+          // Format the message for the UI
+          const chatMessage: ChatMessage = {
+            id: newMessage.id,
+            text: newMessage.text,
+            sender: {
+              id: newMessage.sender_id,
+              name: newMessage.sender_id === currentUserId ? 'You' : 'User',
+            },
+            timestamp: newMessage.timestamp
+          };
+          
+          // Add the new message to the state using the debounced function
+          debouncedAddMessage(chatMessage);
+        })
+        .subscribe((status) => {
+          console.log(`DM subscription status for ${conversationId}:`, status);
+        });
+      
+      channelRef.current = channel;
+      
+      // Reset subscription error flag
+      subscriptionError.current = false;
+    } catch (error) {
+      console.error('[useDMSubscription] Error setting up subscription:', error);
+      
+      if (!subscriptionError.current && isMounted.current) {
+        toast({
+          title: "Connection Error",
+          description: "Could not set up real-time updates for messages.",
+          variant: "destructive"
+        });
+        subscriptionError.current = true;
       }
-    }, SUBSCRIPTION_DELAY_MS);
+    }
     
-    // Clean up timeout on unmount or when dependencies change
     return cleanupSubscription;
-  }, [conversationId, currentUserId, otherUserId, setMessages, addMessage, cleanupSubscription, debouncedAddMessage]);
+  }, [isSessionReady, conversationId, currentUserId, otherUserId, setMessages, addMessage, cleanupSubscription, debouncedAddMessage]);
 };
