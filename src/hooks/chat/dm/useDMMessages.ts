@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
@@ -5,15 +6,23 @@ import { toast } from '@/hooks/use-toast';
 import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 import debounce from 'lodash/debounce';
 
+// Constants for configuration
+const FETCH_DELAY_MS = 300;
+
 // Helper function to identify optimistic messages
 const isOptimisticMessage = (messageId: string) => messageId.startsWith('temp-');
+
+// Helper function to create a unique message ID for deduplication
+const createMessageId = (message: any): string => {
+  return `${message.id}-${message.sender?.id || 'unknown'}-${message.timestamp || Date.now()}`;
+};
 
 export const useDMMessages = (userId: string, userName: string, conversationId: string) => {
   const [messages, setMessages] = useState<any[]>([]);
   const [messageIds, setMessageIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
-  const { currentUser } = useApp();
+  const { currentUser, isSessionReady } = useApp();
   const { unhideConversation } = useHiddenDMs();
   const [errorToastShown, setErrorToastShown] = useState(false);
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
