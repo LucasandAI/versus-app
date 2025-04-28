@@ -653,6 +653,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_unread_club_messages_count: {
+        Args: { user_id: string }
+        Returns: number
+      }
+      get_unread_dm_count: {
+        Args: { user_id: string }
+        Returns: number
+      }
       is_club_admin: {
         Args: { club_id: string; user_id: string }
         Returns: boolean

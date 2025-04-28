@@ -14,14 +14,20 @@ export const useUnreadCounts = (userId: string | undefined) => {
     const fetchUnreadCounts = async () => {
       try {
         // Fetch DM unread counts
-        const dmResult = await supabase.rpc('get_unread_dm_count', { user_id: userId });
-        if (dmResult.error) throw dmResult.error;
-        setDMUnreadCount(dmResult.data || 0);
+        const { data: dmCount, error: dmError } = await supabase.rpc('get_unread_dm_count', {
+          user_id: userId
+        });
+        
+        if (dmError) throw dmError;
+        setDMUnreadCount(dmCount || 0);
 
         // Fetch club unread counts
-        const clubResult = await supabase.rpc('get_unread_club_messages_count', { user_id: userId });
-        if (clubResult.error) throw clubResult.error;
-        setClubUnreadCount(clubResult.data || 0);
+        const { data: clubCount, error: clubError } = await supabase.rpc('get_unread_club_messages_count', {
+          user_id: userId
+        });
+        
+        if (clubError) throw clubError;
+        setClubUnreadCount(clubCount || 0);
 
         // Get unread conversations
         const { data: unreadDMs } = await supabase
