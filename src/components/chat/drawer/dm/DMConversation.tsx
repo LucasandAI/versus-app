@@ -39,8 +39,13 @@ const DMConversation: React.FC<DMConversationProps> = ({
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const { formatTime } = useMessageFormatting();
   
-  // Use our improved subscription hook
-  useDMSubscription(conversationId, userId, currentUser?.id, setMessages, addMessage);
+  // Use our improved subscription hook - if conversationId exists
+  useEffect(() => {
+    // Only set up subscription if we have a valid conversationId
+    if (conversationId && conversationId !== 'new') {
+      useDMSubscription(conversationId, userId, currentUser?.id, setMessages, addMessage);
+    }
+  }, [conversationId, userId, currentUser?.id, setMessages, addMessage]);
 
   // Scroll to bottom on new messages or when conversation opens
   useEffect(() => {
@@ -53,19 +58,54 @@ const DMConversation: React.FC<DMConversationProps> = ({
   }, [messages.length]);
 
   // Local function to update conversation in the list
-  const updateLocalConversation = (
-    conversationId: string, 
-    userId: string, 
-    message: string,
-    userName: string,
-    userAvatar: string
-  ) => {
+  const updateLocalConversation = () => {
     // After sending a message, refresh conversations
     fetchConversations();
   };
 
+  // Function to create a new conversation in the database
+  const createConversation = async () => {
+    if (!currentUser?.id || !userId) return null;
+    
+    try {
+      // Check if conversation already exists between these two users
+      const { data: existingConversation, error: checkError } = await supabase
+        .from('direct_conversations')
+        .select('id')
+        .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${userId}),and(user1_id.eq.${userId},user2_id.eq.${currentUser.id})`)
+        .limit(1)
+        .single();
+      
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "no rows returned" which is expected
+        throw checkError;
+      }
+      
+      // If conversation exists, return its ID
+      if (existingConversation) {
+        return existingConversation.id;
+      }
+      
+      // Create a new conversation
+      const { data: newConversation, error } = await supabase
+        .from('direct_conversations')
+        .insert({
+          user1_id: currentUser.id,
+          user2_id: userId
+        })
+        .select('id')
+        .single();
+        
+      if (error) throw error;
+      
+      return newConversation.id;
+    } catch (error) {
+      console.error('Error creating conversation:', error);
+      return null;
+    }
+  };
+
   const handleSendMessage = async (message: string) => {
-    if (!message.trim() || !currentUser?.id || !userId || !conversationId) return;
+    if (!message.trim() || !currentUser?.id || !userId) return;
     setIsSending(true);
     
     unhideConversation(userId);
@@ -88,8 +128,19 @@ const DMConversation: React.FC<DMConversationProps> = ({
       // Add message to the chat window immediately (with duplicate check)
       addMessage(newMessageObj);
       
+      // Get or create a conversation ID
+      let actualConversationId = conversationId;
+      if (!actualConversationId || actualConversationId === 'new') {
+        console.log('Creating new conversation for users:', currentUser.id, userId);
+        const newConversationId = await createConversation();
+        if (!newConversationId) {
+          throw new Error('Could not create conversation');
+        }
+        actualConversationId = newConversationId;
+      }
+      
       // Update the conversation list immediately
-      updateLocalConversation(conversationId, userId, message, userName, userAvatar || '/placeholder.svg');
+      updateLocalConversation();
 
       const { data, error } = await supabase
         .from('direct_messages')
@@ -97,16 +148,22 @@ const DMConversation: React.FC<DMConversationProps> = ({
           sender_id: currentUser.id,
           receiver_id: userId,
           text: message,
-          conversation_id: conversationId
+          conversation_id: actualConversationId
         })
         .select('*')
         .single();
 
       if (error) throw error;
       
-      if (data) {
-        // Update the message ID to match the one from the database
-        // This is handled by useDMSubscription now, no need to duplicate
+      // If this was a new conversation, update the UI to use the new conversation ID
+      if (conversationId !== actualConversationId) {
+        // Dispatch event to update conversation ID in parent components
+        window.dispatchEvent(new CustomEvent('conversationCreated', {
+          detail: {
+            userId,
+            conversationId: actualConversationId
+          }
+        }));
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -163,7 +220,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
             onSendMessage={handleSendMessage}
             isSending={isSending}
             clubId={userId}
-            conversationId={conversationId}
+            conversationId={conversationId || 'new'}
             conversationType="dm"
           />
         </div>

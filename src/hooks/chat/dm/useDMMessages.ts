@@ -41,7 +41,14 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
 
   useEffect(() => {
     const fetchMessages = async () => {
-      if (!userId || !currentUser?.id || !conversationId) return;
+      if (!userId || !currentUser?.id) return;
+      
+      // Don't attempt to fetch messages if there's no valid conversation ID
+      if (!conversationId || conversationId === 'new') {
+        setMessages([]);
+        setLoading(false);
+        return;
+      }
       
       setLoading(true);
       try {
@@ -104,11 +111,14 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
         setMessageIds(initialMessageIds);
       } catch (error) {
         console.error('Error fetching direct messages:', error);
-        toast({
-          title: "Error",
-          description: "Could not load messages",
-          variant: "destructive"
-        });
+        // Only show toast if there's a real error, not just for empty conversation
+        if (conversationId !== 'new') {
+          toast({
+            title: "Error",
+            description: "Could not load messages",
+            variant: "destructive"
+          });
+        }
       } finally {
         setLoading(false);
       }
