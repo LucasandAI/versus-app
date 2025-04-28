@@ -25,28 +25,47 @@ export const useDMMessages = (userId: string, userName: string) => {
             id,
             text,
             sender_id,
-            timestamp,
-            users!sender_id (
-              id,
-              name,
-              avatar
-            )
+            timestamp
           `)
           .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${currentUser.id})`)
           .order('timestamp', { ascending: true });
 
         if (error) throw error;
 
-        const formattedMessages = (data || []).map((msg) => ({
-          id: msg.id,
-          text: msg.text,
-          sender: {
+        // Separately fetch user info for message senders
+        const senderIds = [...new Set(data?.map(msg => msg.sender_id) || [])];
+        const { data: usersData, error: usersError } = await supabase
+          .from('users')
+          .select('id, name, avatar')
+          .in('id', senderIds);
+        
+        if (usersError) throw usersError;
+
+        // Create a map of user data by ID for quick lookup
+        const userMap = (usersData || []).reduce((acc: Record<string, any>, user) => {
+          acc[user.id] = user;
+          return acc;
+        }, {});
+
+        const formattedMessages = (data || []).map((msg) => {
+          // Look up user info from our map
+          const senderInfo = userMap[msg.sender_id] || {
             id: msg.sender_id,
-            name: msg.users?.name || (msg.sender_id === currentUser.id ? currentUser.name : userName),
-            avatar: msg.users?.avatar || undefined
-          },
-          timestamp: msg.timestamp,
-        }));
+            name: msg.sender_id === currentUser.id ? currentUser.name : userName,
+            avatar: undefined
+          };
+
+          return {
+            id: msg.id,
+            text: msg.text,
+            sender: {
+              id: senderInfo.id,
+              name: senderInfo.name,
+              avatar: senderInfo.avatar
+            },
+            timestamp: msg.timestamp,
+          };
+        });
 
         setMessages(formattedMessages);
       } catch (error) {
