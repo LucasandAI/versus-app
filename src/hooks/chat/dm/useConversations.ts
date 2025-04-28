@@ -28,10 +28,9 @@ export const useConversations = (hiddenDMIds: string[] = []) => {
             event: 'INSERT', 
             schema: 'public', 
             table: 'direct_conversations',
-            filter: `or(user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id})`
+            filter: `or(user1_id=eq.${currentUser.id},user2_id=eq.${currentUser.id})`
           },
           () => {
-            // Fetch conversations immediately when a new one is created
             fetchConversations();
           })
       .subscribe();
@@ -44,10 +43,9 @@ export const useConversations = (hiddenDMIds: string[] = []) => {
             event: 'INSERT', 
             schema: 'public', 
             table: 'direct_messages',
-            filter: `or(sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id})`
+            filter: `or(sender_id=eq.${currentUser.id},receiver_id=eq.${currentUser.id})`
           },
           () => {
-            // Fetch conversations immediately when a new message is received
             fetchConversations();
           })
       .subscribe();
@@ -61,7 +59,6 @@ export const useConversations = (hiddenDMIds: string[] = []) => {
   return {
     conversations,
     loading,
-    updateConversation,
-    fetchConversations  // Expose fetchConversations to allow manual refreshing
+    updateConversation
   };
 };
