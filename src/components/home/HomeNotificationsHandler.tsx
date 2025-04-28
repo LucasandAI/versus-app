@@ -6,6 +6,7 @@ import ChatDrawerHandler from './ChatDrawerHandler';
 import { useHomeNotifications } from '@/hooks/home/useHomeNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
+import { useUnreadCounts } from '@/hooks/chat/useUnreadCounts';
 
 interface HomeNotificationsHandlerProps {
   userClubs: Club[];
@@ -25,10 +26,15 @@ const HomeNotificationsHandler: React.FC<HomeNotificationsHandlerProps> = ({
     notifications,
     setNotifications,
   } = useHomeNotifications();
+  
+  // Get club unread status separately
+  const { markClubAsRead } = useUnreadCounts(currentUser?.id);
 
   // Listen for real-time chat messages
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !userClubs.length) return;
+    
+    const userClubIds = userClubs.map(club => club.id);
     
     // Subscribe to club messages for the user's clubs
     const channel = supabase
@@ -38,11 +44,15 @@ const HomeNotificationsHandler: React.FC<HomeNotificationsHandlerProps> = ({
         { 
           event: 'INSERT', 
           schema: 'public', 
-          table: 'club_chat_messages',
-          filter: `club_id=in.(${userClubs.map(club => `'${club.id}'`).join(',')})` 
+          table: 'club_chat_messages'
         },
         (payload) => {
-          if (payload.new.sender_id !== currentUser.id) {
+          // Only process if the message is for one of the user's clubs
+          if (
+            payload.new.club_id && 
+            userClubIds.includes(payload.new.club_id) && 
+            payload.new.sender_id !== currentUser.id
+          ) {
             // Update unread count if the message is not from current user
             const clubId = payload.new.club_id;
             
@@ -51,6 +61,12 @@ const HomeNotificationsHandler: React.FC<HomeNotificationsHandlerProps> = ({
               detail: { clubId }
             });
             window.dispatchEvent(event);
+            
+            // Dispatch club-specific unread event
+            const clubEvent = new CustomEvent('clubUnreadMessagesUpdated', { 
+              detail: { clubId }
+            });
+            window.dispatchEvent(clubEvent);
           }
         }
       )

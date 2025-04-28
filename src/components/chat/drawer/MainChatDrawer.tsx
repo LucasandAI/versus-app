@@ -42,8 +42,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const { currentUser } = useApp();
   const { fetchConversations } = useConversations([]);
   const { markDirectMessagesAsRead, markClubMessagesAsRead } = useMessageReadStatus();
-  const { totalUnreadCount } = useUnreadMessages();
-  const { markDMAsRead, markClubAsRead } = useUnreadCounts(currentUser?.id);
+  const { markDMAsRead } = useUnreadMessages();
+  const { markClubAsRead } = useUnreadCounts(currentUser?.id);
   
   useEffect(() => {
     if (open && currentUser?.id) {
@@ -52,10 +52,13 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   }, [open, currentUser?.id, fetchConversations]);
 
   useEffect(() => {
-    if (onNewMessage) {
-      onNewMessage(totalUnreadCount);
+    if (onNewMessage && currentUser?.id) {
+      // Get total unread count from both hooks
+      const { totalUnreadCount: dmCount } = useUnreadMessages();
+      const { clubUnreadCount } = useUnreadCounts(currentUser.id);
+      onNewMessage(dmCount + clubUnreadCount);
     }
-  }, [totalUnreadCount, onNewMessage]);
+  }, [onNewMessage, currentUser?.id]);
 
   useEffect(() => {
     const handleOpenDM = (event: CustomEvent<{
@@ -73,6 +76,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       });
       
       if (currentUser?.id && event.detail.conversationId !== 'new') {
+        // Mark as read in both systems for consistency
         markDirectMessagesAsRead(
           event.detail.conversationId, 
           currentUser.id,

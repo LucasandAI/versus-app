@@ -69,7 +69,8 @@ export const useUnreadMessages = () => {
         .upsert({
           user_id: currentUser.id,
           conversation_id: conversationId,
-          last_read_timestamp: new Date().toISOString()
+          last_read_timestamp: new Date().toISOString(),
+          has_unread: false
         }, { 
           onConflict: 'user_id,conversation_id'
         });
@@ -78,9 +79,13 @@ export const useUnreadMessages = () => {
     }
   };
 
+  // Expose the method as markDMAsRead for consistency with useUnreadCounts
+  const markDMAsRead = markConversationAsRead;
+
   return {
     unreadConversations,
     totalUnreadCount: unreadCount,
-    markConversationAsRead
+    markConversationAsRead,
+    markDMAsRead
   };
 };

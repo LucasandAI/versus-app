@@ -42,6 +42,19 @@ const DMConversationList: React.FC<Props> = ({
     }
   }, [currentUser?.id, isSessionReady, fetchConversations]);
 
+  // Setup listener for unread message updates
+  useEffect(() => {
+    const handleUnreadUpdate = () => {
+      // Force re-render to update unread indicators
+      setLocalConversations([...localConversations]);
+    };
+    
+    window.addEventListener('unreadMessagesUpdated', handleUnreadUpdate);
+    return () => {
+      window.removeEventListener('unreadMessagesUpdated', handleUnreadUpdate);
+    };
+  }, [localConversations]);
+
   const displayConversations = loading ? previousConversationsRef.current : localConversations;
   const showLoading = isInitialLoading && displayConversations.length === 0;
   const isEmpty = !showLoading && displayConversations.length === 0;

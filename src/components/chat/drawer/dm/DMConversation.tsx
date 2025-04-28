@@ -10,7 +10,6 @@ import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting
 import { useConversationManagement } from '@/hooks/chat/dm/useConversationManagement';
 import { useMessageHandling } from '@/hooks/chat/dm/useMessageHandling';
 import { useUnreadMessages } from '@/hooks/chat/dm/useUnreadMessages';
-import DMMessageInput from './DMMessageInput';
 
 interface DMConversationProps {
   userId: string;
@@ -31,7 +30,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
   const { conversations, fetchConversations } = useConversations([]);
   const { formatTime } = useMessageFormatting();
   const lastMessageRef = useRef<HTMLDivElement>(null);
-  const { markConversationAsRead } = useUnreadMessages();
+  const { markDMAsRead } = useUnreadMessages();
   
   // Custom hooks
   const { createConversation } = useConversationManagement(currentUser?.id, userId);
@@ -60,9 +59,9 @@ const DMConversation: React.FC<DMConversationProps> = ({
   // Mark conversation as read when opened
   useEffect(() => {
     if (conversationId && conversationId !== 'new') {
-      markConversationAsRead(conversationId);
+      markDMAsRead(conversationId);
     }
-  }, [conversationId, markConversationAsRead]);
+  }, [conversationId, markDMAsRead]);
 
   return (
     <div className="flex flex-col h-full w-full">
