@@ -16,7 +16,11 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
   const errorToastShown = useRef(false);
   
   const fetchConversations = useCallback(async () => {
-    if (!currentUser?.id) return [];
+    // Guard clause: Early return if user ID is not available
+    if (!currentUser?.id) {
+      setLoading(false);
+      return [];
+    }
     
     try {
       setLoading(true);

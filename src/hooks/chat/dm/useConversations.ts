@@ -19,10 +19,11 @@ export const useConversations = (hiddenDMIds: string[] = []) => {
   
   // Subscribe to real-time updates for conversations
   useEffect(() => {
+    // Guard clause: Early return if no user ID
     if (!currentUser?.id) return;
     
     try {
-      // Start fetching immediately when component mounts
+      // Start fetching immediately when component mounts and user ID is available
       fetchConversations();
       
       // Create channels for subscriptions

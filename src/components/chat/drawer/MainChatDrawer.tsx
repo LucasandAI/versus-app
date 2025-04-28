@@ -44,6 +44,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const { fetchConversations } = useConversations(hiddenDMs);
   
   useEffect(() => {
+    // Only pre-fetch conversations when drawer opens AND current user is available
     if (open && currentUser?.id) {
       // Pre-fetch conversations when drawer opens
       fetchConversations();

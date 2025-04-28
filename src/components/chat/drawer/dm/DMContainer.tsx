@@ -27,19 +27,29 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
   const [isLoading, setIsLoading] = useState(true);
   const [basicConversations, setBasicConversations] = useState<any[]>([]);
 
-  // Fetch conversations immediately when component mounts
+  // Fetch conversations only when component mounts AND user is available
   useEffect(() => {
-    if (!currentUser?.id) return;
+    // Guard clause: early return if user is not available
+    if (!currentUser?.id) {
+      setIsLoading(false);
+      return;
+    }
 
     const fetchBasicConversations = async () => {
       try {
         setIsLoading(true);
         
         // Get all direct conversations without waiting for user details or messages
-        const { data: conversationsData } = await supabase
+        const { data: conversationsData, error } = await supabase
           .from('direct_conversations')
           .select('id, user1_id, user2_id, created_at')
           .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`);
+        
+        if (error) {
+          console.error("Error fetching basic conversations:", error);
+          setIsLoading(false);
+          return;
+        }
         
         if (conversationsData && conversationsData.length > 0) {
           // Create basic conversation objects with minimal information
