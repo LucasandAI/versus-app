@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { MessageCircle } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -32,11 +31,10 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   const { totalUnreadCount: unreadDMCount } = useUnreadMessages();
   const { clubUnreadCount } = useUnreadCounts(currentUser?.id);
   
-  const totalUnreadMessages = unreadDMCount + clubUnreadCount;
+  const hasUnreadMessages = unreadDMCount + clubUnreadCount > 0;
 
   const handleViewOwnProfile = () => {
     if (currentUser) {
-      // Always set selectedUser to currentUser when clicking the avatar
       setSelectedUser(currentUser);
       setCurrentView('profile');
     }
@@ -59,7 +57,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           onClick={open}
           className="text-primary hover:bg-gray-100 rounded-full p-2"
           icon={<MessageCircle className="h-5 w-5" />}
-          badge={totalUnreadMessages > 0 ? totalUnreadMessages : undefined}
+          badge={hasUnreadMessages}
         />
         <UserAvatar 
           name={currentUser?.name || "User"} 

@@ -1,14 +1,14 @@
-
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
+import { toast } from "sonner";
 
 export const useUnreadMessages = () => {
   const [unreadConversations, setUnreadConversations] = useState<Set<string>>(new Set());
   const [totalUnreadCount, setTotalUnreadCount] = useState<number>(0);
   const { currentUser } = useApp();
 
-  // Fetch initial unread messages status
+  // Fetch initial unread status
   useEffect(() => {
     if (!currentUser?.id) return;
     
@@ -110,13 +110,25 @@ export const useUnreadMessages = () => {
     };
   }, [currentUser?.id]);
 
-  // Mark conversation as read
+  // Optimistically mark conversation as read
   const markConversationAsRead = useCallback(async (conversationId: string) => {
     if (!currentUser?.id || !conversationId) return;
     
+    // Optimistically update local state
+    setUnreadConversations(prev => {
+      const updated = new Set(prev);
+      updated.delete(conversationId);
+      return updated;
+    });
+    setTotalUnreadCount(prev => Math.max(0, prev - 1));
+
+    // Dispatch event to update global unread count
+    const event = new CustomEvent('unreadMessagesUpdated');
+    window.dispatchEvent(event);
+    
     try {
       // Update the read timestamp in the database
-      await supabase
+      const { error } = await supabase
         .from('direct_messages_read')
         .upsert({
           user_id: currentUser.id,
@@ -126,18 +138,20 @@ export const useUnreadMessages = () => {
           onConflict: 'user_id,conversation_id'
         });
       
-      // Update local state
-      setUnreadConversations(prev => {
-        const updated = new Set(prev);
-        if (updated.has(conversationId)) {
-          updated.delete(conversationId);
-          setTotalUnreadCount(count => Math.max(0, count - 1));
-        }
-        return updated;
-      });
+      if (error) throw error;
       
     } catch (error) {
       console.error('[useUnreadMessages] Error marking conversation as read:', error);
+      
+      // Revert optimistic update on error
+      setUnreadConversations(prev => {
+        const reverted = new Set(prev);
+        reverted.add(conversationId);
+        return reverted;
+      });
+      setTotalUnreadCount(prev => prev + 1);
+      
+      toast.error("Failed to mark conversation as read");
     }
   }, [currentUser?.id]);
 

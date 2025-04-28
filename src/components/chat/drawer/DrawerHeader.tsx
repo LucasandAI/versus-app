@@ -20,9 +20,6 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
   const { currentUser } = useApp();
   const { unreadConversations } = useUnreadMessages();
   const { unreadClubs } = useUnreadCounts(currentUser?.id);
-  
-  const hasUnreadDms = unreadConversations.size > 0;
-  const hasUnreadClubs = unreadClubs.size > 0;
 
   return (
     <div className="px-4 py-2 border-b">
@@ -30,13 +27,13 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="clubs" className="inline-flex items-center gap-2">
             Club Chat
-            {hasUnreadClubs && (
+            {unreadClubs.size > 0 && (
               <span className="inline-flex h-2 w-2 bg-red-500 rounded-full" />
             )}
           </TabsTrigger>
           <TabsTrigger value="dm" className="inline-flex items-center gap-2">
             Direct Messages
-            {hasUnreadDms && (
+            {unreadConversations.size > 0 && (
               <span className="inline-flex h-2 w-2 bg-red-500 rounded-full" />
             )}
           </TabsTrigger>
