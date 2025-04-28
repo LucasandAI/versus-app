@@ -1,5 +1,5 @@
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import { toast } from '@/hooks/use-toast';
@@ -13,6 +13,7 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
   const [loading, setLoading] = useState(true);
   const { currentUser } = useApp();
   const { unhideConversation } = useHiddenDMs();
+  const errorToastShown = useRef(false);
   
   const fetchConversations = useCallback(async () => {
     if (!currentUser?.id) return [];
@@ -63,6 +64,9 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       
       setConversations(initialConversations);
+      
+      // Reset error toast flag on successful fetch
+      errorToastShown.current = false;
       
       // Fetch user information and latest messages in parallel
       const userPromise = supabase
@@ -124,13 +128,20 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
       
     } catch (error) {
       console.error('Error fetching conversations:', error);
-      toast({
-        title: "Error",
-        description: "Could not load conversations",
-        variant: "destructive"
-      });
+      
+      // Show toast only once per session
+      if (!errorToastShown.current) {
+        toast({
+          title: "Error",
+          description: "Could not load conversations. Please try again later.",
+          variant: "destructive"
+        });
+        errorToastShown.current = true;
+      }
+      
       return [];
     } finally {
+      // Ensure loading state is always reset, even on error
       setLoading(false);
     }
   }, [currentUser?.id, hiddenDMIds, unhideConversation]);
