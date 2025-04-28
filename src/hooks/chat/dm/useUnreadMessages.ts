@@ -79,13 +79,9 @@ export const useUnreadMessages = () => {
     }
   };
 
-  // Expose the method as markDMAsRead for consistency with useUnreadCounts
-  const markDMAsRead = markConversationAsRead;
-
   return {
     unreadConversations,
     totalUnreadCount: unreadCount,
-    markConversationAsRead,
-    markDMAsRead
+    markConversationAsRead
   };
 };
