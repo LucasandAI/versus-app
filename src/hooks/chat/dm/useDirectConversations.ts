@@ -22,7 +22,7 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
     try {
       setLoading(true);
       
-      // Get all conversations where the current user is either user1 or user2
+      // Step 1: Get all conversations where the current user is either user1 or user2
       const { data: conversationsData, error: conversationsError } = await supabase
         .from('direct_conversations')
         .select(`
@@ -46,32 +46,62 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
         conv.user1_id === currentUser.id ? conv.user2_id : conv.user1_id
       );
       
+      // Create a basic map of conversation objects (with minimal data)
+      const basicConversations = conversationsData.reduce((acc: Record<string, DMConversation>, conv) => {
+        const otherUserId = conv.user1_id === currentUser.id ? conv.user2_id : conv.user1_id;
+        
+        // Skip hidden conversations
+        if (hiddenDMIds.includes(otherUserId)) return acc;
+        
+        acc[otherUserId] = {
+          conversationId: conv.id,
+          userId: otherUserId,
+          userName: "Loading...", // Will be updated with real data
+          userAvatar: DEFAULT_AVATAR,
+          lastMessage: "",
+          timestamp: conv.created_at,
+          isInitiator: false,
+          isLoading: true
+        };
+        return acc;
+      }, {});
+      
+      // Set immediate basic conversations data
+      const initialConversations = Object.values(basicConversations)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      
+      setConversations(initialConversations);
+      
+      // Step 2: In parallel, fetch user information and latest messages
+      
       // Fetch user information for those IDs
-      const { data: userData, error: userError } = await supabase
+      const userPromise = supabase
         .from('users')
         .select('id, name, avatar')
         .in('id', otherUserIds);
       
-      if (userError) throw userError;
-      
-      // Create a map for quick user data lookup
-      const userMap = (userData || []).reduce((acc: Record<string, any>, user) => {
-        acc[user.id] = user;
-        return acc;
-      }, {});
-      
       // Get the most recent message for each conversation
-      const { data: messagesData, error: messagesError } = await supabase
+      const messagesPromise = supabase
         .from('direct_messages')
         .select('conversation_id, text, timestamp, sender_id')
         .in('conversation_id', conversationsData.map(c => c.id))
         .order('timestamp', { ascending: false });
       
-      if (messagesError) throw messagesError;
+      // Wait for both promises to resolve
+      const [userResult, messagesResult] = await Promise.all([userPromise, messagesPromise]);
+      
+      if (userResult.error) throw userResult.error;
+      if (messagesResult.error) throw messagesResult.error;
+      
+      // Create a map for quick user data lookup
+      const userMap = (userResult.data || []).reduce((acc: Record<string, any>, user) => {
+        acc[user.id] = user;
+        return acc;
+      }, {});
       
       // Create a map of the most recent message for each conversation
       const latestMessageMap: Record<string, {text: string, timestamp: string, senderId: string}> = {};
-      messagesData?.forEach(msg => {
+      messagesResult.data?.forEach(msg => {
         if (!latestMessageMap[msg.conversation_id]) {
           latestMessageMap[msg.conversation_id] = {
             text: msg.text,
@@ -81,36 +111,34 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
         }
       });
       
-      // Format conversations with user info and latest message
-      const formattedConversations = conversationsData
+      // Update conversations with user info and latest message
+      const updatedConversations = conversationsData
         .map(conv => {
           const otherUserId = conv.user1_id === currentUser.id ? conv.user2_id : conv.user1_id;
+          
+          // Skip if this conversation should be hidden
+          if (hiddenDMIds.includes(otherUserId)) return null;
+          
           const otherUser = userMap[otherUserId];
-          
-          if (!otherUser) return null;
-          
           const latestMessage = latestMessageMap[conv.id];
           
           return {
             conversationId: conv.id,
-            userId: otherUser.id,
-            userName: otherUser.name || 'Unknown User',
-            userAvatar: otherUser.avatar || DEFAULT_AVATAR, // Always provide an avatar
+            userId: otherUserId,
+            userName: otherUser?.name || 'Unknown User',
+            userAvatar: otherUser?.avatar || DEFAULT_AVATAR, 
             lastMessage: latestMessage?.text || '',
             timestamp: latestMessage?.timestamp || conv.created_at,
             isInitiator: latestMessage ? latestMessage.senderId === currentUser.id : false
           };
         })
-        .filter((conv): conv is DMConversation => 
-          conv !== null && !hiddenDMIds.includes(conv.userId)
-        )
+        .filter((conv): conv is DMConversation => conv !== null)
         .sort((a, b) => 
-          // Sort by timestamp, newest first
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
         );
       
-      setConversations(formattedConversations);
-      return formattedConversations;
+      setConversations(updatedConversations);
+      return updatedConversations;
       
     } catch (error) {
       console.error('Error fetching conversations:', error);
@@ -124,11 +152,6 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
       setLoading(false);
     }
   }, [currentUser?.id, hiddenDMIds, unhideConversation]);
-  
-  // Always fetch conversations immediately when the component mounts or dependencies change
-  useEffect(() => {
-    fetchConversations();
-  }, [fetchConversations]);
   
   // Function to add or update a conversation in the state
   const updateConversation = useCallback((conversationId: string, userId: string, message: string, userName: string, userAvatar: string) => {

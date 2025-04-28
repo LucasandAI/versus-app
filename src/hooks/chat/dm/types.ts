@@ -1,12 +1,12 @@
-
 export interface DMConversation {
   conversationId: string;
   userId: string;
   userName: string;
-  userAvatar: string;  // Now required, use placeholder if missing
+  userAvatar: string;
   lastMessage: string;
   timestamp: string;
-  isInitiator: boolean;
+  isInitiator?: boolean;
+  isLoading?: boolean;
 }
 
 export interface DirectMessage {

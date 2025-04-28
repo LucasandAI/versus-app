@@ -1,6 +1,10 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import DMSearchPanel from './DMSearchPanel';
+import DMConversationList from './DMConversationList';
+import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
+import { useApp } from '@/context/AppContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DMContainerProps {
   directMessageUser: {
@@ -18,9 +22,78 @@ interface DMContainerProps {
 }
 
 const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectMessageUser }) => {
+  const { currentUser } = useApp();
+  const { hiddenDMs } = useHiddenDMs();
+  const [isLoading, setIsLoading] = useState(true);
+  const [basicConversations, setBasicConversations] = useState<any[]>([]);
+
+  // Fetch conversations immediately when component mounts
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    const fetchBasicConversations = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Get all direct conversations without waiting for user details or messages
+        const { data: conversationsData } = await supabase
+          .from('direct_conversations')
+          .select('id, user1_id, user2_id, created_at')
+          .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`);
+        
+        if (conversationsData && conversationsData.length > 0) {
+          // Create basic conversation objects with minimal information
+          const initialConversations = conversationsData.map(conv => {
+            const otherUserId = conv.user1_id === currentUser.id ? conv.user2_id : conv.user1_id;
+            
+            // Check if this conversation should be hidden
+            if (hiddenDMs.includes(otherUserId)) {
+              return null;
+            }
+            
+            return {
+              conversationId: conv.id,
+              userId: otherUserId,
+              userName: "Loading...", // Placeholder name
+              userAvatar: "/placeholder.svg", // Placeholder avatar
+              lastMessage: "",
+              timestamp: conv.created_at,
+              isLoading: true
+            };
+          }).filter(Boolean);
+          
+          setBasicConversations(initialConversations);
+        }
+      } catch (error) {
+        console.error("Error fetching basic conversations:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchBasicConversations();
+  }, [currentUser?.id, hiddenDMs]);
+
+  const handleSelectUser = (userId: string, userName: string, userAvatar: string, conversationId: string) => {
+    setDirectMessageUser({
+      userId,
+      userName,
+      userAvatar,
+      conversationId
+    });
+  };
+
   return (
-    <div className="h-full overflow-hidden">
+    <div className="h-full overflow-hidden flex flex-col">
       <DMSearchPanel />
+      <div className="flex-1 overflow-hidden">
+        <DMConversationList 
+          onSelectUser={handleSelectUser} 
+          selectedUserId={directMessageUser?.userId}
+          initialConversations={basicConversations}
+          isInitialLoading={isLoading}
+        />
+      </div>
     </div>
   );
 };

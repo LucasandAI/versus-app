@@ -6,6 +6,9 @@ import DrawerHeader from './DrawerHeader';
 import { ChatProvider } from '@/context/ChatContext';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { useChatActions } from '@/hooks/chat/useChatActions';
+import { useApp } from '@/context/AppContext';
+import { useConversations } from '@/hooks/chat/dm/useConversations';
+import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -34,6 +37,18 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   } | null>(null);
   
   const { sendMessageToClub, deleteMessage } = useChatActions();
+  const { currentUser } = useApp();
+  const { hiddenDMs } = useHiddenDMs();
+  
+  // Pre-fetch conversations when drawer opens for faster loading
+  const { fetchConversations } = useConversations(hiddenDMs);
+  
+  useEffect(() => {
+    if (open && currentUser?.id) {
+      // Pre-fetch conversations when drawer opens
+      fetchConversations();
+    }
+  }, [open, currentUser?.id, fetchConversations]);
 
   useEffect(() => {
     const handleOpenDM = (event: CustomEvent<{
@@ -76,6 +91,15 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       return await deleteMessage(messageId, setClubMessages);
     }
   };
+  
+  const handleTabChange = (tab: "clubs" | "dm") => {
+    setActiveTab(tab);
+    
+    // If switching to DM tab, pre-fetch conversations for faster loading
+    if (tab === "dm" && currentUser?.id) {
+      fetchConversations();
+    }
+  };
 
   return (
     <ChatProvider>
@@ -83,7 +107,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
         <DrawerContent className="h-[80vh] rounded-t-xl p-0 flex flex-col">
           <DrawerHeader 
             activeTab={activeTab} 
-            setActiveTab={setActiveTab}
+            setActiveTab={handleTabChange}
             selectedClub={selectedLocalClub}
           />
           

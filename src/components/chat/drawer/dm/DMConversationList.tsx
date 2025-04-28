@@ -3,15 +3,30 @@ import React from 'react';
 import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 import ConversationItem from './ConversationItem';
 import { useConversations } from '@/hooks/chat/dm/useConversations';
+import { Skeleton } from '@/components/ui/skeleton';
+import { DMConversation } from '@/hooks/chat/dm/types';
 
 interface Props {
   onSelectUser: (userId: string, userName: string, userAvatar: string, conversationId: string) => void;
   selectedUserId?: string;
+  initialConversations?: DMConversation[];
+  isInitialLoading?: boolean;
 }
 
-const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) => {
+const DMConversationList: React.FC<Props> = ({ 
+  onSelectUser, 
+  selectedUserId,
+  initialConversations = [],
+  isInitialLoading = false
+}) => {
   const { hideConversation, hiddenDMs } = useHiddenDMs();
-  const { conversations } = useConversations(hiddenDMs);
+  const { conversations, loading } = useConversations(hiddenDMs);
+  
+  // Determine which conversations to display
+  // Use fully loaded conversations if available, otherwise use initial basic conversations
+  const displayConversations = conversations.length > 0 ? conversations : initialConversations;
+  const showLoading = isInitialLoading && initialConversations.length === 0;
+  const isEmpty = !showLoading && displayConversations.length === 0;
   
   const handleHideConversation = (
     e: React.MouseEvent,
@@ -27,14 +42,26 @@ const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) =
       <h1 className="text-4xl font-bold p-4">Messages</h1>
       
       <div className="flex-1 overflow-auto">
-        {conversations.length === 0 ? (
+        {showLoading ? (
+          <div className="p-4 space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center space-x-3 p-2">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : isEmpty ? (
           <div className="p-4 text-center text-gray-500">
             <p className="text-lg">No messages yet</p>
             <p className="text-sm mt-1">Search above to start a conversation</p>
           </div>
         ) : (
           <div className="divide-y">
-            {conversations.map((conversation) => (
+            {displayConversations.map((conversation) => (
               <ConversationItem
                 key={conversation.conversationId}
                 conversation={conversation}
@@ -46,6 +73,7 @@ const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) =
                   conversation.conversationId
                 )}
                 onHide={(e) => handleHideConversation(e, conversation.userId)}
+                isLoading={conversation.isLoading}
               />
             ))}
           </div>

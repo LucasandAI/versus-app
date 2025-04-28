@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import { useDirectConversations } from './useDirectConversations';
@@ -19,6 +19,9 @@ export const useConversations = (hiddenDMIds: string[] = []) => {
   // Subscribe to real-time updates for conversations
   useEffect(() => {
     if (!currentUser?.id) return;
+    
+    // Start fetching immediately when component mounts
+    fetchConversations();
     
     // Subscribe to new conversations
     const newConversationChannel = supabase
@@ -59,6 +62,7 @@ export const useConversations = (hiddenDMIds: string[] = []) => {
   return {
     conversations,
     loading,
-    updateConversation
+    updateConversation,
+    fetchConversations
   };
 };

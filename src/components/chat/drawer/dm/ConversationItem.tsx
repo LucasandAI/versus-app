@@ -15,19 +15,22 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ConversationItemProps {
   conversation: DMConversation;
   isSelected: boolean;
   onSelect: () => void;
   onHide: (e: React.MouseEvent) => void;
+  isLoading?: boolean;
 }
 
 const ConversationItem: React.FC<ConversationItemProps> = ({
   conversation,
   isSelected,
   onSelect,
-  onHide
+  onHide,
+  isLoading = false
 }) => {
   const [isHideDialogOpen, setIsHideDialogOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -70,20 +73,30 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
         
         <div className="flex-1 min-w-0 overflow-hidden">
           <div className="flex items-center justify-between mb-1">
-            <h2 className="font-medium text-lg truncate max-w-[60%]">
-              {conversation.userName}
-            </h2>
-            {formattedTime && (
+            {isLoading ? (
+              <Skeleton className="h-5 w-24" />
+            ) : (
+              <h2 className="font-medium text-lg truncate max-w-[60%]">
+                {conversation.userName}
+              </h2>
+            )}
+            {formattedTime && !isLoading ? (
               <span className="text-xs text-gray-500 flex-shrink-0 ml-auto">
                 {formattedTime}
               </span>
-            )}
+            ) : isLoading ? (
+              <Skeleton className="h-3 w-12 ml-auto" />
+            ) : null}
           </div>
           
           <div className="flex items-center">
-            <p className="text-sm text-gray-600 truncate flex-1">
-              {truncatedMessage}
-            </p>
+            {isLoading ? (
+              <Skeleton className="h-4 w-full flex-1" />
+            ) : (
+              <p className="text-sm text-gray-600 truncate flex-1">
+                {truncatedMessage}
+              </p>
+            )}
             <button
               onClick={handleHideClick}
               className="flex-shrink-0 p-1.5 ml-2 rounded-full hover:bg-gray-200 transition-colors"
