@@ -53,64 +53,14 @@ const DMSearchPanel: React.FC = () => {
       id: userId,
       name: userName,
       avatar: userAvatar,
-      conversationId: existingConversationId
+      // If we don't have a conversation ID yet, use 'new' as a placeholder
+      conversationId: existingConversationId || 'new'
     });
     clearSearch();
 
-    // If we don't have a conversation ID yet, check if one exists or create a new one
-    if (!existingConversationId && currentUser?.id) {
-      try {
-        console.log('Checking/creating conversation between', currentUser.id, 'and', userId);
-        
-        // Check for existing conversation (in both directions)
-        const { data: existingConversation, error: fetchError } = await supabase
-          .from('direct_conversations')
-          .select('id')
-          .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${userId}),and(user1_id.eq.${userId},user2_id.eq.${currentUser.id})`)
-          .maybeSingle();
-
-        if (fetchError) throw fetchError;
-        
-        console.log('Existing conversation check result:', existingConversation);
-
-        let conversationId: string;
-        
-        if (existingConversation) {
-          // Use existing conversation
-          conversationId = existingConversation.id;
-          console.log('Using existing conversation:', conversationId);
-        } else {
-          // Create new conversation
-          const newConversationId = `${currentUser.id}_${userId}_${Date.now()}`;
-          console.log('Creating new conversation with ID:', newConversationId);
-          
-          const { error: insertError } = await supabase
-            .from('direct_conversations')
-            .insert({
-              id: newConversationId,
-              user1_id: currentUser.id,
-              user2_id: userId
-            });
-
-          if (insertError) throw insertError;
-          conversationId = newConversationId;
-          console.log('Successfully created conversation:', conversationId);
-        }
-        
-        // Update the selected user with the conversation ID
-        setSelectedDMUser(prev => prev ? {
-          ...prev,
-          conversationId
-        } : null);
-      } catch (error) {
-        console.error("Error handling conversation:", error);
-        toast({
-          title: "Error",
-          description: "Could not start conversation",
-          variant: "destructive"
-        });
-      }
-    }
+    // We don't need to check for an existing conversation here anymore
+    // That will be handled when the first message is sent
+    console.log('Selected user for DM:', userName, 'with conversation:', existingConversationId || 'new');
   };
 
   const handleBack = () => {
@@ -122,6 +72,26 @@ const DMSearchPanel: React.FC = () => {
       navigateToUserProfile(selectedDMUser.id, selectedDMUser.name, selectedDMUser.avatar);
     }
   };
+
+  // Listen for conversation creation events
+  React.useEffect(() => {
+    const handleConversationCreated = (event: CustomEvent) => {
+      const { userId, conversationId } = event.detail;
+      console.log('Conversation created event received:', userId, conversationId);
+      
+      if (selectedDMUser && selectedDMUser.id === userId) {
+        setSelectedDMUser(prev => prev ? {
+          ...prev,
+          conversationId
+        } : null);
+      }
+    };
+
+    window.addEventListener('conversationCreated', handleConversationCreated as EventListener);
+    return () => {
+      window.removeEventListener('conversationCreated', handleConversationCreated as EventListener);
+    };
+  }, [selectedDMUser]);
 
   return (
     <div className="flex h-full w-full">
@@ -174,18 +144,12 @@ const DMSearchPanel: React.FC = () => {
           </div>
           
           <div className="flex-1">
-            {selectedDMUser.conversationId ? (
-              <DMConversation
-                userId={selectedDMUser.id}
-                userName={selectedDMUser.name}
-                userAvatar={selectedDMUser.avatar || '/placeholder.svg'}
-                conversationId={selectedDMUser.conversationId}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-500">
-                Loading conversation...
-              </div>
-            )}
+            <DMConversation
+              userId={selectedDMUser.id}
+              userName={selectedDMUser.name}
+              userAvatar={selectedDMUser.avatar || '/placeholder.svg'}
+              conversationId={selectedDMUser.conversationId || 'new'}
+            />
           </div>
         </div>
       )}

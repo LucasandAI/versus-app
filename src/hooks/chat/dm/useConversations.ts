@@ -30,7 +30,7 @@ export const useConversations = (hiddenDMIds: string[] = []) => {
             event: 'INSERT', 
             schema: 'public', 
             table: 'direct_conversations',
-            filter: `or(user1_id=eq.${currentUser.id},user2_id=eq.${currentUser.id})`
+            filter: `user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`
           },
           () => {
             fetchConversations();
@@ -45,7 +45,7 @@ export const useConversations = (hiddenDMIds: string[] = []) => {
             event: 'INSERT', 
             schema: 'public', 
             table: 'direct_messages',
-            filter: `or(sender_id=eq.${currentUser.id},receiver_id=eq.${currentUser.id})`
+            filter: `sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`
           },
           () => {
             fetchConversations();

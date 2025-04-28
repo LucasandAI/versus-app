@@ -44,6 +44,7 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
       if (!userId || !currentUser?.id) return;
       
       // Don't attempt to fetch messages if there's no valid conversation ID
+      // But also don't show error for 'new' conversations
       if (!conversationId || conversationId === 'new') {
         setMessages([]);
         setLoading(false);
@@ -71,7 +72,7 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
         const { data: usersData, error: usersError } = await supabase
           .from('users')
           .select('id, name, avatar')
-          .in('id', senderIds);
+          .in('id', senderIds.length > 0 ? senderIds : ['00000000-0000-0000-0000-000000000000']);
         
         if (usersError) throw usersError;
 

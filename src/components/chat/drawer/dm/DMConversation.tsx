@@ -39,9 +39,8 @@ const DMConversation: React.FC<DMConversationProps> = ({
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const { formatTime } = useMessageFormatting();
   
-  // Use our improved subscription hook - if conversationId exists
+  // Use our improved subscription hook - if conversationId exists and is not 'new'
   useEffect(() => {
-    // Only set up subscription if we have a valid conversationId
     if (conversationId && conversationId !== 'new') {
       useDMSubscription(conversationId, userId, currentUser?.id, setMessages, addMessage);
     }
@@ -68,23 +67,27 @@ const DMConversation: React.FC<DMConversationProps> = ({
     if (!currentUser?.id || !userId) return null;
     
     try {
+      console.log('Checking for existing conversation between', currentUser.id, 'and', userId);
+      
       // Check if conversation already exists between these two users
       const { data: existingConversation, error: checkError } = await supabase
         .from('direct_conversations')
         .select('id')
         .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${userId}),and(user1_id.eq.${userId},user2_id.eq.${currentUser.id})`)
-        .limit(1)
-        .single();
+        .maybeSingle();
       
-      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "no rows returned" which is expected
+      if (checkError) {
+        console.error('Error checking for existing conversation:', checkError);
         throw checkError;
       }
       
       // If conversation exists, return its ID
       if (existingConversation) {
+        console.log('Found existing conversation:', existingConversation.id);
         return existingConversation.id;
       }
       
+      console.log('Creating new conversation between', currentUser.id, 'and', userId);
       // Create a new conversation
       const { data: newConversation, error } = await supabase
         .from('direct_conversations')
@@ -95,11 +98,20 @@ const DMConversation: React.FC<DMConversationProps> = ({
         .select('id')
         .single();
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating conversation:', error);
+        throw error;
+      }
       
+      console.log('Created new conversation with ID:', newConversation.id);
       return newConversation.id;
     } catch (error) {
       console.error('Error creating conversation:', error);
+      toast({
+        title: "Error",
+        description: "Could not create conversation",
+        variant: "destructive"
+      });
       return null;
     }
   };
@@ -131,17 +143,19 @@ const DMConversation: React.FC<DMConversationProps> = ({
       // Get or create a conversation ID
       let actualConversationId = conversationId;
       if (!actualConversationId || actualConversationId === 'new') {
-        console.log('Creating new conversation for users:', currentUser.id, userId);
+        console.log('Need to create/find conversation for users:', currentUser.id, userId);
         const newConversationId = await createConversation();
         if (!newConversationId) {
           throw new Error('Could not create conversation');
         }
         actualConversationId = newConversationId;
+        console.log('Got conversation ID:', actualConversationId);
       }
       
       // Update the conversation list immediately
       updateLocalConversation();
 
+      console.log('Sending message with conversation ID:', actualConversationId);
       const { data, error } = await supabase
         .from('direct_messages')
         .insert({
@@ -155,8 +169,11 @@ const DMConversation: React.FC<DMConversationProps> = ({
 
       if (error) throw error;
       
+      console.log('Message sent successfully:', data);
+      
       // If this was a new conversation, update the UI to use the new conversation ID
       if (conversationId !== actualConversationId) {
+        console.log('Updating conversation ID from', conversationId, 'to', actualConversationId);
         // Dispatch event to update conversation ID in parent components
         window.dispatchEvent(new CustomEvent('conversationCreated', {
           detail: {
