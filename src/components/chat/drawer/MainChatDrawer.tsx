@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import ChatDrawerContainer from './ChatDrawerContainer';
@@ -9,6 +10,7 @@ import { useApp } from '@/context/AppContext';
 import { useConversations } from '@/hooks/chat/dm/useConversations';
 import { useUnreadMessages } from '@/hooks/chat/dm/useUnreadMessages';
 import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
+import { useUnreadCounts } from '@/hooks/chat/useUnreadCounts';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -40,7 +42,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const { currentUser } = useApp();
   const { fetchConversations } = useConversations([]);
   const { markDirectMessagesAsRead, markClubMessagesAsRead } = useMessageReadStatus();
-  const { totalUnreadCount, markDMAsRead, markClubAsRead } = useUnreadMessages();
+  const { totalUnreadCount } = useUnreadMessages();
+  const { markDMAsRead, markClubAsRead } = useUnreadCounts(currentUser?.id);
   
   useEffect(() => {
     if (open && currentUser?.id) {
