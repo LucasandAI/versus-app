@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import DMSearchPanel from './DMSearchPanel';
 import DMConversationList from './DMConversationList';
 import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
@@ -27,6 +27,16 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
   const [isLoading, setIsLoading] = useState(true);
   const [basicConversations, setBasicConversations] = useState<any[]>([]);
   const [fetchAttempted, setFetchAttempted] = useState(false);
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Fetch conversations only when component mounts AND user is available
   useEffect(() => {
@@ -38,11 +48,17 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
       return;
     }
 
-    const fetchBasicConversations = async () => {
+    // Clear any existing timeout
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
+    }
+
+    // Set a small delay before fetching to ensure auth is fully ready
+    fetchTimeoutRef.current = setTimeout(async () => {
       try {
         setIsLoading(true);
         setFetchAttempted(true);
-        console.log('DMContainer: Fetching basic conversations for user:', currentUser.id);
+        console.log('DMContainer: Fetching basic conversations for user after delay:', currentUser.id);
         
         // Get all direct conversations without waiting for user details or messages
         const { data: conversationsData, error } = await supabase
@@ -87,9 +103,7 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
       } finally {
         setIsLoading(false);
       }
-    };
-    
-    fetchBasicConversations();
+    }, 100); // 100ms delay
   }, [currentUser?.id, hiddenDMs]);
 
   const handleSelectUser = (userId: string, userName: string, userAvatar: string, conversationId: string) => {

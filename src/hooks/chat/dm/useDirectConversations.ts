@@ -7,6 +7,7 @@ import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 import { DMConversation } from './types';
 
 const DEFAULT_AVATAR = '/placeholder.svg';
+const FETCH_DELAY_MS = 100; // Add a small delay before fetching
 
 export const useDirectConversations = (hiddenDMIds: string[] = []) => {
   const [conversations, setConversations] = useState<DMConversation[]>([]);
@@ -15,6 +16,7 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
   const { unhideConversation } = useHiddenDMs();
   const errorToastShown = useRef(false);
   const attemptedFetch = useRef(false);
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const fetchConversations = useCallback(async () => {
     // Guard clause: Early return if user ID is not available
@@ -156,11 +158,30 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
     }
   }, [currentUser?.id, hiddenDMIds, unhideConversation]);
   
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+    };
+  }, []);
+  
   // Add an effect to trigger fetch when currentUser becomes available
   useEffect(() => {
     if (currentUser?.id && !attemptedFetch.current) {
-      console.log('User ID now available, fetching conversations');
-      fetchConversations();
+      console.log('User ID now available, scheduling fetch with delay');
+      
+      // Clear any existing timeout
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+      
+      // Set a small delay before fetching to ensure auth is fully ready
+      fetchTimeoutRef.current = setTimeout(() => {
+        console.log(`Delayed fetch executing after ${FETCH_DELAY_MS}ms`);
+        fetchConversations();
+      }, FETCH_DELAY_MS);
     }
   }, [currentUser?.id, fetchConversations]);
   

@@ -27,7 +27,17 @@ const DMConversationList: React.FC<Props> = ({
   // Refetch when user ID becomes available
   useEffect(() => {
     if (currentUser?.id) {
-      fetchConversations();
+      console.log("[DMConversationList] Current user ID available:", currentUser.id);
+      
+      // Small delay to ensure auth is fully ready
+      const timer = setTimeout(() => {
+        console.log("[DMConversationList] Triggering fetchConversations after delay");
+        fetchConversations();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    } else {
+      console.log("[DMConversationList] Waiting for current user ID");
     }
   }, [currentUser?.id, fetchConversations]);
   

@@ -1,9 +1,11 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import { toast } from '@/hooks/use-toast';
 import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
+
+const FETCH_DELAY_MS = 100; // Add a small delay before fetching
 
 // Helper function to create a unique message identifier for deduplication
 const createMessageId = (message: any) => {
@@ -18,6 +20,7 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
   const { currentUser } = useApp();
   const { unhideConversation } = useHiddenDMs();
   const [errorToastShown, setErrorToastShown] = useState(false);
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Function to add messages without duplicates
   const addMessagesWithoutDuplicates = (newMessages: any[]) => {
@@ -40,8 +43,23 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
     }
   };
 
+  // Clean up timeout on unmount
   useEffect(() => {
-    const fetchMessages = async () => {
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    // Clear any existing timeout
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
+    }
+
+    // Set a small delay before fetching
+    fetchTimeoutRef.current = setTimeout(async () => {
       // Guard clause: early return if any required ID is missing
       if (!userId || !currentUser?.id || !conversationId) {
         if (conversationId !== 'new') {
@@ -59,6 +77,8 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
       
       setLoading(true);
       try {
+        console.log(`Fetching messages for conversation ${conversationId} after delay`);
+        
         // Fetch messages using conversation ID
         const { data, error } = await supabase
           .from('direct_messages')
@@ -137,9 +157,7 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchMessages();
+    }, FETCH_DELAY_MS);
   }, [userId, currentUser?.id, userName, currentUser?.name, conversationId, errorToastShown]);
 
   // Add a message without duplicates
