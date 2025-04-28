@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import DMConversationList from './DMConversationList';
@@ -10,6 +11,7 @@ type SelectedUser = {
   id: string;
   name: string;
   avatar?: string;
+  conversationId?: string;
 } | null;
 
 interface DMContainerProps {
@@ -17,16 +19,19 @@ interface DMContainerProps {
     userId: string;
     userName: string;
     userAvatar?: string;
+    conversationId?: string;
   } | null;
   setDirectMessageUser?: React.Dispatch<React.SetStateAction<{
     userId: string;
     userName: string;
     userAvatar?: string;
+    conversationId?: string;
   } | null>>;
   directMessageUser?: {
     userId: string;
     userName: string;
     userAvatar?: string;
+    conversationId?: string;
   } | null;
 }
 
@@ -39,18 +44,20 @@ const DMContainer: React.FC<DMContainerProps> = ({
   const convertedInitialUser = initialSelectedUser ? {
     id: initialSelectedUser.userId,
     name: initialSelectedUser.userName,
-    avatar: initialSelectedUser.userAvatar
+    avatar: initialSelectedUser.userAvatar,
+    conversationId: initialSelectedUser.conversationId
   } : null;
   
   // If directMessageUser is provided, use it to create the initial user
   const initialUserFromProps = directMessageUser ? {
     id: directMessageUser.userId,
     name: directMessageUser.userName,
-    avatar: directMessageUser.userAvatar
+    avatar: directMessageUser.userAvatar,
+    conversationId: directMessageUser.conversationId
   } : convertedInitialUser;
   
   const [selectedUser, setSelectedUser] = useState<SelectedUser>(initialUserFromProps);
-  const { hideConversation, hiddenDMs } = useHiddenDMs();
+  const { hideConversation } = useHiddenDMs();
 
   // Apply initialSelectedUser or directMessageUser when they change
   useEffect(() => {
@@ -59,30 +66,34 @@ const DMContainer: React.FC<DMContainerProps> = ({
       setSelectedUser({
         id: directMessageUser.userId,
         name: directMessageUser.userName,
-        avatar: directMessageUser.userAvatar
+        avatar: directMessageUser.userAvatar,
+        conversationId: directMessageUser.conversationId
       });
     } else if (initialSelectedUser) {
       console.log('[DMContainer] Setting initial selected user:', initialSelectedUser.userName);
       setSelectedUser({
         id: initialSelectedUser.userId,
         name: initialSelectedUser.userName,
-        avatar: initialSelectedUser.userAvatar
+        avatar: initialSelectedUser.userAvatar,
+        conversationId: initialSelectedUser.conversationId
       });
     }
   }, [initialSelectedUser, directMessageUser]);
 
-  const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
+  const handleSelectUser = (userId: string, userName: string, userAvatar?: string, conversationId?: string) => {
     const user = {
       id: userId,
       name: userName,
-      avatar: userAvatar
+      avatar: userAvatar,
+      conversationId
     };
     setSelectedUser(user);
     if (setDirectMessageUser) {
       setDirectMessageUser({
         userId: userId,
         userName: userName,
-        userAvatar: userAvatar
+        userAvatar: userAvatar,
+        conversationId
       });
     }
   };
@@ -96,9 +107,9 @@ const DMContainer: React.FC<DMContainerProps> = ({
 
   // Listen for openDirectMessage events 
   useEffect(() => {
-    const handleOpenDM = (event: CustomEvent<{userId: string, userName: string, userAvatar?: string}>) => {
-      const { userId, userName, userAvatar } = event.detail;
-      handleSelectUser(userId, userName, userAvatar);
+    const handleOpenDM = (event: CustomEvent<{userId: string, userName: string, userAvatar?: string, conversationId?: string}>) => {
+      const { userId, userName, userAvatar, conversationId } = event.detail;
+      handleSelectUser(userId, userName, userAvatar, conversationId);
     };
 
     window.addEventListener('openDirectMessage', handleOpenDM as EventListener);
@@ -145,6 +156,7 @@ const DMContainer: React.FC<DMContainerProps> = ({
               userId={selectedUser.id}
               userName={selectedUser.name}
               userAvatar={selectedUser.avatar}
+              conversationId={selectedUser.conversationId}
             />
           </div>
         </div>

@@ -1,96 +1,64 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
-import { useUserData } from './useUserData';
-import { useRealtimeSubscriptions } from './useRealtimeSubscriptions';
-import { useFetchConversations } from './useFetchConversations';
-import { useConversationsPersistence } from './useConversationsPersistence';
-import type { DMConversation } from './types';
+import { useDirectConversations } from './useDirectConversations';
+import { DMConversation } from './types';
 
-export type { DMConversation };
+export { DMConversation } from './types';
 
-export const useConversations = (hiddenDMs: string[]) => {
-  const [allConversations, setAllConversations] = useState<DMConversation[]>([]);
-  const [visibleConversations, setVisibleConversations] = useState<DMConversation[]>([]);
+export const useConversations = (hiddenDMIds: string[] = []) => {
   const { currentUser } = useApp();
-  const { userCache, setUserCache, fetchUserData } = useUserData();
-  const fetchConversations = useFetchConversations(currentUser?.id);
-  const { saveConversationsToStorage, loadConversationsFromStorage } = useConversationsPersistence();
-
-  // Load initial conversations from storage
+  const { 
+    conversations, 
+    loading, 
+    fetchConversations, 
+    updateConversation 
+  } = useDirectConversations(hiddenDMIds);
+  
+  // Subscribe to real-time updates for conversations
   useEffect(() => {
-    const storedConversations = loadConversationsFromStorage();
-    if (storedConversations.length > 0) {
-      console.log('[useConversations] Initializing with stored conversations:', storedConversations.length);
-      setAllConversations(storedConversations);
-    }
-  }, [loadConversationsFromStorage]);
-
-  // Persist conversations to storage
-  useEffect(() => {
-    if (allConversations.length > 0) {
-      console.log('[useConversations] Saving updated conversations:', allConversations.length);
-      saveConversationsToStorage(allConversations);
-    }
-  }, [allConversations, saveConversationsToStorage]);
-
-  // Recompute visible conversations whenever allConversations or hiddenDMs change
-  useEffect(() => {
-    console.log('[useConversations] Filtering visible conversations. Total:', allConversations.length, 'Hidden:', hiddenDMs.length);
-    setVisibleConversations(
-      allConversations.filter(conv => !hiddenDMs.includes(conv.userId))
-    );
-  }, [allConversations, hiddenDMs]);
-
-  const updateConversation = useCallback((otherUserId: string, newMessage: string, otherUserName?: string, otherUserAvatar?: string) => {
-    console.log('[updateConversation] Updating conversation for userId:', otherUserId, 'with message:', newMessage);
+    if (!currentUser?.id) return;
     
-    setAllConversations(prevConversations => {
-      const now = new Date().toISOString();
-      const existingConvIndex = prevConversations.findIndex(
-        conv => conv.userId === otherUserId
-      );
+    // Subscribe to new conversations
+    const newConversationChannel = supabase
+      .channel('new-conversations')
+      .on('postgres_changes', 
+          { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'direct_conversations',
+            filter: `or(user1_id=eq.${currentUser.id},user2_id=eq.${currentUser.id})`
+          },
+          () => {
+            fetchConversations();
+          })
+      .subscribe();
+    
+    // Subscribe to new messages that might update conversation previews
+    const messageChannel = supabase
+      .channel('dm-conversation-updates')
+      .on('postgres_changes', 
+          { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'direct_messages',
+            filter: `or(sender_id=eq.${currentUser.id},receiver_id=eq.${currentUser.id})`
+          },
+          () => {
+            fetchConversations();
+          })
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(newConversationChannel);
+      supabase.removeChannel(messageChannel);
+    };
+  }, [currentUser?.id, fetchConversations]);
 
-      if (otherUserName) {
-        setUserCache(prev => ({
-          ...prev,
-          [otherUserId]: { name: otherUserName, avatar: otherUserAvatar }
-        }));
-      }
-
-      let updatedConversations = [...prevConversations];
-      
-      if (existingConvIndex >= 0) {
-        // Update existing conversation
-        const existingConv = { ...updatedConversations[existingConvIndex] };
-        updatedConversations.splice(existingConvIndex, 1);
-        updatedConversations.unshift({
-          ...existingConv,
-          lastMessage: newMessage,
-          timestamp: now,
-          ...(otherUserName && { userName: otherUserName }),
-          ...(otherUserAvatar && { userAvatar: otherUserAvatar })
-        });
-      } else if (otherUserName) {
-        // Create new conversation
-        updatedConversations.unshift({
-          userId: otherUserId,
-          userName: otherUserName,
-          userAvatar: otherUserAvatar,
-          lastMessage: newMessage,
-          timestamp: now
-        });
-      }
-
-      return updatedConversations;
-    });
-  }, [setUserCache]);
-
-  // Set up realtime subscriptions
-  useRealtimeSubscriptions(currentUser?.id, userCache, fetchUserData, updateConversation);
-
-  return { 
-    conversations: visibleConversations,
+  return {
+    conversations,
+    loading,
     updateConversation
   };
 };

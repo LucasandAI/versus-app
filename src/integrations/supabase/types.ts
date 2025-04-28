@@ -225,8 +225,45 @@ export type Database = {
           },
         ]
       }
+      direct_conversations: {
+        Row: {
+          created_at: string | null
+          id: string
+          user1_id: string
+          user2_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          user1_id: string
+          user2_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          user1_id?: string
+          user2_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_conversations_user1_id_fkey"
+            columns: ["user1_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "direct_conversations_user2_id_fkey"
+            columns: ["user2_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       direct_messages: {
         Row: {
+          conversation_id: string | null
           id: string
           receiver_id: string
           sender_id: string
@@ -234,6 +271,7 @@ export type Database = {
           timestamp: string
         }
         Insert: {
+          conversation_id?: string | null
           id?: string
           receiver_id: string
           sender_id: string
@@ -241,13 +279,22 @@ export type Database = {
           timestamp?: string
         }
         Update: {
+          conversation_id?: string | null
           id?: string
           receiver_id?: string
           sender_id?: string
           text?: string
           timestamp?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "direct_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       match_distances: {
         Row: {

@@ -1,16 +1,19 @@
 
 export interface DMConversation {
-  userId: string;         // The ID of the other user (conversation partner)
-  userName: string;       // The name of the other user
-  userAvatar?: string;    // The avatar of the other user
-  lastMessage?: string;   // The last message in the conversation
-  timestamp?: string;     // Timestamp of the last message
-  isInitiator?: boolean;  // Whether the current user initiated the conversation
+  conversationId: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  lastMessage: string;
+  timestamp: string;
+  isInitiator: boolean;
 }
 
-export interface UserCacheItem {
-  name: string;
-  avatar?: string;
+export interface DirectMessage {
+  id: string;
+  text: string;
+  sender_id: string;
+  receiver_id: string;
+  conversation_id?: string;
+  timestamp: string;
 }
-
-export type UserCache = Record<string, UserCacheItem>;
