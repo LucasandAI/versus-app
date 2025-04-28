@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 import ConversationItem from './ConversationItem';
 import { useConversations } from '@/hooks/chat/dm/useConversations';
@@ -23,21 +23,37 @@ const DMConversationList: React.FC<Props> = ({
   const { hideConversation, hiddenDMs } = useHiddenDMs();
   const { currentUser } = useApp();
   const { conversations, loading, fetchConversations } = useConversations(hiddenDMs);
+  const hasFetchedRef = useRef(false);
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Refetch when user ID becomes available
+  // Clean up resources on unmount
   useEffect(() => {
-    if (currentUser?.id) {
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Only fetch once when user ID becomes available
+  useEffect(() => {
+    if (currentUser?.id && !hasFetchedRef.current) {
       console.log("[DMConversationList] Current user ID available:", currentUser.id);
+      hasFetchedRef.current = true;
+      
+      // Clear any existing timeout
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
       
       // Small delay to ensure auth is fully ready
-      const timer = setTimeout(() => {
+      fetchTimeoutRef.current = setTimeout(() => {
         console.log("[DMConversationList] Triggering fetchConversations after delay");
         fetchConversations();
-      }, 100);
-      
-      return () => clearTimeout(timer);
-    } else {
+      }, 300); // Increased delay
+    } else if (!currentUser?.id) {
       console.log("[DMConversationList] Waiting for current user ID");
+      hasFetchedRef.current = false;
     }
   }, [currentUser?.id, fetchConversations]);
   

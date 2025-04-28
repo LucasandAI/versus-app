@@ -28,17 +28,22 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
   const [basicConversations, setBasicConversations] = useState<any[]>([]);
   const [fetchAttempted, setFetchAttempted] = useState(false);
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMounted = useRef(true);
+  const hasFetchedRef = useRef(false);
   
-  // Clean up timeout on unmount
+  // Clean up resources on unmount
   useEffect(() => {
+    isMounted.current = true;
+    
     return () => {
+      isMounted.current = false;
       if (fetchTimeoutRef.current) {
         clearTimeout(fetchTimeoutRef.current);
       }
     };
   }, []);
 
-  // Fetch conversations only when component mounts AND user is available
+  // Fetch basic conversations only once when component mounts AND user is available
   useEffect(() => {
     // Guard clause: early return if user is not available
     if (!currentUser?.id) {
@@ -48,13 +53,22 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
       return;
     }
 
+    // Skip if we've already fetched
+    if (hasFetchedRef.current) {
+      return;
+    }
+    
+    hasFetchedRef.current = true;
+
     // Clear any existing timeout
     if (fetchTimeoutRef.current) {
       clearTimeout(fetchTimeoutRef.current);
     }
 
-    // Set a small delay before fetching to ensure auth is fully ready
+    // Set a delay before fetching to ensure auth is fully ready
     fetchTimeoutRef.current = setTimeout(async () => {
+      if (!isMounted.current) return;
+      
       try {
         setIsLoading(true);
         setFetchAttempted(true);
@@ -65,6 +79,8 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
           .from('direct_conversations')
           .select('id, user1_id, user2_id, created_at')
           .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`);
+        
+        if (!isMounted.current) return;
         
         if (error) {
           console.error("Error fetching basic conversations:", error);
@@ -94,17 +110,21 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
             };
           }).filter(Boolean);
           
-          setBasicConversations(initialConversations);
+          if (isMounted.current) {
+            setBasicConversations(initialConversations);
+          }
         } else {
           console.log('DMContainer: No conversations found');
         }
       } catch (error) {
         console.error("Error fetching basic conversations:", error);
       } finally {
-        setIsLoading(false);
+        if (isMounted.current) {
+          setIsLoading(false);
+        }
       }
-    }, 100); // 100ms delay
-  }, [currentUser?.id, hiddenDMs]);
+    }, 300); // Increased delay for better reliability
+  }, [currentUser?.id, hiddenDMs, fetchAttempted]);
 
   const handleSelectUser = (userId: string, userName: string, userAvatar: string, conversationId: string) => {
     setDirectMessageUser({
