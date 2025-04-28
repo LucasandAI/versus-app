@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -82,8 +83,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
     );
   };
 
+  // The key fix here - Use the proper alignment for messages
   return (
-    <div className={`flex ${isUserMessage ? 'justify-end mr-4' : 'justify-start ml-4'} mb-3 group`}>
+    <div className={`flex ${isUserMessage ? 'justify-end mr-4' : 'justify-start ml-4'} mb-6 group`}>
+      {/* Avatar appears only for non-user messages (support messages) */}
       {!isUserMessage && (
         <UserAvatar
           name={message.sender?.name || "Unknown"}
@@ -95,6 +98,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
       )}
 
       <div className={`flex flex-col ${isUserMessage ? 'items-end' : 'items-start'} max-w-[75%]`}>
+        {/* Sender name appears only for non-user messages */}
         {!isUserMessage && (
           <button
             className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left w-full`}
@@ -116,6 +120,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
         </div>
       </div>
 
+      {/* Avatar and delete button for user's own messages */}
       {isUserMessage && renderDeleteButton()}
     </div>
   );
