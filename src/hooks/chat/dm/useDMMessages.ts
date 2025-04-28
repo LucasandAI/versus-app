@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
@@ -87,7 +88,7 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
     
     setLoading(true);
     try {
-      console.log(`Fetching messages for conversation ${conversationIdRef.current}`);
+      console.log(`[useDMMessages] Fetching messages for conversation ${conversationIdRef.current}`);
       
       const { data, error } = await supabase
         .from('direct_messages')
@@ -168,7 +169,7 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
     } catch (error) {
       if (!isMounted.current) return;
       
-      console.error('Error fetching direct messages:', error);
+      console.error('[useDMMessages] Error fetching direct messages:', error);
       
       if (!errorToastShown) {
         toast({
@@ -236,7 +237,7 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting message:', error);
+      console.error('[useDMMessages] Error deleting message:', error);
       toast({
         title: "Error",
         description: "Could not delete message",

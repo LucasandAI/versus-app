@@ -6,6 +6,33 @@ import { toast } from '@/hooks/use-toast';
 import debounce from 'lodash/debounce';
 import { useApp } from '@/context/AppContext';
 
+// Helper function to find a matching optimistic message
+const findMatchingOptimisticMessage = (
+  messages: ChatMessage[], 
+  confirmedMessage: ChatMessage
+): ChatMessage | undefined => {
+  // Only look for messages marked as optimistic
+  const optimisticMessages = messages.filter(msg => msg.optimistic === true);
+  
+  return optimisticMessages.find(msg => {
+    // Match by text content
+    const textMatch = msg.text === confirmedMessage.text;
+    
+    // Match by sender ID
+    const senderMatch = String(msg.sender.id) === String(confirmedMessage.sender.id);
+    
+    // Calculate time difference in seconds
+    const msgTime = new Date(msg.timestamp).getTime();
+    const confirmedTime = new Date(confirmedMessage.timestamp).getTime();
+    const timeDifference = Math.abs(msgTime - confirmedTime) / 1000;
+    
+    // Allow for a 5 second window
+    const timeMatch = timeDifference <= 5;
+    
+    return textMatch && senderMatch && timeMatch;
+  });
+};
+
 export const useDMSubscription = (
   conversationId: string | undefined,
   otherUserId: string | undefined,
@@ -21,9 +48,24 @@ export const useDMSubscription = (
 
   // Debounced function to handle adding new messages
   const debouncedAddMessage = useRef(
-    debounce((chatMessage: ChatMessage) => {
+    debounce((chatMessage: ChatMessage, currentMessages: ChatMessage[]) => {
       if (isMounted.current) {
-        addMessage(chatMessage);
+        // Look for a matching optimistic message
+        const matchingOptimisticMessage = findMatchingOptimisticMessage(currentMessages, chatMessage);
+        
+        if (matchingOptimisticMessage) {
+          console.log('[useDMSubscription] Found matching optimistic message, replacing:', matchingOptimisticMessage.id);
+          // Replace the optimistic message with the confirmed one
+          setMessages(prevMessages => 
+            prevMessages.map(msg => 
+              msg.id === matchingOptimisticMessage.id ? chatMessage : msg
+            )
+          );
+        } else {
+          // No matching optimistic message found, add as normal
+          console.log('[useDMSubscription] No matching optimistic message found, adding new message');
+          addMessage(chatMessage);
+        }
       }
     }, 100)
   ).current;
@@ -31,7 +73,7 @@ export const useDMSubscription = (
   // Clean up function
   const cleanupSubscription = useCallback(() => {
     if (channelRef.current) {
-      console.log(`Cleaning up subscription for conversation ${conversationId}`);
+      console.log(`[useDMSubscription] Cleaning up subscription for conversation ${conversationId}`);
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
@@ -77,7 +119,7 @@ export const useDMSubscription = (
         }, (payload) => {
           if (!isMounted.current) return;
           
-          console.log('New direct message received:', payload);
+          console.log('[useDMSubscription] New direct message received:', payload);
           
           const newMessage = payload.new;
           
@@ -92,8 +134,12 @@ export const useDMSubscription = (
             timestamp: newMessage.timestamp
           };
           
-          // Add the new message to the state using the debounced function
-          debouncedAddMessage(chatMessage);
+          // Get current messages to check for optimistic matches
+          setMessages(currentMessages => {
+            // Use debounced function to handle adding or replacing messages
+            debouncedAddMessage(chatMessage, currentMessages);
+            return currentMessages;
+          });
         })
         .subscribe((status) => {
           console.log(`DM subscription status for ${conversationId}:`, status);
