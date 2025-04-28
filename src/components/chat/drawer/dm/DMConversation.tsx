@@ -39,12 +39,8 @@ const DMConversation: React.FC<DMConversationProps> = ({
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const { formatTime } = useMessageFormatting();
   
-  // Use our improved subscription hook - if conversationId exists and is not 'new'
-  useEffect(() => {
-    if (conversationId && conversationId !== 'new') {
-      useDMSubscription(conversationId, userId, currentUser?.id, setMessages, addMessage);
-    }
-  }, [conversationId, userId, currentUser?.id, setMessages, addMessage]);
+  // Use our subscription hook
+  useDMSubscription(conversationId, userId, currentUser?.id, setMessages, addMessage);
 
   // Scroll to bottom on new messages or when conversation opens
   useEffect(() => {

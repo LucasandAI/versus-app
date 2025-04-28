@@ -22,39 +22,81 @@ export const useConversations = (hiddenDMIds: string[] = []) => {
     // Start fetching immediately when component mounts
     fetchConversations();
     
-    // Subscribe to new conversations
-    const newConversationChannel = supabase
-      .channel('new-conversations')
+    // Create channels for subscriptions
+    const channels = [];
+    
+    // Subscribe to new conversations where user is user1
+    const user1Channel = supabase
+      .channel('new-conversations-user1')
       .on('postgres_changes', 
           { 
             event: 'INSERT', 
             schema: 'public', 
             table: 'direct_conversations',
-            filter: `user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`
+            filter: `user1_id=eq.${currentUser.id}`
           },
           () => {
+            console.log('New conversation detected (user1)');
             fetchConversations();
           })
       .subscribe();
+    channels.push(user1Channel);
     
-    // Subscribe to new messages that might update conversation previews
-    const messageChannel = supabase
-      .channel('dm-conversation-updates')
+    // Subscribe to new conversations where user is user2
+    const user2Channel = supabase
+      .channel('new-conversations-user2')
+      .on('postgres_changes', 
+          { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'direct_conversations',
+            filter: `user2_id=eq.${currentUser.id}`
+          },
+          () => {
+            console.log('New conversation detected (user2)');
+            fetchConversations();
+          })
+      .subscribe();
+    channels.push(user2Channel);
+    
+    // Subscribe to new messages where user is sender
+    const senderChannel = supabase
+      .channel('dm-sender-updates')
       .on('postgres_changes', 
           { 
             event: 'INSERT', 
             schema: 'public', 
             table: 'direct_messages',
-            filter: `sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`
+            filter: `sender_id=eq.${currentUser.id}`
           },
           () => {
+            console.log('New message sent detected');
             fetchConversations();
           })
       .subscribe();
+    channels.push(senderChannel);
+    
+    // Subscribe to new messages where user is receiver
+    const receiverChannel = supabase
+      .channel('dm-receiver-updates')
+      .on('postgres_changes', 
+          { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'direct_messages',
+            filter: `receiver_id=eq.${currentUser.id}`
+          },
+          () => {
+            console.log('New message received detected');
+            fetchConversations();
+          })
+      .subscribe();
+    channels.push(receiverChannel);
     
     return () => {
-      supabase.removeChannel(newConversationChannel);
-      supabase.removeChannel(messageChannel);
+      channels.forEach(channel => {
+        supabase.removeChannel(channel);
+      });
     };
   }, [currentUser?.id, fetchConversations]);
 
