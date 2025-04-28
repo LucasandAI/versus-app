@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
@@ -5,8 +6,12 @@ import { toast } from '@/hooks/use-toast';
 import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 import debounce from 'lodash/debounce';
 
-// Helper function to identify optimistic messages
-const isOptimisticMessage = (messageId: string) => messageId.startsWith('temp-');
+const FETCH_DELAY_MS = 300; // Increased delay before fetching
+
+// Helper function to create a unique message identifier for deduplication
+const createMessageId = (message: any) => {
+  return `${message.text}-${message.sender?.id}-${message.timestamp}`;
+};
 
 export const useDMMessages = (userId: string, userName: string, conversationId: string) => {
   const [messages, setMessages] = useState<any[]>([]);
@@ -202,7 +207,6 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
   const addMessageWithoutDuplicates = useCallback((message: any) => {
     const messageId = createMessageId(message);
     if (!messageIds.has(messageId)) {
-      console.log('[useDMMessages] Adding new message:', message.id, isOptimisticMessage(message.id) ? '(optimistic)' : '');
       setMessages(prev => [...prev, message]);
       setMessageIds(prev => new Set(prev).add(messageId));
       return true;
@@ -210,51 +214,40 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
     return false;
   }, [messageIds]);
 
-  const handleDeleteMessage = useCallback(async (messageId: string) => {
-    // First remove the message optimistically
-    setMessages(prev => prev.filter(msg => msg.id !== messageId));
-
-    // If it's an optimistic message that hasn't been saved yet, we're done
-    if (isOptimisticMessage(messageId)) {
-      console.log('[useDMMessages] Deleted optimistic message:', messageId);
-      return;
-    }
-
-    // Otherwise, attempt to delete from database
-    try {
-      const { error } = await supabase
-        .from('direct_messages')
-        .delete()
-        .eq('id', messageId);
-
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error deleting message:', error);
-      toast({
-        title: "Error",
-        description: "Could not delete message",
-        variant: "destructive"
-      });
-    }
-  }, []);
-
-  // Pre-fetch messages when conversation changes
-  useEffect(() => {
-    if (isSessionReady && conversationId && conversationId !== 'new') {
-      console.log('[useDMMessages] Pre-fetching messages for conversation:', conversationId);
-      fetchMessages();
-    }
-  }, [isSessionReady, conversationId, fetchMessages]);
-
   return {
     messages,
-    setMessages,
+    setMessages: (messageUpdater: any) => {
+      // If it's a function updater, we need to handle it specially
+      if (typeof messageUpdater === 'function') {
+        setMessages(prev => {
+          const newMessages = messageUpdater(prev);
+          
+          // Update message IDs too
+          const newIds = new Set<string>();
+          newMessages.forEach((msg: any) => {
+            newIds.add(createMessageId(msg));
+          });
+          setMessageIds(newIds);
+          
+          return newMessages;
+        });
+      } else {
+        // Direct update
+        setMessages(messageUpdater);
+        
+        // Update message IDs
+        const newIds = new Set<string>();
+        messageUpdater.forEach((msg: any) => {
+          newIds.add(createMessageId(msg));
+        });
+        setMessageIds(newIds);
+      }
+    },
     addMessage: addMessageWithoutDuplicates,
     addMessages: addMessagesWithoutDuplicates,
     loading,
     isSending,
     setIsSending,
-    refreshMessages: fetchMessages,
-    deleteMessage: handleDeleteMessage
+    refreshMessages: fetchMessages
   };
 };
