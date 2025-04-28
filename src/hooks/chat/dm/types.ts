@@ -3,7 +3,7 @@ export interface DMConversation {
   conversationId: string;
   userId: string;
   userName: string;
-  userAvatar?: string;
+  userAvatar?: string;  // Marked as optional explicitly
   lastMessage: string;
   timestamp: string;
   isInitiator: boolean;
