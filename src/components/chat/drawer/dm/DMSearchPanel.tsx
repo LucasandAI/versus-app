@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ArrowLeft } from 'lucide-react';
 import SearchBar from './SearchBar';
@@ -12,7 +12,6 @@ import { useNavigation } from '@/hooks/useNavigation';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
-import { toast } from '@/hooks/use-toast';
 
 const DMSearchPanel: React.FC = () => {
   const { 
@@ -47,7 +46,10 @@ const DMSearchPanel: React.FC = () => {
     searchUsers(value);
   };
 
+  // This function handles selecting a user from search results or conversation list
   const handleSelectUser = async (userId: string, userName: string, userAvatar?: string, existingConversationId?: string) => {
+    console.log('Selected user for DM:', userName, 'with conversation:', existingConversationId || 'new');
+    
     // Immediately set the selected user to show the conversation UI
     setSelectedDMUser({
       id: userId,
@@ -56,11 +58,8 @@ const DMSearchPanel: React.FC = () => {
       // If we don't have a conversation ID yet, use 'new' as a placeholder
       conversationId: existingConversationId || 'new'
     });
+    
     clearSearch();
-
-    // We don't need to check for an existing conversation here anymore
-    // That will be handled when the first message is sent
-    console.log('Selected user for DM:', userName, 'with conversation:', existingConversationId || 'new');
   };
 
   const handleBack = () => {
@@ -74,7 +73,7 @@ const DMSearchPanel: React.FC = () => {
   };
 
   // Listen for conversation creation events
-  React.useEffect(() => {
+  useEffect(() => {
     const handleConversationCreated = (event: CustomEvent) => {
       const { userId, conversationId } = event.detail;
       console.log('Conversation created event received:', userId, conversationId);

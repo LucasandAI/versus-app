@@ -57,7 +57,10 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
     };
 
     if (isSessionReady && conversationId && conversationId !== 'new') {
+      // Load messages immediately when a conversation is selected
       loadMessages();
+    } else {
+      setLoading(false); // Make sure to set loading to false for new conversations
     }
   }, [userId, currentUser?.id, conversationId, fetchMessages, isSessionReady, addMessagesWithoutDuplicates]);
 

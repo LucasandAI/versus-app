@@ -45,10 +45,7 @@ export const useHiddenDMs = () => {
     
     setHiddenDMs(prev => prev.filter(id => id !== userId));
     
-    toast({
-      title: "Conversation visible",
-      description: "Conversation has been unhidden",
-    });
+    // Removed the "conversation visible" toast as requested
   };
 
   const isConversationHidden = (userId: string) => {

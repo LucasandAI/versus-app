@@ -126,6 +126,21 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
     }, 300); // Increased delay for better reliability
   }, [currentUser?.id, hiddenDMs, fetchAttempted]);
 
+  // Effect to refetch when hiddenDMs changes
+  useEffect(() => {
+    if (currentUser?.id && hasFetchedRef.current) {
+      console.log('DMContainer: hiddenDMs changed, refreshing conversations');
+      // Reset the fetch flag to allow a new fetch
+      hasFetchedRef.current = false;
+      // Clear any existing timeout
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+      // Set fetchAttempted to false to force a refetch
+      setFetchAttempted(false);
+    }
+  }, [hiddenDMs, currentUser?.id]);
+
   const handleSelectUser = (userId: string, userName: string, userAvatar: string, conversationId: string) => {
     setDirectMessageUser({
       userId,
