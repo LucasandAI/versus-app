@@ -10,6 +10,9 @@ import { useUserSearch } from '@/hooks/chat/dm/useUserSearch';
 import { useClickOutside } from '@/hooks/use-click-outside';
 import { useNavigation } from '@/hooks/useNavigation';
 import UserAvatar from '@/components/shared/UserAvatar';
+import { supabase } from '@/integrations/supabase/client';
+import { useApp } from '@/context/AppContext';
+import { toast } from '@/hooks/use-toast';
 
 const DMSearchPanel: React.FC = () => {
   const { 
@@ -27,9 +30,11 @@ const DMSearchPanel: React.FC = () => {
     id: string;
     name: string;
     avatar?: string;
+    conversationId?: string; // Added conversationId (optional for new users)
   } | null>(null);
 
   const { navigateToUserProfile } = useNavigation();
+  const { currentUser } = useApp();
 
   const searchContainerRef = useClickOutside(() => {
     setShowResults(false);
@@ -42,11 +47,53 @@ const DMSearchPanel: React.FC = () => {
     searchUsers(value);
   };
 
-  const handleSelectUser = async (userId: string, userName: string, userAvatar?: string) => {
+  const handleSelectUser = async (userId: string, userName: string, userAvatar?: string, existingConversationId?: string) => {
+    // If we don't have a conversation ID yet, check if one exists or create a new one
+    if (!existingConversationId && currentUser?.id) {
+      try {
+        // Check for existing conversation (in both directions)
+        const { data: existingConversation, error: fetchError } = await supabase
+          .from('direct_conversations')
+          .select('id')
+          .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`)
+          .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
+          .maybeSingle();
+
+        if (fetchError) throw fetchError;
+
+        if (existingConversation) {
+          // Use existing conversation
+          existingConversationId = existingConversation.id;
+        } else {
+          // Create new conversation
+          const newConversationId = `${currentUser.id}_${userId}_${Date.now()}`;
+          const { error: insertError } = await supabase
+            .from('direct_conversations')
+            .insert({
+              id: newConversationId,
+              user1_id: currentUser.id,
+              user2_id: userId
+            });
+
+          if (insertError) throw insertError;
+          existingConversationId = newConversationId;
+        }
+      } catch (error) {
+        console.error("Error handling conversation:", error);
+        toast({
+          title: "Error",
+          description: "Could not start conversation",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
     setSelectedDMUser({
       id: userId,
       name: userName,
-      avatar: userAvatar
+      avatar: userAvatar,
+      conversationId: existingConversationId
     });
     clearSearch();
   };
@@ -112,11 +159,18 @@ const DMSearchPanel: React.FC = () => {
           </div>
           
           <div className="flex-1">
-            <DMConversation 
-              userId={selectedDMUser.id}
-              userName={selectedDMUser.name}
-              userAvatar={selectedDMUser.avatar}
-            />
+            {selectedDMUser.conversationId ? (
+              <DMConversation
+                userId={selectedDMUser.id}
+                userName={selectedDMUser.name}
+                userAvatar={selectedDMUser.avatar || '/placeholder.svg'}
+                conversationId={selectedDMUser.conversationId}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                Loading conversation...
+              </div>
+            )}
           </div>
         </div>
       )}

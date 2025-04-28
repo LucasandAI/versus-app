@@ -30,6 +30,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     userId: string;
     userName: string;
     userAvatar?: string;
+    conversationId: string; // Added conversationId as required
   } | null>(null);
   
   const { sendMessageToClub, deleteMessage } = useChatActions();
@@ -39,12 +40,14 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       userId: string;
       userName: string;
       userAvatar?: string;
+      conversationId: string; // Added conversationId
     }>) => {
       setActiveTab("dm");
       setDirectMessageUser({
         userId: event.detail.userId,
         userName: event.detail.userName,
-        userAvatar: event.detail.userAvatar
+        userAvatar: event.detail.userAvatar,
+        conversationId: event.detail.conversationId // Include conversationId
       });
     };
 
