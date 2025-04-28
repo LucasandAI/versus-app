@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import ChatDrawerContainer from './ChatDrawerContainer';
@@ -40,21 +39,17 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const { sendMessageToClub, deleteMessage } = useChatActions();
   const { currentUser } = useApp();
   
-  // Pre-fetch conversations when drawer opens for faster loading
   const { fetchConversations } = useConversations([]);
   const { markDirectMessagesAsRead } = useMessageReadStatus();
   const { totalUnreadCount } = useUnreadMessages();
   
   useEffect(() => {
-    // Only pre-fetch conversations when drawer opens AND current user is available
     if (open && currentUser?.id) {
-      // Pre-fetch conversations when drawer opens
       fetchConversations();
     }
   }, [open, currentUser?.id, fetchConversations]);
 
   useEffect(() => {
-    // Update parent component with unread count
     if (onNewMessage) {
       onNewMessage(totalUnreadCount);
     }
@@ -75,7 +70,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
         conversationId: event.detail.conversationId
       });
       
-      // Mark as read when opening via event
       if (currentUser?.id && event.detail.conversationId !== 'new') {
         markDirectMessagesAsRead(event.detail.conversationId, currentUser.id);
       }
@@ -91,7 +85,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     setSelectedLocalClub(club);
   };
 
-  // Handle sending a new message
   const handleSendMessage = async (message: string, clubId?: string) => {
     if (message && clubId && setClubMessages) {
       console.log('[MainChatDrawer] Sending message to club:', clubId);
@@ -99,7 +92,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     }
   };
   
-  // Handle deleting a message
   const handleDeleteMessage = async (messageId: string) => {
     if (messageId && setClubMessages) {
       console.log('[MainChatDrawer] Deleting message:', messageId);
@@ -110,7 +102,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const handleTabChange = (tab: "clubs" | "dm") => {
     setActiveTab(tab);
     
-    // If switching to DM tab, pre-fetch conversations for faster loading
     if (tab === "dm" && currentUser?.id) {
       fetchConversations();
     }
