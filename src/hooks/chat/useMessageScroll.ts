@@ -7,7 +7,7 @@ export const useMessageScroll = (messages: any[]) => {
   
   const scrollToBottom = (smooth = true) => {
     if (lastMessageRef.current) {
-      // Add a small offset to ensure the timestamp is visible above the input bar
+      // Add a larger offset to ensure the timestamp is fully visible above the input bar
       lastMessageRef.current.scrollIntoView({
         behavior: smooth ? 'smooth' : 'auto',
         block: 'end',

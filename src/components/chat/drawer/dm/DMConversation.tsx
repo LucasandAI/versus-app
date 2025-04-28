@@ -1,5 +1,5 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import ChatMessages from '../../ChatMessages';
@@ -32,6 +32,16 @@ const DMConversation: React.FC<DMConversationProps> = ({
   const { formatTime } = useMessageFormatting();
   
   useDMSubscription(userId, currentUser?.id, setMessages);
+
+  // Scroll to bottom on new messages or when conversation opens
+  useEffect(() => {
+    if (lastMessageRef.current) {
+      lastMessageRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'end'
+      });
+    }
+  }, [messages.length]);
 
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || !currentUser?.id || !userId) return;
@@ -128,7 +138,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
           />
         </div>
         
-        <div className="absolute bottom-0 left-0 right-0 bg-white">
+        <div className="bg-white">
           <ChatInput 
             onSendMessage={handleSendMessage}
             isSending={isSending}

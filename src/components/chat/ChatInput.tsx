@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Send } from 'lucide-react';
 
@@ -38,6 +39,15 @@ const ChatInput: React.FC<ChatInputProps> = ({
       
       try {
         await onSendMessage(messageToSend);
+        
+        // Give time for the message to be added to the DOM before scrolling
+        setTimeout(() => {
+          // Find the latest message and scroll to it
+          const messageContainer = document.querySelector(`[data-conversation-id="${contextId}"]`)?.parentElement?.previousElementSibling;
+          if (messageContainer) {
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+          }
+        }, 100);
       } catch (error) {
         console.error(`[ChatInput] Error sending message for ${conversationType}:${contextId}:`, error);
         setMessage(messageToSend);

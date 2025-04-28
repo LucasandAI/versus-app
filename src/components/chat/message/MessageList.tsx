@@ -47,7 +47,7 @@ const MessageList: React.FC<MessageListProps> = ({
             <div 
               key={message.id} 
               ref={isLastMessage ? lastMessageRef : undefined}
-              className={`mb-3 ${isLastMessage ? 'pb-3' : ''}`}
+              className={`mb-3 ${isLastMessage ? 'pb-5' : ''}`}
             >
               <MessageItem 
                 message={message} 
@@ -62,8 +62,8 @@ const MessageList: React.FC<MessageListProps> = ({
           );
         })
       )}
-      {/* Add spacer div to ensure enough space at the bottom */}
-      <div className="h-2"></div>
+      {/* Add proper spacing at the bottom to ensure visibility above the input bar */}
+      <div className="h-4"></div>
     </div>
   );
 };
