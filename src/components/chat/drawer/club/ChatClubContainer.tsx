@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { Club } from '@/types';
 import ChatSidebarContent from '../ChatSidebarContent';
 import ChatClubContent from '../../../chat/ChatClubContent';
 import { ArrowLeft } from 'lucide-react';
+import UserAvatar from '@/components/shared/UserAvatar';
 
 interface ChatClubContainerProps {
   clubs: Club[];
@@ -62,10 +62,15 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <div className="flex-1 flex justify-center">
+        <div className="flex-1 flex justify-center items-center gap-2 cursor-pointer" onClick={() => onSelectClub(selectedClub)}>
+          <UserAvatar 
+            name={selectedClub.name} 
+            image={selectedClub.logo}
+            size="sm"
+          />
           <h3 className="font-semibold">{selectedClub.name}</h3>
         </div>
-        <div className="w-9"></div> {/* Spacer for alignment */}
+        <div className="w-9"></div>
       </div>
       
       <div className="flex-1">
