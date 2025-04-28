@@ -60,7 +60,7 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
           userAvatar: DEFAULT_AVATAR,
           lastMessage: "",
           timestamp: conv.created_at,
-          isInitiator: false,
+          isInitiator: false, // Always set a default value
           isLoading: true
         };
         return acc;
@@ -168,7 +168,7 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
         userAvatar: userAvatar || DEFAULT_AVATAR,
         lastMessage: message,
         timestamp: new Date().toISOString(),
-        isInitiator: true
+        isInitiator: true // This is set since we're creating/updating the conversation
       };
       
       if (existingIndex >= 0) {
