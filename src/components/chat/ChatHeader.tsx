@@ -4,23 +4,22 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Club } from '@/types';
 import UserAvatar from '../shared/UserAvatar';
 import { useNavigation } from '@/hooks/useNavigation';
-
 interface ChatHeaderProps {
   club: Club;
   onMatchClick: () => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   onClubClick?: () => void;
 }
-
 const ChatHeader: React.FC<ChatHeaderProps> = ({
   club,
   onMatchClick,
   onSelectUser,
-  onClubClick,
+  onClubClick
 }) => {
   const currentMatch = club.currentMatch;
-  const { navigateToClubDetail } = useNavigation();
-
+  const {
+    navigateToClubDetail
+  } = useNavigation();
   const handleClubClick = () => {
     if (onClubClick) {
       onClubClick();
@@ -28,22 +27,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
       navigateToClubDetail(club.id, club);
     }
   };
-
-  return (
-    <div className="border-b p-3">
-      <div className="flex items-center gap-2 mb-2">
-        <button 
-          onClick={handleClubClick}
-          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-        >
-          <UserAvatar 
-            name={club.name} 
-            image={club.logo} 
-            size="sm"
-          />
-          <span className="font-semibold">{club.name}</span>
-        </button>
-      </div>
+  return <div className="border-b p-3">
+      
       
       {currentMatch && <div className="mt-1 mb-2 bg-gray-50 rounded-md p-2 text-xs cursor-pointer hover:bg-gray-100" onClick={onMatchClick}>
           <div className="flex items-center gap-1 text-primary font-medium">
@@ -88,8 +73,6 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           </div>
         </PopoverContent>
       </Popover>
-    </div>
-  );
+    </div>;
 };
-
 export default ChatHeader;
