@@ -18,9 +18,20 @@ export const useDMMessages = (userId: string, userName: string) => {
       
       setLoading(true);
       try {
+        // Fetch messages where either user is sender or receiver
         const { data, error } = await supabase
           .from('direct_messages')
-          .select('*')
+          .select(`
+            id,
+            text,
+            sender_id,
+            timestamp,
+            users!sender_id (
+              id,
+              name,
+              avatar
+            )
+          `)
           .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${currentUser.id})`)
           .order('timestamp', { ascending: true });
 
@@ -31,8 +42,8 @@ export const useDMMessages = (userId: string, userName: string) => {
           text: msg.text,
           sender: {
             id: msg.sender_id,
-            name: msg.sender_id === currentUser.id ? currentUser.name : userName,
-            avatar: msg.sender_id === currentUser.id ? currentUser.avatar : undefined
+            name: msg.users?.name || (msg.sender_id === currentUser.id ? currentUser.name : userName),
+            avatar: msg.users?.avatar || undefined
           },
           timestamp: msg.timestamp,
         }));
@@ -51,7 +62,7 @@ export const useDMMessages = (userId: string, userName: string) => {
     };
 
     fetchMessages();
-  }, [userId, currentUser?.id, userName, currentUser?.name, currentUser?.avatar]);
+  }, [userId, currentUser?.id, userName, currentUser?.name]);
 
   return {
     messages,

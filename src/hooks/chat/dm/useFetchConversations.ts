@@ -31,8 +31,6 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
         return storedConversations;
       }
 
-      console.log('[fetchConversations] Found messages in database:', messages.length);
-      
       // Get unique IDs of the other participants in conversations
       const uniqueUserIds = new Set<string>();
       messages.forEach(msg => {
@@ -41,9 +39,7 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
         uniqueUserIds.add(otherUserId);
       });
 
-      console.log('[fetchConversations] Unique conversation partners:', Array.from(uniqueUserIds));
-      
-      // Fetch user information for all conversation participants
+      // Fetch user information for conversation partners
       const { data: users, error: usersError } = await supabase
         .from('users')
         .select('id, name, avatar')
@@ -52,6 +48,7 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
       if (usersError) throw usersError;
       if (!users) return [];
 
+      // Map of user info by ID for quick lookup
       const userMap = users.reduce((map: Record<string, any>, user) => {
         map[user.id] = user;
         return map;
@@ -63,7 +60,6 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
         // Determine which user is the other participant
         const otherUserId = msg.sender_id === currentUserId ? msg.receiver_id : msg.sender_id;
         const otherUser = userMap[otherUserId];
-        const isInitiator = msg.sender_id === currentUserId;
         
         if (otherUser && (!conversationsMap.has(otherUserId) || 
             new Date(msg.timestamp) > new Date(conversationsMap.get(otherUserId)?.timestamp || ''))) {
@@ -73,12 +69,12 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
             userAvatar: otherUser.avatar,
             lastMessage: msg.text,
             timestamp: msg.timestamp,
-            isInitiator: isInitiator
+            isInitiator: msg.sender_id === currentUserId
           });
         }
       });
 
-      // Merge database conversations with stored ones, prioritizing newer timestamps
+      // Merge with stored conversations, prioritizing newer timestamps
       const mergedConversations = Array.from(conversationsMap.values())
         .concat(storedConversations)
         .sort((a, b) => new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime())
@@ -87,8 +83,6 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
           index === self.findIndex(c => c.userId === conv.userId)
         );
 
-      console.log('[fetchConversations] Created merged conversations list:', mergedConversations.length);
-      
       return mergedConversations;
     } catch (error) {
       console.error('Error loading conversations:', error);
@@ -97,7 +91,7 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
         description: "Could not load conversations",
         variant: "destructive"
       });
-      return loadConversationsFromStorage(); // Fallback to stored conversations on error
+      return loadConversationsFromStorage();
     }
   }, [currentUserId, loadConversationsFromStorage]);
 
