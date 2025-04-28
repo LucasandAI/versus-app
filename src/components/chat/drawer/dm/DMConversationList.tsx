@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 import ConversationItem from './ConversationItem';
 import { useConversations } from '@/hooks/chat/dm/useConversations';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DMConversation } from '@/hooks/chat/dm/types';
+import { useApp } from '@/context/AppContext';
 
 interface Props {
   onSelectUser: (userId: string, userName: string, userAvatar: string, conversationId: string) => void;
@@ -20,12 +21,20 @@ const DMConversationList: React.FC<Props> = ({
   isInitialLoading = false
 }) => {
   const { hideConversation, hiddenDMs } = useHiddenDMs();
-  const { conversations, loading } = useConversations(hiddenDMs);
+  const { currentUser } = useApp();
+  const { conversations, loading, fetchConversations } = useConversations(hiddenDMs);
+  
+  // Refetch when user ID becomes available
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetchConversations();
+    }
+  }, [currentUser?.id, fetchConversations]);
   
   // Determine which conversations to display
   // Use fully loaded conversations if available, otherwise use initial basic conversations
   const displayConversations = conversations.length > 0 ? conversations : initialConversations;
-  const showLoading = isInitialLoading && initialConversations.length === 0;
+  const showLoading = (isInitialLoading || loading) && displayConversations.length === 0;
   const isEmpty = !showLoading && displayConversations.length === 0;
   
   const handleHideConversation = (

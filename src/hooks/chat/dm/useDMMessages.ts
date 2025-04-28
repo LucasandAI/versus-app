@@ -17,6 +17,7 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
   const [isSending, setIsSending] = useState(false);
   const { currentUser } = useApp();
   const { unhideConversation } = useHiddenDMs();
+  const [errorToastShown, setErrorToastShown] = useState(false);
 
   // Function to add messages without duplicates
   const addMessagesWithoutDuplicates = (newMessages: any[]) => {
@@ -41,11 +42,16 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
 
   useEffect(() => {
     const fetchMessages = async () => {
-      if (!userId || !currentUser?.id) return;
+      // Guard clause: early return if any required ID is missing
+      if (!userId || !currentUser?.id || !conversationId) {
+        if (conversationId !== 'new') {
+          setLoading(false);
+        }
+        return;
+      }
       
-      // Don't attempt to fetch messages if there's no valid conversation ID
-      // But also don't show error for 'new' conversations
-      if (!conversationId || conversationId === 'new') {
+      // Don't attempt to fetch messages for 'new' conversations
+      if (conversationId === 'new') {
         setMessages([]);
         setLoading(false);
         return;
@@ -69,18 +75,23 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
         
         // Separately fetch user info for message senders
         const senderIds = [...new Set(data?.map(msg => msg.sender_id) || [])];
-        const { data: usersData, error: usersError } = await supabase
-          .from('users')
-          .select('id, name, avatar')
-          .in('id', senderIds.length > 0 ? senderIds : ['00000000-0000-0000-0000-000000000000']);
         
-        if (usersError) throw usersError;
-
-        // Create a map of user data by ID for quick lookup
-        const userMap = (usersData || []).reduce((acc: Record<string, any>, user) => {
-          acc[user.id] = user;
-          return acc;
-        }, {});
+        // Only fetch user data if we have sender IDs
+        let userMap: Record<string, any> = {};
+        if (senderIds.length > 0) {
+          const { data: usersData, error: usersError } = await supabase
+            .from('users')
+            .select('id, name, avatar')
+            .in('id', senderIds);
+          
+          if (usersError) throw usersError;
+          
+          // Create a map of user data by ID for quick lookup
+          userMap = (usersData || []).reduce((acc: Record<string, any>, user) => {
+            acc[user.id] = user;
+            return acc;
+          }, {});
+        }
 
         const formattedMessages = (data || []).map((msg) => {
           // Look up user info from our map
@@ -110,15 +121,18 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
 
         setMessages(formattedMessages);
         setMessageIds(initialMessageIds);
+        setErrorToastShown(false);
       } catch (error) {
         console.error('Error fetching direct messages:', error);
-        // Only show toast if there's a real error, not just for empty conversation
-        if (conversationId !== 'new') {
+        
+        // Show toast only once per session
+        if (!errorToastShown) {
           toast({
             title: "Error",
             description: "Could not load messages",
             variant: "destructive"
           });
+          setErrorToastShown(true);
         }
       } finally {
         setLoading(false);
@@ -126,7 +140,7 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
     };
 
     fetchMessages();
-  }, [userId, currentUser?.id, userName, currentUser?.name, conversationId]);
+  }, [userId, currentUser?.id, userName, currentUser?.name, conversationId, errorToastShown]);
 
   // Add a message without duplicates
   const addMessageWithoutDuplicates = (message: any) => {

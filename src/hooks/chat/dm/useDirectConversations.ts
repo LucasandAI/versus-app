@@ -14,16 +14,21 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
   const { currentUser } = useApp();
   const { unhideConversation } = useHiddenDMs();
   const errorToastShown = useRef(false);
+  const attemptedFetch = useRef(false);
   
   const fetchConversations = useCallback(async () => {
     // Guard clause: Early return if user ID is not available
     if (!currentUser?.id) {
+      console.log('Cannot fetch conversations: currentUser.id is undefined');
       setLoading(false);
       return [];
     }
     
     try {
       setLoading(true);
+      attemptedFetch.current = true;
+      
+      console.log(`Fetching conversations for user: ${currentUser.id}`);
       
       const { data: conversationsData, error: conversationsError } = await supabase
         .from('direct_conversations')
@@ -38,6 +43,7 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
       if (conversationsError) throw conversationsError;
       
       if (!conversationsData || conversationsData.length === 0) {
+        console.log('No conversations found for the current user');
         setConversations([]);
         setLoading(false);
         return [];
@@ -149,6 +155,14 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
       setLoading(false);
     }
   }, [currentUser?.id, hiddenDMIds, unhideConversation]);
+  
+  // Add an effect to trigger fetch when currentUser becomes available
+  useEffect(() => {
+    if (currentUser?.id && !attemptedFetch.current) {
+      console.log('User ID now available, fetching conversations');
+      fetchConversations();
+    }
+  }, [currentUser?.id, fetchConversations]);
   
   return {
     conversations,
