@@ -6,7 +6,7 @@ export interface DMConversation {
   userAvatar: string;
   lastMessage: string;
   timestamp: string;
-  isInitiator?: boolean;
+  isInitiator: boolean; // Making this non-optional
   isLoading?: boolean;
 }
 
