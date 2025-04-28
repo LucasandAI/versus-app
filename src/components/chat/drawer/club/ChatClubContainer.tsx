@@ -1,9 +1,11 @@
+
 import React from 'react';
 import { Club } from '@/types';
 import ChatSidebarContent from '../ChatSidebarContent';
 import ChatClubContent from '../../../chat/ChatClubContent';
 import { ArrowLeft } from 'lucide-react';
 import UserAvatar from '@/components/shared/UserAvatar';
+import { useNavigation } from '@/hooks/useNavigation';
 
 interface ChatClubContainerProps {
   clubs: Club[];
@@ -22,6 +24,8 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   onSendMessage,
   onDeleteMessage
 }) => {
+  const { navigateToClubDetail } = useNavigation();
+
   const handleMatchClick = () => {
     // Future implementation
   };
@@ -35,6 +39,12 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
 
   const handleGoBack = () => {
     onSelectClub(null);
+  };
+
+  const handleClubClick = () => {
+    if (selectedClub) {
+      navigateToClubDetail(selectedClub.id, selectedClub);
+    }
   };
 
   // If no club is selected, show the clubs list
@@ -62,7 +72,7 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <div className="flex-1 flex justify-center items-center gap-2 cursor-pointer" onClick={() => onSelectClub(selectedClub)}>
+        <div className="flex-1 flex justify-center items-center gap-2 cursor-pointer hover:text-primary transition-colors" onClick={handleClubClick}>
           <UserAvatar 
             name={selectedClub.name} 
             image={selectedClub.logo}
