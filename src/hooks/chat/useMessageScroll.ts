@@ -17,20 +17,23 @@ export const useMessageScroll = (messages: any[]) => {
     }
   };
 
-  // Scroll to bottom when messages are loaded initially
+  // Scroll to bottom when messages are loaded initially or component mounts
   useEffect(() => {
-    if (messages.length > 0) {
-      // Use setTimeout to ensure DOM is updated before scrolling
-      setTimeout(() => {
-        scrollToBottom(false);
-      }, 0);
-    }
-  }, [messages]); // Also scroll when messages change completely
+    const timer = setTimeout(() => {
+      scrollToBottom(false);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []); 
 
   // Scroll to bottom when new messages are added
   useEffect(() => {
     if (messages.length > 0) {
-      scrollToBottom();
+      const timer = setTimeout(() => {
+        scrollToBottom(true);
+      }, 50);
+      
+      return () => clearTimeout(timer);
     }
   }, [messages.length]); // Only trigger when message count changes
 

@@ -81,8 +81,8 @@ const ChatClubContent = ({
         onClubClick={handleClubClick}
       />
       
-      <div className="flex-1 flex flex-col relative overflow-hidden">
-        <div className="flex-1 min-h-0">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-hidden">
           <ChatMessages 
             messages={messages} 
             clubMembers={club.members || []}
@@ -91,7 +91,7 @@ const ChatClubContent = ({
           />
         </div>
         
-        <div className="absolute bottom-0 left-0 right-0 bg-white">
+        <div className="sticky bottom-0 left-0 right-0 bg-white z-10">
           <ChatInput 
             onSendMessage={handleSendMessage} 
             conversationType="club"
