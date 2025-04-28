@@ -1,8 +1,9 @@
+
+import { useApp } from '@/context/AppContext';
+import { Club } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 import { useUserNavigation } from './navigation/useUserNavigation';
 import { useClubNavigation } from './navigation/useClubNavigation';
-import { Club } from '@/types';
-import { useApp } from '@/context/AppContext';
-import { supabase } from '@/integrations/supabase/client';
 import { ensureDivision } from '@/utils/club/leagueUtils';
 
 export const useNavigation = () => {
@@ -18,17 +19,7 @@ export const useNavigation = () => {
     
     console.log('[useNavigation] Navigating to club detail:', clubId, clubData);
     
-    const userClub = currentUser?.clubs?.find(c => c.id === clubId);
-    
-    if (userClub) {
-      console.log('[useNavigation] User is a member, using club from context:', userClub);
-      setSelectedClub(userClub);
-      setCurrentView('clubDetail');
-      return;
-    }
-    
-    console.log('[useNavigation] User is not a member, fetching full club data');
-    
+    // Set a temporary club object while we load the full data
     const tempClub: Partial<Club> = {
       id: clubId,
       name: clubData?.name || 'Loading...',
@@ -41,8 +32,10 @@ export const useNavigation = () => {
     };
     
     setSelectedClub(tempClub as Club);
+    setCurrentView('clubDetail');
     
     try {
+      // Always fetch fresh club details
       const { data: clubDetails, error: clubError } = await supabase
         .from('clubs')
         .select('id, name, logo, division, tier, elite_points, bio, created_by')
@@ -51,10 +44,10 @@ export const useNavigation = () => {
       
       if (clubError) {
         console.error('[useNavigation] Error fetching club details:', clubError);
-        setCurrentView('clubDetail');
         return;
       }
       
+      // Always fetch fresh member data
       const { data: membersData, error: membersError } = await supabase
         .from('club_members')
         .select('user_id, is_admin')
@@ -87,6 +80,7 @@ export const useNavigation = () => {
         }
       }
       
+      // Fetch match history
       const { data: matchesData } = await supabase
         .from('matches')
         .select('*')
@@ -134,11 +128,8 @@ export const useNavigation = () => {
       
       setSelectedClub(fullClub);
       
-      setCurrentView('clubDetail');
-      
     } catch (error) {
       console.error('[useNavigation] Error during club data fetching:', error);
-      setCurrentView('clubDetail');
     }
   };
   
