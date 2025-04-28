@@ -27,13 +27,20 @@ const DMConversation: React.FC<DMConversationProps> = ({
 }) => {
   const { currentUser } = useApp();
   const { navigateToUserProfile } = useNavigation();
-  const { messages, setMessages, isSending, setIsSending } = useDMMessages(userId, userName, conversationId);
+  const { 
+    messages, 
+    setMessages, 
+    addMessage,
+    isSending, 
+    setIsSending 
+  } = useDMMessages(userId, userName, conversationId);
   const { updateConversation } = useConversations([]);
   const { unhideConversation } = useHiddenDMs();
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const { formatTime } = useMessageFormatting();
   
-  useDMSubscription(conversationId, userId, currentUser?.id, setMessages);
+  // Use our improved subscription hook
+  useDMSubscription(conversationId, userId, currentUser?.id, setMessages, addMessage);
 
   // Scroll to bottom on new messages or when conversation opens
   useEffect(() => {
@@ -52,6 +59,8 @@ const DMConversation: React.FC<DMConversationProps> = ({
     unhideConversation(userId);
     
     const optimisticId = `temp-${Date.now()}`;
+    const timestamp = new Date().toISOString();
+    
     const newMessageObj = {
       id: optimisticId,
       text: message,
@@ -60,12 +69,12 @@ const DMConversation: React.FC<DMConversationProps> = ({
         name: currentUser.name,
         avatar: currentUser.avatar
       },
-      timestamp: new Date().toISOString()
+      timestamp
     };
 
     try {
-      // Add message to the chat window immediately after attempting to send
-      setMessages(prev => [...prev, newMessageObj]);
+      // Add message to the chat window immediately (with duplicate check)
+      addMessage(newMessageObj);
       
       // Update the conversation list immediately
       updateConversation(conversationId, userId, message, userName, userAvatar || '/placeholder.svg');
@@ -84,12 +93,8 @@ const DMConversation: React.FC<DMConversationProps> = ({
       if (error) throw error;
       
       if (data) {
-        setMessages(prev => 
-          prev.map(msg => msg.id === optimisticId ? {
-            ...msg,
-            id: data.id
-          } : msg)
-        );
+        // Update the message ID to match the one from the database
+        // This is handled by useDMSubscription now, no need to duplicate
       }
     } catch (error) {
       console.error('Error sending message:', error);

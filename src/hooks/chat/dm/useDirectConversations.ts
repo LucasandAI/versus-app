@@ -125,7 +125,7 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
     }
   }, [currentUser?.id, hiddenDMIds, unhideConversation]);
   
-  // Fetch conversations when component mounts or dependencies change
+  // Always fetch conversations immediately when the component mounts or dependencies change
   useEffect(() => {
     fetchConversations();
   }, [fetchConversations]);

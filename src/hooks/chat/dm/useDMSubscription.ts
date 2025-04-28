@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -6,7 +5,8 @@ export const useDMSubscription = (
   conversationId: string,
   userId: string, 
   currentUserId: string | undefined, 
-  setMessages: React.Dispatch<React.SetStateAction<any[]>>
+  setMessages: React.Dispatch<React.SetStateAction<any[]>>,
+  addMessage?: (message: any) => boolean
 ) => {
   useEffect(() => {
     if (!currentUserId || !conversationId) return;
@@ -43,6 +43,29 @@ export const useDMSubscription = (
           },
           async (payload) => {
             if (payload.new) {
+              // Check if we should handle this message - sometimes we might have added it optimistically
+              const isOurOptimisticMessage = payload.new.sender_id === currentUserId;
+              
+              // If it's our message, we probably added it optimistically already
+              // But we'll update with the real DB id just in case
+              if (isOurOptimisticMessage) {
+                // Just update the ID in case it was optimistic
+                setMessages(prev => prev.map(msg => {
+                  // If messages have same text and timestamp (approximately), update the ID
+                  if (msg.text === payload.new.text && 
+                      msg.sender?.id === payload.new.sender_id &&
+                      Math.abs(new Date(msg.timestamp).getTime() - new Date(payload.new.timestamp).getTime()) < 5000) {
+                    return {
+                      ...msg,
+                      id: payload.new.id
+                    };
+                  }
+                  return msg;
+                }));
+                return;
+              }
+              
+              // If it's not our message, add it
               const { data: userData } = await supabase
                 .from('users')
                 .select('name, avatar')
@@ -60,7 +83,13 @@ export const useDMSubscription = (
                 timestamp: payload.new.timestamp
               };
 
-              setMessages(prev => [...prev, newMessage]);
+              // If we have a specific add function that checks for duplicates, use it
+              if (addMessage) {
+                addMessage(newMessage);
+              } else {
+                // Otherwise use the standard approach
+                setMessages(prev => [...prev, newMessage]);
+              }
             }
           })
       .subscribe();
@@ -71,5 +100,5 @@ export const useDMSubscription = (
         supabase.removeChannel(subscription);
       });
     };
-  }, [conversationId, userId, currentUserId, setMessages]);
+  }, [conversationId, userId, currentUserId, setMessages, addMessage]);
 };

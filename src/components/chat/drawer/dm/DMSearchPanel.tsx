@@ -48,25 +48,42 @@ const DMSearchPanel: React.FC = () => {
   };
 
   const handleSelectUser = async (userId: string, userName: string, userAvatar?: string, existingConversationId?: string) => {
+    // Immediately set the selected user to show the conversation UI
+    setSelectedDMUser({
+      id: userId,
+      name: userName,
+      avatar: userAvatar,
+      conversationId: existingConversationId
+    });
+    clearSearch();
+
     // If we don't have a conversation ID yet, check if one exists or create a new one
     if (!existingConversationId && currentUser?.id) {
       try {
+        console.log('Checking/creating conversation between', currentUser.id, 'and', userId);
+        
         // Check for existing conversation (in both directions)
         const { data: existingConversation, error: fetchError } = await supabase
           .from('direct_conversations')
           .select('id')
-          .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`)
-          .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
+          .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${userId}),and(user1_id.eq.${userId},user2_id.eq.${currentUser.id})`)
           .maybeSingle();
 
         if (fetchError) throw fetchError;
+        
+        console.log('Existing conversation check result:', existingConversation);
 
+        let conversationId: string;
+        
         if (existingConversation) {
           // Use existing conversation
-          existingConversationId = existingConversation.id;
+          conversationId = existingConversation.id;
+          console.log('Using existing conversation:', conversationId);
         } else {
           // Create new conversation
           const newConversationId = `${currentUser.id}_${userId}_${Date.now()}`;
+          console.log('Creating new conversation with ID:', newConversationId);
+          
           const { error: insertError } = await supabase
             .from('direct_conversations')
             .insert({
@@ -76,8 +93,15 @@ const DMSearchPanel: React.FC = () => {
             });
 
           if (insertError) throw insertError;
-          existingConversationId = newConversationId;
+          conversationId = newConversationId;
+          console.log('Successfully created conversation:', conversationId);
         }
+        
+        // Update the selected user with the conversation ID
+        setSelectedDMUser(prev => prev ? {
+          ...prev,
+          conversationId
+        } : null);
       } catch (error) {
         console.error("Error handling conversation:", error);
         toast({
@@ -85,17 +109,8 @@ const DMSearchPanel: React.FC = () => {
           description: "Could not start conversation",
           variant: "destructive"
         });
-        return;
       }
     }
-
-    setSelectedDMUser({
-      id: userId,
-      name: userName,
-      avatar: userAvatar,
-      conversationId: existingConversationId
-    });
-    clearSearch();
   };
 
   const handleBack = () => {
