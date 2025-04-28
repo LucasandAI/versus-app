@@ -47,7 +47,7 @@ const MessageList: React.FC<MessageListProps> = ({
             <div 
               key={message.id} 
               ref={isLastMessage ? lastMessageRef : undefined}
-              className="mb-3"
+              className={`mb-3 ${isLastMessage ? 'pb-3' : ''}`}
             >
               <MessageItem 
                 message={message} 
@@ -62,6 +62,8 @@ const MessageList: React.FC<MessageListProps> = ({
           );
         })
       )}
+      {/* Add spacer div to ensure enough space at the bottom */}
+      <div className="h-2"></div>
     </div>
   );
 };

@@ -75,7 +75,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const normalizedMessages = messages.map(message => normalizeMessage(message));
 
   return (
-    <div ref={scrollRef} className="h-[calc(73vh-8rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+    <div ref={scrollRef} className="h-[calc(73vh-8rem)] pb-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
       <MessageList 
         messages={normalizedMessages} 
         clubMembers={clubMembers} 
