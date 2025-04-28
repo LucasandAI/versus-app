@@ -80,7 +80,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
         <DrawerContent className="h-[80vh] rounded-t-xl p-0 flex flex-col">
           <DrawerHeader 
             activeTab={activeTab} 
-            setActiveTab={setActiveTab} 
+            setActiveTab={setActiveTab}
+            selectedClub={selectedLocalClub}
           />
           
           <ChatDrawerContainer 
