@@ -72,7 +72,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   return (
     <div 
       ref={scrollRef} 
-      className="h-full flex-1 overflow-y-auto pb-4"
+      className="h-full flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 pb-4"
     >
       <MessageList 
         messages={normalizedMessages} 

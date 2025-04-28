@@ -65,7 +65,7 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   // If a club is selected, show the full-width chat
   return (
     <div className="flex flex-col h-full">
-      <div className="border-b p-3 flex items-center">
+      <div className="sticky top-0 z-20 bg-white border-b p-3 flex items-center">
         <button 
           onClick={handleGoBack}
           className="p-2 rounded-full hover:bg-gray-100 transition-colors"
@@ -83,7 +83,7 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
         <div className="w-9"></div>
       </div>
       
-      <div className="flex-1">
+      <div className="flex-1 overflow-hidden">
         <ChatClubContent 
           club={selectedClub}
           messages={messages[selectedClub.id] || []}

@@ -31,7 +31,7 @@ const MessageList: React.FC<MessageListProps> = ({
   lastMessageRef
 }) => {
   return (
-    <div className="py-4 px-0 flex flex-col">
+    <div className="py-4 flex flex-col">
       {messages.length === 0 ? (
         <div className="flex-1 flex items-center justify-center text-gray-500 text-sm py-8">
           No messages yet. Start the conversation!
@@ -41,8 +41,8 @@ const MessageList: React.FC<MessageListProps> = ({
           {messages.map((message: ChatMessage, index: number) => {
             // Improved logic to determine if a message is from the current user
             const isUserMessage = currentUserId && 
-                                message.sender && 
-                                String(message.sender.id) === String(currentUserId);
+                              message.sender && 
+                              String(message.sender.id) === String(currentUserId);
             const isLastMessage = index === messages.length - 1;
             
             return (
@@ -63,8 +63,8 @@ const MessageList: React.FC<MessageListProps> = ({
               </div>
             );
           })}
-          {/* Add an invisible spacer element to ensure proper scrolling */}
-          <div className="h-2" aria-hidden="true"></div>
+          {/* Add padding at the bottom to ensure messages don't get hidden behind input */}
+          <div className="h-4" aria-hidden="true"></div>
         </>
       )}
     </div>

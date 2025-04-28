@@ -74,12 +74,14 @@ const ChatClubContent = ({
 
   return (
     <div className="flex flex-col h-full">
-      <ChatHeader 
-        club={club}
-        onMatchClick={onMatchClick}
-        onSelectUser={onSelectUser}
-        onClubClick={handleClubClick}
-      />
+      <div className="sticky top-0 z-10 bg-white">
+        <ChatHeader 
+          club={club}
+          onMatchClick={onMatchClick}
+          onSelectUser={onSelectUser}
+          onClubClick={handleClubClick}
+        />
+      </div>
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-hidden">

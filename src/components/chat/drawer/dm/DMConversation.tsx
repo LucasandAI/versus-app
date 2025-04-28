@@ -114,7 +114,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
   return (
     <div className="flex flex-col h-full w-full">
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <div className="flex-1">
+        <div className="flex-1 overflow-hidden">
           <ChatMessages 
             messages={messages}
             clubMembers={currentUser ? [currentUser] : []}

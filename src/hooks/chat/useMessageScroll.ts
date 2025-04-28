@@ -12,13 +12,14 @@ export const useMessageScroll = (messages: any[]) => {
         block: 'end'
       });
     } else if (scrollRef.current) {
-      // Fallback if there's no last message ref
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   };
 
   // Scroll to bottom when messages are loaded initially or component mounts
   useEffect(() => {
+    scrollToBottom(false);
+    // Add a second attempt with a slight delay to ensure proper scrolling
     const timer = setTimeout(() => {
       scrollToBottom(false);
     }, 100);
@@ -29,11 +30,7 @@ export const useMessageScroll = (messages: any[]) => {
   // Scroll to bottom when new messages are added
   useEffect(() => {
     if (messages.length > 0) {
-      const timer = setTimeout(() => {
-        scrollToBottom(true);
-      }, 50);
-      
-      return () => clearTimeout(timer);
+      scrollToBottom(true);
     }
   }, [messages.length]); // Only trigger when message count changes
 

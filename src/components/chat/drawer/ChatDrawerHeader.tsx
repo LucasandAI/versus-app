@@ -24,7 +24,7 @@ const ChatDrawerHeader: React.FC<ChatDrawerHeaderProps> = ({
   };
   
   return (
-    <DrawerHeader className="border-b px-4 py-3 flex items-center">
+    <DrawerHeader className="border-b px-4 py-3 flex items-center sticky top-0 z-50 bg-white">
       <DrawerTitle className="flex-1 text-center">
         {selectedClub ? (
           <div 
