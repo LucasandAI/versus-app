@@ -3,8 +3,11 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export const useMessageReadStatus = () => {
-  const markDirectMessagesAsRead = useCallback(async (conversationId: string, userId: string) => {
+  const markDirectMessagesAsRead = useCallback(async (conversationId: string, userId: string, onOptimisticUpdate?: () => void) => {
     try {
+      // Call optimistic update immediately
+      onOptimisticUpdate?.();
+
       const { error } = await supabase
         .from('direct_messages_read')
         .upsert({
@@ -21,8 +24,11 @@ export const useMessageReadStatus = () => {
     }
   }, []);
 
-  const markClubMessagesAsRead = useCallback(async (clubId: string, userId: string) => {
+  const markClubMessagesAsRead = useCallback(async (clubId: string, userId: string, onOptimisticUpdate?: () => void) => {
     try {
+      // Call optimistic update immediately
+      onOptimisticUpdate?.();
+
       const { error } = await supabase
         .from('club_messages_read')
         .upsert({

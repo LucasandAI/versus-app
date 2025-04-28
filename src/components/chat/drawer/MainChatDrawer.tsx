@@ -38,10 +38,9 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   
   const { sendMessageToClub, deleteMessage } = useChatActions();
   const { currentUser } = useApp();
-  
   const { fetchConversations } = useConversations([]);
-  const { markDirectMessagesAsRead } = useMessageReadStatus();
-  const { totalUnreadCount } = useUnreadMessages();
+  const { markDirectMessagesAsRead, markClubMessagesAsRead } = useMessageReadStatus();
+  const { totalUnreadCount, markDMAsRead, markClubAsRead } = useUnreadMessages();
   
   useEffect(() => {
     if (open && currentUser?.id) {
@@ -71,7 +70,11 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       });
       
       if (currentUser?.id && event.detail.conversationId !== 'new') {
-        markDirectMessagesAsRead(event.detail.conversationId, currentUser.id);
+        markDirectMessagesAsRead(
+          event.detail.conversationId, 
+          currentUser.id,
+          () => markDMAsRead(event.detail.conversationId)
+        );
       }
     };
 
@@ -79,10 +82,17 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     return () => {
       window.removeEventListener('openDirectMessage', handleOpenDM as EventListener);
     };
-  }, [currentUser?.id, markDirectMessagesAsRead]);
+  }, [currentUser?.id, markDirectMessagesAsRead, markDMAsRead]);
 
   const handleSelectClub = (club: Club) => {
     setSelectedLocalClub(club);
+    if (currentUser?.id) {
+      markClubMessagesAsRead(
+        club.id, 
+        currentUser.id,
+        () => markClubAsRead(club.id)
+      );
+    }
   };
 
   const handleSendMessage = async (message: string, clubId?: string) => {
