@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ChatMessage } from '@/types';
 import MessageList from './message/MessageList';
@@ -6,6 +7,7 @@ import { useMessageNormalization } from './message/useMessageNormalization';
 import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
 import { useCurrentMember } from '@/hooks/chat/messages/useCurrentMember';
 import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
+
 interface ChatMessagesProps {
   messages: ChatMessage[] | any[];
   clubMembers: Array<{
@@ -20,6 +22,7 @@ interface ChatMessagesProps {
   lastMessageRef?: React.RefObject<HTMLDivElement>;
   formatTime?: (isoString: string) => string;
 }
+
 const ChatMessages: React.FC<ChatMessagesProps> = ({
   messages,
   clubMembers,
@@ -34,18 +37,22 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     currentUserId,
     currentUserAvatar: defaultUserAvatar
   } = useMessageUser();
+  
   const {
     currentUserInClub
   } = useCurrentMember(currentUserId, clubMembers);
+  
   const {
     formatTime: defaultFormatTime,
     getMemberName
   } = useMessageFormatting();
+  
   const {
     scrollRef,
     lastMessageRef: defaultLastMessageRef,
     scrollToBottom
   } = useMessageScroll(messages);
+  
   const {
     normalizeMessage
   } = useMessageNormalization(currentUserId, senderId => getMemberName(senderId, currentUserId, clubMembers));
@@ -54,16 +61,34 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const finalUserAvatar = providedUserAvatar || defaultUserAvatar;
   const finalLastMessageRef = providedLastMessageRef || defaultLastMessageRef;
   const finalFormatTime = providedFormatTime || defaultFormatTime;
+  
   if (!Array.isArray(messages)) {
-    return <div className="flex-1 p-4">
+    return (
+      <div className="flex-1 p-4">
         <div className="h-full flex items-center justify-center text-gray-500 text-sm">
           No messages yet. Start the conversation!
         </div>
-      </div>;
+      </div>
+    );
   }
+
   const normalizedMessages = messages.map(message => normalizeMessage(message));
-  return <div ref={scrollRef} className="h-[calc(73vh-14rem)] overflow-y-auto bg-white">
-      <MessageList messages={normalizedMessages} clubMembers={clubMembers} isSupport={isSupport} onDeleteMessage={onDeleteMessage} onSelectUser={onSelectUser} formatTime={finalFormatTime} currentUserAvatar={finalUserAvatar} currentUserId={currentUserId} lastMessageRef={finalLastMessageRef} />
-    </div>;
+
+  return (
+    <div ref={scrollRef} className="h-[calc(73vh-8rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+      <MessageList 
+        messages={normalizedMessages} 
+        clubMembers={clubMembers} 
+        isSupport={isSupport} 
+        onDeleteMessage={onDeleteMessage} 
+        onSelectUser={onSelectUser} 
+        formatTime={finalFormatTime} 
+        currentUserAvatar={finalUserAvatar} 
+        currentUserId={currentUserId} 
+        lastMessageRef={finalLastMessageRef} 
+      />
+    </div>
+  );
 };
+
 export default ChatMessages;

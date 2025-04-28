@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ChatMessage } from '@/types/chat';
+import { ChatMessage } from '@/types';
 import MessageItem from './MessageItem';
 
 interface MessageListProps {
@@ -31,14 +31,13 @@ const MessageList: React.FC<MessageListProps> = ({
   lastMessageRef
 }) => {
   return (
-    <div className="mb-4 px-0 py-[20px]">
+    <div className="flex-1 px-0 py-2">
       {messages.length === 0 ? (
-        <div className="h-full flex items-center justify-center text-gray-500 text-sm py-8">
+        <div className="h-full flex items-center justify-center text-gray-500 text-sm py-4">
           No messages yet. Start the conversation!
         </div>
       ) : (
         messages.map((message: ChatMessage, index: number) => {
-          // Improved logic to determine if a message is from the current user
           const isUserMessage = currentUserId && 
                                message.sender && 
                                String(message.sender.id) === String(currentUserId);
@@ -48,7 +47,7 @@ const MessageList: React.FC<MessageListProps> = ({
             <div 
               key={message.id} 
               ref={isLastMessage ? lastMessageRef : undefined}
-              className="mb-4"
+              className="mb-3"
             >
               <MessageItem 
                 message={message} 
