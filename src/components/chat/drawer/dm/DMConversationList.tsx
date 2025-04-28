@@ -1,6 +1,5 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 import ConversationItem from './ConversationItem';
 import { useConversations } from '@/hooks/chat/dm/useConversations';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,12 +19,10 @@ const DMConversationList: React.FC<Props> = ({
   initialConversations = [],
   isInitialLoading = false
 }) => {
-  const { hideConversation, hiddenDMs } = useHiddenDMs();
   const { currentUser, isSessionReady } = useApp();
-  const { conversations, loading, fetchConversations } = useConversations(hiddenDMs);
+  const { conversations, loading, fetchConversations } = useConversations([]);
   const hasFetchedRef = useRef(false);
   const previousConversationsRef = useRef<DMConversation[]>([]);
-  // Local state for optimistic UI updates
   const [localConversations, setLocalConversations] = useState<DMConversation[]>([]);
 
   useEffect(() => {
@@ -46,14 +43,6 @@ const DMConversationList: React.FC<Props> = ({
   const displayConversations = loading ? previousConversationsRef.current : localConversations;
   const showLoading = isInitialLoading && displayConversations.length === 0;
   const isEmpty = !showLoading && displayConversations.length === 0;
-
-  const handleHideConversation = (userId: string) => {
-    console.log('[DMConversationList] Hiding conversation for userId:', userId);
-    // Optimistically update the UI
-    setLocalConversations(prevConvs => prevConvs.filter(conv => conv.userId !== userId));
-    // Update the actual storage
-    hideConversation(userId);
-  };
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -90,7 +79,6 @@ const DMConversationList: React.FC<Props> = ({
                   conversation.userAvatar,
                   conversation.conversationId
                 )}
-                onHide={handleHideConversation}
                 isLoading={conversation.isLoading}
               />
             ))}
