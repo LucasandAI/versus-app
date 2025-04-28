@@ -1,3 +1,4 @@
+
 export interface DMConversation {
   conversationId: string;
   userId: string;
@@ -13,7 +14,7 @@ export interface DirectMessage {
   text: string;
   sender_id: string;
   receiver_id: string;
-  conversation_id?: string;
+  conversation_id: string;
   timestamp: string;
 }
 

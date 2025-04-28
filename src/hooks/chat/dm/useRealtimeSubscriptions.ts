@@ -7,66 +7,55 @@ export const useRealtimeSubscriptions = (
   currentUserId: string | undefined,
   userCache: UserCache,
   fetchUserData: (userId: string) => Promise<any>,
-  updateConversation: (conversationId: string, userId: string, newMessage: string, otherUserName?: string, otherUserAvatar?: string) => void
+  updateConversation: (conversationId: string, userId: string, newMessage: string, otherUserName: string, otherUserAvatar: string) => void
 ) => {
   useEffect(() => {
     if (!currentUserId) return;
 
     console.log('[useConversations] Setting up real-time subscriptions for user:', currentUserId);
     
-    // Listen for messages sent by the current user
-    const outgoingChannel = supabase
-      .channel('dm-outgoing')
+    // Listen for new direct messages
+    const messagesChannel = supabase
+      .channel('direct-messages-changes')
       .on('postgres_changes', 
         { 
           event: 'INSERT',
           schema: 'public',
-          table: 'direct_messages',
-          filter: `sender_id=eq.${currentUserId}`
-        },
-        (payload: any) => {
-          console.log('[RealTime] Outgoing DM detected:', payload, 'timestamp:', new Date().toISOString());
-          
-          // For outgoing messages, other user is the receiver
-          const receiverId = payload.new.receiver_id;
-          const cachedUser = userCache[receiverId];
-          
-          if (cachedUser) {
-            updateConversation(payload.new.conversation_id || `temp_${receiverId}`, receiverId, payload.new.text, cachedUser.name, cachedUser.avatar);
-          } else {
-            fetchUserData(receiverId).then(userData => {
-              if (userData) {
-                updateConversation(payload.new.conversation_id || `temp_${receiverId}`, receiverId, payload.new.text, userData.name, userData.avatar);
-              }
-            });
-          }
-        }
-      )
-      .subscribe();
-    
-    // Listen for messages received by the current user
-    const incomingChannel = supabase
-      .channel('dm-incoming')
-      .on('postgres_changes', 
-        { 
-          event: 'INSERT',
-          schema: 'public',
-          table: 'direct_messages',
-          filter: `receiver_id=eq.${currentUserId}`
+          table: 'direct_messages'
         },
         async (payload: any) => {
-          console.log('[RealTime] Incoming DM detected:', payload, 'timestamp:', new Date().toISOString());
+          if (!payload.new) return;
           
-          // For incoming messages, other user is the sender
-          const senderId = payload.new.sender_id;
-          const cachedUser = userCache[senderId];
+          // Skip messages sent by the current user
+          if (payload.new.sender_id === currentUserId) return;
+          
+          // Only handle messages where this user is involved
+          if (payload.new.sender_id !== currentUserId && payload.new.receiver_id !== currentUserId) return;
+          
+          console.log('[RealTime] DM detected:', payload, 'timestamp:', new Date().toISOString());
+          
+          // For incoming messages from another user
+          const otherUserId = payload.new.sender_id;
+          const cachedUser = userCache[otherUserId];
           
           if (cachedUser) {
-            updateConversation(payload.new.conversation_id || `temp_${senderId}`, senderId, payload.new.text, cachedUser.name, cachedUser.avatar);
+            updateConversation(
+              payload.new.conversation_id, 
+              otherUserId, 
+              payload.new.text, 
+              cachedUser.name, 
+              cachedUser.avatar || '/placeholder.svg'
+            );
           } else {
-            const userData = await fetchUserData(senderId);
+            const userData = await fetchUserData(otherUserId);
             if (userData) {
-              updateConversation(payload.new.conversation_id || `temp_${senderId}`, senderId, payload.new.text, userData.name, userData.avatar);
+              updateConversation(
+                payload.new.conversation_id, 
+                otherUserId, 
+                payload.new.text, 
+                userData.name, 
+                userData.avatar || '/placeholder.svg'
+              );
             }
           }
         }
@@ -75,8 +64,7 @@ export const useRealtimeSubscriptions = (
 
     return () => {
       console.log('[useConversations] Cleaning up real-time subscriptions');
-      supabase.removeChannel(outgoingChannel);
-      supabase.removeChannel(incomingChannel);
+      supabase.removeChannel(messagesChannel);
     };
   }, [currentUserId, updateConversation, fetchUserData, userCache]);
 };

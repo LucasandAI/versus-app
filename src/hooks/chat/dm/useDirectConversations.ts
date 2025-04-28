@@ -1,3 +1,4 @@
+
 import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
@@ -141,7 +142,7 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
         conversationId,
         userId,
         userName,
-        userAvatar,
+        userAvatar: userAvatar || DEFAULT_AVATAR,
         lastMessage: message,
         timestamp: new Date().toISOString(),
         isInitiator: true

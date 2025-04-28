@@ -5,7 +5,7 @@ import ConversationItem from './ConversationItem';
 import { useConversations } from '@/hooks/chat/dm/useConversations';
 
 interface Props {
-  onSelectUser: (userId: string, userName: string, userAvatar?: string, conversationId?: string) => void;
+  onSelectUser: (userId: string, userName: string, userAvatar: string, conversationId: string) => void;
   selectedUserId?: string;
 }
 
@@ -36,7 +36,7 @@ const DMConversationList: React.FC<Props> = ({ onSelectUser, selectedUserId }) =
           <div className="divide-y">
             {conversations.map((conversation) => (
               <ConversationItem
-                key={conversation.conversationId || conversation.userId}
+                key={conversation.conversationId}
                 conversation={conversation}
                 isSelected={selectedUserId === conversation.userId}
                 onSelect={() => onSelectUser(

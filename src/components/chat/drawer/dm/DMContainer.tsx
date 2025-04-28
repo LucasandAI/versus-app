@@ -10,28 +10,28 @@ import DMSearchPanel from './DMSearchPanel';
 type SelectedUser = {
   id: string;
   name: string;
-  avatar?: string;
-  conversationId?: string;
+  avatar: string;
+  conversationId: string;
 } | null;
 
 interface DMContainerProps {
   initialSelectedUser?: {
     userId: string;
     userName: string;
-    userAvatar?: string;
-    conversationId?: string;
+    userAvatar: string;
+    conversationId: string;
   } | null;
   setDirectMessageUser?: React.Dispatch<React.SetStateAction<{
     userId: string;
     userName: string;
-    userAvatar?: string;
-    conversationId?: string;
+    userAvatar: string;
+    conversationId: string;
   } | null>>;
   directMessageUser?: {
     userId: string;
     userName: string;
-    userAvatar?: string;
-    conversationId?: string;
+    userAvatar: string;
+    conversationId: string;
   } | null;
 }
 
@@ -44,7 +44,7 @@ const DMContainer: React.FC<DMContainerProps> = ({
   const convertedInitialUser = initialSelectedUser ? {
     id: initialSelectedUser.userId,
     name: initialSelectedUser.userName,
-    avatar: initialSelectedUser.userAvatar,
+    avatar: initialSelectedUser.userAvatar || '/placeholder.svg',
     conversationId: initialSelectedUser.conversationId
   } : null;
   
@@ -52,7 +52,7 @@ const DMContainer: React.FC<DMContainerProps> = ({
   const initialUserFromProps = directMessageUser ? {
     id: directMessageUser.userId,
     name: directMessageUser.userName,
-    avatar: directMessageUser.userAvatar,
+    avatar: directMessageUser.userAvatar || '/placeholder.svg',
     conversationId: directMessageUser.conversationId
   } : convertedInitialUser;
   
@@ -66,7 +66,7 @@ const DMContainer: React.FC<DMContainerProps> = ({
       setSelectedUser({
         id: directMessageUser.userId,
         name: directMessageUser.userName,
-        avatar: directMessageUser.userAvatar,
+        avatar: directMessageUser.userAvatar || '/placeholder.svg',
         conversationId: directMessageUser.conversationId
       });
     } else if (initialSelectedUser) {
@@ -74,17 +74,17 @@ const DMContainer: React.FC<DMContainerProps> = ({
       setSelectedUser({
         id: initialSelectedUser.userId,
         name: initialSelectedUser.userName,
-        avatar: initialSelectedUser.userAvatar,
+        avatar: initialSelectedUser.userAvatar || '/placeholder.svg',
         conversationId: initialSelectedUser.conversationId
       });
     }
   }, [initialSelectedUser, directMessageUser]);
 
-  const handleSelectUser = (userId: string, userName: string, userAvatar?: string, conversationId?: string) => {
+  const handleSelectUser = (userId: string, userName: string, userAvatar: string, conversationId: string) => {
     const user = {
       id: userId,
       name: userName,
-      avatar: userAvatar,
+      avatar: userAvatar || '/placeholder.svg',
       conversationId
     };
     setSelectedUser(user);
@@ -92,7 +92,7 @@ const DMContainer: React.FC<DMContainerProps> = ({
       setDirectMessageUser({
         userId: userId,
         userName: userName,
-        userAvatar: userAvatar,
+        userAvatar: userAvatar || '/placeholder.svg',
         conversationId
       });
     }
@@ -107,9 +107,9 @@ const DMContainer: React.FC<DMContainerProps> = ({
 
   // Listen for openDirectMessage events 
   useEffect(() => {
-    const handleOpenDM = (event: CustomEvent<{userId: string, userName: string, userAvatar?: string, conversationId?: string}>) => {
+    const handleOpenDM = (event: CustomEvent<{userId: string, userName: string, userAvatar: string, conversationId: string}>) => {
       const { userId, userName, userAvatar, conversationId } = event.detail;
-      handleSelectUser(userId, userName, userAvatar, conversationId);
+      handleSelectUser(userId, userName, userAvatar || '/placeholder.svg', conversationId);
     };
 
     window.addEventListener('openDirectMessage', handleOpenDM as EventListener);
@@ -152,12 +152,18 @@ const DMContainer: React.FC<DMContainerProps> = ({
           
           {/* Conversation content */}
           <div className="flex-1 overflow-hidden">
-            <DMConversation
-              userId={selectedUser.id}
-              userName={selectedUser.name}
-              userAvatar={selectedUser.avatar}
-              conversationId={selectedUser.conversationId}
-            />
+            {selectedUser.conversationId ? (
+              <DMConversation
+                userId={selectedUser.id}
+                userName={selectedUser.name}
+                userAvatar={selectedUser.avatar}
+                conversationId={selectedUser.conversationId}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                Loading conversation...
+              </div>
+            )}
           </div>
         </div>
       )}
