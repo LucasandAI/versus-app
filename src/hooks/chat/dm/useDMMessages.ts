@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
@@ -6,11 +5,12 @@ import { toast } from '@/hooks/use-toast';
 import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 import debounce from 'lodash/debounce';
 
-const FETCH_DELAY_MS = 300; // Increased delay before fetching
+// Helper function to identify optimistic messages
+const isOptimisticMessage = (messageId: string) => messageId.startsWith('temp-');
 
-// Helper function to create a unique message identifier for deduplication
-const createMessageId = (message: any) => {
-  return `${message.text}-${message.sender?.id}-${message.timestamp}`;
+// Helper function to create a unique message ID for deduplication
+const createMessageId = (message: any): string => {
+  return `${message.text}-${message.sender?.id || 'unknown'}-${message.timestamp || Date.now()}`;
 };
 
 export const useDMMessages = (userId: string, userName: string, conversationId: string) => {
@@ -18,7 +18,7 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
   const [messageIds, setMessageIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
-  const { currentUser } = useApp();
+  const { currentUser, isSessionReady } = useApp();
   const { unhideConversation } = useHiddenDMs();
   const [errorToastShown, setErrorToastShown] = useState(false);
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -29,7 +29,7 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
   useEffect(() => {
     conversationIdRef.current = conversationId;
   }, [conversationId]);
-  
+
   // Function to add messages without duplicates
   const addMessagesWithoutDuplicates = useCallback((newMessages: any[]) => {
     setMessages(prevMessages => {
@@ -66,10 +66,10 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
     };
   }, []);
 
-  // Debounced fetch function to avoid multiple rapid fetches
-  const fetchMessages = useCallback(debounce(async () => {
-    // Guard clause: early return if any required ID is missing
-    if (!userId || !currentUser?.id || !conversationIdRef.current) {
+  // Message fetching function without artificial delay
+  const fetchMessages = useCallback(async () => {
+    // Guard clause: early return if any required ID is missing or session not ready
+    if (!userId || !currentUser?.id || !conversationIdRef.current || !isSessionReady) {
       if (conversationIdRef.current !== 'new') {
         setLoading(false);
       }
@@ -89,7 +89,6 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
     try {
       console.log(`Fetching messages for conversation ${conversationIdRef.current}`);
       
-      // Fetch messages using conversation ID
       const { data, error } = await supabase
         .from('direct_messages')
         .select(`
@@ -108,7 +107,6 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
       // Separately fetch user info for message senders
       const senderIds = [...new Set(data?.map(msg => msg.sender_id) || [])];
       
-      // Only fetch user data if we have sender IDs
       let userMap: Record<string, any> = {};
       if (senderIds.length > 0) {
         const { data: usersData, error: usersError } = await supabase
@@ -120,7 +118,6 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
         
         if (usersError) throw usersError;
         
-        // Create a map of user data by ID for quick lookup
         userMap = (usersData || []).reduce((acc: Record<string, any>, user) => {
           acc[user.id] = user;
           return acc;
@@ -130,7 +127,6 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
       if (!isMounted.current) return;
       
       const formattedMessages = (data || []).map((msg) => {
-        // Look up user info from our map
         const senderInfo = userMap[msg.sender_id] || {
           id: msg.sender_id,
           name: msg.sender_id === currentUser.id ? currentUser.name : userName,
@@ -149,23 +145,31 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
         };
       });
 
-      // Initialize message IDs set
-      const initialMessageIds = new Set<string>();
+      // Initialize message IDs set and remove any matching optimistic messages
+      const confirmedMessageIds = new Set<string>();
       formattedMessages.forEach(msg => {
-        initialMessageIds.add(createMessageId(msg));
+        confirmedMessageIds.add(createMessageId(msg));
       });
 
-      if (!isMounted.current) return;
-      
-      setMessages(formattedMessages);
-      setMessageIds(initialMessageIds);
+      // Filter out any optimistic messages that match confirmed messages
+      setMessages(prevMessages => {
+        return prevMessages.filter(msg => {
+          if (isOptimisticMessage(msg.id)) {
+            return !confirmedMessageIds.has(createMessageId(msg));
+          }
+          return true;
+        });
+      });
+
+      // Add new messages
+      addMessagesWithoutDuplicates(formattedMessages);
+      setMessageIds(confirmedMessageIds);
       setErrorToastShown(false);
     } catch (error) {
       if (!isMounted.current) return;
       
       console.error('Error fetching direct messages:', error);
       
-      // Show toast only once per conversation
       if (!errorToastShown) {
         toast({
           title: "Error",
@@ -179,7 +183,7 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
         setLoading(false);
       }
     }
-  }, 300), [userId, currentUser?.id, userName, errorToastShown]);
+  }, [userId, currentUser?.id, userName, errorToastShown, addMessagesWithoutDuplicates, isSessionReady]);
 
   // Effect to handle fetching messages when conversation details change
   useEffect(() => {
@@ -188,25 +192,24 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
       clearTimeout(fetchTimeoutRef.current);
     }
 
-    // Set a small delay before fetching
-    fetchTimeoutRef.current = setTimeout(() => {
-      if (isMounted.current) {
-        fetchMessages();
-      }
-    }, FETCH_DELAY_MS);
+    // Fetch immediately if session is ready
+    if (isSessionReady && conversationId && conversationId !== 'new') {
+      console.log('[useDMMessages] Session ready, fetching messages immediately');
+      fetchMessages();
+    }
     
     return () => {
       if (fetchTimeoutRef.current) {
         clearTimeout(fetchTimeoutRef.current);
-        fetchMessages.cancel(); // Cancel any pending debounced fetch
       }
     };
-  }, [userId, currentUser?.id, conversationId, fetchMessages]);
+  }, [userId, currentUser?.id, conversationId, fetchMessages, isSessionReady]);
 
   // Add a message without duplicates
   const addMessageWithoutDuplicates = useCallback((message: any) => {
     const messageId = createMessageId(message);
     if (!messageIds.has(messageId)) {
+      console.log('[useDMMessages] Adding new message:', message.id, isOptimisticMessage(message.id) ? '(optimistic)' : '');
       setMessages(prev => [...prev, message]);
       setMessageIds(prev => new Set(prev).add(messageId));
       return true;
@@ -214,40 +217,51 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
     return false;
   }, [messageIds]);
 
+  const handleDeleteMessage = useCallback(async (messageId: string) => {
+    // First remove the message optimistically
+    setMessages(prev => prev.filter(msg => msg.id !== messageId));
+
+    // If it's an optimistic message that hasn't been saved yet, we're done
+    if (isOptimisticMessage(messageId)) {
+      console.log('[useDMMessages] Deleted optimistic message:', messageId);
+      return;
+    }
+
+    // Otherwise, attempt to delete from database
+    try {
+      const { error } = await supabase
+        .from('direct_messages')
+        .delete()
+        .eq('id', messageId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      toast({
+        title: "Error",
+        description: "Could not delete message",
+        variant: "destructive"
+      });
+    }
+  }, []);
+
+  // Pre-fetch messages when conversation changes
+  useEffect(() => {
+    if (isSessionReady && conversationId && conversationId !== 'new') {
+      console.log('[useDMMessages] Pre-fetching messages for conversation:', conversationId);
+      fetchMessages();
+    }
+  }, [isSessionReady, conversationId, fetchMessages]);
+
   return {
     messages,
-    setMessages: (messageUpdater: any) => {
-      // If it's a function updater, we need to handle it specially
-      if (typeof messageUpdater === 'function') {
-        setMessages(prev => {
-          const newMessages = messageUpdater(prev);
-          
-          // Update message IDs too
-          const newIds = new Set<string>();
-          newMessages.forEach((msg: any) => {
-            newIds.add(createMessageId(msg));
-          });
-          setMessageIds(newIds);
-          
-          return newMessages;
-        });
-      } else {
-        // Direct update
-        setMessages(messageUpdater);
-        
-        // Update message IDs
-        const newIds = new Set<string>();
-        messageUpdater.forEach((msg: any) => {
-          newIds.add(createMessageId(msg));
-        });
-        setMessageIds(newIds);
-      }
-    },
+    setMessages,
     addMessage: addMessageWithoutDuplicates,
     addMessages: addMessagesWithoutDuplicates,
     loading,
     isSending,
     setIsSending,
-    refreshMessages: fetchMessages
+    refreshMessages: fetchMessages,
+    deleteMessage: handleDeleteMessage
   };
 };

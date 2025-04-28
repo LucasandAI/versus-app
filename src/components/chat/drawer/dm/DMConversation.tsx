@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import ChatMessages from '../../ChatMessages';
@@ -26,7 +25,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
 }) => {
   const { currentUser } = useApp();
   const { navigateToUserProfile } = useNavigation();
-  const { messages, setMessages, addMessage, isSending, setIsSending } = useDMMessages(userId, userName, conversationId);
+  const { messages, setMessages, addMessage, isSending, setIsSending, deleteMessage } = useDMMessages(userId, userName, conversationId);
   const { conversations, fetchConversations } = useConversations([]);
   const { formatTime } = useMessageFormatting();
   const lastMessageRef = useRef<HTMLDivElement>(null);
@@ -62,7 +61,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
           <ChatMessages 
             messages={messages}
             clubMembers={currentUser ? [currentUser] : []}
-            onDeleteMessage={handleDeleteMessage}
+            onDeleteMessage={deleteMessage}
             onSelectUser={(userId, userName, userAvatar) => 
               navigateToUserProfile(userId, userName, userAvatar)
             }
