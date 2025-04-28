@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import ChatMessages from '../../ChatMessages';
@@ -30,7 +31,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
   const { conversations, fetchConversations } = useConversations([]);
   const { formatTime } = useMessageFormatting();
   const lastMessageRef = useRef<HTMLDivElement>(null);
-  const { markDMAsRead } = useUnreadMessages();
+  const { markConversationAsRead } = useUnreadMessages();
   
   const { createConversation } = useConversationManagement(currentUser?.id, userId);
   const { handleSendMessage, handleDeleteMessage } = useMessageHandling(
@@ -55,9 +56,9 @@ const DMConversation: React.FC<DMConversationProps> = ({
   
   useEffect(() => {
     if (conversationId && conversationId !== 'new') {
-      markDMAsRead(conversationId);
+      markConversationAsRead(conversationId);
     }
-  }, [conversationId, markDMAsRead]);
+  }, [conversationId, markConversationAsRead]);
 
   return (
     <div className="flex flex-col h-full w-full">
