@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { MessageCircle } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -57,7 +58,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           onClick={open}
           className="text-primary hover:bg-gray-100 rounded-full p-2"
           icon={<MessageCircle className="h-5 w-5" />}
-          badge={hasUnreadMessages}
+          badge={hasUnreadMessages ? 1 : 0} // Convert boolean to number (1 or 0)
         />
         <UserAvatar 
           name={currentUser?.name || "User"} 
