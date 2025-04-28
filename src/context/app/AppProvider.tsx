@@ -8,7 +8,7 @@ import { useViewState } from '@/hooks/navigation/useViewState';
 import { useAuthSessionEffect } from './useAuthSessionEffect';
 import { useLoadCurrentUser } from './useLoadCurrentUser';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);

@@ -1,9 +1,13 @@
+
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import { toast } from '@/hooks/use-toast';
 import { DMConversation } from './types';
 import debounce from 'lodash/debounce';
+
+// Add default avatar constant
+const DEFAULT_AVATAR = '/placeholder.svg';
 
 export const useDirectConversations = (hiddenDMIds: string[] = []) => {
   const [conversations, setConversations] = useState<DMConversation[]>([]);

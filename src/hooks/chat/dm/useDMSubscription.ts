@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
@@ -15,6 +16,7 @@ export const useDMSubscription = (
   const subscriptionError = useRef(false);
   const isMounted = useRef(true);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const subscriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { isSessionReady } = useApp();
 
   // Debounced function to handle adding new messages
