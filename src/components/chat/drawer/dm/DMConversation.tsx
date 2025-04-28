@@ -34,7 +34,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
     isSending, 
     setIsSending 
   } = useDMMessages(userId, userName, conversationId);
-  const { updateConversation } = useConversations([]);
+  const { conversations, fetchConversations } = useConversations([]);
   const { unhideConversation } = useHiddenDMs();
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const { formatTime } = useMessageFormatting();
@@ -51,6 +51,18 @@ const DMConversation: React.FC<DMConversationProps> = ({
       });
     }
   }, [messages.length]);
+
+  // Local function to update conversation in the list
+  const updateLocalConversation = (
+    conversationId: string, 
+    userId: string, 
+    message: string,
+    userName: string,
+    userAvatar: string
+  ) => {
+    // After sending a message, refresh conversations
+    fetchConversations();
+  };
 
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || !currentUser?.id || !userId || !conversationId) return;
@@ -77,7 +89,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
       addMessage(newMessageObj);
       
       // Update the conversation list immediately
-      updateConversation(conversationId, userId, message, userName, userAvatar || '/placeholder.svg');
+      updateLocalConversation(conversationId, userId, message, userName, userAvatar || '/placeholder.svg');
 
       const { data, error } = await supabase
         .from('direct_messages')
