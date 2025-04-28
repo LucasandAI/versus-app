@@ -6,6 +6,8 @@ import UserAvatar from '../shared/UserAvatar';
 import Button from '../shared/Button';
 import NotificationPopover from '../shared/NotificationPopover';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
+import { useUnreadMessages } from '@/hooks/chat/dm/useUnreadMessages';
+import { useUnreadCounts } from '@/hooks/chat/useUnreadCounts';
 
 interface HomeHeaderProps {
   notifications: any[];
@@ -19,7 +21,6 @@ interface HomeHeaderProps {
 
 const HomeHeader: React.FC<HomeHeaderProps> = ({
   notifications,
-  unreadMessages,
   onMarkAsRead,
   onClearAll,
   onUserClick,
@@ -28,6 +29,10 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
 }) => {
   const { setCurrentView, currentUser, setSelectedUser } = useApp();
   const { open } = useChatDrawerGlobal();
+  const { totalUnreadCount: unreadDMCount } = useUnreadMessages();
+  const { clubUnreadCount } = useUnreadCounts(currentUser?.id);
+  
+  const totalUnreadMessages = unreadDMCount + clubUnreadCount;
 
   const handleViewOwnProfile = () => {
     if (currentUser) {
@@ -54,7 +59,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           onClick={open}
           className="text-primary hover:bg-gray-100 rounded-full p-2"
           icon={<MessageCircle className="h-5 w-5" />}
-          badge={unreadMessages}
+          badge={totalUnreadMessages > 0 ? totalUnreadMessages : undefined}
         />
         <UserAvatar 
           name={currentUser?.name || "User"} 

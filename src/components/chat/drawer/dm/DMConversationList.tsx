@@ -5,6 +5,7 @@ import { useConversations } from '@/hooks/chat/dm/useConversations';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DMConversation } from '@/hooks/chat/dm/types';
 import { useApp } from '@/context/AppContext';
+import { useUnreadMessages } from '@/hooks/chat/dm/useUnreadMessages';
 
 interface Props {
   onSelectUser: (userId: string, userName: string, userAvatar: string, conversationId: string) => void;
@@ -21,6 +22,7 @@ const DMConversationList: React.FC<Props> = ({
 }) => {
   const { currentUser, isSessionReady } = useApp();
   const { conversations, loading, fetchConversations } = useConversations([]);
+  const { unreadConversations } = useUnreadMessages();
   const hasFetchedRef = useRef(false);
   const previousConversationsRef = useRef<DMConversation[]>([]);
   const [localConversations, setLocalConversations] = useState<DMConversation[]>([]);
@@ -73,6 +75,7 @@ const DMConversationList: React.FC<Props> = ({
                 key={conversation.conversationId}
                 conversation={conversation}
                 isSelected={selectedUserId === conversation.userId}
+                isUnread={unreadConversations.has(conversation.conversationId)}
                 onSelect={() => onSelectUser(
                   conversation.userId,
                   conversation.userName,

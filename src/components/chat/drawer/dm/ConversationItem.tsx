@@ -5,19 +5,22 @@ import UserAvatar from '@/components/shared/UserAvatar';
 import { formatDistanceToNow } from 'date-fns';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
 interface ConversationItemProps {
   conversation: DMConversation;
   isSelected: boolean;
   onSelect: () => void;
   isLoading?: boolean;
+  isUnread?: boolean;
 }
 
 const ConversationItem: React.FC<ConversationItemProps> = ({
   conversation,
   isSelected,
   onSelect,
-  isLoading = false
+  isLoading = false,
+  isUnread = false
 }) => {
   const isMobile = useIsMobile();
 
@@ -36,7 +39,8 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
   return (
     <div 
       className={`flex items-start px-4 py-3 cursor-pointer hover:bg-gray-50 relative group
-        ${isSelected ? 'bg-primary/10 text-primary' : ''}`}
+        ${isSelected ? 'bg-primary/10 text-primary' : ''}
+        ${isUnread ? 'font-medium' : ''}`}
       onClick={onSelect}
     >
       <UserAvatar
@@ -51,8 +55,11 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
           {isLoading ? (
             <Skeleton className="h-5 w-24" />
           ) : (
-            <h2 className="font-medium text-lg truncate max-w-[60%]">
+            <h2 className={`text-lg truncate max-w-[60%] ${isUnread ? 'font-bold' : 'font-medium'}`}>
               {conversation.userName}
+              {isUnread && (
+                <span className="ml-2 inline-flex h-2 w-2 bg-red-500 rounded-full" />
+              )}
             </h2>
           )}
           {formattedTime && !isLoading ? (
@@ -68,7 +75,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
           {isLoading ? (
             <Skeleton className="h-4 w-full flex-1" />
           ) : (
-            <p className="text-sm text-gray-600 truncate flex-1">
+            <p className={`text-sm truncate flex-1 ${isUnread ? 'text-gray-900' : 'text-gray-600'}`}>
               {truncatedMessage}
             </p>
           )}

@@ -3,6 +3,7 @@ import React from 'react';
 import { Club } from '@/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useApp } from '@/context/AppContext';
+import { useUnreadMessages } from '@/hooks/chat/dm/useUnreadMessages';
 import { useUnreadCounts } from '@/hooks/chat/useUnreadCounts';
 
 interface DrawerHeaderProps {
@@ -17,10 +18,11 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
   selectedClub 
 }) => {
   const { currentUser } = useApp();
-  const { unreadConversations, unreadClubs } = useUnreadCounts(currentUser?.id);
-
+  const { unreadConversations } = useUnreadMessages();
+  const { unreadClubs } = useUnreadCounts(currentUser?.id);
+  
+  const hasUnreadDms = unreadConversations.size > 0;
   const hasUnreadClubs = unreadClubs.size > 0;
-  const hasUnreadConversations = unreadConversations.size > 0;
 
   return (
     <div className="px-4 py-2 border-b">
@@ -34,7 +36,7 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
           </TabsTrigger>
           <TabsTrigger value="dm" className="inline-flex items-center gap-2">
             Direct Messages
-            {hasUnreadConversations && (
+            {hasUnreadDms && (
               <span className="inline-flex h-2 w-2 bg-red-500 rounded-full" />
             )}
           </TabsTrigger>

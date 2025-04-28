@@ -1,4 +1,5 @@
-import React, { useRef } from 'react';
+
+import React, { useRef, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import ChatMessages from '../../ChatMessages';
 import { useDMMessages } from '@/hooks/chat/dm/useDMMessages';
@@ -8,6 +9,7 @@ import { useConversations } from '@/hooks/chat/dm/useConversations';
 import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
 import { useConversationManagement } from '@/hooks/chat/dm/useConversationManagement';
 import { useMessageHandling } from '@/hooks/chat/dm/useMessageHandling';
+import { useUnreadMessages } from '@/hooks/chat/dm/useUnreadMessages';
 import DMMessageInput from './DMMessageInput';
 
 interface DMConversationProps {
@@ -29,6 +31,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
   const { conversations, fetchConversations } = useConversations([]);
   const { formatTime } = useMessageFormatting();
   const lastMessageRef = useRef<HTMLDivElement>(null);
+  const { markConversationAsRead } = useUnreadMessages();
   
   // Custom hooks
   const { createConversation } = useConversationManagement(currentUser?.id, userId);
@@ -53,6 +56,13 @@ const DMConversation: React.FC<DMConversationProps> = ({
       });
     }
   }, [messages.length]);
+  
+  // Mark conversation as read when opened
+  useEffect(() => {
+    if (conversationId && conversationId !== 'new') {
+      markConversationAsRead(conversationId);
+    }
+  }, [conversationId, markConversationAsRead]);
 
   return (
     <div className="flex flex-col h-full w-full">

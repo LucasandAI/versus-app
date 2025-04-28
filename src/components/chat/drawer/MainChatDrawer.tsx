@@ -8,6 +8,8 @@ import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { useChatActions } from '@/hooks/chat/useChatActions';
 import { useApp } from '@/context/AppContext';
 import { useConversations } from '@/hooks/chat/dm/useConversations';
+import { useUnreadMessages } from '@/hooks/chat/dm/useUnreadMessages';
+import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -40,6 +42,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   
   // Pre-fetch conversations when drawer opens for faster loading
   const { fetchConversations } = useConversations([]);
+  const { markDirectMessagesAsRead } = useMessageReadStatus();
+  const { totalUnreadCount } = useUnreadMessages();
   
   useEffect(() => {
     // Only pre-fetch conversations when drawer opens AND current user is available
@@ -48,6 +52,13 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       fetchConversations();
     }
   }, [open, currentUser?.id, fetchConversations]);
+
+  useEffect(() => {
+    // Update parent component with unread count
+    if (onNewMessage) {
+      onNewMessage(totalUnreadCount);
+    }
+  }, [totalUnreadCount, onNewMessage]);
 
   useEffect(() => {
     const handleOpenDM = (event: CustomEvent<{
@@ -63,13 +74,18 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
         userAvatar: event.detail.userAvatar || '/placeholder.svg',
         conversationId: event.detail.conversationId
       });
+      
+      // Mark as read when opening via event
+      if (currentUser?.id && event.detail.conversationId !== 'new') {
+        markDirectMessagesAsRead(event.detail.conversationId, currentUser.id);
+      }
     };
 
     window.addEventListener('openDirectMessage', handleOpenDM as EventListener);
     return () => {
       window.removeEventListener('openDirectMessage', handleOpenDM as EventListener);
     };
-  }, []);
+  }, [currentUser?.id, markDirectMessagesAsRead]);
 
   const handleSelectClub = (club: Club) => {
     setSelectedLocalClub(club);
