@@ -122,6 +122,7 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
           const otherUser = userMap[otherUserId];
           const latestMessage = latestMessageMap[conv.id];
           
+          // Ensure we always have a valid DMConversation object
           return {
             conversationId: conv.id,
             userId: otherUserId,
@@ -130,7 +131,7 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
             lastMessage: latestMessage?.text || '',
             timestamp: latestMessage?.timestamp || conv.created_at,
             isInitiator: latestMessage ? latestMessage.senderId === currentUser.id : false
-          } as DMConversation;
+          };
         })
         .filter((conv): conv is DMConversation => conv !== null)
         .sort((a, b) => 
