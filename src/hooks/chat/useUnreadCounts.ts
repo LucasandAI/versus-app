@@ -29,7 +29,7 @@ export const useUnreadCounts = (userId: string | undefined) => {
         if (clubError) throw clubError;
         setClubUnreadCount(clubCount || 0);
 
-        // Get unread conversations for DMs
+        // Get unread conversations
         const { data: unreadDMs } = await supabase
           .from('direct_messages_read')
           .select('conversation_id')
@@ -53,7 +53,7 @@ export const useUnreadCounts = (userId: string | undefined) => {
 
     fetchUnreadCounts();
 
-    // Subscribe to new DM messages
+    // Subscribe to new messages
     const dmChannel = supabase.channel('dm-notifications')
       .on('postgres_changes', {
         event: 'INSERT',
@@ -67,7 +67,6 @@ export const useUnreadCounts = (userId: string | undefined) => {
       })
       .subscribe();
 
-    // Subscribe to new club messages
     const clubChannel = supabase.channel('club-notifications')
       .on('postgres_changes', {
         event: 'INSERT',
@@ -87,32 +86,11 @@ export const useUnreadCounts = (userId: string | undefined) => {
     };
   }, [userId]);
 
-  // Add optimistic update functions
-  const markDMAsRead = (conversationId: string) => {
-    setUnreadConversations(prev => {
-      const updated = new Set(prev);
-      updated.delete(conversationId);
-      setDMUnreadCount(Math.max(0, dmUnreadCount - 1));
-      return updated;
-    });
-  };
-
-  const markClubAsRead = (clubId: string) => {
-    setUnreadClubs(prev => {
-      const updated = new Set(prev);
-      updated.delete(clubId);
-      setClubUnreadCount(Math.max(0, clubUnreadCount - 1));
-      return updated;
-    });
-  };
-
   return {
     totalUnreadCount: dmUnreadCount + clubUnreadCount,
     dmUnreadCount,
     clubUnreadCount,
     unreadConversations,
-    unreadClubs,
-    markDMAsRead,
-    markClubAsRead
+    unreadClubs
   };
 };

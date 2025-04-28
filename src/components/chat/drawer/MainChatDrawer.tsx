@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import ChatDrawerContainer from './ChatDrawerContainer';
@@ -10,7 +9,6 @@ import { useApp } from '@/context/AppContext';
 import { useConversations } from '@/hooks/chat/dm/useConversations';
 import { useUnreadMessages } from '@/hooks/chat/dm/useUnreadMessages';
 import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
-import { useUnreadCounts } from '@/hooks/chat/useUnreadCounts';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -40,10 +38,10 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   
   const { sendMessageToClub, deleteMessage } = useChatActions();
   const { currentUser } = useApp();
+  
   const { fetchConversations } = useConversations([]);
-  const { markDirectMessagesAsRead, markClubMessagesAsRead } = useMessageReadStatus();
+  const { markDirectMessagesAsRead } = useMessageReadStatus();
   const { totalUnreadCount } = useUnreadMessages();
-  const { markDMAsRead, markClubAsRead } = useUnreadCounts(currentUser?.id);
   
   useEffect(() => {
     if (open && currentUser?.id) {
@@ -73,11 +71,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       });
       
       if (currentUser?.id && event.detail.conversationId !== 'new') {
-        markDirectMessagesAsRead(
-          event.detail.conversationId, 
-          currentUser.id,
-          () => markDMAsRead(event.detail.conversationId)
-        );
+        markDirectMessagesAsRead(event.detail.conversationId, currentUser.id);
       }
     };
 
@@ -85,17 +79,10 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     return () => {
       window.removeEventListener('openDirectMessage', handleOpenDM as EventListener);
     };
-  }, [currentUser?.id, markDirectMessagesAsRead, markDMAsRead]);
+  }, [currentUser?.id, markDirectMessagesAsRead]);
 
   const handleSelectClub = (club: Club) => {
     setSelectedLocalClub(club);
-    if (currentUser?.id) {
-      markClubMessagesAsRead(
-        club.id, 
-        currentUser.id,
-        () => markClubAsRead(club.id)
-      );
-    }
   };
 
   const handleSendMessage = async (message: string, clubId?: string) => {
