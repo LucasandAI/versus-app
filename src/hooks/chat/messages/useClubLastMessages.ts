@@ -5,9 +5,13 @@ import { Club } from '@/types';
 
 export const useClubLastMessages = (clubs: Club[]) => {
   const [lastMessages, setLastMessages] = useState<Record<string, any>>({});
+  const [sortedClubs, setSortedClubs] = useState<Club[]>([]);
 
   useEffect(() => {
-    if (!clubs.length) return;
+    if (!clubs.length) {
+      setSortedClubs([]);
+      return;
+    }
 
     const fetchLatestMessages = async () => {
       const clubIds = clubs.map(club => club.id);
@@ -38,6 +42,27 @@ export const useClubLastMessages = (clubs: Club[]) => {
       }, {});
 
       setLastMessages(latestMessages);
+      
+      // Sort clubs by most recent message timestamp
+      const clubsWithTimestamps = clubs.map(club => {
+        const lastMessage = latestMessages[club.id];
+        // Use the message timestamp or a default old date if no messages
+        const lastTimestamp = lastMessage ? 
+          new Date(lastMessage.timestamp).getTime() : 
+          0;
+        
+        return {
+          club,
+          lastTimestamp
+        };
+      });
+      
+      // Sort by timestamp (most recent first)
+      const sorted = clubsWithTimestamps
+        .sort((a, b) => b.lastTimestamp - a.lastTimestamp)
+        .map(item => item.club);
+        
+      setSortedClubs(sorted);
     };
 
     fetchLatestMessages();
@@ -64,5 +89,5 @@ export const useClubLastMessages = (clubs: Club[]) => {
     };
   }, [clubs]);
 
-  return lastMessages;
+  return { lastMessages, sortedClubs: sortedClubs.length > 0 ? sortedClubs : clubs };
 };

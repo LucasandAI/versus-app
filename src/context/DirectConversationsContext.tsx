@@ -1,196 +1,249 @@
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { useApp } from './AppContext';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { DMConversation } from '@/hooks/chat/dm/types';
+import { useApp } from './AppContext';
 import { toast } from '@/hooks/use-toast';
 
-interface DirectConversationsContextType {
-  conversations: DMConversation[];
-  loading: boolean;
-  hasFetched: boolean;
-  fetchConversations: (forceRefresh?: boolean) => Promise<DMConversation[]>;
-  refreshConversations: () => Promise<DMConversation[]>;
+interface Conversation {
+  conversationId: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  lastMessage?: string;
+  lastMessageTime?: string;
 }
 
-const DirectConversationsContext = createContext<DirectConversationsContextType | undefined>(undefined);
+interface DirectConversationsContextValue {
+  conversations: Conversation[];
+  loading: boolean;
+  hasLoaded: boolean;
+  fetchConversations: (forceRefresh?: boolean) => Promise<void>;
+  refreshConversations: () => Promise<void>;
+  getOrCreateConversation: (userId: string, userName: string, userAvatar?: string) => Promise<Conversation | null>;
+}
 
-// Default avatar constant
-const DEFAULT_AVATAR = '/placeholder.svg';
+const DirectConversationsContext = createContext<DirectConversationsContextValue>({
+  conversations: [],
+  loading: false,
+  hasLoaded: false,
+  fetchConversations: async () => {},
+  refreshConversations: async () => {},
+  getOrCreateConversation: async () => null,
+});
+
+export const useDirectConversationsContext = () => useContext(DirectConversationsContext);
 
 export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [conversations, setConversations] = useState<DMConversation[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(false);
-  const [hasFetched, setHasFetched] = useState(false);
-  const { currentUser, isSessionReady } = useApp();
-  const isMounted = useRef(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const { currentUser } = useApp();
 
-  // Cleanup effect
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
-
-  // Core fetch logic
   const fetchConversations = useCallback(async (forceRefresh = false) => {
-    // Don't fetch if already fetched and not forcing refresh
-    if (hasFetched && !forceRefresh) {
-      console.log('[DirectConversationsContext] Using cached conversations, skipping fetch');
-      return conversations;
+    if (!forceRefresh && hasLoaded) {
+      console.log('[DirectConversationsProvider] Using cached conversations');
+      return;
     }
-
-    // Strong guard clause to prevent fetching without session or user
-    if (!isSessionReady || !currentUser?.id) {
-      console.log('[DirectConversationsContext] Session or user not ready, skipping fetch');
-      return [];
+    
+    if (!currentUser?.id) {
+      console.warn('[DirectConversationsProvider] Cannot fetch conversations, no current user');
+      return;
     }
-
-    console.log('[DirectConversationsContext] Fetching conversations for user:', currentUser.id);
+    
     setLoading(true);
-
+    
     try {
-      // Get conversations the current user is part of
-      const { data: directConversations, error: conversationsError } = await supabase
-        .from('direct_conversations')
-        .select('*')
-        .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`);
-
-      if (conversationsError) {
-        console.error('[DirectConversationsContext] Error fetching conversations:', conversationsError);
-        if (isMounted.current) {
-          toast({
-            title: 'Error fetching conversations',
-            description: 'Could not load your message history',
-            variant: 'destructive',
-          });
-        }
-        setLoading(false);
-        return [];
-      }
-
-      if (!directConversations || directConversations.length === 0) {
-        console.log('[DirectConversationsContext] No conversations found');
-        setConversations([]);
-        setHasFetched(true);
-        setLoading(false);
-        return [];
-      }
-
-      // Process the conversations to get the other user's details
-      const processedConversations: DMConversation[] = await Promise.all(
-        directConversations.map(async (conv) => {
-          // Determine the other user ID (not the current user)
-          const otherUserId = conv.user1_id === currentUser.id ? conv.user2_id : conv.user1_id;
-
-          // Get the other user's details
-          const { data: userData, error: userError } = await supabase
-            .from('users')
-            .select('id, name, avatar')
-            .eq('id', otherUserId)
-            .single();
-
-          if (userError || !userData) {
-            console.error(`[DirectConversationsContext] Error fetching user ${otherUserId}:`, userError);
-            return {
-              conversationId: conv.id,
-              userId: otherUserId,
-              userName: 'Unknown User',
-              userAvatar: DEFAULT_AVATAR,
-              timestamp: conv.created_at,
-              lastMessage: '',
-            };
-          }
-
-          // Get the latest message in this conversation
-          const { data: latestMessage, error: messageError } = await supabase
-            .from('direct_messages')
-            .select('text, timestamp')
-            .eq('conversation_id', conv.id)
-            .order('timestamp', { ascending: false })
-            .limit(1)
-            .single();
-
-          if (messageError && messageError.code !== 'PGRST116') {
-            console.error(`[DirectConversationsContext] Error fetching latest message for conversation ${conv.id}:`, messageError);
-          }
-
-          return {
-            conversationId: conv.id,
-            userId: userData.id,
-            userName: userData.name || 'Unknown User',
-            userAvatar: userData.avatar || DEFAULT_AVATAR,
-            timestamp: latestMessage?.timestamp || conv.created_at,
-            lastMessage: latestMessage?.text || '',
-          };
-        })
-      );
-
-      // Filter out self-conversations
-      const filteredConversations = processedConversations.filter(c => c.userId !== currentUser.id);
+      console.log('[DirectConversationsProvider] Fetching conversations for user:', currentUser.id);
       
-      // Sort by most recent message
-      const sortedConversations = filteredConversations.sort((a, b) => {
-        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-      });
-
-      if (isMounted.current) {
-        console.log('[DirectConversationsContext] Setting', sortedConversations.length, 'conversations');
-        setConversations(sortedConversations);
-        setHasFetched(true);
+      // Get all conversations where the current user is a participant
+      const { data: conversationsData, error: conversationsError } = await supabase
+        .from('direct_conversations')
+        .select(`
+          id,
+          user1_id,
+          user2_id
+        `)
+        .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`);
+        
+      if (conversationsError) {
+        throw conversationsError;
       }
-
-      return sortedConversations;
-    } catch (error) {
-      console.error('[DirectConversationsContext] Unexpected error fetching conversations:', error);
-      if (isMounted.current) {
-        toast({
-          title: 'Error fetching conversations',
-          description: 'An unexpected error occurred',
-          variant: 'destructive',
+      
+      if (!conversationsData || conversationsData.length === 0) {
+        setConversations([]);
+        setHasLoaded(true);
+        setLoading(false);
+        return;
+      }
+      
+      // Get the other participant's details for each conversation
+      const conversationsWithUserDetails: Conversation[] = [];
+      
+      for (const conv of conversationsData) {
+        // Skip self-conversations if any
+        if (conv.user1_id === conv.user2_id) {
+          console.log('[DirectConversationsProvider] Skipping self-conversation:', conv.id);
+          continue;
+        }
+        
+        // Determine which user is the other participant
+        const otherUserId = conv.user1_id === currentUser.id ? conv.user2_id : conv.user1_id;
+        
+        // Get other user's details
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('id, name, avatar')
+          .eq('id', otherUserId)
+          .single();
+          
+        if (userError) {
+          console.error('[DirectConversationsProvider] Error fetching user data:', userError);
+          continue;
+        }
+        
+        // Get latest message
+        const { data: latestMessage, error: messageError } = await supabase
+          .from('direct_messages')
+          .select('text, timestamp')
+          .eq('conversation_id', conv.id)
+          .order('timestamp', { ascending: false })
+          .limit(1);
+          
+        if (messageError) {
+          console.error('[DirectConversationsProvider] Error fetching latest message:', messageError);
+        }
+        
+        conversationsWithUserDetails.push({
+          conversationId: conv.id,
+          userId: userData.id,
+          userName: userData.name,
+          userAvatar: userData.avatar || '/placeholder.svg',
+          lastMessage: latestMessage && latestMessage[0] ? latestMessage[0].text : undefined,
+          lastMessageTime: latestMessage && latestMessage[0] ? latestMessage[0].timestamp : undefined
         });
       }
-      return [];
+      
+      // Sort conversations by last message time (most recent first)
+      conversationsWithUserDetails.sort((a, b) => {
+        if (!a.lastMessageTime) return 1;
+        if (!b.lastMessageTime) return -1;
+        return new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime();
+      });
+      
+      setConversations(conversationsWithUserDetails);
+      setHasLoaded(true);
+      
+    } catch (error) {
+      console.error('[DirectConversationsProvider] Error fetching conversations:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load conversations",
+        variant: "destructive"
+      });
     } finally {
-      if (isMounted.current) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
-  }, [currentUser?.id, isSessionReady, hasFetched, conversations]);
-
-  // Public method to force refresh
-  const refreshConversations = useCallback(() => {
-    return fetchConversations(true);
+  }, [currentUser?.id, hasLoaded]);
+  
+  const refreshConversations = useCallback(async () => {
+    await fetchConversations(true);
   }, [fetchConversations]);
-
-  // Reset state when user changes
-  useEffect(() => {
-    if (!currentUser) {
-      setConversations([]);
-      setHasFetched(false);
+  
+  const getOrCreateConversation = useCallback(async (
+    userId: string, 
+    userName: string, 
+    userAvatar = '/placeholder.svg'
+  ): Promise<Conversation | null> => {
+    if (!currentUser?.id) {
+      console.warn('[DirectConversationsProvider] Cannot get conversation, no current user');
+      return null;
     }
-  }, [currentUser]);
-
-  const contextValue: DirectConversationsContextType = {
+    
+    try {
+      // Check if we already have this conversation in our local state
+      const existingConversation = conversations.find(c => c.userId === userId);
+      if (existingConversation) {
+        return existingConversation;
+      }
+      
+      // Check for existing conversation in database
+      const { data: existingConv, error: fetchError } = await supabase
+        .from('direct_conversations')
+        .select('id')
+        .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${userId}),and(user1_id.eq.${userId},user2_id.eq.${currentUser.id})`)
+        .maybeSingle();
+        
+      if (fetchError) {
+        throw fetchError;
+      }
+      
+      let conversationId: string;
+      
+      if (existingConv) {
+        // Use existing conversation
+        conversationId = existingConv.id;
+        console.log('[DirectConversationsProvider] Found existing conversation:', conversationId);
+      } else {
+        // Create new conversation
+        const { data: newConv, error: createError } = await supabase
+          .from('direct_conversations')
+          .insert({
+            user1_id: currentUser.id,
+            user2_id: userId
+          })
+          .select('id')
+          .single();
+          
+        if (createError) {
+          throw createError;
+        }
+        
+        conversationId = newConv.id;
+        console.log('[DirectConversationsProvider] Created new conversation:', conversationId);
+      }
+      
+      // Create conversation object
+      const conversation: Conversation = {
+        conversationId,
+        userId,
+        userName,
+        userAvatar
+      };
+      
+      // Update local state
+      setConversations(prev => {
+        // Don't add duplicate
+        if (prev.some(c => c.conversationId === conversationId)) {
+          return prev;
+        }
+        return [conversation, ...prev];
+      });
+      
+      return conversation;
+      
+    } catch (error) {
+      console.error('[DirectConversationsProvider] Error in getOrCreateConversation:', error);
+      toast({
+        title: "Error",
+        description: "Could not load or create conversation",
+        variant: "destructive"
+      });
+      return null;
+    }
+  }, [currentUser?.id, conversations]);
+  
+  const contextValue: DirectConversationsContextValue = {
     conversations,
     loading,
-    hasFetched,
+    hasLoaded,
     fetchConversations,
-    refreshConversations
+    refreshConversations,
+    getOrCreateConversation
   };
-
+  
   return (
     <DirectConversationsContext.Provider value={contextValue}>
       {children}
     </DirectConversationsContext.Provider>
   );
-};
-
-export const useDirectConversationsContext = () => {
-  const context = useContext(DirectConversationsContext);
-  if (context === undefined) {
-    throw new Error('useDirectConversationsContext must be used within a DirectConversationsProvider');
-  }
-  return context;
 };

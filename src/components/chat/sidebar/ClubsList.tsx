@@ -30,7 +30,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
   setChatToDelete,
 }) => {
   const { navigateToClubDetail } = useNavigation();
-  const lastMessages = useClubLastMessages(clubs);
+  const { lastMessages, sortedClubs } = useClubLastMessages(clubs);
   const { unreadClubs, markClubMessagesAsRead } = useUnreadMessages();
   
   const handleClubClick = (club: Club, e: React.MouseEvent) => {
@@ -49,7 +49,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
       <h3 className="text-sm font-medium mb-2">Your Clubs</h3>
       
       <div className="space-y-1">
-        {clubs.map(club => {
+        {sortedClubs.map(club => {
           const lastMessage = lastMessages[club.id];
           const formattedTime = lastMessage?.timestamp 
             ? formatDistanceToNow(new Date(lastMessage.timestamp), { addSuffix: false })

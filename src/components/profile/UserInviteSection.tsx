@@ -5,6 +5,7 @@ import { UserPlus, MessageCircle } from 'lucide-react';
 import ClubInviteDialog from '../admin/ClubInviteDialog';
 import { User, Club } from '@/types';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
+import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
 
 interface UserInviteSectionProps {
   showInviteButton: boolean;
@@ -24,26 +25,34 @@ const UserInviteSection: React.FC<UserInviteSectionProps> = ({
   isCurrentUserProfile
 }) => {
   const { open: openChatDrawer } = useChatDrawerGlobal();
+  const { getOrCreateConversation } = useDirectConversationsContext();
 
   if (isCurrentUserProfile) return null;
 
-  const handleMessageClick = () => {
+  const handleMessageClick = async () => {
     // Open the chat drawer first
     openChatDrawer();
     
-    // Small delay to ensure drawer is open before dispatching the event
-    setTimeout(() => {
-      // Dispatch custom event to open DM with this user
-      const event = new CustomEvent('openDirectMessage', {
-        detail: {
-          userId: selectedUser.id,
-          userName: selectedUser.name,
-          userAvatar: selectedUser.avatar
-        }
-      });
-      window.dispatchEvent(event);
-      console.log('Message button clicked for user:', selectedUser.name, 'Event dispatched');
-    }, 100);
+    try {
+      // Get or create conversation with this user
+      const conversation = await getOrCreateConversation(selectedUser.id, selectedUser.name, selectedUser.avatar);
+      
+      if (conversation) {
+        // Dispatch custom event to open DM directly with this conversation
+        const event = new CustomEvent('openDirectMessage', {
+          detail: {
+            userId: selectedUser.id,
+            userName: selectedUser.name,
+            userAvatar: selectedUser.avatar,
+            conversationId: conversation.conversationId
+          }
+        });
+        window.dispatchEvent(event);
+        console.log('Direct message opened with user:', selectedUser.name);
+      }
+    } catch (error) {
+      console.error('Error opening direct message:', error);
+    }
   };
 
   return (

@@ -23,7 +23,7 @@ const ChatSidebarContent: React.FC<ChatSidebarContentProps> = ({
   unreadCounts = {},
   onSelectUser
 }) => {
-  const lastMessages = useClubLastMessages(clubs);
+  const { lastMessages, sortedClubs } = useClubLastMessages(clubs);
 
   const truncateMessage = (text: string) => {
     return text?.length > 50 ? `${text.substring(0, 50)}...` : text;
@@ -41,7 +41,7 @@ const ChatSidebarContent: React.FC<ChatSidebarContentProps> = ({
           </div>
         ) : (
           <div className="divide-y">
-            {clubs.map(club => {
+            {sortedClubs.map(club => {
               const lastMessage = lastMessages[club.id];
               const formattedTime = lastMessage?.timestamp 
                 ? formatDistanceToNow(new Date(lastMessage.timestamp), { addSuffix: false })
