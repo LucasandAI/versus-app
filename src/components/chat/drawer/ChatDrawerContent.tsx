@@ -30,14 +30,15 @@ const ChatDrawerContent: React.FC<ChatDrawerContentProps> = ({
     return <ChatEmpty />;
   }
   
-  const clubMessages = selectedClub ? (messages[selectedClub.id] || []) : [];
+  // Make sure we have a proper record of messages
+  const safeMessages: Record<string, any[]> = typeof messages === 'object' && messages !== null ? messages : {};
   
   return (
     <div className="h-full flex flex-col">
       <ChatMainContent
         selectedClub={selectedClub}
         selectedTicket={null}
-        messages={clubMessages}
+        messages={safeMessages}
         onMatchClick={onMatchClick}
         onSelectUser={onSelectUser}
         onSendMessage={onSendMessage}

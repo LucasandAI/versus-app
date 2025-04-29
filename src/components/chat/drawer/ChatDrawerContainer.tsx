@@ -47,9 +47,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
     <div className="flex-1 overflow-hidden">
       {activeTab === 'clubs' ? (
         <ChatClubContainer 
-          clubs={clubs}
           selectedClub={selectedLocalClub}
-          onSelectClub={onSelectClub}
           messages={messages}
           onSendMessage={onSendMessage}
           onDeleteMessage={onDeleteMessage}

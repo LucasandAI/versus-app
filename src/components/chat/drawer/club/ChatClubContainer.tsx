@@ -26,7 +26,7 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   }
   
   // Extract the messages for the selected club from the Record
-  const clubMessages = messages[selectedClub.id] || [];
+  const clubMessages = selectedClub ? (messages[selectedClub.id] || []) : [];
   
   return (
     <div className="h-full flex flex-col">

@@ -31,7 +31,10 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
 
   // If we have a selected club, render the club content
   if (selectedClub) {
-    const clubMessages = messages[selectedClub.id] || [];
+    // Ensure we safely access messages
+    const safeMessages = messages || {};
+    const clubMessages = safeMessages[selectedClub.id] || [];
+    
     console.log('[ChatMainContent] Rendering club messages:', { 
       clubId: selectedClub.id, 
       messageCount: clubMessages.length,
