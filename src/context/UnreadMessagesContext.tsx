@@ -23,6 +23,9 @@ interface UnreadMessagesContextType {
   // Mark as unread functions (for incoming messages)
   markConversationAsUnread: (conversationId: string) => void;
   markClubAsUnread: (clubId: string) => void;
+  
+  // Fetch unread counts from server
+  fetchUnreadCounts: () => Promise<void>;
 }
 
 const UnreadMessagesContext = createContext<UnreadMessagesContextType>({
@@ -35,6 +38,7 @@ const UnreadMessagesContext = createContext<UnreadMessagesContextType>({
   markClubMessagesAsRead: async () => {},
   markConversationAsUnread: () => {},
   markClubAsUnread: () => {},
+  fetchUnreadCounts: async () => {},
 });
 
 export const useUnreadMessages = () => useContext(UnreadMessagesContext);
@@ -50,115 +54,70 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
   const totalUnreadCount = dmUnreadCount + clubUnreadCount;
   
   const { currentUser, isSessionReady } = useApp();
+  
+  // Fetch unread counts from the server
+  const fetchUnreadCounts = useCallback(async () => {
+    if (!isSessionReady || !currentUser?.id) return;
+    
+    try {
+      console.log('[UnreadMessagesContext] Fetching unread counts');
+      
+      // Fetch DM unread counts
+      const { data: dmCount, error: dmError } = await supabase.rpc('get_unread_dm_count', {
+        user_id: currentUser.id
+      });
+      
+      if (dmError) throw dmError;
+      setDmUnreadCount(dmCount || 0);
+
+      // Fetch club unread counts
+      const { data: clubCount, error: clubError } = await supabase.rpc('get_unread_club_messages_count', {
+        user_id: currentUser.id
+      });
+      
+      if (clubError) throw clubError;
+      setClubUnreadCount(clubCount || 0);
+
+      // Get unread conversations
+      const { data: unreadDMs, error: unreadDMsError } = await supabase
+        .from('direct_messages_read')
+        .select('conversation_id')
+        .eq('user_id', currentUser.id)
+        .filter('has_unread', 'eq', true);
+
+      if (unreadDMsError) throw unreadDMsError;
+      
+      if (unreadDMs) {
+        setUnreadConversations(new Set(unreadDMs.map(dm => dm.conversation_id)));
+      }
+
+      // Get unread clubs
+      const { data: unreadClubsData, error: unreadClubsError } = await supabase
+        .from('club_messages_read')
+        .select('club_id')
+        .eq('user_id', currentUser.id)
+        .filter('has_unread', 'eq', true);
+
+      if (unreadClubsError) throw unreadClubsError;
+      
+      if (unreadClubsData) {
+        setUnreadClubs(new Set(unreadClubsData.map(club => club.club_id)));
+      }
+      
+      console.log('[UnreadMessagesContext] Unread counts fetched:', { dmCount, clubCount });
+      
+    } catch (error) {
+      console.error('[UnreadMessagesContext] Error fetching unread counts:', error);
+    }
+  }, [currentUser?.id, isSessionReady]);
 
   // Fetch initial unread status for DMs
   useEffect(() => {
     if (!isSessionReady || !currentUser?.id) return;
     
-    const fetchUnreadStatus = async () => {
-      try {
-        // First get all conversations
-        const { data: conversations } = await supabase
-          .from('direct_conversations')
-          .select('id')
-          .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`);
-          
-        if (!conversations?.length) return;
-        
-        const conversationIds = conversations.map(c => c.id);
-        
-        // Then fetch latest message for each conversation
-        const { data: latestMessages } = await supabase
-          .from('direct_messages')
-          .select('conversation_id, sender_id, timestamp')
-          .in('conversation_id', conversationIds)
-          .order('timestamp', { ascending: false })
-          .limit(conversationIds.length);
-          
-        if (!latestMessages?.length) return;
-        
-        // Group by conversation to get latest message per conversation
-        const latestMessageByConversation: Record<string, {sender_id: string, timestamp: string}> = {};
-        latestMessages.forEach(message => {
-          if (!latestMessageByConversation[message.conversation_id] ||
-              new Date(message.timestamp) > new Date(latestMessageByConversation[message.conversation_id].timestamp)) {
-            latestMessageByConversation[message.conversation_id] = {
-              sender_id: message.sender_id,
-              timestamp: message.timestamp
-            };
-          }
-        });
-        
-        // Get read timestamps
-        const { data: readTimestamps } = await supabase
-          .from('direct_messages_read')
-          .select('conversation_id, last_read_timestamp')
-          .eq('user_id', currentUser.id)
-          .in('conversation_id', conversationIds);
-          
-        const readTimestampByConversation: Record<string, string> = {};
-        if (readTimestamps) {
-          readTimestamps.forEach(rt => {
-            readTimestampByConversation[rt.conversation_id] = rt.last_read_timestamp;
-          });
-        }
-        
-        // Calculate unread status
-        const unreadConvs = new Set<string>();
-        let unreadCount = 0;
-        
-        Object.entries(latestMessageByConversation).forEach(([conversationId, message]) => {
-          // If message is from someone else and either no read timestamp or read timestamp is older
-          if (message.sender_id !== currentUser.id && 
-              (!readTimestampByConversation[conversationId] || 
-               new Date(message.timestamp) > new Date(readTimestampByConversation[conversationId]))) {
-            unreadConvs.add(conversationId);
-            unreadCount++;
-          }
-        });
-        
-        setUnreadConversations(unreadConvs);
-        setDmUnreadCount(unreadCount);
-      } catch (error) {
-        console.error('[UnreadMessagesContext] Error fetching unread DM status:', error);
-      }
-    };
+    // Initial fetch happens through useInitialAppLoad now
     
-    // Fetch unread club messages
-    const fetchUnreadClubs = async () => {
-      try {
-        // Get unread club messages count
-        const { data: unreadCount } = await supabase.rpc('get_unread_club_messages_count', {
-          user_id: currentUser.id
-        });
-        
-        // Get club IDs with unread messages
-        const { data: unreadClubsData } = await supabase
-          .from('club_messages_read')
-          .select('club_id')
-          .eq('user_id', currentUser.id)
-          .filter('has_unread', 'eq', true);
-
-        if (unreadClubsData) {
-          setUnreadClubs(new Set(unreadClubsData?.map(club => club.club_id)));
-        }
-        
-        setClubUnreadCount(unreadCount || 0);
-      } catch (error) {
-        console.error('[UnreadMessagesContext] Error fetching unread club status:', error);
-      }
-    };
-    
-    fetchUnreadStatus();
-    fetchUnreadClubs();
-    
-  }, [currentUser?.id, isSessionReady]);
-
-  // Set up real-time subscriptions for new messages
-  useEffect(() => {
-    if (!isSessionReady || !currentUser?.id) return;
-    
-    // Subscribe to new DMs
+    // Set up real-time subscriptions for new messages
     const dmChannel = supabase
       .channel('global-dm-unread-tracking')
       .on('postgres_changes', 
@@ -266,6 +225,8 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
   const markClubMessagesAsRead = useCallback(async (clubId: string) => {
     if (!currentUser?.id || !clubId) return;
     
+    console.log('[UnreadMessagesContext] Marking club messages as read:', clubId);
+    
     // Optimistically update local state
     setUnreadClubs(prev => {
       if (!prev.has(clubId)) return prev;
@@ -289,6 +250,11 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
         });
       
       if (error) throw error;
+      
+      // Dispatch event to notify other components
+      window.dispatchEvent(new CustomEvent('clubMessagesRead', { 
+        detail: { clubId } 
+      }));
       
     } catch (error) {
       console.error('[UnreadMessagesContext] Error marking club messages as read:', error);
@@ -315,7 +281,8 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       markConversationAsRead,
       markClubMessagesAsRead,
       markConversationAsUnread,
-      markClubAsUnread
+      markClubAsUnread,
+      fetchUnreadCounts
     }}>
       {children}
     </UnreadMessagesContext.Provider>

@@ -26,7 +26,12 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
             message, 
             sender_id, 
             club_id, 
-            timestamp
+            timestamp,
+            sender:sender_id (
+              id, 
+              name, 
+              avatar
+            )
           `)
           .in('club_id', clubIds)
           .order('timestamp', { ascending: false })

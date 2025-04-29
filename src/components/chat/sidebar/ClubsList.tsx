@@ -7,6 +7,7 @@ import { useNavigation } from '@/hooks/useNavigation';
 import { formatDistanceToNow } from 'date-fns';
 import { useClubLastMessages } from '@/hooks/chat/messages/useClubLastMessages';
 import { useUnreadMessages } from '@/context/UnreadMessagesContext';
+import { Badge } from '@/components/ui/badge';
 
 interface ClubsListProps {
   clubs: Club[];
@@ -63,8 +64,11 @@ const ClubsList: React.FC<ClubsListProps> = ({
                 }`} 
                 onClick={(e) => handleClubClick(club, e)}
               >
-                <div className="flex-shrink-0 mr-3">
+                <div className="flex-shrink-0 mr-3 relative">
                   <UserAvatar name={club.name} image={club.logo || ''} size="lg" />
+                  {isUnread && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+                  )}
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -91,9 +95,9 @@ const ClubsList: React.FC<ClubsListProps> = ({
                       </p>
                     )}
                     {isUnread && (
-                      <span className="ml-1 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
+                      <Badge variant="destructive" className="ml-1 h-5 min-w-5 flex items-center justify-center rounded-full p-1">
                         •
-                      </span>
+                      </Badge>
                     )}
                   </div>
                   

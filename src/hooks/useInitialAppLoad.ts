@@ -9,6 +9,7 @@ export const useInitialAppLoad = () => {
   const [isAppReady, setIsAppReady] = useState(false);
   const { currentUser, isSessionReady } = useApp();
   const { fetchConversations } = useDirectConversationsContext();
+  const { fetchUnreadCounts } = useUnreadMessages();
   const initialDataFetchedRef = useRef(false);
 
   useEffect(() => {
@@ -26,6 +27,10 @@ export const useInitialAppLoad = () => {
         // Step 2: Fetch conversations (only once)
         console.log('[useInitialAppLoad] Fetching DM conversations');
         await fetchConversations();
+
+        // Step 3: Fetch unread message counts
+        console.log('[useInitialAppLoad] Fetching unread message counts');
+        await fetchUnreadCounts();
         
         // Mark as completed
         initialDataFetchedRef.current = true;
@@ -50,7 +55,7 @@ export const useInitialAppLoad = () => {
     }, 5000);
 
     return () => clearTimeout(timeoutId);
-  }, [isSessionReady, currentUser?.id, isAppReady, fetchConversations]);
+  }, [isSessionReady, currentUser?.id, isAppReady, fetchConversations, fetchUnreadCounts]);
 
   return isAppReady;
 };

@@ -33,7 +33,17 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
     if (selectedClub) {
       // Mark as read when selected
       markClubMessagesAsRead(selectedClub.id);
+      
+      // Dispatch club selected event for other components
+      window.dispatchEvent(new CustomEvent('clubSelected', { 
+        detail: { clubId: selectedClub.id } 
+      }));
     }
+    
+    return () => {
+      // Dispatch club deselected event when component unmounts or club changes
+      window.dispatchEvent(new CustomEvent('clubDeselected'));
+    };
   }, [selectedClub, markClubMessagesAsRead]);
 
   const handleMatchClick = () => {

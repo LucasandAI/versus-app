@@ -6,7 +6,7 @@ import { createClubChannel, cleanupChannels } from './utils/subscriptionUtils';
 import { processNewMessage } from './utils/messageHandlerUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
-import { useUnreadCounts } from '../useUnreadCounts';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 
 export const useClubMessageSubscriptions = (
   userClubs: Club[],
@@ -16,7 +16,7 @@ export const useClubMessageSubscriptions = (
 ) => {
   const channelsRef = useRef<RealtimeChannel[]>([]);
   const { currentUser, isSessionReady } = useApp();
-  const { markClubMessagesAsRead } = useUnreadCounts();
+  const { markClubMessagesAsRead } = useUnreadMessages();
   
   const selectedClubRef = useRef<string | null>(null);
   
@@ -108,8 +108,48 @@ export const useClubMessageSubscriptions = (
       }, (payload) => {
         console.log(`[useClubMessageSubscriptions] New message for club ${clubId}:`, payload.new?.id);
         
-        // Process the new message
-        processNewMessage(payload, setClubMessages);
+        // When a new message is received, fetch the sender details
+        const fetchSenderDetails = async () => {
+          if (!payload.new?.sender_id) return payload.new;
+          
+          try {
+            const { data: senderData } = await supabase
+              .from('users')
+              .select('id, name, avatar')
+              .eq('id', payload.new.sender_id)
+              .single();
+              
+            if (senderData) {
+              return {
+                ...payload.new,
+                sender: senderData
+              };
+            }
+            
+            return payload.new;
+          } catch (error) {
+            console.error('[useClubMessageSubscriptions] Error fetching sender details:', error);
+            return payload.new;
+          }
+        };
+        
+        // Process the message with sender details
+        fetchSenderDetails().then(messageWithSender => {
+          setClubMessages(prev => {
+            const clubMsgs = prev[clubId] || [];
+            
+            // Check if message already exists to prevent duplicates
+            const messageExists = clubMsgs.some(msg => msg.id === messageWithSender.id);
+            if (messageExists) return prev;
+            
+            return {
+              ...prev,
+              [clubId]: [...clubMsgs, messageWithSender].sort(
+                (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+              )
+            };
+          });
+        });
         
         // If the message is from another user and NOT the currently viewed club,
         // we need to update the unread count for this club
