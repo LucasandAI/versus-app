@@ -5,6 +5,11 @@ import { supabase } from '@/integrations/supabase/client';
 export const useMessageReadStatus = () => {
   const markDirectMessagesAsRead = useCallback(async (conversationId: string, userId: string) => {
     try {
+      // Dispatch event to update UI immediately
+      window.dispatchEvent(new CustomEvent('conversationRead', {
+        detail: { conversationId }
+      }));
+      
       const { error } = await supabase
         .from('direct_messages_read')
         .upsert({
@@ -23,6 +28,11 @@ export const useMessageReadStatus = () => {
 
   const markClubMessagesAsRead = useCallback(async (clubId: string, userId: string) => {
     try {
+      // Dispatch event to update UI immediately 
+      window.dispatchEvent(new CustomEvent('clubMessagesRead', {
+        detail: { clubId }
+      }));
+      
       const { error } = await supabase
         .from('club_messages_read')
         .upsert({

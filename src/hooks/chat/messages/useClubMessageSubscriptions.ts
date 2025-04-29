@@ -1,11 +1,12 @@
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { Club } from '@/types';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { createClubChannel, cleanupChannels } from './utils/subscriptionUtils';
 import { processNewMessage } from './utils/messageHandlerUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
+import { useUnreadCounts } from '../useUnreadCounts';
 
 export const useClubMessageSubscriptions = (
   userClubs: Club[],
@@ -15,6 +16,9 @@ export const useClubMessageSubscriptions = (
 ) => {
   const channelsRef = useRef<RealtimeChannel[]>([]);
   const { currentUser, isSessionReady } = useApp();
+  const { markClubMessagesAsRead } = useUnreadCounts();
+  
+  const selectedClubRef = useRef<string | null>(null);
   
   useEffect(() => {
     // Skip if not authenticated, session not ready, drawer not open, or no clubs
@@ -103,7 +107,18 @@ export const useClubMessageSubscriptions = (
         filter: `club_id=eq.${clubId}`
       }, (payload) => {
         console.log(`[useClubMessageSubscriptions] New message for club ${clubId}:`, payload.new?.id);
+        
+        // Process the new message
         processNewMessage(payload, setClubMessages);
+        
+        // If the message is from another user and NOT the currently viewed club,
+        // we need to update the unread count for this club
+        if (payload.new.sender_id !== currentUser.id && 
+            (!selectedClubRef.current || selectedClubRef.current !== clubId)) {
+          window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
+            detail: { clubId } 
+          }));
+        }
       });
 
       channelsRef.current.push(channel);
@@ -116,4 +131,31 @@ export const useClubMessageSubscriptions = (
       activeSubscriptionsRef.current = {};
     };
   }, [userClubs, isOpen, setClubMessages, currentUser?.id, isSessionReady]);
+
+  // Listen for club selection changes to track the currently viewed club
+  useEffect(() => {
+    const handleClubSelected = (e: CustomEvent) => {
+      const clubId = e.detail?.clubId;
+      if (clubId) {
+        selectedClubRef.current = clubId;
+        
+        // Mark club messages as read when selected
+        if (currentUser?.id) {
+          markClubMessagesAsRead(clubId);
+        }
+      }
+    };
+
+    const handleClubDeselected = () => {
+      selectedClubRef.current = null;
+    };
+
+    window.addEventListener('clubSelected', handleClubSelected as EventListener);
+    window.addEventListener('clubDeselected', handleClubDeselected);
+
+    return () => {
+      window.removeEventListener('clubSelected', handleClubSelected as EventListener);
+      window.removeEventListener('clubDeselected', handleClubDeselected);
+    };
+  }, [currentUser?.id, markClubMessagesAsRead]);
 };

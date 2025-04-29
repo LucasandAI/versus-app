@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Club } from '@/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useApp } from '@/context/AppContext';
@@ -19,7 +19,14 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
 }) => {
   const { currentUser } = useApp();
   const { unreadConversations } = useUnreadMessages();
-  const { unreadClubs } = useUnreadCounts(); // Remove the parameter
+  const { unreadClubs, markClubMessagesAsRead } = useUnreadCounts();
+
+  // Mark club messages as read when a club is selected and the clubs tab is active
+  useEffect(() => {
+    if (activeTab === "clubs" && selectedClub && currentUser?.id) {
+      markClubMessagesAsRead(selectedClub.id);
+    }
+  }, [activeTab, selectedClub, markClubMessagesAsRead, currentUser?.id]);
 
   return (
     <div className="px-4 py-2 border-b">

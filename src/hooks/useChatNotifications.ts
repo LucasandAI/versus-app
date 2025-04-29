@@ -26,16 +26,34 @@ export const useChatNotifications = ({ setChatNotifications }: UseChatNotificati
       }
     };
 
-    handleUnreadMessagesUpdated();
+    const handleClubMessagesRead = (event: CustomEvent) => {
+      if (event.detail?.clubId) {
+        // Update the notification count since we've read messages
+        handleUnreadMessagesUpdated();
+      }
+    };
+    
+    const handleClubMessageReceived = (event: CustomEvent) => {
+      if (event.detail?.clubId) {
+        // Update the notification count since we've received a new message
+        handleUnreadMessagesUpdated();
+      }
+    };
+
+    handleUnreadMessagesUpdated(); // Initial check
     
     window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
     window.addEventListener('focus', handleUnreadMessagesUpdated);
+    window.addEventListener('clubMessagesRead', handleClubMessagesRead as EventListener);
+    window.addEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
     
     const checkInterval = setInterval(handleUnreadMessagesUpdated, 1000);
     
     return () => {
       window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
       window.removeEventListener('focus', handleUnreadMessagesUpdated);
+      window.removeEventListener('clubMessagesRead', handleClubMessagesRead as EventListener);
+      window.removeEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
       clearInterval(checkInterval);
     };
   }, [setChatNotifications]);

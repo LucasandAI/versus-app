@@ -115,8 +115,22 @@ export const useHomeNotifications = () => {
 
   // Define the updateUnreadCount function with the proper signature
   const updateUnreadCount = useCallback((count: number) => {
-    // This is a helper function that adapts the count number to update the Record<string, number> state
-    setUnreadMessages(prev => ({ ...prev, total: count }));
+    // We need to convert our count number to update the unreadMessages object
+    const unreadMessagesCounts = localStorage.getItem('unreadMessages');
+    try {
+      const parsed = unreadMessagesCounts ? JSON.parse(unreadMessagesCounts) : {};
+      const totalCount = Object.values(parsed).reduce((sum: number, val: any) => 
+        sum + (typeof val === 'number' ? val : 0), 0);
+      
+      // Use this count for your UI instead of updating the record directly
+      // We'll track this as a separate value in the state
+      if (totalCount !== count) {
+        // Just dispatch an event to notify handlers that unread messages updated
+        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+      }
+    } catch (e) {
+      console.error("Error parsing unread messages:", e);
+    }
   }, []);
 
   return {
