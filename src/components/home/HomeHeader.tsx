@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { MessageCircle } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '../shared/UserAvatar';
@@ -27,26 +27,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
 }) => {
   const { setCurrentView, currentUser, setSelectedUser } = useApp();
   const { open } = useChatDrawerGlobal();
-  const { totalUnreadCount, refreshUnreadState } = useUnreadMessages();
-  const [unreadCount, setUnreadCount] = useState(0);
-  
-  // Effect to refresh unread count whenever it changes
-  useEffect(() => {
-    refreshUnreadState();
-    setUnreadCount(totalUnreadCount);
-    
-    // Set up listener for unread message updates
-    const handleUnreadUpdate = () => {
-      refreshUnreadState();
-      setUnreadCount(totalUnreadCount);
-    };
-    
-    window.addEventListener('unreadMessagesUpdated', handleUnreadUpdate);
-    
-    return () => {
-      window.removeEventListener('unreadMessagesUpdated', handleUnreadUpdate);
-    };
-  }, [totalUnreadCount, refreshUnreadState]);
+  const { totalUnreadCount } = useUnreadMessages();
   
   const handleViewOwnProfile = () => {
     if (currentUser) {
@@ -72,7 +53,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           onClick={open}
           className="text-primary hover:bg-gray-100 rounded-full p-2"
           icon={<MessageCircle className="h-5 w-5" />}
-          badge={unreadCount > 0 ? unreadCount : 0}
+          badge={totalUnreadCount > 0 ? totalUnreadCount : 0}
         />
         <UserAvatar 
           name={currentUser?.name || "User"} 

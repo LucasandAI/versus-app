@@ -59,12 +59,13 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       userAvatar?: string;
       conversationId?: string;
     }>) => {
-      // Switch to DM tab
       setActiveTab("dm");
       
-      console.log("[MainChatDrawer] Opening DM with user:", event.detail.userName);
+      // If conversationId is not provided, we'll need to fetch/create it
+      if (!event.detail.conversationId) {
+        console.log("[MainChatDrawer] Opening DM with user:", event.detail.userName);
+      }
       
-      // Set the direct message user
       setDirectMessageUser({
         userId: event.detail.userId,
         userName: event.detail.userName,
@@ -77,7 +78,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     return () => {
       window.removeEventListener('openDirectMessage', handleOpenDM as EventListener);
     };
-  }, []);
+  }, [fetchConversations]);
 
   const handleSelectClub = (club: Club) => {
     setSelectedLocalClub(club);

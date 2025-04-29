@@ -16,16 +16,10 @@ const DMConversationList: React.FC<Props> = ({
   selectedUserId 
 }) => {
   const { currentUser } = useApp();
-  const { conversations, loading, refreshConversations } = useDirectConversationsContext();
-  const { unreadConversations, refreshUnreadState } = useUnreadMessages();
+  const { conversations, loading } = useDirectConversationsContext();
+  const { unreadConversations } = useUnreadMessages();
   
   const isEmpty = !loading && conversations.length === 0;
-
-  // Effect to refresh unread state when the component mounts
-  React.useEffect(() => {
-    refreshUnreadState();
-    refreshConversations();
-  }, [refreshUnreadState, refreshConversations]);
 
   return (
     <div className="flex flex-col h-full bg-white">

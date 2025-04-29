@@ -16,7 +16,7 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
   setActiveTab,
   selectedClub 
 }) => {
-  const { unreadConversations, unreadClubs, markClubMessagesAsRead, refreshUnreadState } = useUnreadMessages();
+  const { unreadConversations, unreadClubs, markClubMessagesAsRead } = useUnreadMessages();
 
   // Mark club messages as read when a club is selected and the clubs tab is active
   useEffect(() => {
@@ -24,11 +24,6 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
       markClubMessagesAsRead(selectedClub.id);
     }
   }, [activeTab, selectedClub, markClubMessagesAsRead]);
-
-  // Make sure we have the latest unread state
-  useEffect(() => {
-    refreshUnreadState();
-  }, [refreshUnreadState, activeTab]);
 
   return (
     <div className="px-4 py-2 border-b">

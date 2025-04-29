@@ -1,69 +1,85 @@
 
 import React from 'react';
-import { formatDistanceToNow } from 'date-fns';
-import { Badge } from '@/components/ui/badge';
+import { DMConversation } from '@/hooks/chat/dm/types';
 import UserAvatar from '@/components/shared/UserAvatar';
+import { formatDistanceToNow } from 'date-fns';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
-interface ConversationProps {
-  conversation: {
-    conversationId: string;
-    userId: string;
-    userName: string;
-    userAvatar: string;
-    lastMessage: string;
-    timestamp: string;
-  };
+interface ConversationItemProps {
+  conversation: DMConversation;
   isSelected: boolean;
-  isUnread: boolean;
   onSelect: () => void;
-  isLoading: boolean;
+  isLoading?: boolean;
+  isUnread?: boolean;
 }
 
-const ConversationItem: React.FC<ConversationProps> = ({ 
-  conversation, 
-  isSelected, 
-  isUnread,
+const ConversationItem: React.FC<ConversationItemProps> = ({
+  conversation,
+  isSelected,
   onSelect,
-  isLoading
+  isLoading = false,
+  isUnread = false
 }) => {
+  const isMobile = useIsMobile();
+
   const formattedTime = conversation.timestamp 
-    ? formatDistanceToNow(new Date(conversation.timestamp), { addSuffix: true }) 
+    ? formatDistanceToNow(new Date(conversation.timestamp), { addSuffix: false })
     : '';
 
-  const unreadClass = isUnread 
-    ? 'font-bold' 
-    : 'font-normal text-gray-900';
+  // Truncate message to a shorter length on mobile
+  const characterLimit = isMobile ? 25 : 50;
+  const truncatedMessage = conversation.lastMessage
+    ? conversation.lastMessage.length > characterLimit
+      ? `${conversation.lastMessage.substring(0, characterLimit)}...`
+      : conversation.lastMessage
+    : '';
 
   return (
     <div 
-      className={`p-3 cursor-pointer hover:bg-gray-100 transition-colors flex items-center gap-2 ${
-        isSelected ? 'bg-gray-100' : ''
-      }`}
+      className={`flex items-start px-4 py-3 cursor-pointer hover:bg-gray-50 relative group
+        ${isSelected ? 'bg-primary/10 text-primary' : ''}
+        ${isUnread ? 'font-medium' : ''}`}
       onClick={onSelect}
     >
-      <div className="relative">
-        <UserAvatar 
-          name={conversation.userName}
-          image={conversation.userAvatar}
-          size="md"
-        />
-        {isUnread && (
-          <Badge 
-            variant="destructive" 
-            className="absolute -top-1 -right-1 h-2.5 w-2.5 p-0 rounded-full"
-          />
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex justify-between items-baseline">
-          <h3 className={`${unreadClass} truncate`}>{conversation.userName}</h3>
-          {formattedTime && <span className="text-xs text-gray-500 whitespace-nowrap">{formattedTime}</span>}
+      <UserAvatar
+        name={conversation.userName}
+        image={conversation.userAvatar}
+        size="lg"
+        className="flex-shrink-0 mr-3"
+      />
+      
+      <div className="flex-1 min-w-0 overflow-hidden">
+        <div className="flex items-center justify-between mb-1">
+          {isLoading ? (
+            <Skeleton className="h-5 w-24" />
+          ) : (
+            <h2 className={`text-lg truncate max-w-[60%] ${isUnread ? 'font-bold' : 'font-medium'}`}>
+              {conversation.userName}
+              {isUnread && (
+                <span className="ml-2 inline-flex h-2 w-2 bg-red-500 rounded-full" />
+              )}
+            </h2>
+          )}
+          {formattedTime && !isLoading ? (
+            <span className="text-xs text-gray-500 flex-shrink-0 ml-auto">
+              {formattedTime}
+            </span>
+          ) : isLoading ? (
+            <Skeleton className="h-3 w-12 ml-auto" />
+          ) : null}
         </div>
-        {conversation.lastMessage && (
-          <p className="text-sm text-gray-500 truncate">
-            {conversation.lastMessage}
-          </p>
-        )}
+        
+        <div className="flex items-center">
+          {isLoading ? (
+            <Skeleton className="h-4 w-full flex-1" />
+          ) : (
+            <p className={`text-sm truncate flex-1 ${isUnread ? 'text-gray-900' : 'text-gray-600'}`}>
+              {truncatedMessage}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
