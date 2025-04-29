@@ -47,19 +47,41 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
           return [];
         }
 
-        const otherUserIds = conversationsData.map(conv => 
-          conv.user1_id === userId ? conv.user2_id : conv.user1_id
+        // Filter out self-conversations where user1_id === user2_id
+        const validConversations = conversationsData.filter(
+          conv => conv.user1_id !== conv.user2_id
         );
-
-        if (otherUserIds.length === 0) {
-          console.log('No conversations found');
+        
+        if (validConversations.length === 0) {
+          console.log('No valid conversations found (filtered out self-conversations)');
           setConversations([]);
           setLoading(false);
           return [];
         }
 
-        const basicConversations = conversationsData.reduce((acc: Record<string, DMConversation>, conv) => {
+        const otherUserIds = validConversations.map(conv => 
+          conv.user1_id === userId ? conv.user2_id : conv.user1_id
+        ).filter(id => id !== userId); // Extra filter to ensure no self-IDs
+
+        if (otherUserIds.length === 0) {
+          console.log('No conversations with other users found');
+          setConversations([]);
+          setLoading(false);
+          return [];
+        }
+
+        const basicConversations = validConversations.reduce((acc: Record<string, DMConversation>, conv) => {
+          // Skip self-conversations
+          if (conv.user1_id === conv.user2_id) {
+            return acc;
+          }
+          
           const otherUserId = conv.user1_id === userId ? conv.user2_id : conv.user1_id;
+          
+          // Skip if the other user is somehow the same as the current user
+          if (otherUserId === userId) {
+            return acc;
+          }
           
           acc[otherUserId] = {
             conversationId: conv.id,
@@ -90,7 +112,7 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
         const messagesPromise = supabase
           .from('direct_messages')
           .select('conversation_id, text, timestamp')
-          .in('conversation_id', conversationsData.map(c => c.id))
+          .in('conversation_id', validConversations.map(c => c.id))
           .order('timestamp', { ascending: false });
 
         const [userResult, messagesResult] = await Promise.all([userPromise, messagesPromise]);
@@ -115,9 +137,19 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
           return acc;
         }, {});
 
-        const updatedConversations = conversationsData
+        const updatedConversations = validConversations
           .map(conv => {
+            // Skip self-conversations
+            if (conv.user1_id === conv.user2_id) {
+              return null;
+            }
+            
             const otherUserId = conv.user1_id === userId ? conv.user2_id : conv.user1_id;
+            
+            // Skip if the other user is somehow the same as the current user
+            if (otherUserId === userId) {
+              return null;
+            }
             
             const otherUser = userMap[otherUserId];
             const latestMessage = latestMessageMap[conv.id];
@@ -163,7 +195,7 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
   ).current;
 
   const fetchConversations = useCallback(() => {
-    // Add guard clause to prevent fetching without session or user
+    // Strong guard clause to prevent fetching without session or user
     if (!isSessionReady || !currentUser?.id) {
       console.log('[useDirectConversations] Session or user not ready, skipping fetch');
       return Promise.resolve([]);

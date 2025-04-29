@@ -10,7 +10,7 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
 
   const fetchConversations = useCallback(async () => {
     try {
-      // Guard clause - prevent fetching without a user ID
+      // Strong guard clause - prevent fetching without a user ID or if it's not ready
       if (!currentUserId) {
         console.log('[fetchConversations] No current user ID, skipping fetch');
         return loadConversationsFromStorage(); // Return cached conversations as fallback
@@ -40,8 +40,18 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
       messages.forEach(msg => {
         // The other participant is the one who is not the current user
         const otherUserId = msg.sender_id === currentUserId ? msg.receiver_id : msg.sender_id;
-        uniqueUserIds.add(otherUserId);
+        
+        // Skip adding yourself as a conversation partner (prevents self-conversations)
+        if (otherUserId !== currentUserId) {
+          uniqueUserIds.add(otherUserId);
+        }
       });
+
+      // If no valid conversation partners found, return early
+      if (uniqueUserIds.size === 0) {
+        console.log('[fetchConversations] No valid conversation partners found');
+        return storedConversations;
+      }
 
       // Fetch user information for conversation partners
       const { data: users, error: usersError } = await supabase
@@ -63,6 +73,12 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
       messages.forEach(msg => {
         // Determine which user is the other participant
         const otherUserId = msg.sender_id === currentUserId ? msg.receiver_id : msg.sender_id;
+        
+        // Skip self-conversations where the sender and receiver are the same
+        if (otherUserId === currentUserId) {
+          return;
+        }
+        
         const otherUser = userMap[otherUserId];
         
         if (otherUser && (!conversationsMap.has(otherUserId) || 

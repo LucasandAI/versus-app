@@ -43,7 +43,7 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
 
   // Fetch basic conversations only when session is ready AND user is available
   useEffect(() => {
-    // Guard clause: early return if user is not available OR session is not ready
+    // Strong guard clause: early return if user is not available OR session is not ready
     if (!currentUser?.id || !isSessionReady) {
       if (!fetchAttempted) {
         console.log('DMContainer: currentUser.id not available or session not ready, deferring fetch');
@@ -65,7 +65,7 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
 
     // Set a delay before fetching to ensure auth is fully ready
     fetchTimeoutRef.current = setTimeout(async () => {
-      if (!isMounted.current) return;
+      if (!isMounted.current || !currentUser?.id) return;
       
       try {
         setIsLoading(true);
@@ -88,9 +88,20 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
         
         if (conversationsData && conversationsData.length > 0) {
           console.log('DMContainer: Found', conversationsData.length, 'conversations');
+          
+          // Filter out self-conversations where user1_id === user2_id
+          const validConversations = conversationsData.filter(
+            conv => conv.user1_id !== conv.user2_id
+          );
+          
           // Create basic conversation objects with minimal information
-          const initialConversations = conversationsData.map(conv => {
+          const initialConversations = validConversations.map(conv => {
             const otherUserId = conv.user1_id === currentUser.id ? conv.user2_id : conv.user1_id;
+            
+            // Skip any conversations where the other user is yourself (should never happen with the filter above)
+            if (otherUserId === currentUser.id) {
+              return null;
+            }
             
             return {
               conversationId: conv.id,
@@ -101,7 +112,7 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
               timestamp: conv.created_at,
               isLoading: true
             };
-          }).filter(Boolean);
+          }).filter(Boolean); // Filter out any null entries
           
           if (isMounted.current) {
             setBasicConversations(initialConversations);

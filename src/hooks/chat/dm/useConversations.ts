@@ -18,7 +18,7 @@ export const useConversations = (hiddenDMIds: string[] = []) => {
     let isMounted = true;
     
     const loadConversations = async () => {
-      // Guard against missing user ID or inactive session
+      // Strong guard against missing user ID or inactive session
       if (!currentUser?.id || !isSessionReady) {
         console.log('[useConversations] User ID or session not ready, skipping fetch');
         return;
@@ -29,7 +29,9 @@ export const useConversations = (hiddenDMIds: string[] = []) => {
         console.log('[useConversations] Fetching conversations for user:', currentUser.id);
         const result = await fetchConversations();
         if (isMounted) {
-          setConversations(result || []);
+          // Filter out any self-conversations where userId might equal currentUser.id
+          const filteredResults = result?.filter(conv => conv.userId !== currentUser.id) || [];
+          setConversations(filteredResults);
         }
       } catch (error) {
         console.error('[useConversations] Error fetching conversations:', error);
@@ -65,8 +67,10 @@ export const useConversations = (hiddenDMIds: string[] = []) => {
       setLoading(true);
       try {
         const result = await fetchConversations();
-        setConversations(result || []);
-        return result;
+        // Filter out self-conversations
+        const filteredResults = result?.filter(conv => conv.userId !== currentUser.id) || [];
+        setConversations(filteredResults);
+        return filteredResults;
       } finally {
         setLoading(false);
       }

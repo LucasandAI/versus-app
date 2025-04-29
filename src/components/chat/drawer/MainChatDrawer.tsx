@@ -40,13 +40,13 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   
   const { fetchConversations } = useConversations([]);
   
-  // Fetch conversations when drawer is opened AND session is ready
+  // Fetch conversations when drawer is opened AND session is ready AND user exists
   useEffect(() => {
-    if (open && isSessionReady && currentUser?.id) {
+    if (open && isSessionReady && currentUser?.id && activeTab === "dm") {
       console.log('[MainChatDrawer] Drawer open, session ready, and user exists - fetching conversations');
       fetchConversations();
     }
-  }, [open, isSessionReady, currentUser?.id, fetchConversations]);
+  }, [open, isSessionReady, currentUser?.id, fetchConversations, activeTab]);
 
   useEffect(() => {
     const handleOpenDM = (event: CustomEvent<{
@@ -91,7 +91,9 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const handleTabChange = (tab: "clubs" | "dm") => {
     setActiveTab(tab);
     
+    // Only fetch conversations when switching to DM tab AND we have both session and user
     if (tab === "dm" && isSessionReady && currentUser?.id) {
+      console.log('[MainChatDrawer] Switching to DM tab, fetching conversations');
       fetchConversations();
     }
   };

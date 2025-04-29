@@ -27,12 +27,15 @@ const DMConversationList: React.FC<Props> = ({
   const previousConversationsRef = useRef<DMConversation[]>([]);
   const [localConversations, setLocalConversations] = useState<DMConversation[]>([]);
 
+  // Update local state when conversations change
   useEffect(() => {
     if (conversations.length > 0) {
-      previousConversationsRef.current = conversations;
-      setLocalConversations(conversations);
+      // Filter out any self-conversations
+      const filteredConversations = conversations.filter(c => c.userId !== currentUser?.id);
+      previousConversationsRef.current = filteredConversations;
+      setLocalConversations(filteredConversations);
     }
-  }, [conversations]);
+  }, [conversations, currentUser?.id]);
 
   // Add an effect to trigger a fetch when session becomes ready
   useEffect(() => {
@@ -77,21 +80,24 @@ const DMConversationList: React.FC<Props> = ({
           </div>
         ) : (
           <div className="divide-y">
-            {displayConversations.map((conversation) => (
-              <ConversationItem
-                key={conversation.conversationId}
-                conversation={conversation}
-                isSelected={selectedUserId === conversation.userId}
-                isUnread={unreadConversations.has(conversation.conversationId)}
-                onSelect={() => onSelectUser(
-                  conversation.userId,
-                  conversation.userName,
-                  conversation.userAvatar,
-                  conversation.conversationId
-                )}
-                isLoading={conversation.isLoading}
-              />
-            ))}
+            {displayConversations
+              // Extra filter to ensure we never show conversations with yourself
+              .filter(conversation => conversation.userId !== currentUser?.id)
+              .map((conversation) => (
+                <ConversationItem
+                  key={conversation.conversationId}
+                  conversation={conversation}
+                  isSelected={selectedUserId === conversation.userId}
+                  isUnread={unreadConversations.has(conversation.conversationId)}
+                  onSelect={() => onSelectUser(
+                    conversation.userId,
+                    conversation.userName,
+                    conversation.userAvatar,
+                    conversation.conversationId
+                  )}
+                  isLoading={conversation.isLoading}
+                />
+              ))}
           </div>
         )}
       </div>
