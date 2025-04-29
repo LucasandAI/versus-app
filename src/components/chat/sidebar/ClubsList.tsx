@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Club } from '@/types';
 import UserAvatar from '../../shared/UserAvatar';
 import ClubMembersPopover from './ClubMembersPopover';
@@ -11,9 +11,9 @@ import { Badge } from '@/components/ui/badge';
 
 interface ClubsListProps {
   clubs: Club[];
-  selectedClubId: string | null;
+  selectedClub: Club | null;
   onSelectClub: (club: Club) => void;
-  unreadCounts?: Record<string, number>;
+  unreadCounts: Record<string, number>;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   setChatToDelete: (data: {
     id: string;
@@ -24,7 +24,7 @@ interface ClubsListProps {
 
 const ClubsList: React.FC<ClubsListProps> = ({
   clubs,
-  selectedClubId,
+  selectedClub,
   onSelectClub,
   onSelectUser,
   setChatToDelete,
@@ -33,55 +33,10 @@ const ClubsList: React.FC<ClubsListProps> = ({
   const { lastMessages, sortedClubs } = useClubLastMessages(clubs);
   const { unreadClubs, markClubMessagesAsRead } = useUnreadMessages();
   
-  // Track unread status with local state to force re-renders
-  const [unreadClubIds, setUnreadClubIds] = useState<Set<string>>(new Set());
-  
-  // Update local unread state from context
-  useEffect(() => {
-    setUnreadClubIds(new Set(unreadClubs));
-  }, [unreadClubs]);
-  
-  // Listen for unread updates and club message events
-  useEffect(() => {
-    const handleUnreadUpdate = () => {
-      // Force component to re-render with latest unread state
-      setUnreadClubIds(new Set(unreadClubs));
-    };
-    
-    const handleClubMessageReceived = (e: CustomEvent<{clubId: string}>) => {
-      if (e.detail?.clubId && selectedClubId !== e.detail.clubId) {
-        // Add this club to local unread state to show indicator
-        setUnreadClubIds(prev => {
-          const updated = new Set(prev);
-          updated.add(e.detail.clubId);
-          return updated;
-        });
-      }
-    };
-    
-    window.addEventListener('unreadMessagesUpdated', handleUnreadUpdate);
-    window.addEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
-    
-    return () => {
-      window.removeEventListener('unreadMessagesUpdated', handleUnreadUpdate);
-      window.removeEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
-    };
-  }, [unreadClubs, selectedClubId]);
-  
   const handleClubClick = (club: Club, e: React.MouseEvent) => {
     e.preventDefault();
     onSelectClub(club);
     markClubMessagesAsRead(club.id);
-    
-    // Immediately update local state to remove unread indicator
-    setUnreadClubIds(prev => {
-      const updated = new Set(prev);
-      updated.delete(club.id);
-      return updated;
-    });
-    
-    // Dispatch event to notify other components that this club was selected
-    window.dispatchEvent(new CustomEvent('clubSelected', { detail: { clubId: club.id } }));
     console.log('[ClubsList] Club selected for chat:', club.id);
   };
 
@@ -99,13 +54,13 @@ const ClubsList: React.FC<ClubsListProps> = ({
           const formattedTime = lastMessage?.timestamp 
             ? formatDistanceToNow(new Date(lastMessage.timestamp), { addSuffix: false })
             : '';
-          const isUnread = unreadClubIds.has(club.id);
+          const isUnread = unreadClubs.has(club.id);
             
           return (
             <div key={club.id} className="flex flex-col relative group">
               <button 
                 className={`w-full flex items-center p-3 rounded-md text-left transition-colors ${
-                  selectedClubId === club.id ? 'bg-primary/10 text-primary' : 'hover:bg-gray-100'
+                  selectedClub?.id === club.id ? 'bg-primary/10 text-primary' : 'hover:bg-gray-100'
                 }`} 
                 onClick={(e) => handleClubClick(club, e)}
               >

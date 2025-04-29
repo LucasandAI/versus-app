@@ -18,13 +18,13 @@ interface ChatDrawerContainerProps {
   directMessageUser: {
     userId: string;
     userName: string;
-    userAvatar: string;
+    userAvatar: string; // Made required
     conversationId: string;
   } | null;
   setDirectMessageUser: React.Dispatch<React.SetStateAction<{
     userId: string;
     userName: string;
-    userAvatar: string;
+    userAvatar: string; // Made required
     conversationId: string;
   } | null>>;
 }
@@ -47,7 +47,9 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
     <div className="flex-1 overflow-hidden">
       {activeTab === 'clubs' ? (
         <ChatClubContainer 
+          clubs={clubs}
           selectedClub={selectedLocalClub}
+          onSelectClub={onSelectClub}
           messages={messages}
           onSendMessage={onSendMessage}
           onDeleteMessage={onDeleteMessage}
