@@ -3,12 +3,12 @@ import { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useFetchUserClubs } from '@/components/profile/hooks/userProfile/useFetchUserClubs';
 import { useUnreadMessages } from '@/context/UnreadMessagesContext';
-import { useDirectConversations } from '@/hooks/chat/dm/useDirectConversations';
+import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
 
 export const useInitialAppLoad = () => {
   const [isAppReady, setIsAppReady] = useState(false);
   const { currentUser, isSessionReady } = useApp();
-  const { fetchConversations } = useDirectConversations();
+  const { fetchConversations } = useDirectConversationsContext();
   const initialDataFetchedRef = useRef(false);
 
   useEffect(() => {

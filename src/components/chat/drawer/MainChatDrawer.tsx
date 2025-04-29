@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import ChatDrawerContainer from './ChatDrawerContainer';
 import DrawerHeader from './DrawerHeader';
@@ -7,7 +7,7 @@ import { ChatProvider } from '@/context/ChatContext';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { useChatActions } from '@/hooks/chat/useChatActions';
 import { useApp } from '@/context/AppContext';
-import { useConversations } from '@/hooks/chat/dm/useConversations';
+import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -36,25 +36,41 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   } | null>(null);
   
   const { sendMessageToClub, deleteMessage } = useChatActions();
-  const { currentUser, isSessionReady } = useApp();
-  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const conversationsFetched = useRef(false);
+  const { currentUser } = useApp();
   
-  const { fetchConversations } = useConversations([]);
+  // Access conversations from context
+  const { fetchConversations } = useDirectConversationsContext();
 
+  // Effect to fetch conversations when drawer opens
+  useEffect(() => {
+    if (open && currentUser?.id) {
+      // Only fetch if we're on the DM tab
+      if (activeTab === "dm") {
+        console.log("[MainChatDrawer] Drawer opened with DM tab, ensuring conversations are loaded");
+        fetchConversations();
+      }
+    }
+  }, [open, currentUser?.id, activeTab, fetchConversations]);
+  
   useEffect(() => {
     const handleOpenDM = (event: CustomEvent<{
       userId: string;
       userName: string;
       userAvatar?: string;
-      conversationId: string;
+      conversationId?: string;
     }>) => {
       setActiveTab("dm");
+      
+      // If conversationId is not provided, we'll need to fetch/create it
+      if (!event.detail.conversationId) {
+        console.log("[MainChatDrawer] Opening DM with user:", event.detail.userName);
+      }
+      
       setDirectMessageUser({
         userId: event.detail.userId,
         userName: event.detail.userName,
         userAvatar: event.detail.userAvatar || '/placeholder.svg',
-        conversationId: event.detail.conversationId
+        conversationId: event.detail.conversationId || 'new'
       });
     };
 
@@ -62,7 +78,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     return () => {
       window.removeEventListener('openDirectMessage', handleOpenDM as EventListener);
     };
-  }, []);
+  }, [fetchConversations]);
 
   const handleSelectClub = (club: Club) => {
     setSelectedLocalClub(club);
