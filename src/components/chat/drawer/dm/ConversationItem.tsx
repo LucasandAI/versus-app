@@ -63,7 +63,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
             </h2>
           )}
           {formattedTime && !isLoading ? (
-            <span className="text-xs text-gray-500 flex-shrink-0 ml-auto">
+            <span className={`text-xs ${isUnread ? 'font-bold' : 'text-gray-500'} flex-shrink-0 ml-auto`}>
               {formattedTime}
             </span>
           ) : isLoading ? (

@@ -28,7 +28,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   const { setCurrentView, currentUser, setSelectedUser } = useApp();
   const { open } = useChatDrawerGlobal();
   const { totalUnreadCount } = useUnreadMessages();
-  const [badgeCount, setBadgeCount] = useState(0);
+  const [badgeCount, setBadgeCount] = useState(totalUnreadCount);
   
   // Update badge count when totalUnreadCount changes
   useEffect(() => {
@@ -39,7 +39,10 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   useEffect(() => {
     const handleUnreadMessagesUpdated = () => {
       // Small delay to ensure the context has been updated
-      setTimeout(() => setBadgeCount(totalUnreadCount), 100);
+      setTimeout(() => {
+        const { totalUnreadCount } = useUnreadMessages();
+        setBadgeCount(totalUnreadCount);
+      }, 100);
     };
     
     window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
@@ -47,7 +50,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     return () => {
       window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
     };
-  }, [totalUnreadCount]);
+  }, []);
   
   const handleViewOwnProfile = () => {
     if (currentUser) {

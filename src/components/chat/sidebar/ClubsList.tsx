@@ -77,7 +77,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
                       {club.name}
                     </p>
                     {formattedTime && (
-                      <span className={`ml-2 text-sm ${isUnread ? 'text-primary-foreground font-bold' : 'text-gray-500'}`}>
+                      <span className={`ml-2 text-sm ${isUnread ? 'font-bold' : 'text-gray-500'}`}>
                         {formattedTime}
                       </span>
                     )}
@@ -85,7 +85,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
                   
                   <div className="flex items-center justify-between mt-1">
                     {lastMessage ? (
-                      <p className={`text-sm ${isUnread ? 'text-foreground font-semibold' : 'text-gray-600'} truncate pr-2`}>
+                      <p className={`text-sm ${isUnread ? 'font-semibold text-gray-900' : 'text-gray-600'} truncate pr-2`}>
                         <span className="font-medium">{lastMessage.sender?.name || 'Unknown'}: </span>
                         {truncateMessage(lastMessage.message)}
                       </p>
