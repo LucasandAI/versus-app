@@ -1,9 +1,24 @@
-import { useState, useEffect, useCallback } from 'react';
+
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import { toast } from "sonner";
 
-export const useUnreadMessages = () => {
+interface UnreadMessagesContextType {
+  unreadConversations: Set<string>;
+  totalUnreadCount: number;
+  markConversationAsRead: (conversationId: string) => Promise<void>;
+}
+
+const UnreadMessagesContext = createContext<UnreadMessagesContextType>({
+  unreadConversations: new Set(),
+  totalUnreadCount: 0,
+  markConversationAsRead: async () => {}
+});
+
+export const useUnreadMessages = () => useContext(UnreadMessagesContext);
+
+export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const [unreadConversations, setUnreadConversations] = useState<Set<string>>(new Set());
   const [totalUnreadCount, setTotalUnreadCount] = useState<number>(0);
   const { currentUser } = useApp();
@@ -78,7 +93,7 @@ export const useUnreadMessages = () => {
         setTotalUnreadCount(unreadCount);
         
       } catch (error) {
-        console.error('[useUnreadMessages] Error fetching unread status:', error);
+        console.error('[UnreadMessagesContext] Error fetching unread status:', error);
       }
     };
     
@@ -86,7 +101,7 @@ export const useUnreadMessages = () => {
     
     // Set up real-time subscription for new messages
     const channel = supabase
-      .channel('dm-unread-tracking')
+      .channel('global-dm-unread-tracking')
       .on('postgres_changes', 
           { 
             event: 'INSERT', 
@@ -101,6 +116,10 @@ export const useUnreadMessages = () => {
                 return updated;
               });
               setTotalUnreadCount(prev => prev + 1);
+              
+              // Dispatch global event to notify other parts of the app
+              const event = new CustomEvent('unreadMessagesUpdated');
+              window.dispatchEvent(event);
             }
           })
       .subscribe();
@@ -141,7 +160,7 @@ export const useUnreadMessages = () => {
       if (error) throw error;
       
     } catch (error) {
-      console.error('[useUnreadMessages] Error marking conversation as read:', error);
+      console.error('[UnreadMessagesContext] Error marking conversation as read:', error);
       
       // Revert optimistic update on error
       setUnreadConversations(prev => {
@@ -155,9 +174,13 @@ export const useUnreadMessages = () => {
     }
   }, [currentUser?.id]);
 
-  return {
-    unreadConversations,
-    totalUnreadCount,
-    markConversationAsRead
-  };
+  return (
+    <UnreadMessagesContext.Provider value={{
+      unreadConversations,
+      totalUnreadCount,
+      markConversationAsRead
+    }}>
+      {children}
+    </UnreadMessagesContext.Provider>
+  );
 };

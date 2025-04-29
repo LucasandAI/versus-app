@@ -5,7 +5,7 @@ import { useConversations } from '@/hooks/chat/dm/useConversations';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DMConversation } from '@/hooks/chat/dm/types';
 import { useApp } from '@/context/AppContext';
-import { useUnreadMessages } from '@/hooks/chat/dm/useUnreadMessages';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 
 interface Props {
   onSelectUser: (userId: string, userName: string, userAvatar: string, conversationId: string) => void;

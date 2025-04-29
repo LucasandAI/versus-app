@@ -3,7 +3,7 @@ import React from 'react';
 import { Club } from '@/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useApp } from '@/context/AppContext';
-import { useUnreadMessages } from '@/hooks/chat/dm/useUnreadMessages';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 import { useUnreadCounts } from '@/hooks/chat/useUnreadCounts';
 
 interface DrawerHeaderProps {

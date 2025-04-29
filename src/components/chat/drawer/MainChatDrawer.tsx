@@ -8,7 +8,6 @@ import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { useChatActions } from '@/hooks/chat/useChatActions';
 import { useApp } from '@/context/AppContext';
 import { useConversations } from '@/hooks/chat/dm/useConversations';
-import { useUnreadMessages } from '@/hooks/chat/dm/useUnreadMessages';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -40,7 +39,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const { currentUser, isSessionReady } = useApp();
   
   const { fetchConversations } = useConversations([]);
-  const { markConversationAsRead, totalUnreadCount } = useUnreadMessages();
   
   // Only fetch conversations when drawer is open AND session is ready AND user exists
   useEffect(() => {
@@ -49,12 +47,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       fetchConversations();
     }
   }, [open, isSessionReady, currentUser?.id, fetchConversations]);
-
-  useEffect(() => {
-    if (onNewMessage) {
-      onNewMessage(totalUnreadCount);
-    }
-  }, [totalUnreadCount, onNewMessage]);
 
   useEffect(() => {
     const handleOpenDM = (event: CustomEvent<{
@@ -70,17 +62,13 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
         userAvatar: event.detail.userAvatar || '/placeholder.svg',
         conversationId: event.detail.conversationId
       });
-      
-      if (currentUser?.id && event.detail.conversationId !== 'new') {
-        markConversationAsRead(event.detail.conversationId);
-      }
     };
 
     window.addEventListener('openDirectMessage', handleOpenDM as EventListener);
     return () => {
       window.removeEventListener('openDirectMessage', handleOpenDM as EventListener);
     };
-  }, [currentUser?.id, markConversationAsRead]);
+  }, []);
 
   const handleSelectClub = (club: Club) => {
     setSelectedLocalClub(club);

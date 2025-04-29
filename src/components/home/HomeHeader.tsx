@@ -6,12 +6,11 @@ import UserAvatar from '../shared/UserAvatar';
 import Button from '../shared/Button';
 import NotificationPopover from '../shared/NotificationPopover';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
-import { useUnreadMessages } from '@/hooks/chat/dm/useUnreadMessages';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 import { useUnreadCounts } from '@/hooks/chat/useUnreadCounts';
 
 interface HomeHeaderProps {
   notifications: any[];
-  unreadMessages: number;
   onMarkAsRead: (id: string) => void;
   onClearAll: () => void;
   onUserClick: (userId: string, name: string) => void;
@@ -58,7 +57,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           onClick={open}
           className="text-primary hover:bg-gray-100 rounded-full p-2"
           icon={<MessageCircle className="h-5 w-5" />}
-          badge={hasUnreadMessages ? 1 : 0} // Convert boolean to number (1 or 0)
+          badge={hasUnreadMessages ? 1 : 0}
         />
         <UserAvatar 
           name={currentUser?.name || "User"} 

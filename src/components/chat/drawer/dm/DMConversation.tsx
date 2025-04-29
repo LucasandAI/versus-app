@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import ChatMessages from '../../ChatMessages';
@@ -8,7 +9,7 @@ import { useConversations } from '@/hooks/chat/dm/useConversations';
 import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
 import { useConversationManagement } from '@/hooks/chat/dm/useConversationManagement';
 import { useMessageHandling } from '@/hooks/chat/dm/useMessageHandling';
-import { useUnreadMessages } from '@/hooks/chat/dm/useUnreadMessages';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 import DMMessageInput from './DMMessageInput';
 
 interface DMConversationProps {
