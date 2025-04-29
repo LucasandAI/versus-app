@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Club } from '@/types';
 import HomeNotifications from './HomeNotifications';

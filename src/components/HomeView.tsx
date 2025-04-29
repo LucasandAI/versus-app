@@ -6,12 +6,12 @@ import CreateClubDialog from './club/CreateClubDialog';
 import SearchClubDialog from './club/SearchClubDialog';
 import HomeHeader from './home/HomeHeader';
 import HomeClubsSection from './home/HomeClubsSection';
-import HomeNotifications from './home/HomeNotifications';
+import HomeNotificationsHandler from './home/HomeNotificationsHandler';
 import ChatDrawerHandler from './home/ChatDrawerHandler';
 import { useClubActions } from '@/hooks/home/useClubActions';
 import { useHomeNotifications } from '@/hooks/home/useHomeNotifications';
-import { useChatDrawer } from '@/hooks/home/useChatDrawer';
 import { ChatDrawerProvider } from '@/context/ChatDrawerContext';
+import { UnreadMessagesProvider } from '@/context/UnreadMessagesContext';
 
 interface HomeViewProps {
   chatNotifications?: number;
@@ -32,7 +32,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   } = useClubActions();
 
   const { 
-    updateUnreadCount,
     handleMarkAsRead,
     handleDeclineInvite,
     handleClearAllNotifications
@@ -67,50 +66,52 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   const userClubs = currentUser?.clubs || [];
 
   return (
-    <ChatDrawerProvider>
-      <div className="pb-20 pt-6">
-        <div className="container-mobile">
-          <HomeNotifications 
-            setChatNotifications={updateUnreadCount}
-            setNotifications={setNotifications}
-          />
-          
-          <HomeHeader 
-            notifications={notifications}
-            onMarkAsRead={handleMarkAsRead}
-            onClearAll={handleClearAllNotifications}
-            onUserClick={handleSelectUser}
-            onJoinClub={handleJoinClub}
-            onDeclineInvite={handleDeclineInvite}
-          />
+    <UnreadMessagesProvider>
+      <ChatDrawerProvider>
+        <div className="pb-20 pt-6">
+          <div className="container-mobile">
+            <HomeNotificationsHandler 
+              userClubs={userClubs}
+              onJoinClub={handleJoinClub}
+              onSelectUser={handleSelectUser}
+            />
+            
+            <HomeHeader 
+              notifications={notifications}
+              onMarkAsRead={handleMarkAsRead}
+              onClearAll={handleClearAllNotifications}
+              onUserClick={handleSelectUser}
+              onJoinClub={handleJoinClub}
+              onDeclineInvite={handleDeclineInvite}
+            />
 
-          <HomeClubsSection 
+            <HomeClubsSection 
+              userClubs={userClubs}
+              availableClubs={availableClubs}
+              onSelectClub={handleSelectClub}
+              onSelectUser={handleSelectUser}
+              onCreateClub={() => setCreateClubDialogOpen(true)}
+              onRequestJoin={handleRequestToJoin}
+              onSearchClick={() => setSearchDialogOpen(true)}
+            />
+          </div>
+          <ChatDrawerHandler 
             userClubs={userClubs}
-            availableClubs={availableClubs}
-            onSelectClub={handleSelectClub}
             onSelectUser={handleSelectUser}
-            onCreateClub={() => setCreateClubDialogOpen(true)}
+          />
+          <SearchClubDialog
+            open={searchDialogOpen}
+            onOpenChange={setSearchDialogOpen}
+            clubs={availableClubs}
             onRequestJoin={handleRequestToJoin}
-            onSearchClick={() => setSearchDialogOpen(true)}
+          />
+          <CreateClubDialog
+            open={createClubDialogOpen}
+            onOpenChange={setCreateClubDialogOpen}
           />
         </div>
-        <ChatDrawerHandler 
-          userClubs={userClubs}
-          onSelectUser={handleSelectUser}
-          setUnreadMessages={updateUnreadCount} // Using the adapter function with correct type
-        />
-        <SearchClubDialog
-          open={searchDialogOpen}
-          onOpenChange={setSearchDialogOpen}
-          clubs={availableClubs}
-          onRequestJoin={handleRequestToJoin}
-        />
-        <CreateClubDialog
-          open={createClubDialogOpen}
-          onOpenChange={setCreateClubDialogOpen}
-        />
-      </div>
-    </ChatDrawerProvider>
+      </ChatDrawerProvider>
+    </UnreadMessagesProvider>
   );
 };
 

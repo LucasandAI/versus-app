@@ -1,56 +1,31 @@
 
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 
 export const useMessageReadStatus = () => {
+  const { markConversationAsRead, markClubMessagesAsRead } = useUnreadMessages();
+
   const markDirectMessagesAsRead = useCallback(async (conversationId: string, userId: string) => {
     try {
-      // Dispatch event to update UI immediately
-      window.dispatchEvent(new CustomEvent('conversationRead', {
-        detail: { conversationId }
-      }));
-      
-      const { error } = await supabase
-        .from('direct_messages_read')
-        .upsert({
-          user_id: userId,
-          conversation_id: conversationId,
-          last_read_timestamp: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,conversation_id'
-        });
-
-      if (error) throw error;
+      // Use the context method for optimistic updates
+      await markConversationAsRead(conversationId);
     } catch (error) {
       console.error('[useMessageReadStatus] Error marking DM as read:', error);
     }
-  }, []);
+  }, [markConversationAsRead]);
 
-  const markClubMessagesAsRead = useCallback(async (clubId: string, userId: string) => {
+  const markClubMessagesAsReadLegacy = useCallback(async (clubId: string, userId: string) => {
     try {
-      // Dispatch event to update UI immediately 
-      window.dispatchEvent(new CustomEvent('clubMessagesRead', {
-        detail: { clubId }
-      }));
-      
-      const { error } = await supabase
-        .from('club_messages_read')
-        .upsert({
-          user_id: userId,
-          club_id: clubId,
-          last_read_timestamp: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,club_id'
-        });
-
-      if (error) throw error;
+      // Use the context method for optimistic updates
+      await markClubMessagesAsRead(clubId);
     } catch (error) {
       console.error('[useMessageReadStatus] Error marking club messages as read:', error);
     }
-  }, []);
+  }, [markClubMessagesAsRead]);
 
   return {
     markDirectMessagesAsRead,
-    markClubMessagesAsRead
+    markClubMessagesAsRead: markClubMessagesAsReadLegacy
   };
 };

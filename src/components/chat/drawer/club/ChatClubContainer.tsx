@@ -6,7 +6,7 @@ import ChatClubContent from '../../../chat/ChatClubContent';
 import { ArrowLeft } from 'lucide-react';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { useNavigation } from '@/hooks/useNavigation';
-import { useUnreadCounts } from '@/hooks/chat/useUnreadCounts';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 
 interface ChatClubContainerProps {
   clubs: Club[];
@@ -26,27 +26,14 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   onDeleteMessage
 }) => {
   const { navigateToClubDetail } = useNavigation();
-  const { markClubMessagesAsRead } = useUnreadCounts();
+  const { markClubMessagesAsRead } = useUnreadMessages();
 
-  // Notify when a club is selected for tracking unread status
+  // Mark messages as read when a club is selected
   useEffect(() => {
     if (selectedClub) {
       // Mark as read when selected
       markClubMessagesAsRead(selectedClub.id);
-      
-      // Dispatch event that we're viewing this club
-      window.dispatchEvent(new CustomEvent('clubSelected', {
-        detail: { clubId: selectedClub.id }
-      }));
-    } else {
-      window.dispatchEvent(new CustomEvent('clubDeselected'));
     }
-
-    return () => {
-      if (selectedClub) {
-        window.dispatchEvent(new CustomEvent('clubDeselected'));
-      }
-    };
   }, [selectedClub, markClubMessagesAsRead]);
 
   const handleMatchClick = () => {

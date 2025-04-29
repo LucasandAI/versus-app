@@ -2,9 +2,7 @@
 import React, { useEffect } from 'react';
 import { Club } from '@/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useApp } from '@/context/AppContext';
 import { useUnreadMessages } from '@/context/UnreadMessagesContext';
-import { useUnreadCounts } from '@/hooks/chat/useUnreadCounts';
 
 interface DrawerHeaderProps {
   activeTab: "clubs" | "dm";
@@ -17,16 +15,14 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
   setActiveTab,
   selectedClub 
 }) => {
-  const { currentUser } = useApp();
-  const { unreadConversations } = useUnreadMessages();
-  const { unreadClubs, markClubMessagesAsRead } = useUnreadCounts();
+  const { unreadConversations, unreadClubs, markClubMessagesAsRead } = useUnreadMessages();
 
   // Mark club messages as read when a club is selected and the clubs tab is active
   useEffect(() => {
-    if (activeTab === "clubs" && selectedClub && currentUser?.id) {
+    if (activeTab === "clubs" && selectedClub) {
       markClubMessagesAsRead(selectedClub.id);
     }
-  }, [activeTab, selectedClub, markClubMessagesAsRead, currentUser?.id]);
+  }, [activeTab, selectedClub, markClubMessagesAsRead]);
 
   return (
     <div className="px-4 py-2 border-b">

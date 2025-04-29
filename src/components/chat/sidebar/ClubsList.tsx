@@ -1,12 +1,12 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Club } from '@/types';
 import UserAvatar from '../../shared/UserAvatar';
 import ClubMembersPopover from './ClubMembersPopover';
 import { useNavigation } from '@/hooks/useNavigation';
 import { formatDistanceToNow } from 'date-fns';
 import { useClubLastMessages } from '@/hooks/chat/messages/useClubLastMessages';
-import { useUnreadCounts } from '@/hooks/chat/useUnreadCounts';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 
 interface ClubsListProps {
   clubs: Club[];
@@ -25,52 +25,17 @@ const ClubsList: React.FC<ClubsListProps> = ({
   clubs,
   selectedClub,
   onSelectClub,
-  unreadCounts,
   onSelectUser,
   setChatToDelete,
 }) => {
   const { navigateToClubDetail } = useNavigation();
   const lastMessages = useClubLastMessages(clubs);
-  const { unreadClubs } = useUnreadCounts();
-  
-  // Local state to track which clubs should show as unread in the UI
-  const [localUnreadClubs, setLocalUnreadClubs] = useState<Set<string>>(new Set());
-  
-  // Sync local state with unreadClubs from hook
-  useEffect(() => {
-    setLocalUnreadClubs(new Set(unreadClubs));
-  }, [unreadClubs]);
-  
-  // Listen for real-time club message events
-  useEffect(() => {
-    const handleClubMessageReceived = (event: CustomEvent) => {
-      if (event.detail?.clubId) {
-        setLocalUnreadClubs(prev => {
-          const updated = new Set(prev);
-          updated.add(event.detail.clubId);
-          return updated;
-        });
-      }
-    };
-    
-    window.addEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
-    
-    return () => {
-      window.removeEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
-    };
-  }, []);
+  const { unreadClubs, markClubMessagesAsRead } = useUnreadMessages();
   
   const handleClubClick = (club: Club, e: React.MouseEvent) => {
     e.preventDefault();
     onSelectClub(club);
-    
-    // Mark as read locally immediately for UI responsiveness
-    setLocalUnreadClubs(prev => {
-      const updated = new Set(prev);
-      updated.delete(club.id);
-      return updated;
-    });
-    
+    markClubMessagesAsRead(club.id);
     console.log('[ClubsList] Club selected for chat:', club.id);
   };
 
@@ -88,7 +53,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
           const formattedTime = lastMessage?.timestamp 
             ? formatDistanceToNow(new Date(lastMessage.timestamp), { addSuffix: false })
             : '';
-          const isUnread = localUnreadClubs.has(club.id);
+          const isUnread = unreadClubs.has(club.id);
             
           return (
             <div key={club.id} className="flex flex-col relative group">

@@ -9,19 +9,17 @@ import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
 interface ChatDrawerHandlerProps {
   userClubs: Club[];
   onSelectUser: (userId: string, name: string) => void;
-  setUnreadMessages: (count: number) => void;
 }
 
 const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
   userClubs,
-  onSelectUser,
-  setUnreadMessages
+  onSelectUser
 }) => {
   const { isOpen, close } = useChatDrawerGlobal();
   const { currentUser } = useApp();
   
   // Use our hook for real-time club messages
-  const { clubMessages, setClubMessages } = useClubMessages(userClubs, isOpen, setUnreadMessages);
+  const { clubMessages, setClubMessages } = useClubMessages(userClubs, isOpen);
 
   console.log('[ChatDrawerHandler] Rendering with clubMessages:', clubMessages);
 
@@ -38,7 +36,6 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
       }} 
       clubs={userClubs}
       clubMessages={clubMessages}
-      onNewMessage={setUnreadMessages}
       setClubMessages={setClubMessages}
       onSendMessage={handleSendMessage}
     />
