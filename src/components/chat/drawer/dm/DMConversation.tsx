@@ -48,7 +48,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
   useDMSubscription(conversationId, userId, currentUser?.id, setMessages, addMessage);
 
   // Scroll to bottom on new messages
-  React.useEffect(() => {
+  useEffect(() => {
     if (lastMessageRef.current) {
       lastMessageRef.current.scrollIntoView({
         behavior: 'smooth',
@@ -57,12 +57,12 @@ const DMConversation: React.FC<DMConversationProps> = ({
     }
   }, [messages.length]);
   
-  // Mark conversation as read when opened
+  // Mark conversation as read when opened and on new messages
   useEffect(() => {
     if (conversationId && conversationId !== 'new') {
       markConversationAsRead(conversationId);
     }
-  }, [conversationId, markConversationAsRead]);
+  }, [conversationId, markConversationAsRead, messages]);
 
   return (
     <div className="flex flex-col h-full w-full">

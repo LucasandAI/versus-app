@@ -30,14 +30,14 @@ const UserInviteSection: React.FC<UserInviteSectionProps> = ({
   if (isCurrentUserProfile) return null;
 
   const handleMessageClick = async () => {
-    // Open the chat drawer first
-    openChatDrawer();
-    
     try {
       // Get or create conversation with this user
       const conversation = await getOrCreateConversation(selectedUser.id, selectedUser.name, selectedUser.avatar);
       
       if (conversation) {
+        // Open the chat drawer
+        openChatDrawer();
+        
         // Dispatch custom event to open DM directly with this conversation
         const event = new CustomEvent('openDirectMessage', {
           detail: {

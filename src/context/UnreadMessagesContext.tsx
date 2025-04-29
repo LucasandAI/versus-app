@@ -1,313 +1,236 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useApp } from '@/context/AppContext';
-import { toast } from "sonner";
+import { useApp } from './AppContext';
 
 interface UnreadMessagesContextType {
-  // DM Notifications
   unreadConversations: Set<string>;
-  dmUnreadCount: number;
-  
-  // Club Notifications
   unreadClubs: Set<string>;
-  clubUnreadCount: number;
-  
-  // Combined total
   totalUnreadCount: number;
-  
-  // Mark as read functions
   markConversationAsRead: (conversationId: string) => Promise<void>;
   markClubMessagesAsRead: (clubId: string) => Promise<void>;
-  
-  // Mark as unread functions (for incoming messages)
-  markConversationAsUnread: (conversationId: string) => void;
-  markClubAsUnread: (clubId: string) => void;
-  
-  // Fetch unread counts from server
-  fetchUnreadCounts: () => Promise<void>;
+  refreshUnreadState: () => Promise<void>;
 }
 
 const UnreadMessagesContext = createContext<UnreadMessagesContextType>({
   unreadConversations: new Set(),
-  dmUnreadCount: 0,
   unreadClubs: new Set(),
-  clubUnreadCount: 0,
   totalUnreadCount: 0,
   markConversationAsRead: async () => {},
   markClubMessagesAsRead: async () => {},
-  markConversationAsUnread: () => {},
-  markClubAsUnread: () => {},
-  fetchUnreadCounts: async () => {},
+  refreshUnreadState: async () => {}
 });
 
 export const useUnreadMessages = () => useContext(UnreadMessagesContext);
 
-export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
-  // State for unread tracking
+export const UnreadMessagesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [unreadConversations, setUnreadConversations] = useState<Set<string>>(new Set());
   const [unreadClubs, setUnreadClubs] = useState<Set<string>>(new Set());
-  const [dmUnreadCount, setDmUnreadCount] = useState(0);
-  const [clubUnreadCount, setClubUnreadCount] = useState(0);
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
+  const { currentUser } = useApp();
   
-  // Combined total
-  const totalUnreadCount = dmUnreadCount + clubUnreadCount;
-  
-  const { currentUser, isSessionReady } = useApp();
-  
-  // Fetch unread counts from the server
-  const fetchUnreadCounts = useCallback(async () => {
-    if (!isSessionReady || !currentUser?.id) return;
+  const fetchUnreadState = useCallback(async () => {
+    if (!currentUser?.id) return;
     
     try {
-      console.log('[UnreadMessagesContext] Fetching unread counts');
-      
-      // Fetch DM unread counts
-      const { data: dmCount, error: dmError } = await supabase.rpc('get_unread_dm_count', {
-        user_id: currentUser.id
-      });
-      
-      if (dmError) throw dmError;
-      setDmUnreadCount(dmCount || 0);
-
-      // Fetch club unread counts
-      const { data: clubCount, error: clubError } = await supabase.rpc('get_unread_club_messages_count', {
-        user_id: currentUser.id
-      });
-      
-      if (clubError) throw clubError;
-      setClubUnreadCount(clubCount || 0);
-
-      // Get unread conversations
-      const { data: unreadDMs, error: unreadDMsError } = await supabase
-        .from('direct_messages_read')
-        .select('conversation_id')
-        .eq('user_id', currentUser.id)
-        .filter('has_unread', 'eq', true);
-
-      if (unreadDMsError) throw unreadDMsError;
-      
-      if (unreadDMs) {
-        setUnreadConversations(new Set(unreadDMs.map(dm => dm.conversation_id)));
-      }
-
-      // Get unread clubs
-      const { data: unreadClubsData, error: unreadClubsError } = await supabase
-        .from('club_messages_read')
-        .select('club_id')
-        .eq('user_id', currentUser.id)
-        .filter('has_unread', 'eq', true);
-
-      if (unreadClubsError) throw unreadClubsError;
-      
-      if (unreadClubsData) {
-        setUnreadClubs(new Set(unreadClubsData.map(club => club.club_id)));
+      // Fetch unread DM conversations
+      const { data: directMessages, error: dmError } = await supabase
+        .rpc('get_unread_conversations', { user_id: currentUser.id });
+        
+      if (dmError) {
+        throw dmError;
       }
       
-      console.log('[UnreadMessagesContext] Unread counts fetched:', { dmCount, clubCount });
+      const unreadDMs = new Set<string>();
+      if (directMessages && Array.isArray(directMessages)) {
+        directMessages.forEach(convo => {
+          if (convo && convo.conversation_id) {
+            unreadDMs.add(convo.conversation_id);
+          }
+        });
+      }
       
-      // Dispatch event to notify UI components of changes
-      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+      // Fetch unread club messages
+      const { data: clubMessages, error: clubError } = await supabase
+        .rpc('get_unread_club_messages', { user_id: currentUser.id });
+        
+      if (clubError) {
+        throw clubError;
+      }
+      
+      const unreadClubIds = new Set<string>();
+      if (clubMessages && Array.isArray(clubMessages)) {
+        clubMessages.forEach(club => {
+          if (club && club.club_id) {
+            unreadClubIds.add(club.club_id);
+          }
+        });
+      }
+      
+      // Update state
+      setUnreadConversations(unreadDMs);
+      setUnreadClubs(unreadClubIds);
+      setTotalUnreadCount(unreadDMs.size + unreadClubIds.size);
+      
+      console.log(`[UnreadMessagesContext] Refreshed unread state: ${unreadDMs.size} conversations, ${unreadClubIds.size} clubs`);
       
     } catch (error) {
-      console.error('[UnreadMessagesContext] Error fetching unread counts:', error);
+      console.error('[UnreadMessagesContext] Error fetching unread messages:', error);
     }
-  }, [currentUser?.id, isSessionReady]);
-
-  // Fetch initial unread status for DMs
+  }, [currentUser?.id]);
+  
+  // Initial fetch
   useEffect(() => {
-    if (!isSessionReady || !currentUser?.id) return;
+    if (currentUser?.id) {
+      fetchUnreadState();
+    }
+  }, [currentUser?.id, fetchUnreadState]);
+  
+  // Set up realtime subscription for direct messages
+  useEffect(() => {
+    if (!currentUser?.id) return;
     
-    // Initial fetch happens through useInitialAppLoad now
-    
-    // Set up real-time subscriptions for new messages
-    const dmChannel = supabase
-      .channel('global-dm-unread-tracking')
-      .on('postgres_changes', 
-          { 
-            event: 'INSERT', 
-            schema: 'public', 
-            table: 'direct_messages' 
-          },
-          (payload) => {
-            if (payload.new.receiver_id === currentUser.id) {
-              markConversationAsUnread(payload.new.conversation_id);
-            }
-          })
-      .subscribe();
-    
-    // Subscribe to new club messages
-    const clubChannel = supabase.channel('global-club-unread-tracking')
-      .on('postgres_changes', 
-          { 
-            event: 'INSERT', 
-            schema: 'public', 
-            table: 'club_chat_messages'
-          },
-          (payload) => {
-            if (payload.new.sender_id !== currentUser.id) {
-              markClubAsUnread(payload.new.club_id);
-            }
-          })
+    const channel = supabase
+      .channel('unread-messages-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'direct_messages'
+      }, () => {
+        fetchUnreadState();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'direct_messages_read'
+      }, () => {
+        fetchUnreadState();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'club_chat_messages'
+      }, () => {
+        fetchUnreadState();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'club_messages_read'
+      }, () => {
+        fetchUnreadState();
+      })
       .subscribe();
       
     return () => {
-      supabase.removeChannel(dmChannel);
-      supabase.removeChannel(clubChannel);
+      supabase.removeChannel(channel);
     };
-  }, [currentUser?.id, isSessionReady]);
-
-  // Mark club as unread (for new incoming messages)
-  const markClubAsUnread = useCallback((clubId: string) => {
-    setUnreadClubs(prev => {
-      const updated = new Set(prev);
-      if (!updated.has(clubId)) {
-        updated.add(clubId);
-        setClubUnreadCount(prev => prev + 1);
-        
-        // Dispatch event to notify UI components
-        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
-      }
-      return updated;
-    });
-  }, []);
-
-  // Mark conversation as unread (for new incoming messages)
-  const markConversationAsUnread = useCallback((conversationId: string) => {
-    setUnreadConversations(prev => {
-      const updated = new Set(prev);
-      if (!updated.has(conversationId)) {
-        updated.add(conversationId);
-        setDmUnreadCount(prev => prev + 1);
-        
-        // Dispatch event to notify UI components
-        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
-      }
-      return updated;
-    });
-  }, []);
-
-  // Mark conversation as read
-  const markConversationAsRead = useCallback(async (conversationId: string) => {
-    if (!currentUser?.id || !conversationId) return;
+  }, [currentUser?.id, fetchUnreadState]);
+  
+  // Listen for unread messages updated event
+  useEffect(() => {
+    const handleUnreadMessagesUpdated = () => {
+      fetchUnreadState();
+    };
     
-    // Optimistically update local state
-    setUnreadConversations(prev => {
-      if (!prev.has(conversationId)) return prev;
-      
-      const updated = new Set(prev);
-      updated.delete(conversationId);
-      setDmUnreadCount(prevCount => Math.max(0, prevCount - 1));
-      
-      // Dispatch event to notify UI components
-      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
-      
-      return updated;
-    });
+    window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
+    
+    return () => {
+      window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
+    };
+  }, [fetchUnreadState]);
+  
+  const markConversationAsRead = useCallback(async (conversationId: string) => {
+    if (!currentUser?.id) return;
     
     try {
-      // Update the read timestamp in the database
-      const { error } = await supabase
+      const now = new Date().toISOString();
+      
+      // Update or insert a read record
+      await supabase
         .from('direct_messages_read')
         .upsert({
           user_id: currentUser.id,
           conversation_id: conversationId,
-          last_read_timestamp: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,conversation_id'
+          last_read_timestamp: now
         });
       
-      if (error) throw error;
+      // Update local state
+      setUnreadConversations(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(conversationId);
+        return newSet;
+      });
+      
+      // Update total count
+      setTotalUnreadCount(prevCount => {
+        const newCount = Math.max(0, prevCount - (unreadConversations.has(conversationId) ? 1 : 0));
+        return newCount;
+      });
+      
+      // Dispatch event for other components to update
+      window.dispatchEvent(new Event('unreadMessagesUpdated'));
       
     } catch (error) {
       console.error('[UnreadMessagesContext] Error marking conversation as read:', error);
-      
-      // Revert optimistic update on error
-      setUnreadConversations(prev => {
-        const reverted = new Set(prev);
-        reverted.add(conversationId);
-        return reverted;
-      });
-      setDmUnreadCount(prev => prev + 1);
-      
-      // Notify UI components about the revert
-      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
-      
-      toast.error("Failed to mark conversation as read");
     }
-  }, [currentUser?.id]);
-
-  // Mark club messages as read
+  }, [currentUser?.id, unreadConversations]);
+  
   const markClubMessagesAsRead = useCallback(async (clubId: string) => {
-    if (!currentUser?.id || !clubId) return;
-    
-    console.log('[UnreadMessagesContext] Marking club messages as read:', clubId);
-    
-    // Optimistically update local state
-    setUnreadClubs(prev => {
-      if (!prev.has(clubId)) return prev;
-      
-      const updated = new Set(prev);
-      updated.delete(clubId);
-      setClubUnreadCount(prevCount => Math.max(0, prevCount - 1));
-      
-      // Dispatch event to notify UI components
-      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
-      
-      return updated;
-    });
+    if (!currentUser?.id) return;
     
     try {
-      // Update the read timestamp in the database
-      const { error } = await supabase
+      const now = new Date().toISOString();
+      
+      // Update or insert a read record
+      await supabase
         .from('club_messages_read')
         .upsert({
           user_id: currentUser.id,
           club_id: clubId,
-          last_read_timestamp: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,club_id'
+          last_read_timestamp: now
         });
+        
+      // Update local state
+      setUnreadClubs(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(clubId);
+        return newSet;
+      });
       
-      if (error) throw error;
+      // Update total count
+      setTotalUnreadCount(prevCount => {
+        const newCount = Math.max(0, prevCount - (unreadClubs.has(clubId) ? 1 : 0));
+        return newCount;
+      });
       
-      // Dispatch event to notify other components
-      window.dispatchEvent(new CustomEvent('clubMessagesRead', { 
-        detail: { clubId } 
-      }));
+      // Dispatch event for other components to update
+      window.dispatchEvent(new Event('unreadMessagesUpdated'));
       
     } catch (error) {
       console.error('[UnreadMessagesContext] Error marking club messages as read:', error);
-      
-      // Revert optimistic update on error
-      setUnreadClubs(prev => {
-        const reverted = new Set(prev);
-        reverted.add(clubId);
-        return reverted;
-      });
-      setClubUnreadCount(prev => prev + 1);
-      
-      // Notify UI components about the revert
-      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
-      
-      toast.error("Failed to mark club messages as read");
     }
-  }, [currentUser?.id]);
-
+  }, [currentUser?.id, unreadClubs]);
+  
+  // This function can be called by components to refresh the unread state
+  const refreshUnreadState = useCallback(async () => {
+    await fetchUnreadState();
+  }, [fetchUnreadState]);
+  
+  const contextValue: UnreadMessagesContextType = {
+    unreadConversations,
+    unreadClubs,
+    totalUnreadCount,
+    markConversationAsRead,
+    markClubMessagesAsRead,
+    refreshUnreadState
+  };
+  
   return (
-    <UnreadMessagesContext.Provider value={{
-      unreadConversations,
-      dmUnreadCount,
-      unreadClubs,
-      clubUnreadCount,
-      totalUnreadCount,
-      markConversationAsRead,
-      markClubMessagesAsRead,
-      markConversationAsUnread,
-      markClubAsUnread,
-      fetchUnreadCounts
-    }}>
+    <UnreadMessagesContext.Provider value={contextValue}>
       {children}
     </UnreadMessagesContext.Provider>
   );
 };
+
+export default UnreadMessagesProvider;
