@@ -30,9 +30,6 @@ const UserInviteSection: React.FC<UserInviteSectionProps> = ({
   if (isCurrentUserProfile) return null;
 
   const handleMessageClick = async () => {
-    // First fetch conversations to ensure they're loaded
-    await fetchConversations();
-    
     // Open the chat drawer first
     openChatDrawer();
     

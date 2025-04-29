@@ -11,7 +11,7 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
   const [conversations, setConversations] = useState<DMConversation[]>([]);
   const [loading, setLoading] = useState(true);
   const { currentUser, isSessionReady } = useApp();
-  const attemptedFetch = useRef(false);
+  const fetchAttemptedRef = useRef(false);
   const isMounted = useRef(true);
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -39,7 +39,7 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
         }
 
         console.log('[useDirectConversations] Session and user ready, fetching conversations');
-        attemptedFetch.current = true;
+        fetchAttemptedRef.current = true;
         debouncedFetchConversations(currentUser.id, setLoading, (convs: DMConversation[]) => {
           // Filter out self-conversations
           const filteredConvs = convs.filter(c => c.userId !== currentUser.id);
@@ -61,18 +61,6 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
       debouncedFetchConversations.cancel();
     };
   }, [debouncedFetchConversations]);
-
-  // Only attempt fetch when both session is ready AND user ID exists
-  useEffect(() => {
-    const shouldFetch = isSessionReady && 
-                        currentUser?.id && 
-                        !attemptedFetch.current;
-                        
-    if (shouldFetch) {
-      console.log('[useDirectConversations] Session AND user ready, triggering fetch');
-      fetchConversations();
-    }
-  }, [isSessionReady, currentUser?.id, fetchConversations]);
 
   // Filter out hidden conversations and self-conversations
   const filteredConversations = conversations.filter(
