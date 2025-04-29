@@ -16,14 +16,9 @@ interface DMContainerProps {
     userAvatar: string;
     conversationId: string;
   } | null>>;
-  unreadConversations?: Set<string>;
 }
 
-const DMContainer: React.FC<DMContainerProps> = ({ 
-  directMessageUser, 
-  setDirectMessageUser, 
-  unreadConversations = new Set()
-}) => {
+const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectMessageUser }) => {
   const handleSelectUser = (userId: string, userName: string, userAvatar: string, conversationId: string) => {
     setDirectMessageUser({
       userId,
@@ -40,7 +35,6 @@ const DMContainer: React.FC<DMContainerProps> = ({
         <DMConversationList 
           onSelectUser={handleSelectUser} 
           selectedUserId={directMessageUser?.userId}
-          unreadConversations={unreadConversations}
         />
       </div>
     </div>

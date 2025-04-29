@@ -1,72 +1,74 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import ConversationItem from './ConversationItem';
-import { useDirectConversationsContext } from '@/context/direct-conversations';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useApp } from '@/context/AppContext';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
+import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
 
-interface DMConversationListProps {
+interface Props {
   onSelectUser: (userId: string, userName: string, userAvatar: string, conversationId: string) => void;
   selectedUserId?: string;
-  unreadConversations?: Set<string>;
 }
 
-const DMConversationList: React.FC<DMConversationListProps> = ({ 
+const DMConversationList: React.FC<Props> = ({ 
   onSelectUser, 
-  selectedUserId,
-  unreadConversations = new Set() 
+  selectedUserId 
 }) => {
-  const { conversations, loading, fetchConversations } = useDirectConversationsContext();
-  const { currentUser, isSessionReady } = useApp();
+  const { currentUser } = useApp();
+  const { conversations, loading } = useDirectConversationsContext();
+  const { unreadConversations } = useUnreadMessages();
   
-  useEffect(() => {
-    if (isSessionReady && currentUser?.id) {
-      fetchConversations();
-    }
-  }, [isSessionReady, currentUser?.id, fetchConversations]);
-  
-  if (loading) {
-    return (
-      <div className="p-4 text-center text-gray-500">
-        <p>Loading conversations...</p>
-      </div>
-    );
-  }
-  
-  if (!conversations || conversations.length === 0) {
-    return (
-      <div className="p-4 text-center text-gray-500">
-        <p>No conversations yet</p>
-        <p className="text-sm">Search for users to start chatting</p>
-      </div>
-    );
-  }
-  
+  const isEmpty = !loading && conversations.length === 0;
+
   return (
-    <div className="divide-y overflow-y-auto max-h-full">
-      {conversations.map((conversation) => {
-        const isSelected = conversation.userId === selectedUserId;
-        const isUnread = unreadConversations.has(conversation.conversationId);
-        
-        return (
-          <ConversationItem
-            key={conversation.conversationId}
-            userId={conversation.userId}
-            userName={conversation.userName}
-            userAvatar={conversation.userAvatar}
-            conversationId={conversation.conversationId}
-            lastMessage={conversation.lastMessage}
-            timestamp={conversation.timestamp}
-            isSelected={isSelected}
-            isUnread={isUnread}
-            onClick={() => onSelectUser(
-              conversation.userId,
-              conversation.userName,
-              conversation.userAvatar,
-              conversation.conversationId
-            )}
-          />
-        );
-      })}
+    <div className="flex flex-col h-full bg-white">
+      <h1 className="text-4xl font-bold p-4">Messages</h1>
+      
+      <div className="flex-1 overflow-auto">
+        {loading ? (
+          <div className="p-4 space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center space-x-3 p-2">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : isEmpty ? (
+          <div className="p-4 text-center text-gray-500">
+            <p className="text-lg">No messages yet</p>
+            <p className="text-sm mt-1">Search above to start a conversation</p>
+          </div>
+        ) : (
+          <div className="divide-y">
+            {conversations
+              .filter(conversation => conversation.userId !== currentUser?.id)
+              .map((conversation) => (
+                <ConversationItem
+                  key={conversation.conversationId}
+                  conversation={{
+                    ...conversation,
+                    lastMessage: conversation.lastMessage || '',
+                    timestamp: conversation.timestamp || ''
+                  }}
+                  isSelected={selectedUserId === conversation.userId}
+                  isUnread={unreadConversations.has(conversation.conversationId)}
+                  onSelect={() => onSelectUser(
+                    conversation.userId,
+                    conversation.userName,
+                    conversation.userAvatar,
+                    conversation.conversationId
+                  )}
+                  isLoading={false}
+                />
+              ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

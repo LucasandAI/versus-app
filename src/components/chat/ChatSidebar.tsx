@@ -51,10 +51,11 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
       {activeTab === "clubs" && (
         <ClubsList
           clubs={clubs}
-          selectedClubId={selectedClub?.id}
+          selectedClub={selectedClub}
           onSelectClub={onSelectClub}
-          unreadClubs={new Set(Object.keys(unreadCounts || {}).filter(id => unreadCounts?.[id] > 0))}
-          onDeleteChat={onDeleteChat}
+          unreadCounts={unreadCounts}
+          onSelectUser={onSelectUser}
+          setChatToDelete={setChatToDelete}
         />
       )}
 

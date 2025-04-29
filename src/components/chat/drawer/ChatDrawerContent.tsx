@@ -30,20 +30,15 @@ const ChatDrawerContent: React.FC<ChatDrawerContentProps> = ({
     return <ChatEmpty />;
   }
   
-  // Get the messages for this club or default to empty array
-  const clubMessages = selectedClub.id && messages ? messages[selectedClub.id] || [] : [];
-  
   return (
     <div className="h-full flex flex-col">
       <ChatMainContent
-        clubId={selectedClub.id}
-        clubName={selectedClub.name}
         selectedClub={selectedClub}
         selectedTicket={null}
-        messages={clubMessages} // Pass the array directly, not the record
+        messages={messages}
         onMatchClick={onMatchClick}
         onSelectUser={onSelectUser}
-        onSendMessage={(message) => onSendMessage(message, selectedClub.id)}
+        onSendMessage={onSendMessage}
         setClubMessages={setClubMessages}
       />
     </div>

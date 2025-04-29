@@ -1,61 +1,83 @@
 
 import React from 'react';
+import { DMConversation } from '@/hooks/chat/dm/types';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { formatDistanceToNow } from 'date-fns';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
 interface ConversationItemProps {
-  userId: string;
-  userName: string;
-  userAvatar: string;
-  conversationId: string;
-  lastMessage?: string;
-  timestamp?: string;
-  isSelected?: boolean;
+  conversation: DMConversation;
+  isSelected: boolean;
+  onSelect: () => void;
+  isLoading?: boolean;
   isUnread?: boolean;
-  onClick: () => void;
 }
 
 const ConversationItem: React.FC<ConversationItemProps> = ({
-  userName,
-  userAvatar,
-  lastMessage,
-  timestamp,
+  conversation,
   isSelected,
-  isUnread,
-  onClick
+  onSelect,
+  isLoading = false,
+  isUnread = false
 }) => {
-  const formattedTime = timestamp 
-    ? formatDistanceToNow(new Date(timestamp), { addSuffix: true })
+  const isMobile = useIsMobile();
+
+  const formattedTime = conversation.timestamp 
+    ? formatDistanceToNow(new Date(conversation.timestamp), { addSuffix: false })
     : '';
-  
+
+  // Truncate message to a shorter length on mobile
+  const characterLimit = isMobile ? 25 : 50;
+  const truncatedMessage = conversation.lastMessage
+    ? conversation.lastMessage.length > characterLimit
+      ? `${conversation.lastMessage.substring(0, characterLimit)}...`
+      : conversation.lastMessage
+    : '';
+
   return (
     <div 
-      className={`
-        p-3 cursor-pointer hover:bg-gray-50 flex items-center
-        ${isSelected ? 'bg-gray-100' : ''}
-        ${isUnread ? 'font-semibold' : ''}
-      `}
-      onClick={onClick}
+      className={`flex items-start px-4 py-3 cursor-pointer hover:bg-gray-50 relative group
+        ${isSelected ? 'bg-primary/10 text-primary' : ''}
+        ${isUnread ? 'font-medium' : ''}`}
+      onClick={onSelect}
     >
-      <UserAvatar name={userName} image={userAvatar} size="md" />
+      <UserAvatar
+        name={conversation.userName}
+        image={conversation.userAvatar}
+        size="lg"
+        className="flex-shrink-0 mr-3"
+      />
       
-      <div className="ml-3 flex-1 min-w-0">
-        <div className="flex justify-between items-center">
-          <p className={`text-sm ${isUnread ? 'font-semibold' : 'font-medium'}`}>{userName}</p>
-          {timestamp && (
-            <span className="text-xs text-gray-500">{formattedTime}</span>
+      <div className="flex-1 min-w-0 overflow-hidden">
+        <div className="flex items-center justify-between mb-1">
+          {isLoading ? (
+            <Skeleton className="h-5 w-24" />
+          ) : (
+            <h2 className={`text-lg truncate max-w-[60%] ${isUnread ? 'font-bold' : 'font-medium'}`}>
+              {conversation.userName}
+              {isUnread && (
+                <span className="ml-2 inline-flex h-2 w-2 bg-red-500 rounded-full" />
+              )}
+            </h2>
           )}
+          {formattedTime && !isLoading ? (
+            <span className="text-xs text-gray-500 flex-shrink-0 ml-auto">
+              {formattedTime}
+            </span>
+          ) : isLoading ? (
+            <Skeleton className="h-3 w-12 ml-auto" />
+          ) : null}
         </div>
         
-        <div className="flex justify-between items-center">
-          {lastMessage ? (
-            <p className="text-sm text-gray-500 truncate">{lastMessage}</p>
+        <div className="flex items-center">
+          {isLoading ? (
+            <Skeleton className="h-4 w-full flex-1" />
           ) : (
-            <p className="text-sm text-gray-400 italic">No messages yet</p>
-          )}
-          
-          {isUnread && (
-            <div className="h-3 w-3 bg-red-500 rounded-full flex-shrink-0 ml-2" />
+            <p className={`text-sm truncate flex-1 ${isUnread ? 'text-gray-900' : 'text-gray-600'}`}>
+              {truncatedMessage}
+            </p>
           )}
         </div>
       </div>

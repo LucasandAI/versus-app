@@ -4,63 +4,57 @@ import { Club } from '@/types';
 import ChatClubContent from '../../ChatClubContent';
 
 interface ChatMainContentProps {
-  clubId: string;
-  clubName: string;
-  selectedClub?: Club | null;
-  selectedTicket?: null;
-  messages: any[]; // Changed from Record<string, any[]> to any[]
-  onMatchClick?: (club: Club) => void;
-  onSelectUser?: (userId: string, userName: string, userAvatar?: string) => void;
+  selectedClub: Club | null;
+  selectedTicket: null;
+  messages: Record<string, any[]>;
+  onMatchClick: (club: Club) => void;
+  onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   onSendMessage: (message: string, clubId?: string) => void;
-  onDeleteMessage?: (messageId: string) => void;
   setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
 }
 
 const ChatMainContent: React.FC<ChatMainContentProps> = ({
-  clubId,
-  clubName,
   selectedClub,
-  selectedTicket,
   messages,
   onMatchClick,
   onSelectUser,
   onSendMessage,
-  onDeleteMessage,
   setClubMessages,
 }) => {
   // Enhanced debugging for component renders and selections
   useEffect(() => {
     console.log('[ChatMainContent] Rendering with:', {
       hasSelectedClub: !!selectedClub,
-      clubId: clubId
+      clubId: selectedClub?.id
     });
-  }, [selectedClub, clubId]);
+  }, [selectedClub]);
 
   // If we have a selected club, render the club content
-  if (clubId) {
+  if (selectedClub) {
+    const clubMessages = messages[selectedClub.id] || [];
     console.log('[ChatMainContent] Rendering club messages:', { 
-      clubId: clubId, 
-      messageCount: messages.length,
-      messageIds: messages.map(m => m.id).join(', ')
+      clubId: selectedClub.id, 
+      messageCount: clubMessages.length,
+      messageIds: clubMessages.map(m => m.id).join(', ')
     });
     
     return (
       <div className="flex-1 h-full flex flex-col">
         <ChatClubContent 
-          key={clubId} // Force re-render when club changes
-          club={selectedClub || { id: clubId, name: clubName } as Club}
-          messages={messages}
-          onMatchClick={selectedClub && onMatchClick ? () => onMatchClick(selectedClub) : undefined}
+          key={selectedClub.id} // Force re-render when club changes
+          club={selectedClub}
+          messages={clubMessages}
+          onMatchClick={() => onMatchClick(selectedClub)}
           onSelectUser={onSelectUser}
           onSendMessage={(message) => {
             console.log('[ChatMainContent] Sending club message to:', { 
-              clubId: clubId, 
+              clubId: selectedClub.id, 
               messageLength: message.length 
             });
-            onSendMessage(message, clubId);
+            onSendMessage(message, selectedClub.id);
           }}
           setClubMessages={setClubMessages}
-          clubId={clubId} // Pass clubId for proper context in ChatInput
+          clubId={selectedClub.id} // Pass clubId for proper context in ChatInput
         />
       </div>
     );
@@ -69,7 +63,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   // If nothing is selected, show an empty state
   return (
     <div className="flex items-center justify-center h-full text-gray-500">
-      {clubId ? 'Loading chat...' : 'Select a club to start chatting'}
+      {selectedClub ? 'Loading chat...' : 'Select a club to start chatting'}
     </div>
   );
 };

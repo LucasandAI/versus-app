@@ -1,8 +1,9 @@
 
-import React from 'react';
-import { useUnreadMessages } from '@/context/unread-messages';
+import React, { useEffect } from 'react';
 import { Club } from '@/types';
-import ChatDrawerTabs from './ChatDrawerTabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
+import { Badge } from '@/components/ui/badge';
 
 interface DrawerHeaderProps {
   activeTab: "clubs" | "dm";
@@ -10,29 +11,38 @@ interface DrawerHeaderProps {
   selectedClub: Club | null;
 }
 
-const DrawerHeader: React.FC<DrawerHeaderProps> = ({
-  activeTab,
+const DrawerHeader: React.FC<DrawerHeaderProps> = ({ 
+  activeTab, 
   setActiveTab,
-  selectedClub
+  selectedClub 
 }) => {
-  const { dmUnreadCount, clubUnreadCount } = useUnreadMessages();
-  
+  const { unreadConversations, unreadClubs, markClubMessagesAsRead } = useUnreadMessages();
+
+  // Mark club messages as read when a club is selected and the clubs tab is active
+  useEffect(() => {
+    if (activeTab === "clubs" && selectedClub) {
+      markClubMessagesAsRead(selectedClub.id);
+    }
+  }, [activeTab, selectedClub, markClubMessagesAsRead]);
+
   return (
-    <div className="border-b">
-      <ChatDrawerTabs 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab}
-        dmUnreadCount={dmUnreadCount}
-        clubUnreadCount={clubUnreadCount}
-      />
-      
-      {selectedClub && activeTab === "clubs" && (
-        <div className="px-4 py-2 bg-gray-50 border-t">
-          <h3 className="text-sm font-medium">
-            Chatting in <span className="font-bold">{selectedClub.name}</span>
-          </h3>
-        </div>
-      )}
+    <div className="px-4 py-2 border-b">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "clubs" | "dm")}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="clubs" className="inline-flex items-center gap-2 relative">
+            Club Chat
+            {unreadClubs.size > 0 && (
+              <Badge variant="destructive" className="h-2 w-2 p-0 absolute -top-1 -right-1 rounded-full" />
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="dm" className="inline-flex items-center gap-2 relative">
+            Direct Messages
+            {unreadConversations.size > 0 && (
+              <Badge variant="destructive" className="h-2 w-2 p-0 absolute -top-1 -right-1 rounded-full" />
+            )}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
     </div>
   );
 };
