@@ -1,30 +1,31 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import ConversationItem from './ConversationItem';
+import { useConversations } from '@/hooks/chat/dm/useConversations';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DMConversation } from '@/hooks/chat/dm/types';
 import { useApp } from '@/context/AppContext';
 import { useUnreadMessages } from '@/context/UnreadMessagesContext';
-import { useDirectConversations } from '@/hooks/chat/dm/useDirectConversations';
 
 interface Props {
   onSelectUser: (userId: string, userName: string, userAvatar: string, conversationId: string) => void;
   selectedUserId?: string;
-  onRefresh?: () => Promise<any>;
-  isLoading?: boolean;
+  initialConversations?: DMConversation[];
+  isInitialLoading?: boolean;
 }
 
 const DMConversationList: React.FC<Props> = ({ 
   onSelectUser, 
   selectedUserId,
-  onRefresh,
-  isLoading = false
+  initialConversations = [],
+  isInitialLoading = false
 }) => {
-  const { currentUser } = useApp();
-  const { conversations } = useDirectConversations([]); // Just access conversations, don't fetch
+  const { currentUser, isSessionReady } = useApp();
+  const { conversations, loading } = useConversations([]);
   const { unreadConversations } = useUnreadMessages();
   const previousConversationsRef = useRef<DMConversation[]>([]);
   const [localConversations, setLocalConversations] = useState<DMConversation[]>([]);
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Update local state when conversations change
   useEffect(() => {
@@ -36,17 +37,31 @@ const DMConversationList: React.FC<Props> = ({
     }
   }, [conversations, currentUser?.id]);
 
-  const displayConversations = localConversations.length > 0 ? localConversations : previousConversationsRef.current;
-  const isEmpty = !isLoading && displayConversations.length === 0;
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const displayConversations = loading ? previousConversationsRef.current : localConversations;
+  
+  // First, try to use initial conversations if provided and not empty
+  const finalConversations = initialConversations.length > 0 
+    ? initialConversations 
+    : displayConversations;
+    
+  const showLoading = isInitialLoading && finalConversations.length === 0;
+  const isEmpty = !showLoading && finalConversations.length === 0;
 
   return (
     <div className="flex flex-col h-full bg-white">
-      <div className="flex justify-between items-center p-4">
-        <h1 className="text-4xl font-bold">Messages</h1>
-      </div>
+      <h1 className="text-4xl font-bold p-4">Messages</h1>
       
       <div className="flex-1 overflow-auto">
-        {isLoading ? (
+        {showLoading ? (
           <div className="p-4 space-y-3">
             {[1, 2, 3].map((i) => (
               <div key={i} className="flex items-center space-x-3 p-2">
@@ -65,7 +80,7 @@ const DMConversationList: React.FC<Props> = ({
           </div>
         ) : (
           <div className="divide-y">
-            {displayConversations
+            {finalConversations
               // Extra filter to ensure we never show conversations with yourself
               .filter(conversation => conversation.userId !== currentUser?.id)
               .map((conversation) => (

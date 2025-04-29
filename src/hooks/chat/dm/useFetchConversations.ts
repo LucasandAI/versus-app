@@ -9,29 +9,21 @@ import debounce from 'lodash/debounce';
 export const useFetchConversations = (currentUserId: string | undefined) => {
   const { loadConversationsFromStorage, saveConversationsToStorage } = useConversationsPersistence();
   const errorToastShownRef = useRef(false);
-  const hasFetchedRef = useRef(false);
   
   const fetchConversations = useCallback(debounce(async () => {
-    // Strong guard clause - prevent fetching without a user ID or if session isn't ready
-    if (!currentUserId) {
-      console.log('[fetchConversations] No current user ID, skipping fetch');
-      return loadConversationsFromStorage(); // Return cached conversations as fallback
-    }
-
-    // Skip if we've already fetched (unless it's a forced refresh)
-    if (hasFetchedRef.current) {
-      console.log('[fetchConversations] Already fetched, returning cached data');
-      const storedConversations = loadConversationsFromStorage();
-      return storedConversations;
-    }
-
-    console.log('[fetchConversations] Fetching conversations for user:', currentUserId);
-
-    // Load stored conversations first
-    const storedConversations = loadConversationsFromStorage();
-    console.log('[fetchConversations] Loaded stored conversations:', storedConversations.length);
-
     try {
+      // Strong guard clause - prevent fetching without a user ID or if it's not ready
+      if (!currentUserId) {
+        console.log('[fetchConversations] No current user ID, skipping fetch');
+        return loadConversationsFromStorage(); // Return cached conversations as fallback
+      }
+
+      console.log('[fetchConversations] Fetching conversations for user:', currentUserId);
+
+      // Load stored conversations first
+      const storedConversations = loadConversationsFromStorage();
+      console.log('[fetchConversations] Loaded stored conversations:', storedConversations.length);
+
       const { data: messages, error: messagesError } = await supabase
         .from('direct_messages')
         .select('id, sender_id, receiver_id, text, timestamp, conversation_id')
@@ -42,7 +34,6 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
       
       if (!messages || messages.length === 0) {
         console.log('[fetchConversations] No messages found in database');
-        hasFetchedRef.current = true;
         return storedConversations;
       }
 
@@ -61,7 +52,6 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
       // If no valid conversation partners found, return early
       if (uniqueUserIds.size === 0) {
         console.log('[fetchConversations] No valid conversation partners found');
-        hasFetchedRef.current = true;
         return storedConversations;
       }
 
@@ -122,13 +112,12 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
 
       // Reset error toast flag on successful fetch
       errorToastShownRef.current = false;
-      hasFetchedRef.current = true;
       
       return mergedConversations;
     } catch (error) {
       console.error('Error loading conversations:', error);
       
-      // Only show toast message once per error session and only if auth is ready
+      // Only show toast message once per error session
       if (!errorToastShownRef.current) {
         toast({
           title: "Error",
@@ -140,11 +129,6 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
       return loadConversationsFromStorage();
     }
   }, 300), [currentUserId, loadConversationsFromStorage, saveConversationsToStorage]);
-
-  // Add a method to reset fetch state for forced refreshes
-  fetchConversations.resetFetchState = () => {
-    hasFetchedRef.current = false;
-  };
 
   return fetchConversations;
 };

@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import DMSearchPanel from './DMSearchPanel';
 import DMConversationList from './DMConversationList';
 import { useApp } from '@/context/AppContext';
-import { useDirectConversations } from '@/hooks/chat/dm/useDirectConversations';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DMContainerProps {
   directMessageUser: {
@@ -22,11 +22,12 @@ interface DMContainerProps {
 
 const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectMessageUser }) => {
   const { currentUser, isSessionReady } = useApp();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [basicConversations, setBasicConversations] = useState<any[]>([]);
+  const [fetchAttempted, setFetchAttempted] = useState(false);
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMounted = useRef(true);
-  
-  // Get direct conversations hook but don't automatically fetch
-  const { conversations, loading, fetchConversations, resetFetchState } = useDirectConversations([]);
+  const hasFetchedRef = useRef(false);
   
   // Clean up resources on unmount
   useEffect(() => {
@@ -34,10 +35,95 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
     
     return () => {
       isMounted.current = false;
-      // Reset fetch state when component unmounts
-      resetFetchState();
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
     };
-  }, [resetFetchState]);
+  }, []);
+
+  // Fetch basic conversations only when session is ready AND user is available
+  useEffect(() => {
+    // Strong guard clause: early return if user is not available OR session is not ready OR already fetched
+    if (!currentUser?.id || !isSessionReady || hasFetchedRef.current) {
+      if (!fetchAttempted) {
+        console.log('DMContainer: currentUser.id not available or session not ready, deferring fetch');
+      }
+      return;
+    }
+    
+    hasFetchedRef.current = true;
+
+    // Clear any existing timeout
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
+    }
+
+    // Set a delay before fetching to ensure auth is fully ready
+    fetchTimeoutRef.current = setTimeout(async () => {
+      if (!isMounted.current || !currentUser?.id) return;
+      
+      try {
+        setIsLoading(true);
+        setFetchAttempted(true);
+        console.log('DMContainer: Fetching basic conversations for user:', currentUser.id);
+        
+        // Get all direct conversations without waiting for user details or messages
+        const { data: conversationsData, error } = await supabase
+          .from('direct_conversations')
+          .select('id, user1_id, user2_id, created_at')
+          .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`);
+        
+        if (!isMounted.current) return;
+        
+        if (error) {
+          console.error("Error fetching basic conversations:", error);
+          setIsLoading(false);
+          return;
+        }
+        
+        if (conversationsData && conversationsData.length > 0) {
+          console.log('DMContainer: Found', conversationsData.length, 'conversations');
+          
+          // Filter out self-conversations where user1_id === user2_id
+          const validConversations = conversationsData.filter(
+            conv => conv.user1_id !== conv.user2_id
+          );
+          
+          // Create basic conversation objects with minimal information
+          const initialConversations = validConversations.map(conv => {
+            const otherUserId = conv.user1_id === currentUser.id ? conv.user2_id : conv.user1_id;
+            
+            // Skip any conversations where the other user is yourself (should never happen with the filter above)
+            if (otherUserId === currentUser.id) {
+              return null;
+            }
+            
+            return {
+              conversationId: conv.id,
+              userId: otherUserId,
+              userName: "Loading...", // Placeholder name
+              userAvatar: "/placeholder.svg", // Placeholder avatar
+              lastMessage: "",
+              timestamp: conv.created_at,
+              isLoading: true
+            };
+          }).filter(Boolean); // Filter out any null entries
+          
+          if (isMounted.current) {
+            setBasicConversations(initialConversations);
+          }
+        } else {
+          console.log('DMContainer: No conversations found');
+        }
+      } catch (error) {
+        console.error("Error fetching basic conversations:", error);
+      } finally {
+        if (isMounted.current) {
+          setIsLoading(false);
+        }
+      }
+    }, 500); // Increased delay for better reliability
+  }, [currentUser?.id, isSessionReady, fetchAttempted]);
 
   const handleSelectUser = (userId: string, userName: string, userAvatar: string, conversationId: string) => {
     setDirectMessageUser({
@@ -55,8 +141,8 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
         <DMConversationList 
           onSelectUser={handleSelectUser} 
           selectedUserId={directMessageUser?.userId}
-          onRefresh={fetchConversations}
-          isLoading={isLoading || loading}
+          initialConversations={basicConversations}
+          isInitialLoading={isLoading}
         />
       </div>
     </div>
