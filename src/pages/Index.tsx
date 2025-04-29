@@ -1,6 +1,6 @@
 
-import React, { useEffect } from 'react';
-import { AppProvider, useApp } from '@/context/AppContext';
+import React from 'react';
+import { useApp } from '@/context/AppContext';
 import ConnectScreen from '@/components/ConnectScreen';
 import HomeView from '@/components/home/HomeView';
 import ClubDetail from '@/components/ClubDetail';
@@ -10,67 +10,14 @@ import Navigation from '@/components/Navigation';
 import { Toaster } from '@/components/ui/toaster';
 import ChatDrawer from '@/components/chat/ChatDrawer';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
-import { UnreadMessagesProvider } from '@/context/UnreadMessagesContext';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 
-const AppContent: React.FC = () => {
+const Index: React.FC = () => {
   const { currentView, currentUser } = useApp();
-  const [chatNotifications, setChatNotifications] = React.useState(0);
+  const { totalUnreadCount } = useUnreadMessages();
   const { isOpen: chatDrawerOpen, open: openChatDrawer, close: closeChatDrawer } = useChatDrawerGlobal();
 
-  useEffect(() => {
-    console.log('[Index] Current view:', currentView, 'Current user:', currentUser ? currentUser.id : 'null');
-  }, [currentView, currentUser]);
-
-  React.useEffect(() => {
-    const loadUnreadCounts = () => {
-      const unreadMessages = localStorage.getItem('unreadMessages');
-      if (unreadMessages) {
-        try {
-          const unreadMap = JSON.parse(unreadMessages);
-          const totalUnread = Object.values(unreadMap).reduce(
-            (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 
-            0
-          );
-          setChatNotifications(Number(totalUnread));
-        } catch (error) {
-          console.error("[Index] Error parsing unread messages:", error);
-          setChatNotifications(0);
-        }
-      } else {
-        setChatNotifications(0);
-      }
-    };
-    
-    loadUnreadCounts();
-    
-    const handleUnreadMessagesUpdated = () => {
-      loadUnreadCounts();
-    };
-    
-    const handleSupportTicketCreated = (event: CustomEvent) => {
-      if (event.detail && event.detail.count) {
-        setChatNotifications(prev => prev + event.detail.count);
-      } else {
-        loadUnreadCounts();
-      }
-    };
-    
-    window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
-    window.addEventListener('supportTicketCreated', handleSupportTicketCreated as EventListener);
-    window.addEventListener('chatDrawerClosed', handleUnreadMessagesUpdated);
-    window.addEventListener('focus', handleUnreadMessagesUpdated);
-    window.addEventListener('notificationsUpdated', handleUnreadMessagesUpdated);
-    
-    return () => {
-      window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
-      window.removeEventListener('supportTicketCreated', handleSupportTicketCreated as EventListener);
-      window.removeEventListener('chatDrawerClosed', handleUnreadMessagesUpdated);
-      window.removeEventListener('focus', handleUnreadMessagesUpdated);
-      window.removeEventListener('notificationsUpdated', handleUnreadMessagesUpdated);
-    };
-  }, []);
-
-  console.log('[Index] renderView called with currentView:', currentView);
+  console.log('[Index] Current view:', currentView, 'Current user:', currentUser ? currentUser.id : 'null');
 
   const renderView = () => {
     // If there's no user, always show the connect screen regardless of currentView
@@ -86,7 +33,7 @@ const AppContent: React.FC = () => {
         return <ConnectScreen />;
       case 'home':
         console.log('[Index] Rendering HomeView');
-        return <HomeView chatNotifications={chatNotifications} />;
+        return <HomeView chatNotifications={totalUnreadCount} />;
       case 'clubDetail':
         console.log('[Index] Rendering ClubDetail');
         return <ClubDetail />;
@@ -103,7 +50,7 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <>
+    <div className="min-h-screen bg-gray-50">
       {renderView()}
       {currentUser && currentView !== 'connect' && <Navigation />}
       {currentUser && (
@@ -114,20 +61,7 @@ const AppContent: React.FC = () => {
         />
       )}
       <Toaster />
-    </>
-  );
-};
-
-const Index: React.FC = () => {
-  console.log('[Index] Index component rendering');
-  return (
-    <AppProvider>
-      <UnreadMessagesProvider>
-        <div className="min-h-screen bg-gray-50">
-          <AppContent />
-        </div>
-      </UnreadMessagesProvider>
-    </AppProvider>
+    </div>
   );
 };
 

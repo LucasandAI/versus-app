@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useContext } from 'react';
 import { Button } from "@/components/ui/button";
 import { UserPlus, MessageCircle } from 'lucide-react';
 import ClubInviteDialog from '../admin/ClubInviteDialog';
 import { User, Club } from '@/types';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
+import { useDirectConversations } from '@/hooks/chat/dm/useDirectConversations';
 
 interface UserInviteSectionProps {
   showInviteButton: boolean;
@@ -24,10 +25,14 @@ const UserInviteSection: React.FC<UserInviteSectionProps> = ({
   isCurrentUserProfile
 }) => {
   const { open: openChatDrawer } = useChatDrawerGlobal();
+  const { fetchConversations } = useDirectConversations();
 
   if (isCurrentUserProfile) return null;
 
-  const handleMessageClick = () => {
+  const handleMessageClick = async () => {
+    // First fetch conversations to ensure they're loaded
+    await fetchConversations();
+    
     // Open the chat drawer first
     openChatDrawer();
     
