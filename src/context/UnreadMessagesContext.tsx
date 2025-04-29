@@ -62,7 +62,7 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
     try {
       console.log('[UnreadMessagesContext] Fetching unread counts');
       
-      // Fetch DM unread counts
+      // Fetch DM unread counts using the RPC function
       const { data: dmCount, error: dmError } = await supabase.rpc('get_unread_dm_count', {
         user_id: currentUser.id
       });
@@ -70,7 +70,7 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       if (dmError) throw dmError;
       setDmUnreadCount(dmCount || 0);
 
-      // Fetch club unread counts
+      // Fetch club unread counts using the RPC function
       const { data: clubCount, error: clubError } = await supabase.rpc('get_unread_club_messages_count', {
         user_id: currentUser.id
       });
@@ -78,33 +78,88 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       if (clubError) throw clubError;
       setClubUnreadCount(clubCount || 0);
 
-      // Get unread conversations
-      const { data: unreadDMs, error: unreadDMsError } = await supabase
+      // Get unread conversations by fetching direct messages and read status
+      const { data: directMessages } = await supabase
+        .from('direct_messages')
+        .select(`
+          conversation_id,
+          receiver_id,
+          timestamp
+        `)
+        .eq('receiver_id', currentUser.id);
+        
+      const { data: readStatus } = await supabase
         .from('direct_messages_read')
-        .select('conversation_id')
-        .eq('user_id', currentUser.id)
-        .filter('has_unread', 'eq', true);
-
-      if (unreadDMsError) throw unreadDMsError;
+        .select('conversation_id, last_read_timestamp')
+        .eq('user_id', currentUser.id);
+        
+      // Build a map of conversation_id -> last_read_timestamp
+      const readMap: Record<string, string> = {};
+      readStatus?.forEach(status => {
+        readMap[status.conversation_id] = status.last_read_timestamp;
+      });
       
-      if (unreadDMs) {
-        setUnreadConversations(new Set(unreadDMs.map(dm => dm.conversation_id)));
-      }
-
-      // Get unread clubs
-      const { data: unreadClubsData, error: unreadClubsError } = await supabase
-        .from('club_messages_read')
+      // Identify unread conversations by comparing message timestamp with read timestamp
+      const unreadConvs = new Set<string>();
+      directMessages?.forEach(msg => {
+        const lastRead = readMap[msg.conversation_id];
+        if (!lastRead || new Date(msg.timestamp) > new Date(lastRead)) {
+          unreadConvs.add(msg.conversation_id);
+        }
+      });
+      
+      setUnreadConversations(unreadConvs);
+      
+      // Similarly for club messages
+      const { data: clubMembers } = await supabase
+        .from('club_members')
         .select('club_id')
-        .eq('user_id', currentUser.id)
-        .filter('has_unread', 'eq', true);
-
-      if (unreadClubsError) throw unreadClubsError;
-      
-      if (unreadClubsData) {
-        setUnreadClubs(new Set(unreadClubsData.map(club => club.club_id)));
+        .eq('user_id', currentUser.id);
+        
+      if (!clubMembers?.length) {
+        setUnreadClubs(new Set());
+        return;
       }
       
-      console.log('[UnreadMessagesContext] Unread counts fetched:', { dmCount, clubCount });
+      const clubIds = clubMembers.map(member => member.club_id);
+      
+      // Get club messages
+      const { data: clubMessages } = await supabase
+        .from('club_chat_messages')
+        .select('club_id, sender_id, timestamp')
+        .in('club_id', clubIds)
+        .neq('sender_id', currentUser.id);
+        
+      // Get club read status
+      const { data: clubReadStatus } = await supabase
+        .from('club_messages_read')
+        .select('club_id, last_read_timestamp')
+        .eq('user_id', currentUser.id)
+        .in('club_id', clubIds);
+        
+      // Build a map of club_id -> last_read_timestamp
+      const clubReadMap: Record<string, string> = {};
+      clubReadStatus?.forEach(status => {
+        clubReadMap[status.club_id] = status.last_read_timestamp;
+      });
+      
+      // Identify unread club chats
+      const unreadClubsSet = new Set<string>();
+      clubMessages?.forEach(msg => {
+        const lastRead = clubReadMap[msg.club_id];
+        if (!lastRead || new Date(msg.timestamp) > new Date(lastRead)) {
+          unreadClubsSet.add(msg.club_id);
+        }
+      });
+      
+      setUnreadClubs(unreadClubsSet);
+      
+      console.log('[UnreadMessagesContext] Unread counts fetched:', { 
+        dmCount, 
+        clubCount,
+        unreadConversations: unreadConvs.size,
+        unreadClubs: unreadClubsSet.size
+      });
       
       // Dispatch event to notify UI components of changes
       window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
