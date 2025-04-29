@@ -73,11 +73,14 @@ const ClubsList: React.FC<ClubsListProps> = ({
 
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline">
-                    <p className={`font-medium truncate text-lg ${isUnread ? 'font-bold' : ''}`}>
+                    <p className={`truncate text-lg ${isUnread ? 'font-bold' : 'font-medium'}`}>
                       {club.name}
+                      {isUnread && (
+                        <span className="ml-2 inline-flex h-2 w-2 bg-red-500 rounded-full" />
+                      )}
                     </p>
                     {formattedTime && (
-                      <span className={`ml-2 text-sm ${isUnread ? 'font-bold' : 'text-gray-500'}`}>
+                      <span className={`ml-2 text-xs ${isUnread ? 'font-bold' : 'text-gray-500'}`}>
                         {formattedTime}
                       </span>
                     )}
