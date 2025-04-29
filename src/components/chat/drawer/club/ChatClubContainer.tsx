@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Club } from '@/types';
 import ClubsList from '@/components/chat/sidebar/ClubsList';
 import ChatMainContent from '../chat-content/ChatMainContent';
