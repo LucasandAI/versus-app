@@ -10,7 +10,7 @@ interface Conversation {
   userName: string;
   userAvatar: string;
   lastMessage?: string;
-  lastMessageTime?: string;
+  timestamp?: string;  // Added timestamp property
 }
 
 interface DirectConversationsContextValue {
@@ -119,15 +119,15 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
           userName: userData.name,
           userAvatar: userData.avatar || '/placeholder.svg',
           lastMessage: latestMessage && latestMessage[0] ? latestMessage[0].text : undefined,
-          lastMessageTime: latestMessage && latestMessage[0] ? latestMessage[0].timestamp : undefined
+          timestamp: latestMessage && latestMessage[0] ? latestMessage[0].timestamp : undefined
         });
       }
       
       // Sort conversations by last message time (most recent first)
       conversationsWithUserDetails.sort((a, b) => {
-        if (!a.lastMessageTime) return 1;
-        if (!b.lastMessageTime) return -1;
-        return new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime();
+        if (!a.timestamp) return 1;
+        if (!b.timestamp) return -1;
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
       });
       
       setConversations(conversationsWithUserDetails);

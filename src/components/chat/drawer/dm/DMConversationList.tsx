@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import ConversationItem from './ConversationItem';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useApp } from '@/context/AppContext';
@@ -50,7 +50,11 @@ const DMConversationList: React.FC<Props> = ({
               .map((conversation) => (
                 <ConversationItem
                   key={conversation.conversationId}
-                  conversation={conversation}
+                  conversation={{
+                    ...conversation,
+                    lastMessage: conversation.lastMessage || '',
+                    timestamp: conversation.timestamp || ''
+                  }}
                   isSelected={selectedUserId === conversation.userId}
                   isUnread={unreadConversations.has(conversation.conversationId)}
                   onSelect={() => onSelectUser(
