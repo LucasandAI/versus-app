@@ -10,7 +10,11 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
 
   const fetchConversations = useCallback(async () => {
     try {
-      if (!currentUserId) return [];
+      // Guard clause - prevent fetching without a user ID
+      if (!currentUserId) {
+        console.log('[fetchConversations] No current user ID, skipping fetch');
+        return loadConversationsFromStorage(); // Return cached conversations as fallback
+      }
 
       console.log('[fetchConversations] Fetching conversations for user:', currentUserId);
 

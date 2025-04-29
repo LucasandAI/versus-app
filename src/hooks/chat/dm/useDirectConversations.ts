@@ -183,8 +183,8 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
 
   // Only attempt fetch when both session is ready AND user ID exists
   useEffect(() => {
-    if (isSessionReady && currentUser?.id && !attemptedFetch.current) {
-      console.log('[useDirectConversations] Session AND user ready, triggering initial fetch');
+    if (isSessionReady && currentUser?.id) {
+      console.log('[useDirectConversations] Session AND user ready, triggering fetch');
       fetchConversations();
     }
   }, [isSessionReady, currentUser?.id, fetchConversations]);

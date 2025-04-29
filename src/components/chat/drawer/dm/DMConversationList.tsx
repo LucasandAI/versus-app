@@ -34,14 +34,20 @@ const DMConversationList: React.FC<Props> = ({
     }
   }, [conversations]);
 
-  // Only fetch when both session is ready AND user ID exists
+  // Add an effect to trigger a fetch when session becomes ready
   useEffect(() => {
+    // If we already have data, don't refetch
+    if (localConversations.length > 0 && !localConversations[0].isLoading) {
+      return;
+    }
+    
+    // Only fetch when both conditions are met
     if (currentUser?.id && isSessionReady && !hasFetchedRef.current) {
       console.log("[DMConversationList] Current user AND session ready, fetching conversations");
       hasFetchedRef.current = true;
       fetchConversations();
     }
-  }, [currentUser?.id, isSessionReady, fetchConversations]);
+  }, [currentUser?.id, isSessionReady, fetchConversations, localConversations]);
 
   const displayConversations = loading ? previousConversationsRef.current : localConversations;
   const showLoading = isInitialLoading && displayConversations.length === 0;

@@ -70,7 +70,7 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
       try {
         setIsLoading(true);
         setFetchAttempted(true);
-        console.log('DMContainer: Fetching basic conversations for user after delay:', currentUser.id);
+        console.log('DMContainer: Fetching basic conversations for user:', currentUser.id);
         
         // Get all direct conversations without waiting for user details or messages
         const { data: conversationsData, error } = await supabase

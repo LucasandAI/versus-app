@@ -40,7 +40,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   
   const { fetchConversations } = useConversations([]);
   
-  // Only fetch conversations when drawer is open AND session is ready AND user exists
+  // Fetch conversations when drawer is opened AND session is ready
   useEffect(() => {
     if (open && isSessionReady && currentUser?.id) {
       console.log('[MainChatDrawer] Drawer open, session ready, and user exists - fetching conversations');
