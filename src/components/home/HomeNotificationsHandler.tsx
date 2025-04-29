@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { Club } from '@/types';
 import HomeNotifications from './HomeNotifications';
@@ -19,11 +20,9 @@ const HomeNotificationsHandler: React.FC<HomeNotificationsHandlerProps> = ({
 }) => {
   const { currentUser } = useApp();
   const {
-    unreadMessages,
-    setUnreadMessages,
-    updateUnreadCount,
     notifications,
     setNotifications,
+    updateUnreadCount,
   } = useHomeNotifications();
 
   // Listen for real-time chat messages
@@ -71,7 +70,6 @@ const HomeNotificationsHandler: React.FC<HomeNotificationsHandlerProps> = ({
       <ChatDrawerHandler 
         userClubs={userClubs}
         onSelectUser={onSelectUser}
-        setUnreadMessages={updateUnreadCount}
       />
     </>
   );

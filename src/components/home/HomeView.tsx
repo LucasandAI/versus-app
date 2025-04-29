@@ -98,7 +98,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
         <ChatDrawerHandler 
           userClubs={userClubs}
           onSelectUser={handleSelectUser}
-          setUnreadMessages={updateUnreadCount} // Use the new adapter function
         />
         <SearchClubDialog
           open={searchDialogOpen}
