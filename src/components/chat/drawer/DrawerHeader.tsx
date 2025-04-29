@@ -20,9 +20,16 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
   // Mark club messages as read when a club is selected and the clubs tab is active
   useEffect(() => {
     if (activeTab === "clubs" && selectedClub) {
+      console.log(`[DrawerHeader] Marking club ${selectedClub.id} messages as read (selectedClub present and clubs tab active)`);
       markClubMessagesAsRead(selectedClub.id);
     }
   }, [activeTab, selectedClub, markClubMessagesAsRead]);
+  
+  // Debug logging for unreadClubs
+  useEffect(() => {
+    console.log('[DrawerHeader] unreadClubs updated:', Array.from(unreadClubs));
+    console.log('[DrawerHeader] unreadConversations updated:', Array.from(unreadConversations));
+  }, [unreadClubs, unreadConversations]);
 
   return (
     <div className="px-4 py-2 border-b">

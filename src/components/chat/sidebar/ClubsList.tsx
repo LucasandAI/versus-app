@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Club } from '@/types';
 import UserAvatar from '../../shared/UserAvatar';
 import ClubMembersPopover from './ClubMembersPopover';
@@ -32,6 +32,12 @@ const ClubsList: React.FC<ClubsListProps> = ({
   const { lastMessages, sortedClubs } = useClubLastMessages(clubs);
   const { unreadClubs, markClubMessagesAsRead } = useUnreadMessages();
   
+  // Debug: Log the unreadClubs set when it changes
+  useEffect(() => {
+    console.log('[ClubsList] unreadClubs set contents:', Array.from(unreadClubs));
+    console.log('[ClubsList] unreadClubs type:', typeof unreadClubs, unreadClubs instanceof Set);
+  }, [unreadClubs]);
+  
   const handleClubClick = (club: Club, e: React.MouseEvent) => {
     e.preventDefault();
     onSelectClub(club);
@@ -54,6 +60,13 @@ const ClubsList: React.FC<ClubsListProps> = ({
             ? formatDistanceToNow(new Date(lastMessage.timestamp), { addSuffix: false })
             : '';
           const isUnread = unreadClubs.has(club.id);
+          
+          // Debug: Log detailed information for each club
+          console.log(
+            `[ClubsList] Club ${club.name} (ID: ${club.id}): ` +
+            `isUnread=${isUnread}, ` + 
+            `club.id type: ${typeof club.id}`
+          );
             
           return (
             <div key={club.id} className="flex flex-col relative group">

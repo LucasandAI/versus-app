@@ -123,25 +123,39 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       
       const clubIds = clubMembers.map(member => member.club_id);
       
+      console.log('[UnreadMessagesContext] User club IDs:', clubIds);
+      
       // Get club messages
-      const { data: clubMessages } = await supabase
+      const { data: clubMessages, error: clubMessagesError } = await supabase
         .from('club_chat_messages')
         .select('club_id, sender_id, timestamp')
         .in('club_id', clubIds)
         .neq('sender_id', currentUser.id);
         
+      if (clubMessagesError) {
+        console.error('[UnreadMessagesContext] Error fetching club messages:', clubMessagesError);
+      }
+      
+      console.log('[UnreadMessagesContext] Club messages found:', clubMessages?.length || 0);
+      
       // Get club read status
-      const { data: clubReadStatus } = await supabase
+      const { data: clubReadStatus, error: clubReadError } = await supabase
         .from('club_messages_read')
         .select('club_id, last_read_timestamp')
         .eq('user_id', currentUser.id)
         .in('club_id', clubIds);
         
+      if (clubReadError) {
+        console.error('[UnreadMessagesContext] Error fetching club read status:', clubReadError);
+      }
+      
       // Build a map of club_id -> last_read_timestamp
       const clubReadMap: Record<string, string> = {};
       clubReadStatus?.forEach(status => {
         clubReadMap[status.club_id] = status.last_read_timestamp;
       });
+      
+      console.log('[UnreadMessagesContext] Club read statuses:', clubReadMap);
       
       // Identify unread club chats
       const unreadClubsSet = new Set<string>();
@@ -149,9 +163,11 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
         const lastRead = clubReadMap[msg.club_id];
         if (!lastRead || new Date(msg.timestamp) > new Date(lastRead)) {
           unreadClubsSet.add(msg.club_id);
+          console.log(`[UnreadMessagesContext] Club ${msg.club_id} has unread messages. Last message: ${msg.timestamp}, Last read: ${lastRead || 'never'}`);
         }
       });
       
+      console.log('[UnreadMessagesContext] Unread clubs set:', Array.from(unreadClubsSet));
       setUnreadClubs(unreadClubsSet);
       
       console.log('[UnreadMessagesContext] Unread counts fetched:', { 
@@ -173,7 +189,7 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
   useEffect(() => {
     if (!isSessionReady || !currentUser?.id) return;
     
-    // Initial fetch happens through useInitialAppLoad now
+    console.log('[UnreadMessagesContext] Setting up realtime subscriptions for user:', currentUser.id);
     
     // Set up real-time subscriptions for new messages
     const dmChannel = supabase
@@ -185,6 +201,7 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
             table: 'direct_messages' 
           },
           (payload) => {
+            console.log('[UnreadMessagesContext] New DM received:', payload);
             if (payload.new.receiver_id === currentUser.id) {
               markConversationAsUnread(payload.new.conversation_id);
             }
@@ -200,28 +217,40 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
             table: 'club_chat_messages'
           },
           (payload) => {
+            console.log('[UnreadMessagesContext] New club message received:', payload);
             if (payload.new.sender_id !== currentUser.id) {
+              console.log(`[UnreadMessagesContext] Marking club ${payload.new.club_id} as unread`);
               markClubAsUnread(payload.new.club_id);
             }
           })
       .subscribe();
       
+    // Initial fetch of unread counts
+    fetchUnreadCounts();
+      
     return () => {
       supabase.removeChannel(dmChannel);
       supabase.removeChannel(clubChannel);
     };
-  }, [currentUser?.id, isSessionReady]);
+  }, [currentUser?.id, isSessionReady, fetchUnreadCounts]);
 
   // Mark club as unread (for new incoming messages)
   const markClubAsUnread = useCallback((clubId: string) => {
+    console.log(`[UnreadMessagesContext] Marking club ${clubId} as unread`);
+    
     setUnreadClubs(prev => {
       const updated = new Set(prev);
-      if (!updated.has(clubId)) {
-        updated.add(clubId);
+      const normalizedClubId = clubId.toString(); // Convert to string to ensure consistency
+      
+      if (!updated.has(normalizedClubId)) {
+        updated.add(normalizedClubId);
+        console.log(`[UnreadMessagesContext] Club ${normalizedClubId} added to unread set:`, Array.from(updated));
         setClubUnreadCount(prev => prev + 1);
         
         // Dispatch event to notify UI components
         window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+      } else {
+        console.log(`[UnreadMessagesContext] Club ${normalizedClubId} was already in unread set`);
       }
       return updated;
     });
@@ -296,14 +325,18 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
   const markClubMessagesAsRead = useCallback(async (clubId: string) => {
     if (!currentUser?.id || !clubId) return;
     
-    console.log('[UnreadMessagesContext] Marking club messages as read:', clubId);
+    console.log(`[UnreadMessagesContext] Marking club ${clubId} messages as read`);
     
     // Optimistically update local state
     setUnreadClubs(prev => {
-      if (!prev.has(clubId)) return prev;
+      if (!prev.has(clubId)) {
+        console.log(`[UnreadMessagesContext] Club ${clubId} not in unread set:`, Array.from(prev));
+        return prev;
+      }
       
       const updated = new Set(prev);
       updated.delete(clubId);
+      console.log(`[UnreadMessagesContext] Club ${clubId} removed from unread set:`, Array.from(updated));
       setClubUnreadCount(prevCount => Math.max(0, prevCount - 1));
       
       // Dispatch event to notify UI components
@@ -314,17 +347,23 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
     
     try {
       // Update the read timestamp in the database
+      const normalizedClubId = clubId.toString(); // Ensure it's a string
+      console.log(`[UnreadMessagesContext] Updating read timestamp for club ${normalizedClubId} in database`);
+      
       const { error } = await supabase
         .from('club_messages_read')
         .upsert({
           user_id: currentUser.id,
-          club_id: clubId,
+          club_id: normalizedClubId,
           last_read_timestamp: new Date().toISOString()
         }, {
           onConflict: 'user_id,club_id'
         });
       
-      if (error) throw error;
+      if (error) {
+        console.error(`[UnreadMessagesContext] Error updating club_messages_read:`, error);
+        throw error;
+      }
       
       // Dispatch event to notify other components
       window.dispatchEvent(new CustomEvent('clubMessagesRead', { 
@@ -348,6 +387,11 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       toast.error("Failed to mark club messages as read");
     }
   }, [currentUser?.id]);
+
+  // Debug: Add effect to log the contents of unreadClubs whenever it changes
+  useEffect(() => {
+    console.log('[UnreadMessagesContext] unreadClubs updated:', Array.from(unreadClubs));
+  }, [unreadClubs]);
 
   return (
     <UnreadMessagesContext.Provider value={{

@@ -26,11 +26,15 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   onDeleteMessage
 }) => {
   const { navigateToClubDetail } = useNavigation();
-  const { markClubMessagesAsRead } = useUnreadMessages();
+  const { markClubMessagesAsRead, unreadClubs } = useUnreadMessages();
 
   // Mark messages as read when a club is selected
   useEffect(() => {
     if (selectedClub) {
+      console.log(`[ChatClubContainer] Selected club: ${selectedClub.id} (type: ${typeof selectedClub.id})`);
+      console.log(`[ChatClubContainer] Marking club ${selectedClub.id} messages as read`);
+      console.log(`[ChatClubContainer] Current unreadClubs:`, Array.from(unreadClubs));
+      
       // Mark as read when selected
       markClubMessagesAsRead(selectedClub.id);
       
@@ -44,7 +48,7 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
       // Dispatch club deselected event when component unmounts or club changes
       window.dispatchEvent(new CustomEvent('clubDeselected'));
     };
-  }, [selectedClub, markClubMessagesAsRead]);
+  }, [selectedClub, markClubMessagesAsRead, unreadClubs]);
 
   const handleMatchClick = () => {
     // Future implementation
