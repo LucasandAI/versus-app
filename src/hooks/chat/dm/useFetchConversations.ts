@@ -7,7 +7,7 @@ import type { DMConversation } from './types';
 
 export const useFetchConversations = (currentUserId: string | undefined) => {
   const { loadConversationsFromStorage } = useConversationsPersistence();
-
+  
   const fetchConversations = useCallback(async () => {
     try {
       // Strong guard clause - prevent fetching without a user ID or if it's not ready
