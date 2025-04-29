@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { MessageCircle } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '../shared/UserAvatar';
@@ -28,6 +28,26 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   const { setCurrentView, currentUser, setSelectedUser } = useApp();
   const { open } = useChatDrawerGlobal();
   const { totalUnreadCount } = useUnreadMessages();
+  const [badgeCount, setBadgeCount] = useState(0);
+  
+  // Update badge count when totalUnreadCount changes
+  useEffect(() => {
+    setBadgeCount(totalUnreadCount);
+  }, [totalUnreadCount]);
+  
+  // Listen for unreadMessagesUpdated event to update badge count
+  useEffect(() => {
+    const handleUnreadMessagesUpdated = () => {
+      // Small delay to ensure the context has been updated
+      setTimeout(() => setBadgeCount(totalUnreadCount), 100);
+    };
+    
+    window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
+    
+    return () => {
+      window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
+    };
+  }, [totalUnreadCount]);
   
   const handleViewOwnProfile = () => {
     if (currentUser) {
@@ -53,7 +73,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           onClick={open}
           className="text-primary hover:bg-gray-100 rounded-full p-2"
           icon={<MessageCircle className="h-5 w-5" />}
-          badge={totalUnreadCount > 0 ? totalUnreadCount : 0}
+          badge={badgeCount > 0 ? badgeCount : 0}
         />
         <UserAvatar 
           name={currentUser?.name || "User"} 

@@ -79,6 +79,11 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
               {truncatedMessage}
             </p>
           )}
+          {isUnread && (
+            <Badge variant="destructive" className="ml-1 h-5 min-w-5 flex items-center justify-center rounded-full p-1">
+              •
+            </Badge>
+          )}
         </div>
       </div>
     </div>
