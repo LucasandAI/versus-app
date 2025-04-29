@@ -43,16 +43,11 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
 
   // Fetch basic conversations only when session is ready AND user is available
   useEffect(() => {
-    // Strong guard clause: early return if user is not available OR session is not ready
-    if (!currentUser?.id || !isSessionReady) {
+    // Strong guard clause: early return if user is not available OR session is not ready OR already fetched
+    if (!currentUser?.id || !isSessionReady || hasFetchedRef.current) {
       if (!fetchAttempted) {
         console.log('DMContainer: currentUser.id not available or session not ready, deferring fetch');
       }
-      return;
-    }
-
-    // Skip if we've already fetched
-    if (hasFetchedRef.current) {
       return;
     }
     
@@ -127,7 +122,7 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
           setIsLoading(false);
         }
       }
-    }, 300); // Increased delay for better reliability
+    }, 500); // Increased delay for better reliability
   }, [currentUser?.id, isSessionReady, fetchAttempted]);
 
   const handleSelectUser = (userId: string, userName: string, userAvatar: string, conversationId: string) => {

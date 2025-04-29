@@ -14,6 +14,7 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMounted = useRef(true);
   const conversationIdRef = useRef(conversationId);
+  const hasFetchedRef = useRef(false);
 
   const { messageIds, addMessagesWithoutDuplicates, clearMessageIds } = useMessageDeduplication();
   const { fetchMessages } = useMessageFetching(userId, userName, conversationId, currentUser);
@@ -21,6 +22,8 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
   // Update ref when conversation ID changes
   useEffect(() => {
     conversationIdRef.current = conversationId;
+    // Reset fetch flag when conversation changes
+    hasFetchedRef.current = false;
   }, [conversationId]);
 
   // Clean up on unmount
@@ -41,6 +44,11 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
       clearTimeout(fetchTimeoutRef.current);
     }
 
+    // Skip if already fetched for this conversation
+    if (hasFetchedRef.current) {
+      return;
+    }
+
     const loadMessages = async () => {
       if (!isSessionReady || !conversationId || conversationId === 'new') {
         setLoading(false);
@@ -48,16 +56,20 @@ export const useDMMessages = (userId: string, userName: string, conversationId: 
       }
 
       setLoading(true);
-      const fetchedMessages = await fetchMessages();
       
-      if (isMounted.current) {
-        setMessages(prev => addMessagesWithoutDuplicates(prev, fetchedMessages));
-        setLoading(false);
-      }
+      fetchTimeoutRef.current = setTimeout(async () => {
+        const fetchedMessages = await fetchMessages();
+        
+        if (isMounted.current) {
+          setMessages(prev => addMessagesWithoutDuplicates(prev, fetchedMessages));
+          setLoading(false);
+          hasFetchedRef.current = true;
+        }
+      }, 300); // Add a delay to prevent race conditions
     };
 
     if (isSessionReady && conversationId && conversationId !== 'new') {
-      // Load messages immediately when a conversation is selected
+      // Load messages when a conversation is selected
       loadMessages();
     } else {
       setLoading(false); // Make sure to set loading to false for new conversations

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Club } from '@/types';
 import ChatDrawerContainer from './ChatDrawerContainer';
 import DrawerHeader from './DrawerHeader';
@@ -37,15 +37,32 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   
   const { sendMessageToClub, deleteMessage } = useChatActions();
   const { currentUser, isSessionReady } = useApp();
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const conversationsFetched = useRef(false);
   
   const { fetchConversations } = useConversations([]);
   
   // Fetch conversations when drawer is opened AND session is ready AND user exists
   useEffect(() => {
-    if (open && isSessionReady && currentUser?.id && activeTab === "dm") {
-      console.log('[MainChatDrawer] Drawer open, session ready, and user exists - fetching conversations');
-      fetchConversations();
+    // Clean up any existing timeout
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
     }
+    
+    if (open && isSessionReady && currentUser?.id && activeTab === "dm" && !conversationsFetched.current) {
+      console.log('[MainChatDrawer] Drawer open, session ready, and user exists - fetching conversations');
+      // Use a short timeout to ensure auth is fully ready
+      fetchTimeoutRef.current = setTimeout(() => {
+        fetchConversations();
+        conversationsFetched.current = true;
+      }, 500);
+    }
+    
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+    };
   }, [open, isSessionReady, currentUser?.id, fetchConversations, activeTab]);
 
   useEffect(() => {
@@ -92,11 +109,23 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     setActiveTab(tab);
     
     // Only fetch conversations when switching to DM tab AND we have both session and user
-    if (tab === "dm" && isSessionReady && currentUser?.id) {
+    // AND we haven't fetched yet
+    if (tab === "dm" && isSessionReady && currentUser?.id && !conversationsFetched.current) {
       console.log('[MainChatDrawer] Switching to DM tab, fetching conversations');
-      fetchConversations();
+      // Add a small delay to ensure auth is fully ready
+      fetchTimeoutRef.current = setTimeout(() => {
+        fetchConversations();
+        conversationsFetched.current = true;
+      }, 300);
     }
   };
+
+  // Reset fetch flag when drawer closes
+  useEffect(() => {
+    if (!open) {
+      conversationsFetched.current = false;
+    }
+  }, [open]);
 
   return (
     <ChatProvider>

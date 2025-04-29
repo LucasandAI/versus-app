@@ -13,6 +13,7 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
   const { currentUser, isSessionReady } = useApp();
   const attemptedFetch = useRef(false);
   const isMounted = useRef(true);
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Get the debounced fetch function
   const { debouncedFetchConversations } = useConversationsFetcher(isMounted);
@@ -24,9 +25,29 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
       return Promise.resolve([]);
     }
 
-    console.log('[useDirectConversations] Session and user ready, fetching conversations');
-    attemptedFetch.current = true;
-    return debouncedFetchConversations(currentUser.id, setLoading, setConversations);
+    // Clear any existing timeout
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
+    }
+
+    // Use a short timeout to ensure auth is fully ready
+    return new Promise<DMConversation[]>((resolve) => {
+      fetchTimeoutRef.current = setTimeout(() => {
+        if (!isMounted.current) {
+          resolve([]);
+          return;
+        }
+
+        console.log('[useDirectConversations] Session and user ready, fetching conversations');
+        attemptedFetch.current = true;
+        debouncedFetchConversations(currentUser.id, setLoading, (convs: DMConversation[]) => {
+          // Filter out self-conversations
+          const filteredConvs = convs.filter(c => c.userId !== currentUser.id);
+          setConversations(filteredConvs);
+          resolve(filteredConvs);
+        });
+      }, 300);
+    });
   }, [currentUser?.id, isSessionReady, debouncedFetchConversations]);
 
   // Cleanup effect
@@ -34,6 +55,9 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
     isMounted.current = true;
     return () => {
       isMounted.current = false;
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
       debouncedFetchConversations.cancel();
     };
   }, [debouncedFetchConversations]);
@@ -46,18 +70,15 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
                         
     if (shouldFetch) {
       console.log('[useDirectConversations] Session AND user ready, triggering fetch');
-      // Add a small delay to ensure auth is fully ready
-      setTimeout(() => {
-        if (isMounted.current) {
-          fetchConversations();
-        }
-      }, 300);
+      fetchConversations();
     }
   }, [isSessionReady, currentUser?.id, fetchConversations]);
 
-  // Filter out hidden conversations
+  // Filter out hidden conversations and self-conversations
   const filteredConversations = conversations.filter(
-    conv => !hiddenDMIds.includes(conv.userId) && !hiddenDMIds.includes(conv.conversationId)
+    conv => !hiddenDMIds.includes(conv.userId) && 
+           !hiddenDMIds.includes(conv.conversationId) &&
+           conv.userId !== currentUser?.id // Filter out self-conversations
   );
 
   return {

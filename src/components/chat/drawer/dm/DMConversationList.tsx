@@ -21,11 +21,11 @@ const DMConversationList: React.FC<Props> = ({
   isInitialLoading = false
 }) => {
   const { currentUser, isSessionReady } = useApp();
-  const { conversations, loading, fetchConversations } = useConversations([]);
+  const { conversations, loading } = useConversations([]);
   const { unreadConversations } = useUnreadMessages();
-  const hasFetchedRef = useRef(false);
   const previousConversationsRef = useRef<DMConversation[]>([]);
   const [localConversations, setLocalConversations] = useState<DMConversation[]>([]);
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Update local state when conversations change
   useEffect(() => {
@@ -37,24 +37,24 @@ const DMConversationList: React.FC<Props> = ({
     }
   }, [conversations, currentUser?.id]);
 
-  // Add an effect to trigger a fetch when session becomes ready
+  // Cleanup on unmount
   useEffect(() => {
-    // If we already have data, don't refetch
-    if (localConversations.length > 0 && !localConversations[0].isLoading) {
-      return;
-    }
-    
-    // Only fetch when both conditions are met
-    if (currentUser?.id && isSessionReady && !hasFetchedRef.current) {
-      console.log("[DMConversationList] Current user AND session ready, fetching conversations");
-      hasFetchedRef.current = true;
-      fetchConversations();
-    }
-  }, [currentUser?.id, isSessionReady, fetchConversations, localConversations]);
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const displayConversations = loading ? previousConversationsRef.current : localConversations;
-  const showLoading = isInitialLoading && displayConversations.length === 0;
-  const isEmpty = !showLoading && displayConversations.length === 0;
+  
+  // First, try to use initial conversations if provided and not empty
+  const finalConversations = initialConversations.length > 0 
+    ? initialConversations 
+    : displayConversations;
+    
+  const showLoading = isInitialLoading && finalConversations.length === 0;
+  const isEmpty = !showLoading && finalConversations.length === 0;
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -80,7 +80,7 @@ const DMConversationList: React.FC<Props> = ({
           </div>
         ) : (
           <div className="divide-y">
-            {displayConversations
+            {finalConversations
               // Extra filter to ensure we never show conversations with yourself
               .filter(conversation => conversation.userId !== currentUser?.id)
               .map((conversation) => (

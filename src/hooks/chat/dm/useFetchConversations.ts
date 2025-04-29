@@ -1,14 +1,16 @@
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useConversationsPersistence } from './useConversationsPersistence';
 import type { DMConversation } from './types';
+import debounce from 'lodash/debounce';
 
 export const useFetchConversations = (currentUserId: string | undefined) => {
-  const { loadConversationsFromStorage } = useConversationsPersistence();
+  const { loadConversationsFromStorage, saveConversationsToStorage } = useConversationsPersistence();
+  const errorToastShownRef = useRef(false);
   
-  const fetchConversations = useCallback(async () => {
+  const fetchConversations = useCallback(debounce(async () => {
     try {
       // Strong guard clause - prevent fetching without a user ID or if it's not ready
       if (!currentUserId) {
@@ -87,7 +89,7 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
             conversationId: msg.conversation_id || `temp_${otherUserId}`, // Use existing conversation ID or create a temporary one
             userId: otherUserId,
             userName: otherUser.name,
-            userAvatar: otherUser.avatar,
+            userAvatar: otherUser.avatar || '/placeholder.svg',
             lastMessage: msg.text,
             timestamp: msg.timestamp
           });
@@ -101,19 +103,32 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
         // Remove duplicates based on userId
         .filter((conv, index, self) => 
           index === self.findIndex(c => c.userId === conv.userId)
-        );
+        )
+        // Filter out any self-conversations
+        .filter(conv => conv.userId !== currentUserId);
 
+      // Save merged conversations to storage
+      saveConversationsToStorage(mergedConversations);
+
+      // Reset error toast flag on successful fetch
+      errorToastShownRef.current = false;
+      
       return mergedConversations;
     } catch (error) {
       console.error('Error loading conversations:', error);
-      toast({
-        title: "Error",
-        description: "Could not load conversations",
-        variant: "destructive"
-      });
+      
+      // Only show toast message once per error session
+      if (!errorToastShownRef.current) {
+        toast({
+          title: "Error",
+          description: "Could not load conversations",
+          variant: "destructive"
+        });
+        errorToastShownRef.current = true;
+      }
       return loadConversationsFromStorage();
     }
-  }, [currentUserId, loadConversationsFromStorage]);
+  }, 300), [currentUserId, loadConversationsFromStorage, saveConversationsToStorage]);
 
   return fetchConversations;
 };

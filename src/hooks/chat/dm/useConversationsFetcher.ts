@@ -51,6 +51,7 @@ export const useConversationsFetcher = (isMounted: React.MutableRefObject<boolea
         
         // Set initial conversations with loading state
         const initialConversations = Object.values(basicConversations)
+          .filter(conv => conv.userId !== userId) // Filter out self-conversations
           .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
         if (isMounted.current) {
@@ -82,7 +83,8 @@ export const useConversationsFetcher = (isMounted: React.MutableRefObject<boolea
         const latestMessageMap = createLatestMessageMap(messagesResult.data);
 
         // Step 6: Build final conversation objects
-        const updatedConversations = buildFinalConversations(validConversations, userId, userMap, latestMessageMap);
+        const updatedConversations = buildFinalConversations(validConversations, userId, userMap, latestMessageMap)
+          .filter(conv => conv.userId !== userId); // Filter out self-conversations
 
         if (isMounted.current) {
           setConversations(updatedConversations);
@@ -104,7 +106,7 @@ export const useConversationsFetcher = (isMounted: React.MutableRefObject<boolea
           setLoading(false);
         }
       }
-    }, 100),
+    }, 300),
     []
   );
 
