@@ -51,7 +51,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
       {activeTab === "clubs" && (
         <ClubsList
           clubs={clubs}
-          selectedClub={selectedClub}
+          selectedClubId={selectedClub?.id || null}
           onSelectClub={onSelectClub}
           unreadCounts={unreadCounts}
           onSelectUser={onSelectUser}

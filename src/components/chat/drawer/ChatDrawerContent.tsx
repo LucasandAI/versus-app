@@ -30,12 +30,14 @@ const ChatDrawerContent: React.FC<ChatDrawerContentProps> = ({
     return <ChatEmpty />;
   }
   
+  const clubMessages = selectedClub ? (messages[selectedClub.id] || []) : [];
+  
   return (
     <div className="h-full flex flex-col">
       <ChatMainContent
         selectedClub={selectedClub}
         selectedTicket={null}
-        messages={messages}
+        messages={clubMessages}
         onMatchClick={onMatchClick}
         onSelectUser={onSelectUser}
         onSendMessage={onSendMessage}

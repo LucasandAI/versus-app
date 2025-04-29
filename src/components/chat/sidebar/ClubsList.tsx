@@ -11,9 +11,9 @@ import { Badge } from '@/components/ui/badge';
 
 interface ClubsListProps {
   clubs: Club[];
-  selectedClub: Club | null;
+  selectedClubId: string | null;
   onSelectClub: (club: Club) => void;
-  unreadCounts: Record<string, number>;
+  unreadCounts?: Record<string, number>;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   setChatToDelete: (data: {
     id: string;
@@ -24,7 +24,7 @@ interface ClubsListProps {
 
 const ClubsList: React.FC<ClubsListProps> = ({
   clubs,
-  selectedClub,
+  selectedClubId,
   onSelectClub,
   onSelectUser,
   setChatToDelete,
@@ -44,6 +44,24 @@ const ClubsList: React.FC<ClubsListProps> = ({
     return text?.length > 50 ? `${text.substring(0, 50)}...` : text;
   };
 
+  // Force re-render when unread clubs change
+  const [forceUpdate, setForceUpdate] = React.useState(0);
+  
+  useEffect(() => {
+    const handleUnreadUpdate = () => {
+      // Force component to re-render
+      setForceUpdate(prev => prev + 1);
+    };
+    
+    window.addEventListener('unreadMessagesUpdated', handleUnreadUpdate);
+    window.addEventListener('clubMessageReceived', handleUnreadUpdate);
+    
+    return () => {
+      window.removeEventListener('unreadMessagesUpdated', handleUnreadUpdate);
+      window.removeEventListener('clubMessageReceived', handleUnreadUpdate);
+    };
+  }, []);
+
   return (
     <div className="p-3">
       <h3 className="text-sm font-medium mb-2">Your Clubs</h3>
@@ -60,7 +78,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
             <div key={club.id} className="flex flex-col relative group">
               <button 
                 className={`w-full flex items-center p-3 rounded-md text-left transition-colors ${
-                  selectedClub?.id === club.id ? 'bg-primary/10 text-primary' : 'hover:bg-gray-100'
+                  selectedClubId === club.id ? 'bg-primary/10 text-primary' : 'hover:bg-gray-100'
                 }`} 
                 onClick={(e) => handleClubClick(club, e)}
               >

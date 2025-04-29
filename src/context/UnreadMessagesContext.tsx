@@ -55,6 +55,11 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
   
   const { currentUser, isSessionReady } = useApp();
   
+  // Dispatch global unread message event
+  const notifyUnreadMessagesUpdated = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+  }, []);
+  
   // Fetch unread counts from the server
   const fetchUnreadCounts = useCallback(async () => {
     if (!isSessionReady || !currentUser?.id) return;
@@ -107,18 +112,16 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       console.log('[UnreadMessagesContext] Unread counts fetched:', { dmCount, clubCount });
       
       // Dispatch event to notify UI components of changes
-      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+      notifyUnreadMessagesUpdated();
       
     } catch (error) {
       console.error('[UnreadMessagesContext] Error fetching unread counts:', error);
     }
-  }, [currentUser?.id, isSessionReady]);
+  }, [currentUser?.id, isSessionReady, notifyUnreadMessagesUpdated]);
 
   // Fetch initial unread status for DMs
   useEffect(() => {
     if (!isSessionReady || !currentUser?.id) return;
-    
-    // Initial fetch happens through useInitialAppLoad now
     
     // Set up real-time subscriptions for new messages
     const dmChannel = supabase
@@ -165,12 +168,17 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
         updated.add(clubId);
         setClubUnreadCount(prev => prev + 1);
         
-        // Dispatch event to notify UI components
-        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+        // Dispatch event to notify UI components immediately
+        setTimeout(() => notifyUnreadMessagesUpdated(), 0);
       }
       return updated;
     });
-  }, []);
+    
+    // This event is specifically for when a new club message is received
+    window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
+      detail: { clubId } 
+    }));
+  }, [notifyUnreadMessagesUpdated]);
 
   // Mark conversation as unread (for new incoming messages)
   const markConversationAsUnread = useCallback((conversationId: string) => {
@@ -180,12 +188,12 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
         updated.add(conversationId);
         setDmUnreadCount(prev => prev + 1);
         
-        // Dispatch event to notify UI components
-        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+        // Dispatch event to notify UI components immediately
+        setTimeout(() => notifyUnreadMessagesUpdated(), 0);
       }
       return updated;
     });
-  }, []);
+  }, [notifyUnreadMessagesUpdated]);
 
   // Mark conversation as read
   const markConversationAsRead = useCallback(async (conversationId: string) => {
@@ -200,7 +208,7 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       setDmUnreadCount(prevCount => Math.max(0, prevCount - 1));
       
       // Dispatch event to notify UI components
-      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+      setTimeout(() => notifyUnreadMessagesUpdated(), 0);
       
       return updated;
     });
@@ -231,11 +239,11 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       setDmUnreadCount(prev => prev + 1);
       
       // Notify UI components about the revert
-      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+      notifyUnreadMessagesUpdated();
       
       toast.error("Failed to mark conversation as read");
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, notifyUnreadMessagesUpdated]);
 
   // Mark club messages as read
   const markClubMessagesAsRead = useCallback(async (clubId: string) => {
@@ -252,7 +260,7 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       setClubUnreadCount(prevCount => Math.max(0, prevCount - 1));
       
       // Dispatch event to notify UI components
-      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+      setTimeout(() => notifyUnreadMessagesUpdated(), 0);
       
       return updated;
     });
@@ -288,11 +296,16 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       setClubUnreadCount(prev => prev + 1);
       
       // Notify UI components about the revert
-      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+      notifyUnreadMessagesUpdated();
       
       toast.error("Failed to mark club messages as read");
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, notifyUnreadMessagesUpdated]);
+
+  // Trigger re-renders in components when unread counts change
+  useEffect(() => {
+    notifyUnreadMessagesUpdated();
+  }, [totalUnreadCount, unreadClubs.size, unreadConversations.size, notifyUnreadMessagesUpdated]);
 
   return (
     <UnreadMessagesContext.Provider value={{

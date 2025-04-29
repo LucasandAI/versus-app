@@ -25,19 +25,23 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
     }
   }, [activeTab, selectedClub, markClubMessagesAsRead]);
 
+  // Force re-render when unread messages change
+  const hasUnreadClubs = unreadClubs.size > 0;
+  const hasUnreadConversations = unreadConversations.size > 0;
+
   return (
     <div className="px-4 py-2 border-b">
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "clubs" | "dm")}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="clubs" className="inline-flex items-center gap-2 relative">
             Club Chat
-            {unreadClubs.size > 0 && (
+            {hasUnreadClubs && (
               <Badge variant="destructive" className="h-2 w-2 p-0 absolute -top-1 -right-1 rounded-full" />
             )}
           </TabsTrigger>
           <TabsTrigger value="dm" className="inline-flex items-center gap-2 relative">
             Direct Messages
-            {unreadConversations.size > 0 && (
+            {hasUnreadConversations && (
               <Badge variant="destructive" className="h-2 w-2 p-0 absolute -top-1 -right-1 rounded-full" />
             )}
           </TabsTrigger>
