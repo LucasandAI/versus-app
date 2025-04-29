@@ -55,7 +55,7 @@ export const useHomeNotifications = () => {
       // Update invitation status in Supabase
       const { error: inviteError } = await supabase
         .from('club_invites')
-        .update({ status: 'rejected' }) // Fixed from 'declined' to 'rejected'
+        .update({ status: 'rejected' }) 
         .match({ id: notification.data.invite_id });
       
       if (inviteError) throw inviteError;
@@ -63,7 +63,7 @@ export const useHomeNotifications = () => {
       // Mark notification as read
       const { error: notifError } = await supabase
         .from('notifications')
-        .update({ status: 'rejected', read: true }) // Fixed from 'declined' to 'rejected'
+        .update({ status: 'rejected', read: true }) 
         .match({ id });
       
       if (notifError) throw notifError;
@@ -113,9 +113,9 @@ export const useHomeNotifications = () => {
     }
   }, [currentUser?.id]);
 
-  // Add a function to update unread messages count to match the expected type in components
+  // Define the updateUnreadCount function with the proper signature
   const updateUnreadCount = useCallback((count: number) => {
-    // This is a helper function that will adapt the count number to the Record<string, number> state
+    // This is a helper function that adapts the count number to update the Record<string, number> state
     setUnreadMessages(prev => ({ ...prev, total: count }));
   }, []);
 

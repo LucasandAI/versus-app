@@ -11,16 +11,16 @@ import ChatDrawerHandler from './home/ChatDrawerHandler';
 import { useClubActions } from '@/hooks/home/useClubActions';
 import { useHomeNotifications } from '@/hooks/home/useHomeNotifications';
 import { useChatDrawer } from '@/hooks/home/useChatDrawer';
+import { ChatDrawerProvider } from '@/context/ChatDrawerContext';
 
 interface HomeViewProps {
   chatNotifications?: number;
 }
 
 const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
-  const { setCurrentView, setSelectedClub, setSelectedUser, currentUser } = useApp();
+  const { setCurrentView, setSelectedClub, setSelectedUser, currentUser, refreshCurrentUser } = useApp();
   const [notifications, setNotifications] = useState<any[]>([]);
-  const { chatDrawerOpen, setChatDrawerOpen } = useChatDrawer();
-
+  
   const {
     searchDialogOpen,
     setSearchDialogOpen,
@@ -31,119 +31,86 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
     availableClubs
   } = useClubActions();
 
-  const { setUnreadMessages: updateUnreadMessages } = useHomeNotifications();
+  const { 
+    updateUnreadCount,
+    handleMarkAsRead,
+    handleDeclineInvite,
+    handleClearAllNotifications
+  } = useHomeNotifications();
 
   useEffect(() => {
-    const handleUserDataUpdate = () => {
-      console.log('User data updated, refreshing HomeView');
-      
-      setNotifications(prev => [...prev]);
-    };
-    
-    window.addEventListener('userDataUpdated', handleUserDataUpdate);
-    
-    return () => {
-      window.removeEventListener('userDataUpdated', handleUserDataUpdate);
-    };
-  }, []);
+    if (currentUser && (!currentUser.clubs || currentUser.clubs.length === 0)) {
+      console.log('[HomeView] No clubs found on initial render, refreshing user data');
+      refreshCurrentUser().catch(error => {
+        console.error('[HomeView] Error refreshing user data:', error);
+      });
+    } else {
+      console.log('[HomeView] User has clubs on initial render:', currentUser?.clubs?.length || 0);
+    }
+  }, [currentUser, refreshCurrentUser]);
 
   const handleSelectClub = (club: Club) => {
     setSelectedClub(club);
     setCurrentView('clubDetail');
   };
 
-  const handleSelectUser = (userId: string, name: string, avatar?: string) => {
+  const handleSelectUser = (userId: string, name: string) => {
     setSelectedUser({
       id: userId,
       name: name,
-      avatar: avatar || '/placeholder.svg',
+      avatar: '/placeholder.svg',
       clubs: []
     });
     setCurrentView('profile');
   };
 
-  const handleMarkNotificationAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id ? { ...notification, read: true } : notification
-      )
-    );
-    
-    const updatedNotifications = notifications.map(notification => 
-      notification.id === id ? { ...notification, read: true } : notification
-    );
-    localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
-    
-    const event = new CustomEvent('notificationsUpdated');
-    window.dispatchEvent(event);
-  };
-
-  const handleDeclineInvite = (id: string) => {
-    setNotifications(prev => prev.filter(notification => notification.id !== id));
-    
-    const updatedNotifications = notifications.filter(notification => notification.id !== id);
-    localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
-    
-    const event = new CustomEvent('notificationsUpdated');
-    window.dispatchEvent(event);
-  };
-
-  const handleClearAllNotifications = () => {
-    setNotifications([]);
-    localStorage.setItem('notifications', JSON.stringify([]));
-    
-    const event = new CustomEvent('notificationsUpdated');
-    window.dispatchEvent(event);
-  };
-
   const userClubs = currentUser?.clubs || [];
 
   return (
-    <div className="pb-20 pt-6">
-      <div className="container-mobile">
-        <HomeNotifications 
-          setChatNotifications={() => {}} // Now a no-op since we use the global context
-          setNotifications={setNotifications}
-        />
-        
-        <HomeHeader 
-          notifications={notifications}
-          onMarkAsRead={handleMarkNotificationAsRead}
-          onClearAll={handleClearAllNotifications}
-          onUserClick={handleSelectUser}
-          onJoinClub={handleJoinClub}
-          onDeclineInvite={handleDeclineInvite}
-        />
+    <ChatDrawerProvider>
+      <div className="pb-20 pt-6">
+        <div className="container-mobile">
+          <HomeNotifications 
+            setChatNotifications={updateUnreadCount}
+            setNotifications={setNotifications}
+          />
+          
+          <HomeHeader 
+            notifications={notifications}
+            onMarkAsRead={handleMarkAsRead}
+            onClearAll={handleClearAllNotifications}
+            onUserClick={handleSelectUser}
+            onJoinClub={handleJoinClub}
+            onDeclineInvite={handleDeclineInvite}
+          />
 
-        <HomeClubsSection 
+          <HomeClubsSection 
+            userClubs={userClubs}
+            availableClubs={availableClubs}
+            onSelectClub={handleSelectClub}
+            onSelectUser={handleSelectUser}
+            onCreateClub={() => setCreateClubDialogOpen(true)}
+            onRequestJoin={handleRequestToJoin}
+            onSearchClick={() => setSearchDialogOpen(true)}
+          />
+        </div>
+        <ChatDrawerHandler 
           userClubs={userClubs}
-          availableClubs={availableClubs}
-          onSelectClub={handleSelectClub}
           onSelectUser={handleSelectUser}
-          onCreateClub={() => setCreateClubDialogOpen(true)}
+          setUnreadMessages={updateUnreadCount} // Using the adapter function with correct type
+        />
+        <SearchClubDialog
+          open={searchDialogOpen}
+          onOpenChange={setSearchDialogOpen}
+          clubs={availableClubs}
           onRequestJoin={handleRequestToJoin}
-          onSearchClick={() => setSearchDialogOpen(true)}
+        />
+        <CreateClubDialog
+          open={createClubDialogOpen}
+          onOpenChange={setCreateClubDialogOpen}
         />
       </div>
-
-      <ChatDrawerHandler 
-        userClubs={userClubs}
-        onSelectUser={handleSelectUser}
-        setUnreadMessages={updateUnreadMessages}
-      />
-
-      <SearchClubDialog
-        open={searchDialogOpen}
-        onOpenChange={setSearchDialogOpen}
-        clubs={availableClubs}
-        onRequestJoin={handleRequestToJoin}
-      />
-
-      <CreateClubDialog
-        open={createClubDialogOpen}
-        onOpenChange={setCreateClubDialogOpen}
-      />
-    </div>
+    </ChatDrawerProvider>
   );
 };
 
