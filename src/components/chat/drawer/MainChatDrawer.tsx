@@ -54,11 +54,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     if (open && activeTab === "dm" && !fetchAttemptedRef.current) {
       console.log('[MainChatDrawer] Drawer open, on DM tab, fetching conversations');
       fetchAttemptedRef.current = true; // Mark that we've attempted a fetch
-      
-      // Add a small delay to ensure all conditions are stable
-      setTimeout(() => {
-        fetchConversations();
-      }, 300);
+      fetchConversations();
     }
     
     // When drawer closes, reset fetch state so we can fetch fresh data next time
@@ -86,12 +82,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
         conversationId: event.detail.conversationId
       });
       
-      // Fetch conversations if we haven't already
-      if (!fetchAttemptedRef.current && isSessionReady && currentUser?.id) {
-        console.log('[MainChatDrawer] DM requested, fetching conversations');
-        fetchAttemptedRef.current = true;
-        fetchConversations();
-      }
+      // No need to fetch here - the user who triggered the event should have already fetched
     };
 
     window.addEventListener('openDirectMessage', handleOpenDM as EventListener);

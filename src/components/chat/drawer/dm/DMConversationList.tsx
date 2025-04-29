@@ -39,24 +39,10 @@ const DMConversationList: React.FC<Props> = ({
   const displayConversations = localConversations.length > 0 ? localConversations : previousConversationsRef.current;
   const isEmpty = !isLoading && displayConversations.length === 0;
 
-  // Handle manual refresh
-  const handleRefresh = () => {
-    if (onRefresh) {
-      onRefresh();
-    }
-  };
-
   return (
     <div className="flex flex-col h-full bg-white">
       <div className="flex justify-between items-center p-4">
         <h1 className="text-4xl font-bold">Messages</h1>
-        <button 
-          onClick={handleRefresh}
-          className="text-sm text-blue-500 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={isLoading}
-        >
-          {isLoading ? 'Loading...' : 'Refresh'}
-        </button>
       </div>
       
       <div className="flex-1 overflow-auto">

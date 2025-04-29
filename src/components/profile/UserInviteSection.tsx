@@ -7,6 +7,7 @@ import { User, Club } from '@/types';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
+import { useConversations } from '@/hooks/chat/dm/useConversations';
 
 interface UserInviteSectionProps {
   showInviteButton: boolean;
@@ -27,6 +28,7 @@ const UserInviteSection: React.FC<UserInviteSectionProps> = ({
 }) => {
   const { open: openChatDrawer } = useChatDrawerGlobal();
   const { currentUser } = useApp();
+  const { fetchConversations } = useConversations([]); // Get fetchConversations but don't fetch on mount
 
   if (isCurrentUserProfile) return null;
 
@@ -70,6 +72,9 @@ const UserInviteSection: React.FC<UserInviteSectionProps> = ({
       } else {
         conversationId = existingConversations[0].id;
       }
+      
+      // Fetch conversations before opening chat drawer to ensure data is fresh
+      await fetchConversations();
 
       // Open the chat drawer first
       openChatDrawer();

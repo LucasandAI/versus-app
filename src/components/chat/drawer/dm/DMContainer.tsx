@@ -24,7 +24,6 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
   const { currentUser, isSessionReady } = useApp();
   const [isLoading, setIsLoading] = useState(false);
   const isMounted = useRef(true);
-  const fetchInitiatedRef = useRef(false);
   
   // Get direct conversations hook but don't automatically fetch
   const { conversations, loading, fetchConversations, resetFetchState } = useDirectConversations([]);
@@ -39,30 +38,6 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
       resetFetchState();
     };
   }, [resetFetchState]);
-
-  // Fetch conversations when component mounts - but only once and only if we have a user and session
-  useEffect(() => {
-    // Don't fetch if we already initiated a fetch, or if we don't have user/session
-    if (fetchInitiatedRef.current || !currentUser?.id || !isSessionReady) {
-      return;
-    }
-    
-    // Mark that we've initiated a fetch to prevent duplicates
-    fetchInitiatedRef.current = true;
-    
-    // Set local loading state during initial fetch
-    setIsLoading(true);
-    
-    // Only fetch if we have both session and user
-    console.log('[DMContainer] Component mounted, fetching conversations');
-    fetchConversations()
-      .finally(() => {
-        if (isMounted.current) {
-          setIsLoading(false);
-        }
-      });
-    
-  }, [currentUser?.id, isSessionReady, fetchConversations]);
 
   const handleSelectUser = (userId: string, userName: string, userAvatar: string, conversationId: string) => {
     setDirectMessageUser({
