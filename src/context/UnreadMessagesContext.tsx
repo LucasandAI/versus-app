@@ -25,6 +25,7 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
 
   // Fetch initial unread status
   useEffect(() => {
+    // Skip if no currentUser is available yet
     if (!currentUser?.id) return;
     
     const fetchUnreadStatus = async () => {

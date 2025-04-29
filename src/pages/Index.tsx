@@ -10,6 +10,7 @@ import Navigation from '@/components/Navigation';
 import { Toaster } from '@/components/ui/toaster';
 import ChatDrawer from '@/components/chat/ChatDrawer';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
+import { UnreadMessagesProvider } from '@/context/UnreadMessagesContext';
 
 const AppContent: React.FC = () => {
   const { currentView, currentUser } = useApp();
@@ -121,9 +122,11 @@ const Index: React.FC = () => {
   console.log('[Index] Index component rendering');
   return (
     <AppProvider>
-      <div className="min-h-screen bg-gray-50">
-        <AppContent />
-      </div>
+      <UnreadMessagesProvider>
+        <div className="min-h-screen bg-gray-50">
+          <AppContent />
+        </div>
+      </UnreadMessagesProvider>
     </AppProvider>
   );
 };
