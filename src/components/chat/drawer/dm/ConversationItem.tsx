@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { DMConversation } from '@/hooks/chat/dm/useConversations';
+import { DMConversation } from '@/hooks/chat/dm/types';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { formatDistanceToNow } from 'date-fns';
 import { useIsMobile } from '@/hooks/use-mobile';
