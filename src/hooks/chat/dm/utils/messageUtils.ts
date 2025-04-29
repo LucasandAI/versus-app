@@ -1,4 +1,6 @@
+
 import { toast } from '@/hooks/use-toast';
+import { ChatMessage } from '@/types/chat';
 
 export const findMatchingMessage = (messages: any[], newMessage: any) => {
   return messages.find(
@@ -20,4 +22,10 @@ export const showErrorToast = (message: string, hasShownToast: boolean): boolean
   });
   
   return true;
+};
+
+// Add the missing createMessageId function
+export const createMessageId = (message: ChatMessage): string => {
+  const { text, sender, timestamp } = message;
+  return `${sender.id}-${text}-${timestamp}`;
 };
