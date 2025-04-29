@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Club } from '@/types';
 import UserAvatar from '../../shared/UserAvatar';
 import ClubMembersPopover from './ClubMembersPopover';
@@ -7,7 +7,6 @@ import { useNavigation } from '@/hooks/useNavigation';
 import { formatDistanceToNow } from 'date-fns';
 import { useClubLastMessages } from '@/hooks/chat/messages/useClubLastMessages';
 import { useUnreadMessages } from '@/context/UnreadMessagesContext';
-import { Badge } from '@/components/ui/badge';
 
 interface ClubsListProps {
   clubs: Club[];
@@ -66,9 +65,6 @@ const ClubsList: React.FC<ClubsListProps> = ({
               >
                 <div className="flex-shrink-0 mr-3 relative">
                   <UserAvatar name={club.name} image={club.logo || ''} size="lg" />
-                  {isUnread && (
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
-                  )}
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -88,7 +84,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
                   
                   <div className="flex items-center justify-between mt-1">
                     {lastMessage ? (
-                      <p className={`text-sm ${isUnread ? 'font-semibold text-gray-900' : 'text-gray-600'} truncate pr-2`}>
+                      <p className={`text-sm ${isUnread ? 'font-bold text-gray-900' : 'text-gray-600'} truncate pr-2`}>
                         <span className={isUnread ? 'font-bold' : 'font-medium'}>
                           {lastMessage.sender?.name || 'Unknown'}:
                         </span>{' '}
@@ -98,11 +94,6 @@ const ClubsList: React.FC<ClubsListProps> = ({
                       <p className="text-sm text-gray-600 truncate pr-2">
                         No messages yet
                       </p>
-                    )}
-                    {isUnread && (
-                      <Badge variant="destructive" className="ml-1 h-5 min-w-5 flex items-center justify-center rounded-full p-1">
-                        •
-                      </Badge>
                     )}
                   </div>
                   
