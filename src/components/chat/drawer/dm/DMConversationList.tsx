@@ -34,9 +34,10 @@ const DMConversationList: React.FC<Props> = ({
     }
   }, [conversations]);
 
+  // Only fetch when both session is ready AND user ID exists
   useEffect(() => {
     if (currentUser?.id && isSessionReady && !hasFetchedRef.current) {
-      console.log("[DMConversationList] Current user and session ready, fetching conversations");
+      console.log("[DMConversationList] Current user AND session ready, fetching conversations");
       hasFetchedRef.current = true;
       fetchConversations();
     }

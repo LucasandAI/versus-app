@@ -163,12 +163,13 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
   ).current;
 
   const fetchConversations = useCallback(() => {
+    // Add guard clause to prevent fetching without session or user
     if (!isSessionReady || !currentUser?.id) {
-      console.log('[useDirectConversations] Waiting for session to be ready');
+      console.log('[useDirectConversations] Session or user not ready, skipping fetch');
       return Promise.resolve([]);
     }
 
-    console.log('[useDirectConversations] Session ready, fetching conversations');
+    console.log('[useDirectConversations] Session and user ready, fetching conversations');
     return debouncedFetchConversations(currentUser.id);
   }, [currentUser?.id, isSessionReady, debouncedFetchConversations]);
 
@@ -180,9 +181,10 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
     };
   }, [debouncedFetchConversations]);
 
+  // Only attempt fetch when both session is ready AND user ID exists
   useEffect(() => {
     if (isSessionReady && currentUser?.id && !attemptedFetch.current) {
-      console.log('[useDirectConversations] Session ready, triggering initial fetch');
+      console.log('[useDirectConversations] Session AND user ready, triggering initial fetch');
       fetchConversations();
     }
   }, [isSessionReady, currentUser?.id, fetchConversations]);

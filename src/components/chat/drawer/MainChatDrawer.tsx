@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import ChatDrawerContainer from './ChatDrawerContainer';
@@ -8,7 +9,6 @@ import { useChatActions } from '@/hooks/chat/useChatActions';
 import { useApp } from '@/context/AppContext';
 import { useConversations } from '@/hooks/chat/dm/useConversations';
 import { useUnreadMessages } from '@/hooks/chat/dm/useUnreadMessages';
-import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -37,17 +37,18 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   } | null>(null);
   
   const { sendMessageToClub, deleteMessage } = useChatActions();
-  const { currentUser } = useApp();
+  const { currentUser, isSessionReady } = useApp();
   
   const { fetchConversations } = useConversations([]);
-  const { markDirectMessagesAsRead } = useMessageReadStatus();
-  const { totalUnreadCount } = useUnreadMessages();
+  const { markConversationAsRead, totalUnreadCount } = useUnreadMessages();
   
+  // Only fetch conversations when drawer is open AND session is ready AND user exists
   useEffect(() => {
-    if (open && currentUser?.id) {
+    if (open && isSessionReady && currentUser?.id) {
+      console.log('[MainChatDrawer] Drawer open, session ready, and user exists - fetching conversations');
       fetchConversations();
     }
-  }, [open, currentUser?.id, fetchConversations]);
+  }, [open, isSessionReady, currentUser?.id, fetchConversations]);
 
   useEffect(() => {
     if (onNewMessage) {
@@ -71,7 +72,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       });
       
       if (currentUser?.id && event.detail.conversationId !== 'new') {
-        markDirectMessagesAsRead(event.detail.conversationId, currentUser.id);
+        markConversationAsRead(event.detail.conversationId);
       }
     };
 
@@ -79,7 +80,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     return () => {
       window.removeEventListener('openDirectMessage', handleOpenDM as EventListener);
     };
-  }, [currentUser?.id, markDirectMessagesAsRead]);
+  }, [currentUser?.id, markConversationAsRead]);
 
   const handleSelectClub = (club: Club) => {
     setSelectedLocalClub(club);
@@ -102,7 +103,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const handleTabChange = (tab: "clubs" | "dm") => {
     setActiveTab(tab);
     
-    if (tab === "dm" && currentUser?.id) {
+    if (tab === "dm" && isSessionReady && currentUser?.id) {
       fetchConversations();
     }
   };

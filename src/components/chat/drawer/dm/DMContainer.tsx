@@ -21,7 +21,7 @@ interface DMContainerProps {
 }
 
 const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectMessageUser }) => {
-  const { currentUser } = useApp();
+  const { currentUser, isSessionReady } = useApp();
   const [isLoading, setIsLoading] = useState(true);
   const [basicConversations, setBasicConversations] = useState<any[]>([]);
   const [fetchAttempted, setFetchAttempted] = useState(false);
@@ -41,12 +41,12 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
     };
   }, []);
 
-  // Fetch basic conversations only once when component mounts AND user is available
+  // Fetch basic conversations only when session is ready AND user is available
   useEffect(() => {
-    // Guard clause: early return if user is not available
-    if (!currentUser?.id) {
+    // Guard clause: early return if user is not available OR session is not ready
+    if (!currentUser?.id || !isSessionReady) {
       if (!fetchAttempted) {
-        console.log('DMContainer: currentUser.id not available, deferring fetch');
+        console.log('DMContainer: currentUser.id not available or session not ready, deferring fetch');
       }
       return;
     }
@@ -117,7 +117,7 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
         }
       }
     }, 300); // Increased delay for better reliability
-  }, [currentUser?.id, fetchAttempted]);
+  }, [currentUser?.id, isSessionReady, fetchAttempted]);
 
   const handleSelectUser = (userId: string, userName: string, userAvatar: string, conversationId: string) => {
     setDirectMessageUser({
