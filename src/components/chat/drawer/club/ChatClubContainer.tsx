@@ -38,7 +38,7 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
           <ChatMainContent
             clubId={selectedClub.id}
             clubName={selectedClub.name}
-            messages={messages[selectedClub.id] || []}
+            messages={selectedClub.id && messages ? messages[selectedClub.id] || [] : []}
             onSendMessage={(message) => onSendMessage?.(message, selectedClub.id)}
             onDeleteMessage={onDeleteMessage}
           />
