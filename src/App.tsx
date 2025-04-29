@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ChatDrawerProvider } from "./context/ChatDrawerContext";
 import { UnreadMessagesProvider } from "./context/unread-messages";
-import { DirectConversationsProvider } from "./context/DirectConversationsContext";
+import { DirectConversationsProvider } from "./context/direct-conversations";
 import { AppProvider } from "./context/AppContext";
 import AppContent from "./components/AppContent";
 import Index from "./pages/Index";
