@@ -1,149 +1,123 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { handleNotification, markAllNotificationsAsRead } from '@/utils/notification-actions';
+import { toast } from 'sonner';
+import { useApp } from '@/context/AppContext';
+import { Notification } from '@/types';
 
 export const useHomeNotifications = () => {
-  const [unreadMessages, setUnreadMessages] = useState<number>(0);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadMessages, setUnreadMessages] = useState<Record<string, number>>({});
+  const { currentUser } = useApp();
 
-  useEffect(() => {
-    const loadUnreadCounts = () => {
-      // Load from localStorage for now until we implement Supabase
-      const unreadMessages = localStorage.getItem('unreadMessages');
-      if (unreadMessages) {
-        try {
-          const unreadMap = JSON.parse(unreadMessages);
-          const totalUnread = Object.values(unreadMap).reduce(
-            (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 
-            0
-          );
-          setUnreadMessages(Number(totalUnread));
-        } catch (error) {
-          console.error("Error parsing unread messages:", error);
-          setUnreadMessages(0);
-        }
-      } else {
-        setUnreadMessages(0);
-      }
-    };
+  const handleMarkAsRead = useCallback(async (id: string) => {
+    setNotifications(prev => 
+      prev.map(notification => 
+        notification.id === id ? { ...notification, read: true } : notification
+      )
+    );
     
-    const loadNotifications = async () => {
-      try {
-        // Load notifications from Supabase
-        const { data, error } = await supabase
-          .from('notifications')
-          .select('*')
-          .order('created_at', { ascending: false });
-          
-        if (error) {
-          console.error("Error loading notifications from Supabase:", error);
-          setNotifications([]);
-        } else {
-          setNotifications(data || []);
-        }
-      } catch (error) {
-        console.error("Error loading notifications:", error);
-        setNotifications([]);
-      }
-    };
-    
-    loadUnreadCounts();
-    loadNotifications();
-    
-    const handleMessagesUpdated = () => {
-      loadUnreadCounts();
-    };
-    
-    const handleNotificationsUpdated = () => {
-      loadNotifications();
-    };
-    
-    window.addEventListener('unreadMessagesUpdated', handleMessagesUpdated);
-    window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
-    window.addEventListener('chatDrawerClosed', handleMessagesUpdated);
-    
-    return () => {
-      window.removeEventListener('unreadMessagesUpdated', handleMessagesUpdated);
-      window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
-      window.removeEventListener('chatDrawerClosed', handleMessagesUpdated);
-    };
-  }, []);
-
-  // Add the methods needed by HomeView.tsx
-  const handleMarkAsRead = async (id: string) => {
     try {
-      // Update in Supabase
+      if (!currentUser?.id) return;
+
+      // Update notification in Supabase
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
-        .eq('id', id);
-        
-      if (error) {
-        console.error("Error marking notification as read:", error);
-        return;
+        .match({ id, user_id: currentUser.id });
+      
+      if (error) throw error;
+      
+      // Update local storage for offline access
+      const updatedNotifications = notifications.map(notification => 
+        notification.id === id ? { ...notification, read: true } : notification
+      );
+      localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+      
+      // Dispatch event to update other parts of the UI
+      const event = new CustomEvent('notificationsUpdated');
+      window.dispatchEvent(event);
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      toast.error("Failed to mark notification as read");
+    }
+  }, [notifications, currentUser?.id]);
+
+  const handleDeclineInvite = useCallback(async (id: string) => {
+    try {
+      if (!currentUser?.id) return;
+      
+      const notification = notifications.find(n => n.id === id);
+      if (!notification || !notification.data?.invite_id) {
+        throw new Error("Invalid invitation data");
       }
       
-      // Update local state
-      setNotifications(prevNotifications => 
-        prevNotifications.map(notification => 
-          notification.id === id ? { ...notification, read: true } : notification
-        )
-      );
-    } catch (error) {
-      console.error("Error in handleMarkAsRead:", error);
-    }
-  };
-
-  const handleDeclineInvite = async (id: string) => {
-    try {
-      // Delete from Supabase
-      const { error } = await supabase
+      // Update invitation status in Supabase
+      const { error: inviteError } = await supabase
+        .from('club_invites')
+        .update({ status: 'declined' })
+        .match({ id: notification.data.invite_id });
+      
+      if (inviteError) throw inviteError;
+      
+      // Mark notification as read
+      const { error: notifError } = await supabase
         .from('notifications')
-        .delete()
-        .eq('id', id);
-        
-      if (error) {
-        console.error("Error declining invitation:", error);
-        return;
-      }
+        .update({ status: 'declined', read: true })
+        .match({ id });
+      
+      if (notifError) throw notifError;
       
       // Update local state
-      setNotifications(prevNotifications => 
-        prevNotifications.filter(notification => notification.id !== id)
-      );
+      setNotifications(prev => prev.filter(notification => notification.id !== id));
+      
+      // Update local storage
+      const updatedNotifications = notifications.filter(notification => notification.id !== id);
+      localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+      
+      // Notify the UI
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+      toast.success("Invitation declined");
+      
     } catch (error) {
-      console.error("Error in handleDeclineInvite:", error);
+      console.error("Error declining invitation:", error);
+      toast.error("Failed to decline invitation");
     }
-  };
+  }, [notifications, currentUser?.id]);
 
-  const handleClearAllNotifications = async () => {
+  const handleClearAllNotifications = useCallback(async () => {
     try {
-      // Update all notifications to read in Supabase
+      if (!currentUser?.id) return;
+      
+      // Mark all notifications as read in Supabase
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
-        .is('read', false);
-        
-      if (error) {
-        console.error("Error marking all notifications as read:", error);
-        return;
-      }
+        .eq('user_id', currentUser.id);
+      
+      if (error) throw error;
       
       // Update local state
-      setNotifications(prevNotifications => 
-        prevNotifications.map(notification => ({ ...notification, read: true }))
-      );
+      setNotifications([]);
+      
+      // Update local storage
+      localStorage.setItem('notifications', JSON.stringify([]));
+      
+      // Notify the UI
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+      toast.success("All notifications cleared");
+      
     } catch (error) {
-      console.error("Error in handleClearAllNotifications:", error);
+      console.error("Error clearing notifications:", error);
+      toast.error("Failed to clear notifications");
     }
-  };
+  }, [currentUser?.id]);
 
   return {
-    unreadMessages,
-    setUnreadMessages,
     notifications,
     setNotifications,
+    unreadMessages,
+    setUnreadMessages,
     handleMarkAsRead,
     handleDeclineInvite,
     handleClearAllNotifications

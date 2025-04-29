@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
 import { toast } from '@/hooks/use-toast';
+import { useApp } from '@/context/AppContext';
 
 export const useInitialMessages = (
   userClubs: Club[],
@@ -10,9 +11,11 @@ export const useInitialMessages = (
   setClubMessages: React.Dispatch<React.SetStateAction<Record<string, any[]>>>
 ) => {
   const [hasLoadedMessages, setHasLoadedMessages] = useState<Record<string, boolean>>({});
+  const { currentUser, isSessionReady } = useApp();
   
   useEffect(() => {
-    if (!isOpen || !userClubs.length) return;
+    // Skip if not authenticated, session not ready, drawer is closed, or no clubs
+    if (!isSessionReady || !currentUser?.id || !isOpen || !userClubs.length) return;
 
     const fetchClubMessages = async () => {
       console.log('[useInitialMessages] Fetching messages for all clubs');
@@ -84,7 +87,7 @@ export const useInitialMessages = (
     };
     
     fetchClubMessages();
-  }, [userClubs, isOpen, setClubMessages, hasLoadedMessages]);
+  }, [userClubs, isOpen, setClubMessages, hasLoadedMessages, currentUser?.id, isSessionReady]);
 
   // Reset loaded state when drawer closes
   useEffect(() => {

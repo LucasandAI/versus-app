@@ -1,15 +1,20 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useApp } from '@/context/AppContext';
 
-export const useUnreadCounts = (userId: string | undefined) => {
+export const useUnreadCounts = () => {
   const [dmUnreadCount, setDMUnreadCount] = useState(0);
   const [clubUnreadCount, setClubUnreadCount] = useState(0);
   const [unreadConversations, setUnreadConversations] = useState<Set<string>>(new Set());
   const [unreadClubs, setUnreadClubs] = useState<Set<string>>(new Set());
+  
+  const { currentUser, isSessionReady } = useApp();
+  const userId = currentUser?.id;
 
   useEffect(() => {
-    if (!userId) return;
+    // Skip if not authenticated or session not ready
+    if (!isSessionReady || !userId) return;
 
     const fetchUnreadCounts = async () => {
       try {
@@ -53,7 +58,7 @@ export const useUnreadCounts = (userId: string | undefined) => {
 
     fetchUnreadCounts();
 
-    // Subscribe to new messages
+    // Only set up subscriptions when authenticated
     const dmChannel = supabase.channel('dm-notifications')
       .on('postgres_changes', {
         event: 'INSERT',
@@ -84,7 +89,7 @@ export const useUnreadCounts = (userId: string | undefined) => {
       supabase.removeChannel(dmChannel);
       supabase.removeChannel(clubChannel);
     };
-  }, [userId]);
+  }, [userId, isSessionReady]);
 
   return {
     totalUnreadCount: dmUnreadCount + clubUnreadCount,

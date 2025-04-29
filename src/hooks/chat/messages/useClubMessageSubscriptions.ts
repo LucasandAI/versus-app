@@ -5,6 +5,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import { createClubChannel, cleanupChannels } from './utils/subscriptionUtils';
 import { processNewMessage } from './utils/messageHandlerUtils';
 import { supabase } from '@/integrations/supabase/client';
+import { useApp } from '@/context/AppContext';
 
 export const useClubMessageSubscriptions = (
   userClubs: Club[],
@@ -13,12 +14,14 @@ export const useClubMessageSubscriptions = (
   setClubMessages: React.Dispatch<React.SetStateAction<Record<string, any[]>>>
 ) => {
   const channelsRef = useRef<RealtimeChannel[]>([]);
+  const { currentUser, isSessionReady } = useApp();
   
   useEffect(() => {
-    if (!isOpen || !userClubs.length) {
-      // Clean up all channels when drawer closes
+    // Skip if not authenticated, session not ready, drawer not open, or no clubs
+    if (!isSessionReady || !currentUser?.id || !isOpen || !userClubs.length) {
+      // Clean up all channels
       if (channelsRef.current.length > 0) {
-        console.log('[useClubMessageSubscriptions] Cleaning up channels due to drawer close');
+        console.log('[useClubMessageSubscriptions] Cleaning up channels - not ready or drawer closed');
         cleanupChannels(channelsRef.current);
         channelsRef.current = [];
         activeSubscriptionsRef.current = {};
@@ -112,5 +115,5 @@ export const useClubMessageSubscriptions = (
       channelsRef.current = [];
       activeSubscriptionsRef.current = {};
     };
-  }, [userClubs, isOpen, setClubMessages]);
+  }, [userClubs, isOpen, setClubMessages, currentUser?.id, isSessionReady]);
 };

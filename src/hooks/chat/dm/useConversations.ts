@@ -12,7 +12,7 @@ export type { DMConversation } from './types';
 const SUBSCRIPTION_DELAY_MS = 300; // Increased delay before setting up subscriptions
 
 export const useConversations = (hiddenDMIds: string[] = []) => {
-  const { currentUser } = useApp();
+  const { currentUser, isSessionReady } = useApp();
   const { 
     conversations, 
     loading, 
@@ -48,8 +48,8 @@ export const useConversations = (hiddenDMIds: string[] = []) => {
   
   // Subscribe to real-time updates for conversations
   useEffect(() => {
-    // Guard clause: Early return if no user ID
-    if (!currentUser?.id) return;
+    // Guard clause: Early return if no user ID or session not ready
+    if (!isSessionReady || !currentUser?.id) return;
     
     // Clear any existing timeout
     if (subscriptionTimeoutRef.current) {
@@ -165,7 +165,7 @@ export const useConversations = (hiddenDMIds: string[] = []) => {
         clearTimeout(subscriptionTimeoutRef.current);
       }
     };
-  }, [currentUser?.id, debouncedFetch]);
+  }, [currentUser?.id, isSessionReady, debouncedFetch]);
 
   return {
     conversations,

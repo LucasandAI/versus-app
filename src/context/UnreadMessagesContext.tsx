@@ -21,12 +21,12 @@ export const useUnreadMessages = () => useContext(UnreadMessagesContext);
 export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const [unreadConversations, setUnreadConversations] = useState<Set<string>>(new Set());
   const [totalUnreadCount, setTotalUnreadCount] = useState<number>(0);
-  const { currentUser } = useApp();
+  const { currentUser, isSessionReady } = useApp();
 
   // Fetch initial unread status
   useEffect(() => {
-    // Skip if no currentUser is available yet
-    if (!currentUser?.id) return;
+    // Skip if not authenticated or session not ready
+    if (!isSessionReady || !currentUser?.id) return;
     
     const fetchUnreadStatus = async () => {
       try {
@@ -101,6 +101,7 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
     fetchUnreadStatus();
     
     // Set up real-time subscription for new messages
+    // Only subscribe when session is ready and user is authenticated
     const channel = supabase
       .channel('global-dm-unread-tracking')
       .on('postgres_changes', 
@@ -128,7 +129,7 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, isSessionReady]);
 
   // Optimistically mark conversation as read
   const markConversationAsRead = useCallback(async (conversationId: string) => {
