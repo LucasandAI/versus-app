@@ -106,6 +106,9 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       
       console.log('[UnreadMessagesContext] Unread counts fetched:', { dmCount, clubCount });
       
+      // Dispatch event to notify UI components of changes
+      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+      
     } catch (error) {
       console.error('[UnreadMessagesContext] Error fetching unread counts:', error);
     }
@@ -161,6 +164,9 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       if (!updated.has(clubId)) {
         updated.add(clubId);
         setClubUnreadCount(prev => prev + 1);
+        
+        // Dispatch event to notify UI components
+        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
       }
       return updated;
     });
@@ -173,6 +179,9 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       if (!updated.has(conversationId)) {
         updated.add(conversationId);
         setDmUnreadCount(prev => prev + 1);
+        
+        // Dispatch event to notify UI components
+        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
       }
       return updated;
     });
@@ -189,6 +198,10 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       const updated = new Set(prev);
       updated.delete(conversationId);
       setDmUnreadCount(prevCount => Math.max(0, prevCount - 1));
+      
+      // Dispatch event to notify UI components
+      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+      
       return updated;
     });
     
@@ -217,6 +230,9 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       });
       setDmUnreadCount(prev => prev + 1);
       
+      // Notify UI components about the revert
+      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+      
       toast.error("Failed to mark conversation as read");
     }
   }, [currentUser?.id]);
@@ -234,6 +250,10 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       const updated = new Set(prev);
       updated.delete(clubId);
       setClubUnreadCount(prevCount => Math.max(0, prevCount - 1));
+      
+      // Dispatch event to notify UI components
+      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+      
       return updated;
     });
     
@@ -266,6 +286,9 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
         return reverted;
       });
       setClubUnreadCount(prev => prev + 1);
+      
+      // Notify UI components about the revert
+      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
       
       toast.error("Failed to mark club messages as read");
     }
