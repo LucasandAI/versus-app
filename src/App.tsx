@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ChatDrawerProvider } from "./context/ChatDrawerContext";
-import { UnreadMessagesProvider } from "./context/UnreadMessagesContext";
+import { UnreadMessagesProvider } from "./context/unread-messages";
 import { DirectConversationsProvider } from "./context/DirectConversationsContext";
 import { AppProvider } from "./context/AppContext";
 import AppContent from "./components/AppContent";
