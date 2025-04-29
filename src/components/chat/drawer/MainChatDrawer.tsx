@@ -1,13 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Club } from '@/types';
 import ChatDrawerContainer from './ChatDrawerContainer';
 import DrawerHeader from './DrawerHeader';
 import { ChatProvider } from '@/context/ChatContext';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
-import { useChatActions } from '@/hooks/chat/useChatActions';
-import { useApp } from '@/context/AppContext';
-import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
+import { useMainChatDrawer } from './hooks/useMainChatDrawer';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -26,82 +24,17 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   clubMessages = {},
   setClubMessages
 }) => {
-  const [activeTab, setActiveTab] = useState<"clubs"|"dm">("clubs");
-  const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(null);
-  const [directMessageUser, setDirectMessageUser] = useState<{
-    userId: string;
-    userName: string;
-    userAvatar: string;
-    conversationId: string;
-  } | null>(null);
+  const {
+    activeTab,
+    selectedLocalClub,
+    directMessageUser,
+    handleSelectClub,
+    handleTabChange,
+    handleSendMessage,
+    handleDeleteMessage,
+    setDirectMessageUser
+  } = useMainChatDrawer(open, onOpenChange);
   
-  const { sendMessageToClub, deleteMessage } = useChatActions();
-  const { currentUser } = useApp();
-  
-  // Access conversations from context
-  const { fetchConversations } = useDirectConversationsContext();
-
-  // Effect to fetch conversations when drawer opens
-  useEffect(() => {
-    if (open && currentUser?.id) {
-      // Only fetch if we're on the DM tab
-      if (activeTab === "dm") {
-        console.log("[MainChatDrawer] Drawer opened with DM tab, ensuring conversations are loaded");
-        fetchConversations();
-      }
-    }
-  }, [open, currentUser?.id, activeTab, fetchConversations]);
-  
-  useEffect(() => {
-    const handleOpenDM = (event: CustomEvent<{
-      userId: string;
-      userName: string;
-      userAvatar?: string;
-      conversationId?: string;
-    }>) => {
-      setActiveTab("dm");
-      
-      // If conversationId is not provided, we'll need to fetch/create it
-      if (!event.detail.conversationId) {
-        console.log("[MainChatDrawer] Opening DM with user:", event.detail.userName);
-      }
-      
-      setDirectMessageUser({
-        userId: event.detail.userId,
-        userName: event.detail.userName,
-        userAvatar: event.detail.userAvatar || '/placeholder.svg',
-        conversationId: event.detail.conversationId || 'new'
-      });
-    };
-
-    window.addEventListener('openDirectMessage', handleOpenDM as EventListener);
-    return () => {
-      window.removeEventListener('openDirectMessage', handleOpenDM as EventListener);
-    };
-  }, [fetchConversations]);
-
-  const handleSelectClub = (club: Club) => {
-    setSelectedLocalClub(club);
-  };
-
-  const handleSendMessage = async (message: string, clubId?: string) => {
-    if (message && clubId && setClubMessages) {
-      console.log('[MainChatDrawer] Sending message to club:', clubId);
-      return await sendMessageToClub(clubId, message, setClubMessages);
-    }
-  };
-  
-  const handleDeleteMessage = async (messageId: string) => {
-    if (messageId && setClubMessages) {
-      console.log('[MainChatDrawer] Deleting message:', messageId);
-      return await deleteMessage(messageId, setClubMessages);
-    }
-  };
-  
-  const handleTabChange = (tab: "clubs" | "dm") => {
-    setActiveTab(tab);
-  };
-
   return (
     <ChatProvider>
       <Drawer open={open} onOpenChange={onOpenChange}>

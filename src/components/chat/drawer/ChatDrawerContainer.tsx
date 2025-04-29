@@ -3,6 +3,7 @@ import React from 'react';
 import { Club } from '@/types';
 import ChatClubContainer from './club/ChatClubContainer';
 import DMContainer from './dm/DMContainer';
+import { useUnreadMessages } from '@/context/unread-messages';
 
 interface ChatDrawerContainerProps {
   activeTab: "clubs" | "dm";
@@ -18,13 +19,13 @@ interface ChatDrawerContainerProps {
   directMessageUser: {
     userId: string;
     userName: string;
-    userAvatar: string; // Made required
+    userAvatar: string;
     conversationId: string;
   } | null;
   setDirectMessageUser: React.Dispatch<React.SetStateAction<{
     userId: string;
     userName: string;
-    userAvatar: string; // Made required
+    userAvatar: string;
     conversationId: string;
   } | null>>;
 }
@@ -43,6 +44,8 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   directMessageUser,
   setDirectMessageUser
 }) => {
+  const { unreadClubs, unreadConversations } = useUnreadMessages();
+  
   return (
     <div className="flex-1 overflow-hidden">
       {activeTab === 'clubs' ? (
@@ -53,11 +56,13 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
           messages={messages}
           onSendMessage={onSendMessage}
           onDeleteMessage={onDeleteMessage}
+          unreadClubs={unreadClubs}
         />
       ) : (
         <DMContainer
           directMessageUser={directMessageUser}
           setDirectMessageUser={setDirectMessageUser}
+          unreadConversations={unreadConversations}
         />
       )}
     </div>

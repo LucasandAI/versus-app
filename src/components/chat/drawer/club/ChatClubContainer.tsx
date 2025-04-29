@@ -1,20 +1,17 @@
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
-import ChatSidebarContent from '../ChatSidebarContent';
-import ChatClubContent from '../../../chat/ChatClubContent';
-import { ArrowLeft } from 'lucide-react';
-import UserAvatar from '@/components/shared/UserAvatar';
-import { useNavigation } from '@/hooks/useNavigation';
-import { useUnreadMessages } from '@/context/UnreadMessagesContext';
+import ClubsList from '@/components/chat/sidebar/ClubsList';
+import ChatMainContent from '../chat-content/ChatMainContent';
 
 interface ChatClubContainerProps {
   clubs: Club[];
   selectedClub: Club | null;
   onSelectClub: (club: Club) => void;
   messages?: Record<string, any[]>;
-  onSendMessage: (message: string, clubId?: string) => void;
+  onSendMessage?: (message: string, clubId?: string) => void;
   onDeleteMessage?: (messageId: string) => void;
+  unreadClubs?: Set<string>;
 }
 
 const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
@@ -23,95 +20,35 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   onSelectClub,
   messages = {},
   onSendMessage,
-  onDeleteMessage
+  onDeleteMessage,
+  unreadClubs = new Set()
 }) => {
-  const { navigateToClubDetail } = useNavigation();
-  const { markClubMessagesAsRead } = useUnreadMessages();
-
-  // Mark messages as read when a club is selected
-  useEffect(() => {
-    if (selectedClub) {
-      // Mark as read when selected
-      markClubMessagesAsRead(selectedClub.id);
-      
-      // Dispatch club selected event for other components
-      window.dispatchEvent(new CustomEvent('clubSelected', { 
-        detail: { clubId: selectedClub.id } 
-      }));
-    }
-    
-    return () => {
-      // Dispatch club deselected event when component unmounts or club changes
-      window.dispatchEvent(new CustomEvent('clubDeselected'));
-    };
-  }, [selectedClub, markClubMessagesAsRead]);
-
-  const handleMatchClick = () => {
-    // Future implementation
-  };
-
-  const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
-    const event = new CustomEvent('openDirectMessage', {
-      detail: { userId, userName, userAvatar }
-    });
-    window.dispatchEvent(event);
-  };
-
-  const handleGoBack = () => {
-    onSelectClub(null);
-  };
-
-  const handleClubClick = () => {
-    if (selectedClub) {
-      navigateToClubDetail(selectedClub.id, selectedClub);
-    }
-  };
-
-  // If no club is selected, show the clubs list
-  if (!selectedClub) {
-    return (
-      <div className="flex flex-col h-full">
-        <ChatSidebarContent 
-          clubs={clubs}
-          selectedClub={selectedClub}
-          onSelectClub={onSelectClub}
-          onSelectUser={handleSelectUser}
-          activeTab="clubs"
-        />
-      </div>
-    );
-  }
-
-  // If a club is selected, show the full-width chat
   return (
-    <div className="flex flex-col h-full">
-      <div className="border-b p-3 flex items-center">
-        <button 
-          onClick={handleGoBack}
-          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <div className="flex-1 flex justify-center items-center gap-2 cursor-pointer hover:text-primary transition-colors" onClick={handleClubClick}>
-          <UserAvatar 
-            name={selectedClub.name} 
-            image={selectedClub.logo}
-            size="sm"
-          />
-          <h3 className="font-semibold">{selectedClub.name}</h3>
-        </div>
-        <div className="w-9"></div>
-      </div>
-      
-      <div className="flex-1">
-        <ChatClubContent 
-          club={selectedClub}
-          messages={messages[selectedClub.id] || []}
-          onMatchClick={handleMatchClick}
-          onSelectUser={handleSelectUser}
-          onSendMessage={onSendMessage}
-          onDeleteMessage={onDeleteMessage}
+    <div className="h-full flex">
+      <div className="w-1/3 border-r overflow-y-auto">
+        <ClubsList 
+          clubs={clubs} 
+          selectedClubId={selectedClub?.id} 
+          onSelectClub={onSelectClub}
+          unreadClubs={unreadClubs}
         />
+      </div>
+      <div className="w-2/3 flex flex-col overflow-hidden">
+        {selectedClub ? (
+          <ChatMainContent
+            clubId={selectedClub.id}
+            clubName={selectedClub.name}
+            messages={messages[selectedClub.id] || []}
+            onSendMessage={(message) => onSendMessage?.(message, selectedClub.id)}
+            onDeleteMessage={onDeleteMessage}
+          />
+        ) : (
+          <div className="flex-1 flex items-center justify-center p-4 text-center text-gray-500">
+            <div>
+              <p>Select a club to start chatting</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
