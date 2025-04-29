@@ -6,6 +6,7 @@ import ChatDrawerHandler from './ChatDrawerHandler';
 import { useHomeNotifications } from '@/hooks/home/useHomeNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 
 interface HomeNotificationsHandlerProps {
   userClubs: Club[];
@@ -19,46 +20,71 @@ const HomeNotificationsHandler: React.FC<HomeNotificationsHandlerProps> = ({
   onSelectUser
 }) => {
   const { currentUser } = useApp();
+  const { markClubAsUnread, markConversationAsUnread, fetchUnreadCounts } = useUnreadMessages();
   const {
     notifications,
     setNotifications,
     updateUnreadCount,
   } = useHomeNotifications();
 
+  // Fetch unread counts on mount
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetchUnreadCounts();
+    }
+  }, [currentUser?.id, fetchUnreadCounts]);
+
   // Listen for real-time chat messages
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !userClubs.length) return;
+    
+    // Get club IDs for subscription filter
+    const clubIds = userClubs.map(club => club.id);
     
     // Subscribe to club messages for the user's clubs
-    const channel = supabase
-      .channel('chat-updates')
+    const clubChannel = supabase
+      .channel('home-chat-updates')
       .on(
         'postgres_changes',
         { 
           event: 'INSERT', 
           schema: 'public', 
           table: 'club_chat_messages',
-          filter: `club_id=in.(${userClubs.map(club => `'${club.id}'`).join(',')})` 
+          filter: `club_id=in.(${clubIds.map(id => `'${id}'`).join(',')})` 
         },
         (payload) => {
           if (payload.new.sender_id !== currentUser.id) {
-            // Update unread count if the message is not from current user
             const clubId = payload.new.club_id;
-            
-            // Dispatch event to update unread messages
-            const event = new CustomEvent('unreadMessagesUpdated', { 
-              detail: { clubId }
-            });
-            window.dispatchEvent(event);
+            markClubAsUnread(clubId);
+          }
+        }
+      )
+      .subscribe();
+    
+    // Subscribe to direct messages
+    const dmChannel = supabase
+      .channel('home-dm-updates')
+      .on(
+        'postgres_changes',
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'direct_messages',
+          filter: `receiver_id=eq.${currentUser.id}`
+        },
+        (payload) => {
+          if (payload.new.sender_id !== currentUser.id) {
+            markConversationAsUnread(payload.new.conversation_id);
           }
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(clubChannel);
+      supabase.removeChannel(dmChannel);
     };
-  }, [currentUser, userClubs]);
+  }, [currentUser, userClubs, markClubAsUnread, markConversationAsUnread]);
 
   return (
     <>

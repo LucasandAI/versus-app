@@ -18,13 +18,13 @@ interface ChatDrawerContainerProps {
   directMessageUser: {
     userId: string;
     userName: string;
-    userAvatar: string; // Made required
+    userAvatar: string;
     conversationId: string;
   } | null;
   setDirectMessageUser: React.Dispatch<React.SetStateAction<{
     userId: string;
     userName: string;
-    userAvatar: string; // Made required
+    userAvatar: string;
     conversationId: string;
   } | null>>;
 }

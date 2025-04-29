@@ -27,18 +27,31 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
 }) => {
   const { setCurrentView, currentUser, setSelectedUser } = useApp();
   const { open } = useChatDrawerGlobal();
-  const { totalUnreadCount } = useUnreadMessages();
+  const { totalUnreadCount, fetchUnreadCounts } = useUnreadMessages();
   
   // Add state to force re-render when unread count changes
   const [unreadCount, setUnreadCount] = useState(totalUnreadCount);
   
+  // Update local state when context value changes
   useEffect(() => {
-    // Update local state when totalUnreadCount changes
     setUnreadCount(totalUnreadCount);
-    
-    // Also listen for global unread message updates
+  }, [totalUnreadCount]);
+  
+  // Fetch unread counts when component mounts
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetchUnreadCounts();
+    }
+  }, [currentUser?.id, fetchUnreadCounts]);
+  
+  // Listen for global unread message updates
+  useEffect(() => {
     const handleUnreadMessagesUpdated = () => {
-      setUnreadCount(prev => prev + 1); // Temporary increment until context updates
+      // Force a re-render by updating local state
+      setUnreadCount(count => {
+        // We'll get the real count from context in the next effect
+        return count;
+      });
     };
     
     window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
@@ -46,7 +59,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     return () => {
       window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
     };
-  }, [totalUnreadCount]);
+  }, []);
   
   const handleViewOwnProfile = () => {
     if (currentUser) {

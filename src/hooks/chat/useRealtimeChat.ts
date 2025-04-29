@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 
 // This hook is now focused only on updating unread counts and firing events
 // The actual message display is handled by useClubMessages
@@ -9,6 +10,8 @@ export const useRealtimeChat = (
   currentUserId: string | undefined,
   userClubs: Club[]
 ) => {
+  const { markClubAsUnread } = useUnreadMessages();
+
   useEffect(() => {
     if (!currentUserId || userClubs.length === 0) {
       console.log('[useRealtimeChat] No current user ID or clubs, not setting up subscription');
@@ -35,13 +38,10 @@ export const useRealtimeChat = (
           if (payload.new.sender_id !== currentUserId) {
             // Update unread count if the message is not from current user
             const clubId = payload.new.club_id;
-            console.log('[useRealtimeChat] Dispatching unread message event for club:', clubId);
+            console.log('[useRealtimeChat] Marking club as unread:', clubId);
             
-            // Dispatch event to update unread messages
-            const event = new CustomEvent('unreadMessagesUpdated', { 
-              detail: { clubId }
-            });
-            window.dispatchEvent(event);
+            // Mark club as unread (which will trigger UI updates)
+            markClubAsUnread(clubId);
           }
         }
       )
@@ -53,5 +53,5 @@ export const useRealtimeChat = (
       console.log('[useRealtimeChat] Cleaning up global subscription');
       supabase.removeChannel(channel);
     };
-  }, [currentUserId, userClubs]);
+  }, [currentUserId, userClubs, markClubAsUnread]);
 };

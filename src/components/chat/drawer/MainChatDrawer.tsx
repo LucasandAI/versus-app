@@ -8,6 +8,7 @@ import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { useChatActions } from '@/hooks/chat/useChatActions';
 import { useApp } from '@/context/AppContext';
 import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -37,20 +38,23 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   
   const { sendMessageToClub, deleteMessage } = useChatActions();
   const { currentUser } = useApp();
+  const { fetchUnreadCounts } = useUnreadMessages();
   
   // Access conversations from context
   const { fetchConversations } = useDirectConversationsContext();
 
-  // Effect to fetch conversations when drawer opens
+  // Refresh unread counts when drawer opens
   useEffect(() => {
     if (open && currentUser?.id) {
+      fetchUnreadCounts();
+      
       // Only fetch if we're on the DM tab
       if (activeTab === "dm") {
         console.log("[MainChatDrawer] Drawer opened with DM tab, ensuring conversations are loaded");
         fetchConversations();
       }
     }
-  }, [open, currentUser?.id, activeTab, fetchConversations]);
+  }, [open, currentUser?.id, activeTab, fetchConversations, fetchUnreadCounts]);
   
   useEffect(() => {
     const handleOpenDM = (event: CustomEvent<{
@@ -82,6 +86,9 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
 
   const handleSelectClub = (club: Club) => {
     setSelectedLocalClub(club);
+    
+    // Dispatch event to notify components that this club was selected
+    window.dispatchEvent(new CustomEvent('clubSelected', { detail: { clubId: club.id } }));
   };
 
   const handleSendMessage = async (message: string, clubId?: string) => {
@@ -100,6 +107,11 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   
   const handleTabChange = (tab: "clubs" | "dm") => {
     setActiveTab(tab);
+    
+    // If changing away from a club tab, dispatch the deselection event
+    if (tab !== "clubs" && selectedLocalClub) {
+      window.dispatchEvent(new CustomEvent('clubDeselected'));
+    }
   };
 
   return (
