@@ -29,7 +29,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   const { setCurrentView, currentUser, setSelectedUser } = useApp();
   const { open } = useChatDrawerGlobal();
   const { totalUnreadCount: unreadDMCount } = useUnreadMessages();
-  const { clubUnreadCount } = useUnreadCounts(currentUser?.id);
+  const { clubUnreadCount } = useUnreadCounts(); // Remove the parameter
   
   const hasUnreadMessages = unreadDMCount + clubUnreadCount > 0;
 

@@ -22,6 +22,7 @@ const HomeNotificationsHandler: React.FC<HomeNotificationsHandlerProps> = ({
   const {
     unreadMessages,
     setUnreadMessages,
+    updateUnreadCount,
     notifications,
     setNotifications,
   } = useHomeNotifications();
@@ -64,14 +65,14 @@ const HomeNotificationsHandler: React.FC<HomeNotificationsHandlerProps> = ({
   return (
     <>
       <HomeNotifications
-        setChatNotifications={setUnreadMessages}
+        setChatNotifications={updateUnreadCount}
         setNotifications={setNotifications}
       />
 
       <ChatDrawerHandler 
         userClubs={userClubs}
         onSelectUser={onSelectUser}
-        setUnreadMessages={setUnreadMessages}
+        setUnreadMessages={updateUnreadCount}
       />
     </>
   );

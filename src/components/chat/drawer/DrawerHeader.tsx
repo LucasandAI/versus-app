@@ -19,7 +19,7 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
 }) => {
   const { currentUser } = useApp();
   const { unreadConversations } = useUnreadMessages();
-  const { unreadClubs } = useUnreadCounts(currentUser?.id);
+  const { unreadClubs } = useUnreadCounts(); // Remove the parameter
 
   return (
     <div className="px-4 py-2 border-b">
