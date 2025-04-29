@@ -32,8 +32,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   const {
     notifications,
     setNotifications,
-    unreadMessages,
-    setUnreadMessages,
     handleMarkAsRead,
     handleDeclineInvite,
     handleClearAllNotifications
@@ -79,7 +77,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
           
           <HomeHeader 
             notifications={notifications}
-            unreadMessages={unreadMessages}
             onMarkAsRead={handleMarkAsRead}
             onClearAll={handleClearAllNotifications}
             onUserClick={handleSelectUser}
@@ -100,7 +97,7 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
         <ChatDrawerHandler 
           userClubs={userClubs}
           onSelectUser={handleSelectUser}
-          setUnreadMessages={setUnreadMessages}
+          setUnreadMessages={() => {}} // This is now a no-op since we use the global context
         />
         <SearchClubDialog
           open={searchDialogOpen}

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
@@ -17,7 +18,6 @@ interface HomeViewProps {
 
 const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   const { setCurrentView, setSelectedClub, setSelectedUser, currentUser } = useApp();
-  const [unreadMessages, setUnreadMessages] = useState(chatNotifications);
   const [notifications, setNotifications] = useState<any[]>([]);
   const { chatDrawerOpen, setChatDrawerOpen } = useChatDrawer();
 
@@ -102,13 +102,12 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
     <div className="pb-20 pt-6">
       <div className="container-mobile">
         <HomeNotifications 
-          setChatNotifications={setUnreadMessages}
+          setChatNotifications={() => {}} // Now a no-op since we use the global context
           setNotifications={setNotifications}
         />
         
         <HomeHeader 
           notifications={notifications}
-          unreadMessages={unreadMessages}
           onMarkAsRead={handleMarkNotificationAsRead}
           onClearAll={handleClearAllNotifications}
           onUserClick={handleSelectUser}
