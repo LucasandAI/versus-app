@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { JoinRequest, Club, ClubMember } from '@/types';
@@ -61,8 +62,7 @@ export const useJoinRequests = () => {
             data: {
               clubName: club.name,
               clubLogo: club.logo
-            },
-            timestamp: new Date().toISOString()
+            }
           });
         
         // Dispatch event to update notifications in real-time
@@ -149,7 +149,6 @@ export const useJoinRequests = () => {
             user_id: request.userId,
             club_id: request.clubId,
             type: 'join_request',
-            status: 'rejected',
             message: `Your request to join the club has been declined.`,
             read: false
           });
@@ -188,7 +187,7 @@ export const useJoinRequests = () => {
     try {
       console.log('[useJoinRequests] Fetching club requests for club:', clubId);
       
-      // Query only returns pending requests (no status filter needed anymore)
+      // Query club_requests table directly
       const { data: requestsData, error: requestsError } = await supabase
         .from('club_requests')
         .select('id, user_id, club_id, created_at')

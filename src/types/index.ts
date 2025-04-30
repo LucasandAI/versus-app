@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -52,7 +51,6 @@ export interface ClubRequest {
   id: string;
   userId: string;
   clubId: string;
-  status: 'pending'; // Keeping for backwards compatibility, but now always 'pending'
   createdAt: string;
 }
 

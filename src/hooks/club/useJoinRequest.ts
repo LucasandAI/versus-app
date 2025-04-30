@@ -85,7 +85,6 @@ export const useJoinRequest = (clubId: string) => {
               club_id: clubId,
               type: 'join_request',
               message: `${userData?.name || 'Someone'} has requested to join ${clubData?.name || 'your club'}.`,
-              status: 'pending',
               read: false
             });
           }

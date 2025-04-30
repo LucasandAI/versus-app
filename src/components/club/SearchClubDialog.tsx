@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Search, X, UserPlus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
@@ -85,8 +84,7 @@ const SearchClubDialog: React.FC<SearchClubDialogProps> = ({
       const { data, error } = await supabase
         .from('club_requests')
         .select('club_id')
-        .eq('user_id', currentUser.id)
-        .eq('status', 'pending');
+        .eq('user_id', currentUser.id);
         
       if (error) {
         console.error('Error fetching pending requests:', error);

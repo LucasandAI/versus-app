@@ -31,7 +31,6 @@ export const useClubRequests = (clubId: string) => {
         id: request.id,
         userId: request.user_id,
         clubId: request.club_id,
-        status: 'pending', // Hardcoded since we only store pending requests
         createdAt: request.created_at
       })));
     } catch (error) {
