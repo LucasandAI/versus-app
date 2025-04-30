@@ -60,17 +60,15 @@ const ClubsList: React.FC<ClubsListProps> = ({
 
   return (
     <div className="p-3">
-      <h3 className="text-sm font-medium mb-2">Your Clubs</h3>
+      <h1 className="text-4xl font-bold mb-4">Clubs</h1>
       
-      <div className="space-y-1">
+      <div className="divide-y">
         {sortedClubs.map(club => {
           // Get club ID as string to ensure consistent comparison
           const clubId = String(club.id);
           const isUnread = unreadClubs.has(clubId);
           
           console.log(`[ClubsList] Rendering club ${club.name} (${clubId}), isUnread:`, isUnread);
-          console.log(`[ClubsList] Club ${clubId} contained in unreadClubs:`, 
-            Array.from(unreadClubs).includes(clubId));
           
           const lastMessage = lastMessages[club.id];
           const formattedTime = lastMessage?.timestamp 
@@ -79,92 +77,56 @@ const ClubsList: React.FC<ClubsListProps> = ({
             
           return (
             <div 
-              // Use a composite key that changes when unread status changes
               key={`${club.id}-${isUnread ? 'unread' : 'read'}-${unreadKey}`}
-              className="flex flex-col relative group"
+              className={`flex items-start px-4 py-3 cursor-pointer hover:bg-gray-50 relative group
+                ${selectedClub?.id === club.id ? 'bg-primary/10 text-primary' : ''}
+                ${isUnread ? 'font-medium' : ''}`}
+              onClick={(e) => handleClubClick(club, e)}
             >
-              <button 
-                className={`w-full flex items-center p-3 rounded-md text-left transition-colors ${
-                  selectedClub?.id === club.id ? 'bg-primary/10 text-primary' : 'hover:bg-gray-100'
-                }`} 
-                onClick={(e) => handleClubClick(club, e)}
-              >
-                <div className="flex-shrink-0 mr-3 relative">
-                  <UserAvatar name={club.name} image={club.logo || ''} size="lg" />
-                </div>
+              <UserAvatar 
+                name={club.name} 
+                image={club.logo || ''} 
+                size="lg"
+                className="flex-shrink-0 mr-3"
+              />
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center">
-                      <p 
-                        className={`truncate text-lg ${isUnread ? 'font-bold' : 'font-medium'}`}
-                        style={{
-                          fontWeight: isUnread ? 900 : 400,
-                          color: isUnread ? 'black' : 'inherit' 
-                        }}
-                      >
-                        {club.name}
-                      </p>
-                      {isUnread && (
-                        <Badge 
-                          variant="dot" 
-                          className="ml-2 !inline-block !visible" 
-                          style={{
-                            display: 'block', 
-                            opacity: 1, 
-                            visibility: 'visible' as const,
-                            backgroundColor: '#ef4444',
-                            width: '8px',
-                            height: '8px',
-                            minWidth: '8px',
-                            minHeight: '8px',
-                            borderRadius: '50%'
-                          }}
-                        />
-                      )}
-                    </div>
-                    {formattedTime && (
-                      <span 
-                        className={`ml-2 text-xs ${isUnread ? 'font-bold text-gray-900' : 'text-gray-500'}`}
-                        style={{
-                          fontWeight: isUnread ? 700 : 400,
-                          color: isUnread ? '#111827' : ''
-                        }}
-                      >
-                        {formattedTime}
-                      </span>
+              <div className="flex-1 min-w-0 overflow-hidden">
+                <div className="flex items-center justify-between mb-1">
+                  <h2 className={`text-lg truncate max-w-[60%] ${isUnread ? 'font-bold' : 'font-medium'}`}>
+                    {club.name}
+                    {isUnread && (
+                      <span className="ml-2 inline-flex h-2 w-2 bg-red-500 rounded-full" />
                     )}
-                  </div>
-                  
-                  <div className="flex items-center justify-between mt-1">
+                  </h2>
+                  {formattedTime && (
+                    <span className={`text-xs ${isUnread ? 'font-bold' : 'text-gray-500'} flex-shrink-0 ml-auto`}>
+                      {formattedTime}
+                    </span>
+                  )}
+                </div>
+                
+                <div className="flex items-center">
+                  <p className={`text-sm truncate flex-1 ${isUnread ? 'text-gray-900' : 'text-gray-600'}`}>
                     {lastMessage ? (
-                      <p 
-                        className={`text-sm ${isUnread ? 'font-bold text-gray-900' : 'text-gray-600'} truncate pr-2`}
-                        style={{
-                          fontWeight: isUnread ? 700 : 400,
-                          color: isUnread ? '#111827' : ''
-                        }}
-                      >
-                        <span 
-                          className={isUnread ? 'font-bold' : 'font-medium'}
-                          style={{
-                            fontWeight: isUnread ? 700 : 500
-                          }}
-                        >
+                      <>
+                        <span className={isUnread ? 'font-bold' : 'font-medium'}>
                           {lastMessage.sender?.name || 'Unknown'}:
                         </span>{' '}
                         {truncateMessage(lastMessage.message)}
-                      </p>
+                      </>
                     ) : (
-                      <p className="text-sm text-gray-600 truncate pr-2">
-                        No messages yet
-                      </p>
+                      "No messages yet"
                     )}
-                  </div>
-                  
-                  <ClubMembersPopover club={club} onSelectUser={onSelectUser} />
+                  </p>
+                  {isUnread && (
+                    <Badge variant="destructive" className="ml-1 h-5 min-w-5 flex items-center justify-center rounded-full p-1">
+                      •
+                    </Badge>
+                  )}
                 </div>
-              </button>
+                
+                <ClubMembersPopover club={club} onSelectUser={onSelectUser} />
+              </div>
             </div>
           );
         })}

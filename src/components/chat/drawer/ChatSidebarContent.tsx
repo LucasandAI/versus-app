@@ -28,17 +28,19 @@ const ChatSidebarContent: React.FC<ChatSidebarContentProps> = ({
   const unreadKey = JSON.stringify([...unreadClubs].sort());
   
   return (
-    <ChatSidebar
-      key={`chat-sidebar-${unreadKey}`}
-      clubs={clubs}
-      selectedClub={selectedClub}
-      onSelectClub={onSelectClub}
-      onDeleteChat={onDeleteChat}
-      unreadCounts={unreadCounts}
-      unreadClubs={unreadClubs}
-      onSelectUser={onSelectUser}
-      activeTab={activeTab}
-    />
+    <div className="h-full flex flex-col overflow-hidden">
+      <ChatSidebar
+        key={`chat-sidebar-${unreadKey}`}
+        clubs={clubs}
+        selectedClub={selectedClub}
+        onSelectClub={onSelectClub}
+        onDeleteChat={onDeleteChat}
+        unreadCounts={unreadCounts}
+        unreadClubs={unreadClubs}
+        onSelectUser={onSelectUser}
+        activeTab={activeTab}
+      />
+    </div>
   );
 };
 

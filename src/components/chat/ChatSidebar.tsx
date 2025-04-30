@@ -51,7 +51,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   const unreadKey = JSON.stringify([...unreadClubs].sort());
 
   return (
-    <div className="w-[240px] border-r overflow-auto">
+    <div className="flex-1 overflow-auto bg-white">
       {/* Only show clubs when the clubs tab is active */}
       {activeTab === "clubs" && (
         <ClubsList

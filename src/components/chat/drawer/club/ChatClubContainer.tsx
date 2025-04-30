@@ -79,7 +79,7 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   // If no club is selected, show the clubs list
   if (!selectedClub) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full overflow-hidden">
         <ChatSidebarContent 
           key={`sidebar-content-${unreadKey}`}
           clubs={clubs}
