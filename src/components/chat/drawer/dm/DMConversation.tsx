@@ -13,31 +13,33 @@ import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 import DMMessageInput from './DMMessageInput';
 
 interface DMConversationProps {
-  userId: string;
-  userName: string;
-  userAvatar: string;
+  user: {
+    id: string;
+    name: string;
+    avatar: string;
+  };
   conversationId: string;
+  onBack: () => void;
 }
 
 const DMConversation: React.FC<DMConversationProps> = ({ 
-  userId, 
-  userName, 
-  userAvatar,
-  conversationId
+  user, 
+  conversationId,
+  onBack
 }) => {
   const { currentUser } = useApp();
   const { navigateToUserProfile } = useNavigation();
-  const { messages, setMessages, addMessage, isSending, setIsSending, deleteMessage } = useDMMessages(userId, userName, conversationId);
+  const { messages, setMessages, addMessage, isSending, setIsSending, deleteMessage } = useDMMessages(user.id, user.name, conversationId);
   const { conversations, fetchConversations } = useConversations([]);
   const { formatTime } = useMessageFormatting();
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const { markConversationAsRead } = useUnreadMessages();
   
   // Custom hooks
-  const { createConversation } = useConversationManagement(currentUser?.id, userId);
+  const { createConversation } = useConversationManagement(currentUser?.id, user.id);
   const { handleSendMessage, handleDeleteMessage } = useMessageHandling(
     currentUser?.id,
-    userId,
+    user.id,
     conversationId,
     setMessages,
     setIsSending,
@@ -45,7 +47,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
   );
   
   // Use subscription hook
-  useDMSubscription(conversationId, userId, currentUser?.id, setMessages, addMessage);
+  useDMSubscription(conversationId, user.id, currentUser?.id, setMessages, addMessage);
 
   // Scroll to bottom on new messages
   React.useEffect(() => {
@@ -84,7 +86,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
         <DMMessageInput
           onSendMessage={handleSendMessage}
           isSending={isSending}
-          userId={userId}
+          userId={user.id}
           conversationId={conversationId}
         />
       </div>

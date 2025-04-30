@@ -72,7 +72,12 @@ const DMContainer: React.FC<DMContainerProps> = ({
 
   // The user wants to search for someone
   if (showSearch) {
-    return <DMSearchPanel onSelect={handleSearchSelect} onBack={() => setShowSearch(false)} />;
+    return (
+      <DMSearchPanel 
+        onSelect={handleSearchSelect} 
+        onBack={() => setShowSearch(false)} 
+      />
+    );
   }
 
   // Show the conversation list (default view)
