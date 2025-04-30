@@ -43,7 +43,7 @@ export const useClubLastMessages = (clubs: Club[]) => {
 
       setLastMessages(latestMessages);
       
-      // Sort clubs by most recent message timestamp
+      // Sort clubs by most recent message timestamp - no memoization, direct sorting on every update
       const clubsWithTimestamps = clubs.map(club => {
         const lastMessage = latestMessages[club.id];
         // Use the message timestamp or a default old date if no messages
@@ -62,7 +62,7 @@ export const useClubLastMessages = (clubs: Club[]) => {
         .sort((a, b) => b.lastTimestamp - a.lastTimestamp)
         .map(item => item.club);
         
-      // Update sorted clubs directly without any caching or memoization
+      // Update sorted clubs directly
       console.log('[useClubLastMessages] Setting sorted clubs:', sorted);
       setSortedClubs(sorted);
     };
@@ -92,7 +92,7 @@ export const useClubLastMessages = (clubs: Club[]) => {
     };
   }, [clubs]);
 
-  // Include debugging information in the returned object
+  // Return without any memoization to ensure fresh data on each render
   return { 
     lastMessages, 
     sortedClubs: sortedClubs.length > 0 ? sortedClubs : clubs,

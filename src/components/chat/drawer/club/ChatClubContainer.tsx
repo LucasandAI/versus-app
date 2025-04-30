@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { Club } from '@/types';
 import ChatSidebarContent from '../ChatSidebarContent';
@@ -12,6 +13,7 @@ interface ChatClubContainerProps {
   selectedClub: Club | null;
   onSelectClub: (club: Club) => void;
   messages?: Record<string, any[]>;
+  unreadClubs?: Set<string>;
   onSendMessage: (message: string, clubId?: string) => void;
   onDeleteMessage?: (messageId: string) => void;
 }
@@ -21,11 +23,12 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   selectedClub,
   onSelectClub,
   messages = {},
+  unreadClubs = new Set(),
   onSendMessage,
   onDeleteMessage
 }) => {
   const { navigateToClubDetail } = useNavigation();
-  const { markClubMessagesAsRead, unreadClubs } = useUnreadMessages();
+  const { markClubMessagesAsRead } = useUnreadMessages();
 
   // Mark messages as read when a club is selected
   useEffect(() => {
@@ -70,16 +73,21 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
     }
   };
 
+  // Create a key for forced re-renders when unread status changes
+  const unreadKey = JSON.stringify([...unreadClubs].sort());
+
   // If no club is selected, show the clubs list
   if (!selectedClub) {
     return (
       <div className="flex flex-col h-full">
         <ChatSidebarContent 
+          key={`sidebar-content-${unreadKey}`}
           clubs={clubs}
           selectedClub={selectedClub}
           onSelectClub={onSelectClub}
           onSelectUser={handleSelectUser}
           activeTab="clubs"
+          unreadClubs={unreadClubs}
         />
       </div>
     );

@@ -8,6 +8,7 @@ import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { useChatActions } from '@/hooks/chat/useChatActions';
 import { useApp } from '@/context/AppContext';
 import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
+import { useUnreadMessages } from '@/context/unread-messages';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -34,6 +35,36 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     userAvatar: string;
     conversationId: string;
   } | null>(null);
+  
+  // Add a local copy of unreadClubs for direct passing and forced re-renders
+  const { unreadClubs, unreadConversations } = useUnreadMessages();
+  const [localUnreadClubs, setLocalUnreadClubs] = useState<Set<string>>(new Set());
+  const [localUnreadConversations, setLocalUnreadConversations] = useState<Set<string>>(new Set());
+  const [forceUpdateKey, setForceUpdateKey] = useState(Date.now());
+  
+  // Force re-render when unreadClubs changes
+  useEffect(() => {
+    setLocalUnreadClubs(new Set(unreadClubs));
+    setForceUpdateKey(Date.now());
+  }, [unreadClubs]);
+
+  // Force re-render when unreadConversations changes
+  useEffect(() => {
+    setLocalUnreadConversations(new Set(unreadConversations));
+  }, [unreadConversations]);
+  
+  // Listen for global unread message events
+  useEffect(() => {
+    const handleUnreadMessagesUpdate = () => {
+      console.log('[MainChatDrawer] Detected unreadMessagesUpdated event, forcing re-render');
+      setForceUpdateKey(Date.now());
+    };
+    
+    window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdate);
+    return () => {
+      window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdate);
+    };
+  }, []);
   
   const { sendMessageToClub, deleteMessage } = useChatActions();
   const { currentUser } = useApp();
@@ -113,6 +144,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
           />
           
           <ChatDrawerContainer 
+            key={`drawer-container-${forceUpdateKey}`}
             activeTab={activeTab}
             clubs={clubs}
             selectedLocalClub={selectedLocalClub}
@@ -120,6 +152,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             messages={clubMessages}
             deleteChat={() => {}}
             unreadMessages={{}}
+            unreadClubs={localUnreadClubs}
+            unreadConversations={localUnreadConversations}
             handleNewMessage={() => {}}
             onSendMessage={handleSendMessage}
             onDeleteMessage={handleDeleteMessage}

@@ -31,8 +31,8 @@ export interface BadgeProps
     VariantProps<typeof badgeVariants> {}
 
 function Badge({ className, variant, ...props }: BadgeProps) {
-  // Fix the inlineStyles object to use valid TypeScript types for 'visibility'
-  const inlineStyles = variant === "dot" ? {
+  // Enhanced inline styles for dot variant to ensure visibility
+  const inlineStyles: React.CSSProperties = variant === "dot" ? {
     display: "block",
     opacity: 1,
     visibility: "visible" as const, // Type assertion to fix the error
@@ -47,7 +47,7 @@ function Badge({ className, variant, ...props }: BadgeProps) {
 
   return (
     <div 
-      className={cn(badgeVariants({ variant }), className)} 
+      className={cn(badgeVariants({ variant }), className)}
       style={inlineStyles}
       {...props} 
     />
