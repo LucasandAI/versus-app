@@ -11,20 +11,20 @@ interface SearchResult {
 interface UserSearchResultsProps {
   results: SearchResult[];
   isLoading: boolean;
-  onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
-  visible: boolean;
+  onSelect: (userId: string, userName: string, userAvatar: string) => void;
+  showResults: boolean;
 }
 
 const UserSearchResults: React.FC<UserSearchResultsProps> = ({
   results,
   isLoading,
-  onSelectUser,
-  visible,
+  onSelect,
+  showResults,
 }) => {
-  if (!visible) return null;
+  if (!showResults) return null;
 
   const handleUserSelect = (user: SearchResult) => {
-    onSelectUser(user.id, user.name, user.avatar);
+    onSelect(user.id, user.name, user.avatar);
   };
 
   if (isLoading) {
@@ -36,7 +36,7 @@ const UserSearchResults: React.FC<UserSearchResultsProps> = ({
   }
 
   return (
-    <div className="absolute z-10 w-full bg-white border-x border-b rounded-b-lg shadow-lg max-h-[300px] overflow-y-auto">
+    <div className="flex-1 overflow-auto">
       {results.length === 0 ? (
         <div className="p-4 text-center text-gray-500">
           No users found

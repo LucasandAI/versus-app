@@ -22,7 +22,8 @@ const DMSearchPanel: React.FC<DMSearchPanelProps> = ({ onSelect, onBack }) => {
     setShowResults
   } = useUserSearch();
 
-  const handleSearchChange = (value: string) => {
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
     setQuery(value);
     searchUsers(value);
     setShowResults(true);
@@ -53,10 +54,10 @@ const DMSearchPanel: React.FC<DMSearchPanelProps> = ({ onSelect, onBack }) => {
         />
       </div>
       
-      <div className="flex-1 overflow-auto">
+      <div className="relative flex-1 overflow-auto">
         <UserSearchResults 
           results={searchResults}
-          loading={isLoading}
+          isLoading={isLoading}
           onSelect={handleSelect}
           showResults={showResults && query.length > 0}
         />
