@@ -70,20 +70,24 @@ const DMConversation: React.FC<DMConversationProps> = ({
 
   return (
     <div className="flex flex-col h-full w-full">
-      {/* Add back DMHeader component here */}
+      {/* Header with back button and centered user info */}
       <div className="border-b p-3 flex items-center">
         <button 
           onClick={onBack}
-          className="p-2 rounded-full hover:bg-gray-100 transition-colors mr-2"
+          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
         >
           <ArrowLeft size={20} />
         </button>
-        <div 
-          className="flex items-center gap-3 cursor-pointer hover:opacity-80" 
-          onClick={() => navigateToUserProfile(user.id, user.name, user.avatar)}
-        >
-          <DMHeader userId={user.id} userName={user.name} userAvatar={user.avatar} />
+        <div className="flex-1 flex justify-center">
+          <div 
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80" 
+            onClick={() => navigateToUserProfile(user.id, user.name, user.avatar)}
+          >
+            <DMHeader userId={user.id} userName={user.name} userAvatar={user.avatar} />
+          </div>
         </div>
+        {/* This empty div helps maintain balance in the header */}
+        <div className="w-9"></div>
       </div>
       
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
