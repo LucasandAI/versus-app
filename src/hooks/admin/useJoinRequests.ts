@@ -26,8 +26,9 @@ export const useJoinRequests = () => {
     
     try {
       setError(null);
+      
+      console.log('[useJoinRequests] Accepting request:', request.id);
 
-      // Begin transaction with Supabase
       // 1. Add user to club_members
       const { error: memberError } = await supabase
         .from('club_members')
@@ -37,15 +38,25 @@ export const useJoinRequests = () => {
           is_admin: false
         }]);
 
-      if (memberError) throw memberError;
+      if (memberError) {
+        console.error('[useJoinRequests] Error adding member:', memberError);
+        throw memberError;
+      }
+      
+      console.log('[useJoinRequests] Successfully added user to club_members');
 
-      // 2. Delete the request instead of updating its status
+      // 2. Delete the request from club_requests
       const { error: requestError } = await supabase
         .from('club_requests')
         .delete()
         .eq('id', request.id);
 
-      if (requestError) throw requestError;
+      if (requestError) {
+        console.error('[useJoinRequests] Error deleting request:', requestError);
+        throw requestError;
+      }
+      
+      console.log('[useJoinRequests] Successfully deleted request from club_requests');
 
       // 3. Create notification for the user
       try {
@@ -68,7 +79,7 @@ export const useJoinRequests = () => {
         // Dispatch event to update notifications in real-time
         window.dispatchEvent(new CustomEvent('notificationsUpdated'));
       } catch (notificationError) {
-        console.error('Error creating notification:', notificationError);
+        console.error('[useJoinRequests] Error creating notification:', notificationError);
         // Continue even if notification creation fails
       }
 
@@ -79,7 +90,10 @@ export const useJoinRequests = () => {
         .eq('id', request.userId)
         .single();
 
-      if (userError) throw userError;
+      if (userError) {
+        console.error('[useJoinRequests] Error fetching user data:', userError);
+        throw userError;
+      }
 
       // Create the new club member
       const newMember: ClubMember = {
