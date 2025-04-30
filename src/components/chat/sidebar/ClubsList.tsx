@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Club } from '@/types';
 import UserAvatar from '../../shared/UserAvatar';
@@ -6,7 +5,7 @@ import ClubMembersPopover from './ClubMembersPopover';
 import { useNavigation } from '@/hooks/useNavigation';
 import { formatDistanceToNow } from 'date-fns';
 import { useClubLastMessages } from '@/hooks/chat/messages/useClubLastMessages';
-import { useUnreadMessages } from '@/context/UnreadMessagesContext';
+import { useUnreadMessages } from '@/context/unread-messages';
 
 interface ClubsListProps {
   clubs: Club[];

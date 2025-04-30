@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Club } from '@/types';
 import ChatSidebarContent from '../ChatSidebarContent';
@@ -6,7 +5,7 @@ import ChatClubContent from '../../../chat/ChatClubContent';
 import { ArrowLeft } from 'lucide-react';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { useNavigation } from '@/hooks/useNavigation';
-import { useUnreadMessages } from '@/context/UnreadMessagesContext';
+import { useUnreadMessages } from '@/context/unread-messages';
 
 interface ChatClubContainerProps {
   clubs: Club[];

@@ -1,6 +1,5 @@
-
 import { useEffect } from 'react';
-import { useUnreadMessages } from '@/context/UnreadMessagesContext';
+import { useUnreadMessages } from '@/context/unread-messages';
 
 interface UseChatNotificationsProps {
   setChatNotifications: (count: number) => void;

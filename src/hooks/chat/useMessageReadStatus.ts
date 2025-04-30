@@ -1,7 +1,6 @@
-
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useUnreadMessages } from '@/context/UnreadMessagesContext';
+import { useUnreadMessages } from '@/context/unread-messages';
 
 export const useMessageReadStatus = () => {
   const { markConversationAsRead, markClubMessagesAsRead } = useUnreadMessages();
