@@ -31,11 +31,11 @@ export interface BadgeProps
     VariantProps<typeof badgeVariants> {}
 
 function Badge({ className, variant, ...props }: BadgeProps) {
-  // Add specific inline styles to ensure visibility
+  // Fix the inlineStyles object to use valid TypeScript types for 'visibility'
   const inlineStyles = variant === "dot" ? {
     display: "block",
     opacity: 1,
-    visibility: "visible",
+    visibility: "visible" as const, // Type assertion to fix the error
     backgroundColor: "rgb(239, 68, 68)",
     width: "8px",
     height: "8px",
