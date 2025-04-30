@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { JoinRequest, Club, ClubMember } from '@/types';
@@ -55,10 +54,19 @@ export const useJoinRequests = () => {
             user_id: request.userId,
             club_id: request.clubId,
             type: 'join_request',
-            status: 'accepted',
-            message: `Your request to join ${club.name} has been accepted.`,
-            read: false
+            title: "Request Accepted",
+            description: `Your request to join ${club.name} has been accepted.`,
+            message: `You've been added to ${club.name}.`,
+            read: false,
+            data: {
+              clubName: club.name,
+              clubLogo: club.logo
+            },
+            timestamp: new Date().toISOString()
           });
+        
+        // Dispatch event to update notifications in real-time
+        window.dispatchEvent(new CustomEvent('notificationsUpdated'));
       } catch (notificationError) {
         console.error('Error creating notification:', notificationError);
         // Continue even if notification creation fails

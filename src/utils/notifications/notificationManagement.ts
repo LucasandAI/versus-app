@@ -6,7 +6,10 @@ export const createNotification = async (notification: {
   user_id: string;
   type: 'invite' | 'join_request' | 'match_result' | 'match_start' | 'achievement';
   club_id: string;
+  title?: string;
+  description?: string;
   message?: string;
+  data?: any;
 }) => {
   try {
     const { error } = await supabase
@@ -15,9 +18,12 @@ export const createNotification = async (notification: {
         user_id: notification.user_id,
         type: notification.type,
         club_id: notification.club_id,
+        title: notification.title || '',
+        description: notification.description || '',
         message: notification.message || '',
-        status: 'pending',
-        read: false
+        data: notification.data || {},
+        read: false,
+        created_at: new Date().toISOString()
       });
       
     if (error) {
@@ -25,6 +31,8 @@ export const createNotification = async (notification: {
       return false;
     }
     
+    // Trigger notification update event
+    window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     return true;
   } catch (error) {
     console.error('Error in createNotification:', error);
@@ -35,12 +43,12 @@ export const createNotification = async (notification: {
 // Function to update notification status
 export const updateNotificationStatus = async (
   notificationId: string,
-  status: 'accepted' | 'rejected' | 'read'
+  status: 'read'
 ) => {
   try {
     const { error } = await supabase
       .from('notifications')
-      .update({ status, read: true })
+      .update({ read: status === 'read' })
       .eq('id', notificationId);
 
     if (error) {
@@ -48,6 +56,8 @@ export const updateNotificationStatus = async (
       return false;
     }
 
+    // Trigger notification update event
+    window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     return true;
   } catch (error) {
     console.error('Error in updateNotificationStatus:', error);

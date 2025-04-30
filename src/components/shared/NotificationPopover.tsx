@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, BellDot } from 'lucide-react';
 import { 
   Popover, 
   PopoverContent, 
@@ -9,6 +9,7 @@ import {
 import { NotificationList } from '../notifications/NotificationList';
 import { Notification } from '@/types';
 import { markAllNotificationsAsRead } from '@/lib/notificationUtils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface NotificationPopoverProps {
   notifications: Notification[];
@@ -33,13 +34,28 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   const unreadCount = notifications.filter(n => !n.read).length;
   
   // When the popover opens, mark all notifications as read immediately
-  const handleOpenChange = (isOpen: boolean) => {
+  const handleOpenChange = async (isOpen: boolean) => {
     setOpen(isOpen);
     
     // Mark all as read when opening the popover
     if (isOpen && unreadCount > 0) {
-      // Use the utility function to mark all as read
-      markAllNotificationsAsRead();
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        // Update all notifications for this user as read
+        await supabase
+          .from('notifications')
+          .update({ read: true })
+          .eq('user_id', user.id)
+          .eq('read', false);
+      }
+      
+      // Use the utility function to also update the local state
+      await markAllNotificationsAsRead();
+      
+      // Dispatch event to update UI
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     }
   };
 
@@ -62,7 +78,11 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button className="relative text-primary hover:bg-gray-100 rounded-full p-2">
-          <Bell className="h-5 w-5" />
+          {unreadCount > 0 ? (
+            <BellDot className="h-5 w-5" />
+          ) : (
+            <Bell className="h-5 w-5" />
+          )}
           {unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 h-4 w-4 text-[10px] flex items-center justify-center bg-red-500 text-white rounded-full">
               {unreadCount > 9 ? '9+' : unreadCount}

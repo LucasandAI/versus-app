@@ -1,7 +1,8 @@
 
 import { useEffect } from 'react';
 import { Notification } from '@/types';
-import { getNotificationsFromStorage } from '@/lib/notificationUtils';
+import { getNotificationsFromStorage, refreshNotifications } from '@/lib/notificationUtils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UseNotificationsProps {
   setNotifications: (notifications: Notification[]) => void;
@@ -16,8 +17,14 @@ export const useNotifications = ({ setNotifications }: UseNotificationsProps) =>
       setNotifications(notifications);
     };
 
+    // Initially fetch fresh notifications from Supabase
+    const fetchInitialNotifications = async () => {
+      await refreshNotifications();
+      loadNotificationsFromStorage();
+    };
+
     // Load notifications immediately
-    loadNotificationsFromStorage();
+    fetchInitialNotifications();
 
     // Listen for notification updates
     const handleNotificationsUpdated = () => {
@@ -25,15 +32,66 @@ export const useNotifications = ({ setNotifications }: UseNotificationsProps) =>
       loadNotificationsFromStorage();
     };
     
+    // Set up real-time subscription for notifications
+    const setupRealtimeSubscription = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      // Subscribe to new notifications
+      const channel = supabase
+        .channel('notifications-changes')
+        .on(
+          'postgres_changes',
+          { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`
+          },
+          async (payload) => {
+            console.log('New notification received:', payload);
+            // Refresh all notifications to ensure consistency
+            await refreshNotifications();
+            loadNotificationsFromStorage();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { 
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`
+          },
+          async (payload) => {
+            console.log('Notification updated:', payload);
+            await refreshNotifications();
+            loadNotificationsFromStorage();
+          }
+        )
+        .subscribe();
+        
+      return channel;
+    };
+    
+    const channel = setupRealtimeSubscription();
+    
     // Add event listeners for updates
     window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
     
     // Also reload notifications on window focus to catch any new ones
-    window.addEventListener('focus', loadNotificationsFromStorage);
+    window.addEventListener('focus', fetchInitialNotifications);
 
     return () => {
       window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
-      window.removeEventListener('focus', loadNotificationsFromStorage);
+      window.removeEventListener('focus', fetchInitialNotifications);
+      
+      // Clean up the channel subscription
+      if (channel) {
+        channel.then(ch => {
+          supabase.removeChannel(ch);
+        });
+      }
     };
   }, [setNotifications]);
 };

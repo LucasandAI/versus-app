@@ -57,12 +57,20 @@ export const refreshNotifications = async () => {
   const { data, error } = await supabase
     .from('notifications')
     .select(`
-      *,
+      id,
+      user_id,
+      club_id,
+      type,
+      title,
+      description,
+      message,
+      read,
+      created_at,
+      data,
       clubs:club_id (name, logo),
       users:user_id (name, avatar)
     `)
     .eq('user_id', user.id)
-    .or('status.eq.pending,status.eq.read')
     .order('created_at', { ascending: false });
     
   if (error) {
@@ -73,15 +81,18 @@ export const refreshNotifications = async () => {
   // Process notifications
   const processedNotifications = data.map(notification => ({
     id: notification.id,
-    type: notification.type === 'invite' ? 'invitation' : notification.type,
-    userId: notification.type === 'invite' ? notification.user_id : user.id,
-    userName: notification.type === 'invite' ? notification?.users?.name || 'Unknown User' : user?.user_metadata?.name || 'Unknown User',
-    userAvatar: notification.type === 'invite' ? notification?.users?.avatar : null,
+    type: notification.type,
+    title: notification.title || (notification.type === 'join_request' ? 'Request Accepted' : 'Notification'),
+    description: notification.description || '',
+    userId: notification.user_id,
+    userName: notification?.users?.name || 'Unknown User',
+    userAvatar: notification?.users?.avatar || null,
     clubId: notification.club_id,
     clubName: notification.clubs?.name || 'Unknown Club',
     message: notification.message || '',
     timestamp: notification.created_at,
-    read: notification.status === 'read',
+    read: notification.read || false,
+    data: notification.data || {},
     previouslyDisplayed: false
   }));
   
@@ -91,6 +102,8 @@ export const refreshNotifications = async () => {
   // Dispatch event to update UI
   const event = new CustomEvent('notificationsUpdated');
   window.dispatchEvent(event);
+  
+  return processedNotifications;
 };
 
 export const markAllNotificationsAsRead = async () => {
@@ -103,9 +116,9 @@ export const markAllNotificationsAsRead = async () => {
   // Update all pending notifications to read in Supabase
   const { error } = await supabase
     .from('notifications')
-    .update({ status: 'read' })
+    .update({ read: true })
     .eq('user_id', user.id)
-    .eq('status', 'pending');
+    .eq('read', false);
     
   if (error) {
     console.error('Error marking notifications as read:', error);
