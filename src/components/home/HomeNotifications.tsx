@@ -1,9 +1,7 @@
 
 import React, { useEffect } from 'react';
-import { useNotifications } from '@/hooks/useNotifications';
-import { useChatNotifications } from '@/hooks/useChatNotifications';
-import NotificationHandler from './NotificationHandler';
 import { supabase } from '@/integrations/supabase/client';
+import NotificationHandler from './NotificationHandler';
 import { refreshNotifications } from '@/lib/notificationUtils';
 
 interface HomeNotificationsProps {

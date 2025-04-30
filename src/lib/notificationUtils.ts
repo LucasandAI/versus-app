@@ -67,12 +67,9 @@ export const refreshNotifications = async () => {
       user_id,
       club_id,
       type,
-      title,
-      description,
       message,
       read,
       created_at,
-      data,
       clubs:club_id (name, logo),
       users:user_id (name, avatar)
     `)
@@ -90,8 +87,6 @@ export const refreshNotifications = async () => {
   const processedNotifications = data.map(notification => ({
     id: notification.id,
     type: notification.type,
-    title: notification.title || (notification.type === 'join_request' ? 'Request Accepted' : 'Notification'),
-    description: notification.description || '',
     userId: notification.user_id,
     userName: notification?.users?.name || 'Unknown User',
     userAvatar: notification?.users?.avatar || null,
@@ -100,7 +95,6 @@ export const refreshNotifications = async () => {
     message: notification.message || '',
     timestamp: notification.created_at,
     read: notification.read || false,
-    data: notification.data || {},
     previouslyDisplayed: false
   }));
   

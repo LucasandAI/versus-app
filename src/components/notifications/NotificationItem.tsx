@@ -4,8 +4,6 @@ import UserAvatar from '@/components/shared/UserAvatar';
 import { Notification } from '@/types';
 import { useApp } from '@/context/AppContext';
 import { findClubFromStorage, getMockClub, handleClubError } from '@/utils/notificationUtils';
-import { ActivityNotification } from './ActivityNotification';
-import { InvitationNotification } from './InvitationNotification';
 import { handleNotification } from '@/lib/notificationUtils';
 import { cn } from '@/lib/utils';
 import { useNavigation } from '@/hooks/useNavigation';
@@ -29,9 +27,6 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   const { navigateToUserProfile } = useNavigation();
 
   const handleClubClick = () => {
-    // The notification should already be marked as read by opening the popover
-    // No need to mark it as read again when clicking on club
-    
     const club = findClubFromStorage(notification.clubId);
     
     if (club) {
@@ -50,14 +45,11 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   };
 
   const handleUserItemClick = () => {
-    // The notification should already be marked as read by opening the popover
-    // No need to mark it as read again when clicking on user
     navigateToUserProfile(notification.userId, notification.userName, notification.userAvatar);
   };
 
   const handleJoinClub = () => {
     if (onJoinClub) {
-      // When joining club, completely remove the notification from storage
       handleNotification(notification.id, 'delete');
       onJoinClub(notification.clubId, notification.clubName);
     }
@@ -65,21 +57,27 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
 
   const handleDeclineInvite = () => {
     if (onDeclineInvite) {
-      // When declining invitation, completely remove the notification from storage
       handleNotification(notification.id, 'delete');
       onDeclineInvite(notification.id);
     }
   };
 
-  // Determine if the notification is new (unread and not yet displayed)
+  // Determine notification styling
   const isNewNotification = !notification.read;
-  const isUnseenNotification = !notification.previouslyDisplayed;
-
   const backgroundClass = cn(
     "p-3 border-b hover:bg-gray-50 transition-colors",
-    isNewNotification && "bg-blue-50",
-    isUnseenNotification && "bg-[#F2FCE2]" // Light green background for new notifications
+    isNewNotification && "bg-blue-50"
   );
+
+  // Build notification content
+  const clubNameSpan = notification.clubName ? (
+    <span 
+      className="font-semibold cursor-pointer hover:underline"
+      onClick={handleClubClick}
+    >
+      {notification.clubName}
+    </span>
+  ) : null;
 
   return (
     <div className={backgroundClass}>
@@ -93,32 +91,37 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
         />
         
         <div className="flex-1 min-w-0">
-          {notification.type === 'invitation' ? (
-            <InvitationNotification
-              userName={notification.userName}
-              onUserClick={handleUserItemClick}
-              userId={notification.userId}
-              clubName={notification.clubName}
-              onClubClick={handleClubClick}
-              message={notification.message || ''}
-              timestamp={notification.timestamp}
-              formatTime={formatTime}
-              isUnread={isNewNotification}
-              onJoinClub={handleJoinClub}
-              onDeclineInvite={handleDeclineInvite}
-            />
-          ) : (
-            <ActivityNotification
-              userName={notification.userName}
-              onUserClick={handleUserItemClick}
-              userId={notification.userId}
-              distance={notification.distance}
-              clubName={notification.clubName}
-              onClubClick={handleClubClick}
-              timestamp={notification.timestamp}
-              formatTime={formatTime}
-              isUnread={isNewNotification}
-            />
+          <div className="flex items-center justify-between mb-1">
+            <span 
+              className="font-semibold cursor-pointer hover:underline"
+              onClick={handleUserItemClick}
+            >
+              {notification.userName}
+            </span>
+            <span className="text-xs text-gray-500">
+              {formatTime(notification.timestamp)}
+            </span>
+          </div>
+          
+          <p className="text-sm">
+            {notification.message}
+          </p>
+          
+          {notification.type === 'invitation' && (
+            <div className="mt-2 flex gap-2">
+              <button 
+                onClick={handleJoinClub}
+                className="px-3 py-1 bg-primary text-white text-xs rounded"
+              >
+                Accept
+              </button>
+              <button 
+                onClick={handleDeclineInvite}
+                className="px-3 py-1 bg-gray-200 text-gray-700 text-xs rounded"
+              >
+                Decline
+              </button>
+            </div>
           )}
         </div>
       </div>

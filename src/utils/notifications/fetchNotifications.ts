@@ -12,11 +12,9 @@ export const fetchUserNotifications = async (userId: string) => {
         user_id,
         club_id,
         type,
-        title,
         message,
         read,
         created_at,
-        data,
         clubs:club_id (name, logo),
         users:user_id (name, avatar)
       `)
