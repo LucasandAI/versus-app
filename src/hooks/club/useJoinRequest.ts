@@ -22,7 +22,6 @@ export const useJoinRequest = (clubId: string) => {
         .select('*')
         .eq('club_id', clubId)
         .eq('user_id', userId)
-        .eq('status', 'pending')
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -44,8 +43,7 @@ export const useJoinRequest = (clubId: string) => {
         .from('club_requests')
         .insert([{
           user_id: userId,
-          club_id: clubId,
-          status: 'pending'
+          club_id: clubId
         }]);
 
       if (error) throw error;
@@ -118,8 +116,7 @@ export const useJoinRequest = (clubId: string) => {
         .from('club_requests')
         .delete()
         .eq('club_id', clubId)
-        .eq('user_id', userId)
-        .eq('status', 'pending');
+        .eq('user_id', userId);
 
       if (error) throw error;
 

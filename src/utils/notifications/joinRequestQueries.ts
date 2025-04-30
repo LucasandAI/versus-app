@@ -12,7 +12,6 @@ export const hasPendingJoinRequest = async (userId: string, clubId: string): Pro
       .select('*')
       .eq('user_id', userId)
       .eq('club_id', clubId)
-      .eq('status', 'pending')
       .single();
 
     if (error) {
@@ -38,9 +37,8 @@ export const fetchClubJoinRequests = async (clubId: string): Promise<JoinRequest
     
     const { data: requestsData, error: requestsError } = await supabase
       .from('club_requests')
-      .select('id, user_id, club_id, status, created_at')
-      .eq('club_id', clubId)
-      .eq('status', 'pending');
+      .select('id, user_id, club_id, created_at')
+      .eq('club_id', clubId);
 
     if (requestsError) {
       console.error('[fetchClubJoinRequests] Error fetching join requests:', requestsError);

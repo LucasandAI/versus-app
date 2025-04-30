@@ -39,10 +39,10 @@ export const useJoinRequests = () => {
 
       if (memberError) throw memberError;
 
-      // 2. Update request status to accepted
+      // 2. Delete the request instead of updating its status
       const { error: requestError } = await supabase
         .from('club_requests')
-        .update({ status: 'accepted' })
+        .delete()
         .eq('id', request.id);
 
       if (requestError) throw requestError;
@@ -125,15 +125,15 @@ export const useJoinRequests = () => {
     try {
       setError(null);
 
-      // 1. Update request status to rejected
+      // Delete the request instead of updating its status
       const { error: requestError } = await supabase
         .from('club_requests')
-        .update({ status: 'rejected' })
+        .delete()
         .eq('id', request.id);
 
       if (requestError) throw requestError;
 
-      // 2. Create notification for the user
+      // Create notification for the user
       try {
         await supabase
           .from('notifications')
@@ -180,12 +180,11 @@ export const useJoinRequests = () => {
     try {
       console.log('[useJoinRequests] Fetching club requests for club:', clubId);
       
-      // First, let's query club requests with a separate query for safety
+      // Query only returns pending requests (no status filter needed anymore)
       const { data: requestsData, error: requestsError } = await supabase
         .from('club_requests')
-        .select('id, user_id, club_id, status, created_at')
-        .eq('club_id', clubId)
-        .eq('status', 'pending');
+        .select('id, user_id, club_id, created_at')
+        .eq('club_id', clubId);
 
       if (requestsError) {
         console.error('[useJoinRequests] Error fetching club requests:', requestsError);
