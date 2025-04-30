@@ -97,26 +97,19 @@ export interface Match {
 export interface Notification {
   id: string;
   type: 'invite' | 'join_request' | 'match_result' | 'match_start' | 'achievement' | 'invitation' | 'activity';
-  title: string;
-  description: string;
+  message: string;
   timestamp: string;
   read: boolean;
-  data?: Record<string, any>;
   
   // Fields for club-related notifications
   clubId?: string;
   clubName?: string;
+  clubLogo?: string | null;
   
   // Fields for user-related notifications
   userId?: string;
   userName?: string;
-  userAvatar?: string;
-  
-  // Fields for activity notifications
-  distance?: number;
-  
-  // Field for invitation notifications
-  message?: string;
+  userAvatar?: string | null;
   
   // Field for displaying notifications
   previouslyDisplayed?: boolean;

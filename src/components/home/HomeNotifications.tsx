@@ -22,7 +22,7 @@ const HomeNotifications: React.FC<HomeNotificationsProps> = ({
       console.log("[HomeNotifications] Setting up notification listener for user:", user.id);
       
       const channel = supabase
-        .channel('public:notifications')
+        .channel('notifications-channel')
         .on(
           'postgres_changes',
           {
@@ -33,8 +33,11 @@ const HomeNotifications: React.FC<HomeNotificationsProps> = ({
           },
           async (payload) => {
             console.log("[HomeNotifications] Notification change detected:", payload);
+            
             // Refresh notifications when any change happens
             await refreshNotifications();
+            
+            // Trigger UI update
             const event = new CustomEvent('notificationsUpdated');
             window.dispatchEvent(event);
           }

@@ -9,7 +9,6 @@ import {
 import { NotificationList } from '../notifications/NotificationList';
 import { Notification } from '@/types';
 import { markAllNotificationsAsRead } from '@/lib/notificationUtils';
-import { supabase } from '@/integrations/supabase/client';
 
 interface NotificationPopoverProps {
   notifications: Notification[];
@@ -35,32 +34,16 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   
   console.log("[NotificationPopover] Rendering with notifications:", notifications.length, 
     "Unread count:", unreadCount, 
-    "Notification types:", notifications.map(n => n.type));
+    "Notification details:", notifications);
   
-  // When the popover opens, mark all notifications as read immediately
+  // When the popover opens, mark all notifications as read
   const handleOpenChange = async (isOpen: boolean) => {
     setOpen(isOpen);
     
     // Mark all as read when opening the popover
     if (isOpen && unreadCount > 0) {
       console.log("[NotificationPopover] Marking all notifications as read");
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        // Update all notifications for this user as read
-        await supabase
-          .from('notifications')
-          .update({ read: true })
-          .eq('user_id', user.id)
-          .eq('read', false);
-      }
-      
-      // Use the utility function to also update the local state
       await markAllNotificationsAsRead();
-      
-      // Dispatch event to update UI
-      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     }
   };
 

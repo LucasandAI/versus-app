@@ -3,7 +3,7 @@ import React from 'react';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { Notification } from '@/types';
 import { useApp } from '@/context/AppContext';
-import { findClubFromStorage, getMockClub, handleClubError } from '@/utils/notificationUtils';
+import { findClubFromStorage, getMockClub, handleClubError } from '@/lib/notificationUtils';
 import { handleNotification } from '@/lib/notificationUtils';
 import { cn } from '@/lib/utils';
 import { useNavigation } from '@/hooks/useNavigation';
@@ -27,6 +27,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   const { navigateToUserProfile } = useNavigation();
 
   const handleClubClick = () => {
+    if (!notification.clubId) return;
+    
     const club = findClubFromStorage(notification.clubId);
     
     if (club) {
@@ -34,7 +36,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
       setCurrentView('clubDetail');
     } else {
       // Try to use mock club data
-      const mockClub = getMockClub(notification.clubId, notification.clubName);
+      const mockClub = getMockClub(notification.clubId, notification.clubName || '');
       if (mockClub) {
         setSelectedClub(mockClub);
         setCurrentView('clubDetail');
@@ -45,11 +47,13 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   };
 
   const handleUserItemClick = () => {
-    navigateToUserProfile(notification.userId, notification.userName, notification.userAvatar);
+    if (notification.userId) {
+      navigateToUserProfile(notification.userId, notification.userName || '', null);
+    }
   };
 
   const handleJoinClub = () => {
-    if (onJoinClub) {
+    if (onJoinClub && notification.clubId && notification.clubName) {
       handleNotification(notification.id, 'delete');
       onJoinClub(notification.clubId, notification.clubName);
     }
@@ -69,21 +73,11 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     isNewNotification && "bg-blue-50"
   );
 
-  // Build notification content
-  const clubNameSpan = notification.clubName ? (
-    <span 
-      className="font-semibold cursor-pointer hover:underline"
-      onClick={handleClubClick}
-    >
-      {notification.clubName}
-    </span>
-  ) : null;
-
   return (
     <div className={backgroundClass}>
       <div className="flex items-start gap-3">
         <UserAvatar 
-          name={notification.userName} 
+          name={notification.userName || 'User'} 
           image={notification.userAvatar} 
           size="sm"
           className="cursor-pointer mt-1"
@@ -96,7 +90,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
               className="font-semibold cursor-pointer hover:underline"
               onClick={handleUserItemClick}
             >
-              {notification.userName}
+              {notification.userName || 'User'}
             </span>
             <span className="text-xs text-gray-500">
               {formatTime(notification.timestamp)}

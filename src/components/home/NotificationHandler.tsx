@@ -15,12 +15,13 @@ const NotificationHandler: React.FC<NotificationHandlerProps> = ({
 }) => {
   // Initialize notifications on mount
   useEffect(() => {
-    console.log("NotificationHandler: Initializing notifications");
+    console.log("[NotificationHandler] Initializing notifications");
+    
     // Force refresh notifications on component mount to ensure we have the latest
     const initializeNotifications = async () => {
       const refreshedNotifications = await refreshNotifications();
       if (refreshedNotifications) {
-        console.log("NotificationHandler: Setting initial notifications:", refreshedNotifications.length);
+        console.log("[NotificationHandler] Setting initial notifications:", refreshedNotifications.length);
         setNotifications(refreshedNotifications);
       } else {
         // Get updated notifications from localStorage after refresh
@@ -28,10 +29,10 @@ const NotificationHandler: React.FC<NotificationHandlerProps> = ({
         if (storedNotifications) {
           try {
             const parsedNotifications = JSON.parse(storedNotifications);
-            console.log("NotificationHandler: Loaded notifications from storage:", parsedNotifications.length);
+            console.log("[NotificationHandler] Loaded notifications from storage:", parsedNotifications.length, parsedNotifications);
             setNotifications(parsedNotifications);
           } catch (error) {
-            console.error("NotificationHandler: Error parsing notifications:", error);
+            console.error("[NotificationHandler] Error parsing notifications:", error);
           }
         }
       }

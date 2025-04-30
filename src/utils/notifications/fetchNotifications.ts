@@ -15,8 +15,7 @@ export const fetchUserNotifications = async (userId: string) => {
         message,
         read,
         created_at,
-        clubs:club_id (name, logo),
-        users:user_id (name, avatar)
+        clubs:club_id (name, logo)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
