@@ -6,6 +6,7 @@ import { toast } from "sonner";
 export const useDirectMessageUnreadState = (currentUserId: string | undefined) => {
   const [unreadConversations, setUnreadConversations] = useState<Set<string>>(new Set());
   const [dmUnreadCount, setDmUnreadCount] = useState(0);
+  const [unreadMessagesPerConversation, setUnreadMessagesPerConversation] = useState<Record<string, number>>({});
 
   // Mark conversation as unread (for new incoming messages)
   const markConversationAsUnread = useCallback((conversationId: string) => {
@@ -13,18 +14,29 @@ export const useDirectMessageUnreadState = (currentUserId: string | undefined) =
       const updated = new Set(prev);
       if (!updated.has(conversationId)) {
         updated.add(conversationId);
-        setDmUnreadCount(prev => prev + 1);
         
         // Dispatch event to notify UI components
         window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
       }
       return updated;
     });
+    
+    // Update messages count for this conversation
+    setUnreadMessagesPerConversation(prev => {
+      const count = (prev[conversationId] || 0) + 1;
+      return { ...prev, [conversationId]: count };
+    });
+    
+    // Update total unread count
+    setDmUnreadCount(prev => prev + 1);
   }, []);
 
   // Mark conversation as read
   const markConversationAsRead = useCallback(async (conversationId: string) => {
     if (!currentUserId || !conversationId) return;
+    
+    // Get current unread count for this conversation
+    const conversationUnreadCount = unreadMessagesPerConversation[conversationId] || 0;
     
     // Optimistically update local state
     setUnreadConversations(prev => {
@@ -32,11 +44,20 @@ export const useDirectMessageUnreadState = (currentUserId: string | undefined) =
       
       const updated = new Set(prev);
       updated.delete(conversationId);
-      setDmUnreadCount(prevCount => Math.max(0, prevCount - 1));
       
       // Dispatch event to notify UI components
       window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
       
+      return updated;
+    });
+    
+    // Update total unread count (subtract actual number of unread messages)
+    setDmUnreadCount(prevCount => Math.max(0, prevCount - conversationUnreadCount));
+    
+    // Reset unread count for this conversation
+    setUnreadMessagesPerConversation(prev => {
+      const updated = { ...prev };
+      delete updated[conversationId];
       return updated;
     });
     
@@ -63,20 +84,30 @@ export const useDirectMessageUnreadState = (currentUserId: string | undefined) =
         reverted.add(conversationId);
         return reverted;
       });
-      setDmUnreadCount(prev => prev + 1);
+      
+      // Restore unread count for this conversation
+      setUnreadMessagesPerConversation(prev => ({
+        ...prev,
+        [conversationId]: conversationUnreadCount
+      }));
+      
+      // Restore total unread count
+      setDmUnreadCount(prev => prev + conversationUnreadCount);
       
       // Notify UI components about the revert
       window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
       
       toast.error("Failed to mark conversation as read");
     }
-  }, [currentUserId]);
+  }, [currentUserId, unreadMessagesPerConversation]);
 
   return {
     unreadConversations,
     setUnreadConversations,
     dmUnreadCount,
     setDmUnreadCount,
+    unreadMessagesPerConversation,
+    setUnreadMessagesPerConversation,
     markConversationAsUnread,
     markConversationAsRead
   };

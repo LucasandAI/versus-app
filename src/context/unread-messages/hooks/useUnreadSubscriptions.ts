@@ -19,57 +19,62 @@ export const useUnreadSubscriptions = ({
 }: UseUnreadSubscriptionsProps) => {
   
   useEffect(() => {
+    // Skip if not authenticated or session not ready
     if (!isSessionReady || !currentUserId) return;
     
-    console.log('[useUnreadSubscriptions] Setting up realtime subscriptions for user:', currentUserId);
+    console.log('[useUnreadSubscriptions] Setting up subscriptions for user', currentUserId);
     
-    // Set up real-time subscriptions for new messages
-    const dmChannel = supabase
-      .channel('global-dm-unread-tracking')
-      .on('postgres_changes', 
-          { 
-            event: 'INSERT', 
-            schema: 'public', 
-            table: 'direct_messages' 
-          },
-          (payload) => {
-            console.log('[useUnreadSubscriptions] New DM received:', payload);
-            if (payload.new.receiver_id === currentUserId) {
-              console.log('[useUnreadSubscriptions] Marking conversation as unread:', payload.new.conversation_id);
-              markConversationAsUnread(payload.new.conversation_id);
-              
-              // Dispatch global event to notify other components
-              window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
-            }
-          })
-      .subscribe();
-    
-    // Subscribe to new club messages
-    const clubChannel = supabase.channel('global-club-unread-tracking')
-      .on('postgres_changes', 
-          { 
-            event: 'INSERT', 
-            schema: 'public', 
-            table: 'club_chat_messages'
-          },
-          (payload) => {
-            console.log('[useUnreadSubscriptions] New club message received:', payload);
-            if (payload.new.sender_id !== currentUserId) {
-              console.log(`[useUnreadSubscriptions] Marking club ${payload.new.club_id} as unread`);
-              markClubAsUnread(payload.new.club_id);
-              
-              // Dispatch global event to notify other components
-              window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
-            }
-          })
-      .subscribe();
-      
-    // Initial fetch of unread counts
+    // Initial fetch
     fetchUnreadCounts();
-      
+    
+    // Subscribe to new direct messages
+    const dmChannel = supabase.channel('dm-notifications')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'direct_messages'
+      }, (payload) => {
+        // Only mark as unread if the message is for the current user and not from them
+        if (payload.new.receiver_id === currentUserId && payload.new.sender_id !== currentUserId) {
+          console.log('[useUnreadSubscriptions] New DM received:', payload.new.id);
+          
+          // Mark conversation as unread and increment count
+          markConversationAsUnread(payload.new.conversation_id);
+          
+          // Dispatch global event for UI updates
+          window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+        }
+      })
+      .subscribe();
+    
+    // Subscribe to club chat messages
+    const clubChannel = supabase.channel('club-notifications')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'club_chat_messages'
+      }, (payload) => {
+        // Only mark as unread if the message is from someone else
+        if (payload.new.sender_id !== currentUserId) {
+          console.log('[useUnreadSubscriptions] New club message received:', payload.new.id);
+          
+          // Mark club as unread and increment count
+          markClubAsUnread(payload.new.club_id);
+          
+          // Dispatch global event for UI updates
+          window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+          window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
+            detail: { clubId: payload.new.club_id } 
+          }));
+        }
+      })
+      .subscribe();
+    
+    // Clean up subscriptions when unmounted
     return () => {
+      console.log('[useUnreadSubscriptions] Cleaning up subscriptions');
       supabase.removeChannel(dmChannel);
       supabase.removeChannel(clubChannel);
     };
-  }, [currentUserId, isSessionReady, markConversationAsUnread, markClubAsUnread, fetchUnreadCounts]);
+  }, [currentUserId, isSessionReady, fetchUnreadCounts, markConversationAsUnread, markClubAsUnread]);
 };
