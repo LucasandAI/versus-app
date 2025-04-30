@@ -11,6 +11,8 @@ import { useConversationManagement } from '@/hooks/chat/dm/useConversationManage
 import { useMessageHandling } from '@/hooks/chat/dm/useMessageHandling';
 import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 import DMMessageInput from './DMMessageInput';
+import DMHeader from './DMHeader';
+import { ArrowLeft } from 'lucide-react';
 
 interface DMConversationProps {
   user: {
@@ -68,6 +70,22 @@ const DMConversation: React.FC<DMConversationProps> = ({
 
   return (
     <div className="flex flex-col h-full w-full">
+      {/* Add back DMHeader component here */}
+      <div className="border-b p-3 flex items-center">
+        <button 
+          onClick={onBack}
+          className="p-2 rounded-full hover:bg-gray-100 transition-colors mr-2"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <div 
+          className="flex items-center gap-3 cursor-pointer hover:opacity-80" 
+          onClick={() => navigateToUserProfile(user.id, user.name, user.avatar)}
+        >
+          <DMHeader userId={user.id} userName={user.name} userAvatar={user.avatar} />
+        </div>
+      </div>
+      
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         <div className="flex-1 min-h-0">
           <ChatMessages 
