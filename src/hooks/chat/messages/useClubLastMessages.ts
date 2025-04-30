@@ -1,14 +1,15 @@
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
 
-export const useClubLastMessages = (clubs: Club[], invalidateKey?: string) => {
+export const useClubLastMessages = (clubs: Club[]) => {
   const [lastMessages, setLastMessages] = useState<Record<string, any>>({});
-  const [messagesLoaded, setMessagesLoaded] = useState(false);
+  const [sortedClubs, setSortedClubs] = useState<Club[]>([]);
 
   useEffect(() => {
     if (!clubs.length) {
+      setSortedClubs([]);
       return;
     }
 
@@ -41,7 +42,27 @@ export const useClubLastMessages = (clubs: Club[], invalidateKey?: string) => {
       }, {});
 
       setLastMessages(latestMessages);
-      setMessagesLoaded(true);
+      
+      // Sort clubs by most recent message timestamp
+      const clubsWithTimestamps = clubs.map(club => {
+        const lastMessage = latestMessages[club.id];
+        // Use the message timestamp or a default old date if no messages
+        const lastTimestamp = lastMessage ? 
+          new Date(lastMessage.timestamp).getTime() : 
+          0;
+        
+        return {
+          club,
+          lastTimestamp
+        };
+      });
+      
+      // Sort by timestamp (most recent first)
+      const sorted = clubsWithTimestamps
+        .sort((a, b) => b.lastTimestamp - a.lastTimestamp)
+        .map(item => item.club);
+        
+      setSortedClubs(sorted);
     };
 
     fetchLatestMessages();
@@ -67,30 +88,6 @@ export const useClubLastMessages = (clubs: Club[], invalidateKey?: string) => {
       supabase.removeChannel(channel);
     };
   }, [clubs]);
-
-  // Use useMemo for sortedClubs, but make it depend on both lastMessages and the unread invalidation key
-  const sortedClubs = useMemo(() => {
-    if (!messagesLoaded) return clubs;
-    
-    // Sort clubs by most recent message timestamp
-    const clubsWithTimestamps = clubs.map(club => {
-      const lastMessage = lastMessages[club.id];
-      // Use the message timestamp or a default old date if no messages
-      const lastTimestamp = lastMessage ? 
-        new Date(lastMessage.timestamp).getTime() : 
-        0;
-      
-      return {
-        club,
-        lastTimestamp
-      };
-    });
-    
-    // Sort by timestamp (most recent first)
-    return clubsWithTimestamps
-      .sort((a, b) => b.lastTimestamp - a.lastTimestamp)
-      .map(item => item.club);
-  }, [clubs, lastMessages, messagesLoaded, invalidateKey]);
 
   return { lastMessages, sortedClubs: sortedClubs.length > 0 ? sortedClubs : clubs };
 };

@@ -16,11 +16,6 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
-        notification:
-          "border-transparent bg-red-500 text-white hover:bg-red-600",
-        // Add specific variant for unread indicators
-        unread: 
-          "border-transparent bg-red-500 text-white min-w-[8px] min-h-[8px] p-0",
       },
     },
     defaultVariants: {

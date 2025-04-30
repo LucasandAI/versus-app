@@ -7,7 +7,6 @@ import { useNavigation } from '@/hooks/useNavigation';
 import { formatDistanceToNow } from 'date-fns';
 import { useClubLastMessages } from '@/hooks/chat/messages/useClubLastMessages';
 import { useUnreadMessages } from '@/context/unread-messages';
-import { Badge } from '@/components/ui/badge';
 
 interface ClubsListProps {
   clubs: Club[];
@@ -30,13 +29,8 @@ const ClubsList: React.FC<ClubsListProps> = ({
   setChatToDelete,
 }) => {
   const { navigateToClubDetail } = useNavigation();
+  const { lastMessages, sortedClubs } = useClubLastMessages(clubs);
   const { unreadClubs, markClubMessagesAsRead } = useUnreadMessages();
-  
-  // Create a dependency key from unreadClubs to force re-renders
-  const unreadClubsKey = Array.from(unreadClubs).join(',');
-  
-  // Pass unreadClubsKey to the hook to invalidate memoization when unread status changes
-  const { lastMessages, sortedClubs } = useClubLastMessages(clubs, unreadClubsKey);
   
   // Add a debug effect to log unread clubs when they change
   useEffect(() => {
@@ -60,19 +54,19 @@ const ClubsList: React.FC<ClubsListProps> = ({
       
       <div className="space-y-1">
         {sortedClubs.map(club => {
-          // Debug logging during render
-          const isUnread = unreadClubs.has(club.id);
+          // Add the suggested debug logging
           console.log('[ClubsList] Rendering club:', {
             clubId: club.id,
             clubIdType: typeof club.id,
-            isUnread,
-            unreadClubs: Array.from(unreadClubs),
+            isUnread: unreadClubs.has(club.id),
+            unreadClubs: Array.from(unreadClubs)
           });
           
           const lastMessage = lastMessages[club.id];
           const formattedTime = lastMessage?.timestamp 
             ? formatDistanceToNow(new Date(lastMessage.timestamp), { addSuffix: false })
             : '';
+          const isUnread = unreadClubs.has(club.id);
             
           return (
             <div key={club.id} className="flex flex-col relative group">
@@ -88,12 +82,10 @@ const ClubsList: React.FC<ClubsListProps> = ({
 
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline">
-                    <p className="truncate text-lg flex items-center gap-2">
-                      <span className={isUnread ? 'font-bold' : 'font-medium'}>
-                        {club.name}
-                      </span>
+                    <p className={`truncate text-lg ${isUnread ? 'font-bold' : 'font-medium'}`}>
+                      {club.name}
                       {isUnread && (
-                        <Badge variant="unread" className="w-2 h-2 rounded-full flex-shrink-0" />
+                        <span className="ml-2 inline-flex h-2 w-2 bg-red-500 rounded-full" />
                       )}
                     </p>
                     {formattedTime && (
@@ -105,11 +97,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
                   
                   <div className="flex items-center justify-between mt-1">
                     {lastMessage ? (
-                      <p className={`text-sm truncate pr-2 ${
-                        isUnread 
-                          ? 'font-bold text-gray-900' 
-                          : 'text-gray-600'
-                      }`}>
+                      <p className={`text-sm ${isUnread ? 'font-bold text-gray-900' : 'text-gray-600'} truncate pr-2`}>
                         <span className={isUnread ? 'font-bold' : 'font-medium'}>
                           {lastMessage.sender?.name || 'Unknown'}:
                         </span>{' '}

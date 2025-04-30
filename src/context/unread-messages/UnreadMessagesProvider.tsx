@@ -55,13 +55,11 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
   useEffect(() => {
     const handler = () => {
       console.log('[UnreadMessagesProvider] Handling unreadMessagesUpdated event');
-      // Force a re-render by updating a state, this helps child components update
-      setUnreadClubs(new Set(unreadClubs));
     };
     
     window.addEventListener('unreadMessagesUpdated', handler);
     return () => window.removeEventListener('unreadMessagesUpdated', handler);
-  }, [unreadClubs, setUnreadClubs]);
+  }, []);
   
   // Debug: Add effect to log the contents of unreadClubs whenever it changes
   useEffect(() => {
@@ -73,7 +71,7 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
     console.log('[UnreadMessagesProvider] Force refresh triggered');
     // The state update will trigger a re-render
     setUnreadClubs(new Set(unreadClubs));
-  }, [unreadClubs, setUnreadClubs]);
+  }, [unreadClubs]);
   
   return (
     <UnreadMessagesContext.Provider value={{
@@ -86,8 +84,7 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       markClubMessagesAsRead,
       markConversationAsUnread,
       markClubAsUnread,
-      fetchUnreadCounts,
-      forceRefresh // Add the forceRefresh method to the context
+      fetchUnreadCounts
     }}>
       {children}
     </UnreadMessagesContext.Provider>
