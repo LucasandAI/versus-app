@@ -9,15 +9,16 @@ import { useDirectConversationsContext } from '@/context/DirectConversationsCont
 interface Props {
   onSelectUser: (userId: string, userName: string, userAvatar: string, conversationId: string) => void;
   selectedUserId?: string;
+  unreadConversations?: Set<string>; // Added the missing prop
 }
 
 const DMConversationList: React.FC<Props> = ({ 
   onSelectUser, 
-  selectedUserId 
+  selectedUserId,
+  unreadConversations = new Set() // Added default value
 }) => {
   const { currentUser } = useApp();
   const { conversations, loading } = useDirectConversationsContext();
-  const { unreadConversations } = useUnreadMessages();
   
   const isEmpty = !loading && conversations.length === 0;
 
