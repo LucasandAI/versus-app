@@ -30,6 +30,9 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   const { totalUnreadCount } = useUnreadMessages();
   const [badgeCount, setBadgeCount] = useState(totalUnreadCount);
   
+  console.log("[HomeHeader] Rendering with notifications:", 
+    notifications.length, notifications);
+  
   // Update badge count when totalUnreadCount changes
   useEffect(() => {
     setBadgeCount(totalUnreadCount);

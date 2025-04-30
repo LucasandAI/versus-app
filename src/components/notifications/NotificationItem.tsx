@@ -28,6 +28,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   const { setSelectedClub, setCurrentView } = useApp();
   const { navigateToUserProfile } = useNavigation();
 
+  console.log("[NotificationItem] Rendering notification:", notification);
+
   const handleClubClick = () => {
     if (!notification.clubId) return;
     

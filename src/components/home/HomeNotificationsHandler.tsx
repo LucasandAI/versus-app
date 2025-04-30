@@ -23,7 +23,28 @@ const HomeNotificationsHandler: React.FC<HomeNotificationsHandlerProps> = ({
     notifications,
     setNotifications,
     updateUnreadCount,
+    handleMarkAsRead,
+    handleDeclineInvite,
+    handleClearAllNotifications
   } = useHomeNotifications();
+
+  // Log user auth status
+  useEffect(() => {
+    const checkAuthUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      console.log("[HomeNotificationsHandler] Current authenticated user:", data.user?.id);
+      if (error) {
+        console.error("[HomeNotificationsHandler] Auth error:", error);
+      }
+    };
+    checkAuthUser();
+  }, []);
+
+  // Log notifications state
+  useEffect(() => {
+    console.log("[HomeNotificationsHandler] Current notifications state:", 
+      notifications.length, notifications);
+  }, [notifications]);
 
   // Listen for real-time chat messages
   useEffect(() => {

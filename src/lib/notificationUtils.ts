@@ -74,7 +74,7 @@ export const getNotificationsFromStorage = (): Notification[] => {
   try {
     const notifications = localStorage.getItem('notifications');
     const parsed = notifications ? JSON.parse(notifications) : [];
-    console.log('[getNotificationsFromStorage] Notifications from storage:', parsed.length);
+    console.log('[getNotificationsFromStorage] Notifications from storage:', parsed.length, parsed);
     return parsed;
   } catch (error) {
     console.error('[getNotificationsFromStorage] Error getting notifications from storage:', error);
@@ -119,7 +119,7 @@ export const refreshNotifications = async () => {
   console.log('[refreshNotifications] Raw notifications fetched:', data.length, data);
   
   // Process notifications to match the expected format
-  const processedNotifications = data.map(item => ({
+  const processedNotifications: Notification[] = data.map(item => ({
     id: item.id,
     type: item.type,
     userId: item.user_id,
@@ -133,7 +133,7 @@ export const refreshNotifications = async () => {
     data: item.data || {}
   }));
   
-  console.log('[refreshNotifications] Processed notifications:', processedNotifications);
+  console.log('[refreshNotifications] Processed notifications:', JSON.stringify(processedNotifications));
   
   // Update local storage
   localStorage.setItem('notifications', JSON.stringify(processedNotifications));
@@ -151,7 +151,7 @@ export const markAllNotificationsAsRead = async () => {
   
   // Get current user
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) return [];
   
   // Update all pending notifications to read in Supabase
   const { error } = await supabase

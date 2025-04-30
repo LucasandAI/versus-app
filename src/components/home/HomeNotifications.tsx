@@ -25,13 +25,6 @@ const HomeNotifications: React.FC<HomeNotificationsProps> = ({
       
       console.log("[HomeNotifications] Setting up notification listener for user:", user.id);
       
-      // Initial notifications fetch
-      const initialNotifications = await refreshNotifications();
-      if (initialNotifications) {
-        console.log("[HomeNotifications] Setting initial notifications:", initialNotifications.length);
-        setNotifications(initialNotifications);
-      }
-      
       const channel = supabase
         .channel('notifications-channel')
         .on(
@@ -45,7 +38,7 @@ const HomeNotifications: React.FC<HomeNotificationsProps> = ({
           async (payload) => {
             console.log("[HomeNotifications] Notification change detected:", payload);
             
-            // Refresh notifications when any change happens
+            // When a notification changes, just refresh all notifications
             const updatedNotifications = await refreshNotifications();
             if (updatedNotifications) {
               console.log("[HomeNotifications] Setting updated notifications:", updatedNotifications.length);

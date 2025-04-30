@@ -35,7 +35,7 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   console.log("[NotificationPopover] Rendering with notifications:", 
     notifications.length, 
     "Unread count:", unreadCount, 
-    "Notification details:", notifications
+    "Full notifications:", notifications
   );
   
   // When the popover opens, mark all notifications as read

@@ -1,7 +1,7 @@
 
 import { useEffect } from 'react';
 import { Notification } from '@/types';
-import { getNotificationsFromStorage, refreshNotifications } from '@/lib/notificationUtils';
+import { getNotificationsFromStorage } from '@/lib/notificationUtils';
 
 interface UseNotificationsProps {
   setNotifications: (notifications: Notification[]) => void;
@@ -17,22 +17,6 @@ export const useNotifications = ({ setNotifications }: UseNotificationsProps) =>
       setNotifications(notifications);
     };
 
-    // Initially fetch fresh notifications from Supabase
-    const fetchInitialNotifications = async () => {
-      console.log("[useNotifications] Fetching initial notifications");
-      const notificationsData = await refreshNotifications();
-      if (notificationsData && notificationsData.length > 0) {
-        console.log("[useNotifications] Setting initial notifications:", notificationsData.length);
-        setNotifications(notificationsData);
-      } else {
-        // If no notifications were returned, try to load from localStorage as fallback
-        loadNotificationsFromStorage();
-      }
-    };
-
-    // Load notifications immediately
-    fetchInitialNotifications();
-
     // Listen for notification updates
     const handleNotificationsUpdated = () => {
       console.log("[useNotifications] Notification update event received");
@@ -42,12 +26,8 @@ export const useNotifications = ({ setNotifications }: UseNotificationsProps) =>
     // Add event listeners for updates
     window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
     
-    // Also reload notifications on window focus to catch any new ones
-    window.addEventListener('focus', fetchInitialNotifications);
-
     return () => {
       window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
-      window.removeEventListener('focus', fetchInitialNotifications);
     };
   }, [setNotifications]);
 };
