@@ -3,12 +3,10 @@ export interface UnreadMessagesContextType {
   // DM Notifications
   unreadConversations: Set<string>;
   dmUnreadCount: number;
-  unreadMessagesPerConversation: Record<string, number>;
   
   // Club Notifications
   unreadClubs: Set<string>;
   clubUnreadCount: number;
-  unreadMessagesPerClub: Record<string, number>;
   
   // Combined total
   totalUnreadCount: number;

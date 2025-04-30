@@ -9,8 +9,6 @@ interface UseFetchUnreadCountsProps {
   setClubUnreadCount: (count: number) => void;
   setUnreadConversations: (unread: Set<string>) => void;
   setUnreadClubs: (unread: Set<string>) => void;
-  setUnreadMessagesPerConversation: (counts: Record<string, number>) => void;
-  setUnreadMessagesPerClub: (counts: Record<string, number>) => void;
 }
 
 export const useFetchUnreadCounts = ({
@@ -19,9 +17,7 @@ export const useFetchUnreadCounts = ({
   setDmUnreadCount,
   setClubUnreadCount,
   setUnreadConversations,
-  setUnreadClubs,
-  setUnreadMessagesPerConversation,
-  setUnreadMessagesPerClub
+  setUnreadClubs
 }: UseFetchUnreadCountsProps) => {
   
   const fetchUnreadCounts = useCallback(async () => {
@@ -67,22 +63,16 @@ export const useFetchUnreadCounts = ({
         readMap[status.conversation_id] = status.last_read_timestamp;
       });
       
-      // Identify unread conversations and count messages per conversation
+      // Identify unread conversations by comparing message timestamp with read timestamp
       const unreadConvs = new Set<string>();
-      const messagesPerConversation: Record<string, number> = {};
-      
       directMessages?.forEach(msg => {
-        const convId = msg.conversation_id;
-        const lastRead = readMap[convId];
-        
+        const lastRead = readMap[msg.conversation_id];
         if (!lastRead || new Date(msg.timestamp) > new Date(lastRead)) {
-          unreadConvs.add(convId);
-          messagesPerConversation[convId] = (messagesPerConversation[convId] || 0) + 1;
+          unreadConvs.add(msg.conversation_id);
         }
       });
       
       setUnreadConversations(unreadConvs);
-      setUnreadMessagesPerConversation(messagesPerConversation);
       
       // Similarly for club messages
       const { data: clubMembers } = await supabase
@@ -92,7 +82,6 @@ export const useFetchUnreadCounts = ({
         
       if (!clubMembers?.length) {
         setUnreadClubs(new Set());
-        setUnreadMessagesPerClub({});
         return;
       }
       
@@ -132,34 +121,24 @@ export const useFetchUnreadCounts = ({
       
       console.log('[useFetchUnreadCounts] Club read statuses:', clubReadMap);
       
-      // Identify unread club chats and count messages per club
+      // Identify unread club chats
       const unreadClubsSet = new Set<string>();
-      const messagesPerClub: Record<string, number> = {};
-      
       clubMessages?.forEach(msg => {
-        const clubId = msg.club_id;
-        const lastRead = clubReadMap[clubId];
-        
+        const lastRead = clubReadMap[msg.club_id];
         if (!lastRead || new Date(msg.timestamp) > new Date(lastRead)) {
-          unreadClubsSet.add(clubId);
-          messagesPerClub[clubId] = (messagesPerClub[clubId] || 0) + 1;
-          console.log(`[useFetchUnreadCounts] Club ${clubId} has unread messages. Last message: ${msg.timestamp}, Last read: ${lastRead || 'never'}`);
+          unreadClubsSet.add(msg.club_id);
+          console.log(`[useFetchUnreadCounts] Club ${msg.club_id} has unread messages. Last message: ${msg.timestamp}, Last read: ${lastRead || 'never'}`);
         }
       });
       
       console.log('[useFetchUnreadCounts] Unread clubs set:', Array.from(unreadClubsSet));
-      console.log('[useFetchUnreadCounts] Messages per club:', messagesPerClub);
-      
       setUnreadClubs(unreadClubsSet);
-      setUnreadMessagesPerClub(messagesPerClub);
       
       console.log('[useFetchUnreadCounts] Unread counts fetched:', { 
         dmCount, 
         clubCount,
         unreadConversations: unreadConvs.size,
-        unreadClubs: unreadClubsSet.size,
-        messagesPerConversation,
-        messagesPerClub
+        unreadClubs: unreadClubsSet.size
       });
       
       // Dispatch event to notify UI components of changes
@@ -168,7 +147,7 @@ export const useFetchUnreadCounts = ({
     } catch (error) {
       console.error('[useFetchUnreadCounts] Error fetching unread counts:', error);
     }
-  }, [currentUserId, isSessionReady, setDmUnreadCount, setClubUnreadCount, setUnreadConversations, setUnreadClubs, setUnreadMessagesPerConversation, setUnreadMessagesPerClub]);
+  }, [currentUserId, isSessionReady, setDmUnreadCount, setClubUnreadCount, setUnreadConversations, setUnreadClubs]);
 
   return { fetchUnreadCounts };
 };

@@ -9,8 +9,6 @@ const UnreadMessagesContext = createContext<UnreadMessagesContextType>({
   unreadClubs: new Set(),
   clubUnreadCount: 0,
   totalUnreadCount: 0,
-  unreadMessagesPerConversation: {},
-  unreadMessagesPerClub: {},
   markConversationAsRead: async () => {},
   markClubMessagesAsRead: async () => {},
   markConversationAsUnread: () => {},
