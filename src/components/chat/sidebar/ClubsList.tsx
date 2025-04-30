@@ -86,15 +86,15 @@ const ClubsList: React.FC<ClubsListProps> = ({
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center">
-                      <p className={`truncate text-lg ${isUnread ? 'font-bold' : 'font-medium'}`}>
+                      <p className={`truncate text-lg ${isUnread ? '!font-bold' : 'font-medium'}`}>
                         {club.name}
                       </p>
                       {isUnread && (
-                        <Badge variant="dot" className="ml-2 inline-block" />
+                        <Badge variant="dot" className="ml-2 !inline-block !visible" />
                       )}
                     </div>
                     {formattedTime && (
-                      <span className={`ml-2 text-xs ${isUnread ? 'font-bold text-gray-900' : 'text-gray-500'}`}>
+                      <span className={`ml-2 text-xs ${isUnread ? '!font-bold !text-gray-900' : 'text-gray-500'}`}>
                         {formattedTime}
                       </span>
                     )}
@@ -102,8 +102,8 @@ const ClubsList: React.FC<ClubsListProps> = ({
                   
                   <div className="flex items-center justify-between mt-1">
                     {lastMessage ? (
-                      <p className={`text-sm ${isUnread ? 'font-bold text-gray-900' : 'text-gray-600'} truncate pr-2`}>
-                        <span className={isUnread ? 'font-bold' : 'font-medium'}>
+                      <p className={`text-sm ${isUnread ? '!font-bold !text-gray-900' : 'text-gray-600'} truncate pr-2`}>
+                        <span className={isUnread ? '!font-bold' : 'font-medium'}>
                           {lastMessage.sender?.name || 'Unknown'}:
                         </span>{' '}
                         {truncateMessage(lastMessage.message)}
