@@ -4,14 +4,97 @@ import { getClubToJoin } from '@/utils/club';
 import { useClubValidation } from './useClubValidation';
 import { toast } from "@/hooks/use-toast";
 import { handleNotification } from '@/utils/notificationUtils';
+import { supabase } from '@/integrations/supabase/client';
+import { useJoinRequest } from '../club/useJoinRequest';
 
 export const useClubJoin = () => {
   const { currentUser, setCurrentUser } = useApp();
   const { validateClubJoin, validateClubRequest } = useClubValidation();
 
-  const handleRequestToJoin = (clubId: string, clubName: string) => {
+  const handleRequestToJoin = async (clubId: string, clubName: string) => {
+    if (!currentUser) {
+      toast({
+        title: "Login Required",
+        description: "You need to be logged in to request joining a club",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (validateClubJoin(currentUser, clubName)) {
-      validateClubRequest(clubName);
+      // Check if user already has a pending request for this club
+      try {
+        const { data: existingRequest } = await supabase
+          .from('club_requests')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .eq('club_id', clubId)
+          .eq('status', 'pending')
+          .maybeSingle();
+          
+        if (existingRequest) {
+          toast({
+            title: "Request Already Sent",
+            description: "You already have a pending request to join this club",
+          });
+          return;
+        }
+        
+        // Create a new request
+        const { error } = await supabase
+          .from('club_requests')
+          .insert([{
+            user_id: currentUser.id,
+            club_id: clubId,
+            status: 'pending'
+          }]);
+          
+        if (error) {
+          console.error('Error sending join request:', error);
+          throw error;
+        }
+        
+        toast({
+          title: "Request Sent",
+          description: `Your request to join ${clubName} has been sent`
+        });
+        
+        // Create notification for club admins
+        try {
+          // Get club admins
+          const { data: admins } = await supabase
+            .from('club_members')
+            .select('user_id')
+            .eq('club_id', clubId)
+            .eq('is_admin', true);
+            
+          if (admins && admins.length > 0) {
+            // Create notifications for each admin
+            for (const admin of admins) {
+              await supabase.from('notifications').insert({
+                user_id: admin.user_id,
+                club_id: clubId,
+                type: 'join_request',
+                message: `${currentUser.name} has requested to join your club.`,
+                status: 'pending',
+                read: false
+              });
+            }
+          }
+        } catch (notificationError) {
+          console.error('Error creating admin notifications:', notificationError);
+          // Continue even if notification creation fails
+        }
+        
+        validateClubRequest(clubName);
+      } catch (error) {
+        console.error('Error in handleRequestToJoin:', error);
+        toast({
+          title: "Error",
+          description: "Could not send join request. Please try again.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
