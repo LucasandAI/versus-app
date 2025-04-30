@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Club } from '@/types';
-import ChatSidebar from '../../ChatSidebar';
+import ChatSidebar from '../ChatSidebar';
 
 interface ChatSidebarContentProps {
   clubs: Club[];

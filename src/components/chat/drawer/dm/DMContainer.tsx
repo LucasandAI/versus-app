@@ -16,9 +16,14 @@ interface DMContainerProps {
     userAvatar: string;
     conversationId: string;
   } | null>>;
+  unreadConversations?: Set<string>; // Added missing prop
 }
 
-const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectMessageUser }) => {
+const DMContainer: React.FC<DMContainerProps> = ({ 
+  directMessageUser, 
+  setDirectMessageUser,
+  unreadConversations = new Set() // Added default value
+}) => {
   const handleSelectUser = (userId: string, userName: string, userAvatar: string, conversationId: string) => {
     setDirectMessageUser({
       userId,
@@ -35,6 +40,7 @@ const DMContainer: React.FC<DMContainerProps> = ({ directMessageUser, setDirectM
         <DMConversationList 
           onSelectUser={handleSelectUser} 
           selectedUserId={directMessageUser?.userId}
+          unreadConversations={unreadConversations} // Pass the prop to DMConversationList if needed
         />
       </div>
     </div>
