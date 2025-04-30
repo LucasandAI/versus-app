@@ -1,11 +1,19 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useApp } from '@/context/AppContext';
 
 export const useJoinRequest = (clubId: string) => {
   const [isRequesting, setIsRequesting] = useState(false);
   const [hasPendingRequest, setHasPendingRequest] = useState(false);
+  const { currentUser } = useApp();
+
+  useEffect(() => {
+    if (currentUser) {
+      checkPendingRequest(currentUser.id);
+    }
+  }, [currentUser, clubId]);
 
   const checkPendingRequest = async (userId: string) => {
     try {

@@ -5,7 +5,6 @@ import { useClubValidation } from './useClubValidation';
 import { toast } from "@/hooks/use-toast";
 import { handleNotification } from '@/utils/notificationUtils';
 import { supabase } from '@/integrations/supabase/client';
-import { useJoinRequest } from '../club/useJoinRequest';
 
 export const useClubJoin = () => {
   const { currentUser, setCurrentUser } = useApp();
@@ -22,8 +21,8 @@ export const useClubJoin = () => {
     }
     
     if (validateClubJoin(currentUser, clubName)) {
-      // Check if user already has a pending request for this club
       try {
+        // Check if user already has a pending request for this club
         const { data: existingRequest } = await supabase
           .from('club_requests')
           .select('*')
@@ -33,14 +32,27 @@ export const useClubJoin = () => {
           .maybeSingle();
           
         if (existingRequest) {
+          // Request exists, so cancel it
+          const { error } = await supabase
+            .from('club_requests')
+            .delete()
+            .eq('user_id', currentUser.id)
+            .eq('club_id', clubId)
+            .eq('status', 'pending');
+            
+          if (error) {
+            console.error('Error canceling join request:', error);
+            throw error;
+          }
+          
           toast({
-            title: "Request Already Sent",
-            description: "You already have a pending request to join this club",
+            title: "Request Canceled",
+            description: `Your request to join ${clubName} has been canceled`
           });
           return;
         }
         
-        // Create a new request
+        // If no existing request, create a new one
         const { error } = await supabase
           .from('club_requests')
           .insert([{
@@ -91,7 +103,7 @@ export const useClubJoin = () => {
         console.error('Error in handleRequestToJoin:', error);
         toast({
           title: "Error",
-          description: "Could not send join request. Please try again.",
+          description: "Could not process your request. Please try again.",
           variant: "destructive"
         });
       }

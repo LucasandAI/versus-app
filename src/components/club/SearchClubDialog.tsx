@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, X, UserPlus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { formatLeagueWithTier } from '@/lib/format';
 import UserAvatar from '../shared/UserAvatar';
 import { useNavigation } from '@/hooks/useNavigation';
+import { useApp } from '@/context/AppContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SearchClubDialogProps {
   open: boolean;
@@ -23,6 +25,40 @@ const SearchClubDialog: React.FC<SearchClubDialogProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const { navigateToClubDetail } = useNavigation();
+  const { currentUser } = useApp();
+  const [pendingRequests, setPendingRequests] = useState<Record<string, boolean>>({});
+  
+  useEffect(() => {
+    if (open && currentUser) {
+      fetchPendingRequests();
+    }
+  }, [open, currentUser]);
+
+  const fetchPendingRequests = async () => {
+    if (!currentUser) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('club_requests')
+        .select('club_id')
+        .eq('user_id', currentUser.id)
+        .eq('status', 'pending');
+        
+      if (error) {
+        console.error('Error fetching pending requests:', error);
+        return;
+      }
+
+      const requests: Record<string, boolean> = {};
+      data?.forEach(request => {
+        requests[request.club_id] = true;
+      });
+      
+      setPendingRequests(requests);
+    } catch (err) {
+      console.error('Error processing pending requests:', err);
+    }
+  };
   
   const filteredClubs = clubs.filter(club => 
     club.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -37,6 +73,24 @@ const SearchClubDialog: React.FC<SearchClubDialogProps> = ({
       logo: club.logo || '/placeholder.svg',
     });
     onOpenChange(false);
+  };
+
+  const handleRequestClick = (e: React.MouseEvent, clubId: string, clubName: string) => {
+    e.stopPropagation();
+    onRequestJoin(clubId, clubName);
+    
+    // Update the local state to reflect the change immediately
+    if (pendingRequests[clubId]) {
+      setPendingRequests(prev => ({
+        ...prev,
+        [clubId]: false
+      }));
+    } else {
+      setPendingRequests(prev => ({
+        ...prev,
+        [clubId]: true
+      }));
+    }
   };
 
   return (
@@ -89,15 +143,20 @@ const SearchClubDialog: React.FC<SearchClubDialogProps> = ({
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="h-8"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRequestJoin(club.id, club.name);
-                        onOpenChange(false);
-                      }}
+                      className={`h-8 ${pendingRequests[club.id] ? "text-red-500 hover:text-red-700" : ""}`}
+                      onClick={(e) => handleRequestClick(e, club.id, club.name)}
                     >
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Request
+                      {pendingRequests[club.id] ? (
+                        <>
+                          <X className="h-4 w-4 mr-2" />
+                          Cancel Request
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          Request
+                        </>
+                      )}
                     </Button>
                   </div>
                 ))}
