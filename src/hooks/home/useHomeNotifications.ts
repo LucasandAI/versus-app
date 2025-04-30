@@ -48,22 +48,14 @@ export const useHomeNotifications = () => {
       if (!currentUser?.id) return;
       
       const notification = notifications.find(n => n.id === id);
-      if (!notification || !notification.data?.invite_id) {
+      if (!notification) {
         throw new Error("Invalid invitation data");
       }
       
-      // Update invitation status in Supabase
-      const { error: inviteError } = await supabase
-        .from('club_invites')
-        .update({ status: 'rejected' }) 
-        .match({ id: notification.data.invite_id });
-      
-      if (inviteError) throw inviteError;
-      
-      // Mark notification as read
+      // Update notification as rejected and mark as read
       const { error: notifError } = await supabase
         .from('notifications')
-        .update({ status: 'rejected', read: true }) 
+        .update({ read: true }) 
         .match({ id });
       
       if (notifError) throw notifError;

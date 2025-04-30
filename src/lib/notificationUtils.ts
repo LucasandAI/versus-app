@@ -1,5 +1,5 @@
 
-import { Notification } from '@/types';
+import { Notification, Club } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -184,6 +184,42 @@ export const markAllNotificationsAsRead = async () => {
   }
   
   return null;
+};
+
+// Function to check if a user has a pending invite for a specific club
+export const hasPendingInvite = async (clubId: string, userId?: string): Promise<boolean> => {
+  try {
+    if (!userId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+      userId = user.id;
+    }
+
+    console.log('[hasPendingInvite] Checking pending invite for club:', clubId, 'user:', userId);
+
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('club_id', clubId)
+      .eq('user_id', userId)
+      .in('type', ['invite', 'invitation'])
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        console.log('[hasPendingInvite] No pending invite found');
+        return false;
+      }
+      console.error('[hasPendingInvite] Error checking pending invites:', error);
+      return false;
+    }
+
+    console.log('[hasPendingInvite] Found pending invite:', !!data);
+    return !!data;
+  } catch (error) {
+    console.error('[hasPendingInvite] Error in hasPendingInvite:', error);
+    return false;
+  }
 };
 
 // Get find club utility functions
