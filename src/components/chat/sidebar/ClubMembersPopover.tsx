@@ -1,13 +1,16 @@
+
 import React from 'react';
 import { ChevronDown, Users } from 'lucide-react';
 import { PopoverContent, PopoverTrigger, Popover } from "@/components/ui/popover";
 import UserAvatar from '../../shared/UserAvatar';
 import { Club } from '@/types';
 import { useNavigation } from '@/hooks/useNavigation';
+
 interface ClubMembersPopoverProps {
   club: Club;
   onSelectUser?: (userId: string, userName: string, userAvatar?: string) => void;
 }
+
 const ClubMembersPopover: React.FC<ClubMembersPopoverProps> = ({
   club,
   onSelectUser
@@ -15,6 +18,7 @@ const ClubMembersPopover: React.FC<ClubMembersPopoverProps> = ({
   const {
     navigateToUserProfile
   } = useNavigation();
+
   const handleUserClick = (member: any) => {
     if (onSelectUser) {
       onSelectUser(member.id, member.name, member.avatar);
@@ -22,9 +26,14 @@ const ClubMembersPopover: React.FC<ClubMembersPopoverProps> = ({
       navigateToUserProfile(member.id, member.name, member.avatar);
     }
   };
+
   return <Popover>
       <PopoverTrigger asChild>
-        
+        <button className="text-xs text-gray-500 flex items-center gap-1">
+          <Users className="h-3 w-3" />
+          {club.members.length} Members
+          <ChevronDown className="h-3 w-3" />
+        </button>
       </PopoverTrigger>
       <PopoverContent className="w-60 p-2" align="start">
         <h4 className="text-sm font-medium mb-2">Club Members</h4>
@@ -42,4 +51,5 @@ const ClubMembersPopover: React.FC<ClubMembersPopoverProps> = ({
       </PopoverContent>
     </Popover>;
 };
+
 export default ClubMembersPopover;

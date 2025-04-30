@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ClubMember, Match } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
