@@ -31,8 +31,26 @@ export interface BadgeProps
     VariantProps<typeof badgeVariants> {}
 
 function Badge({ className, variant, ...props }: BadgeProps) {
+  // Add specific inline styles to ensure visibility
+  const inlineStyles = variant === "dot" ? {
+    display: "block",
+    opacity: 1,
+    visibility: "visible",
+    backgroundColor: "rgb(239, 68, 68)",
+    width: "8px",
+    height: "8px",
+    minWidth: "8px",
+    minHeight: "8px",
+    borderRadius: "50%",
+    zIndex: 10
+  } : {};
+
   return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
+    <div 
+      className={cn(badgeVariants({ variant }), className)} 
+      style={inlineStyles}
+      {...props} 
+    />
   )
 }
 

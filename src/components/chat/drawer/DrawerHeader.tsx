@@ -41,13 +41,29 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
           <TabsTrigger value="clubs" className="inline-flex items-center justify-center gap-2">
             Club Chat
             {unreadClubs.size > 0 && (
-              <Badge variant="dot" className="!inline-block !visible" />
+              <Badge 
+                variant="dot" 
+                className="!inline-block !visible" 
+                style={{ 
+                  display: 'block', 
+                  opacity: 1, 
+                  visibility: 'visible' 
+                }} 
+              />
             )}
           </TabsTrigger>
           <TabsTrigger value="dm" className="inline-flex items-center justify-center gap-2">
             Direct Messages
             {unreadConversations.size > 0 && (
-              <Badge variant="dot" className="!inline-block !visible" />
+              <Badge 
+                variant="dot" 
+                className="!inline-block !visible" 
+                style={{ 
+                  display: 'block', 
+                  opacity: 1, 
+                  visibility: 'visible' 
+                }} 
+              />
             )}
           </TabsTrigger>
         </TabsList>

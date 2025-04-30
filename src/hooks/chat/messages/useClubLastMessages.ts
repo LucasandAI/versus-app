@@ -57,11 +57,13 @@ export const useClubLastMessages = (clubs: Club[]) => {
         };
       });
       
-      // Sort by timestamp (most recent first)
+      // Sort by timestamp (most recent first) - No memoization, direct sorting
       const sorted = clubsWithTimestamps
         .sort((a, b) => b.lastTimestamp - a.lastTimestamp)
         .map(item => item.club);
         
+      // Update sorted clubs directly without any caching or memoization
+      console.log('[useClubLastMessages] Setting sorted clubs:', sorted);
       setSortedClubs(sorted);
     };
 
@@ -79,6 +81,7 @@ export const useClubLastMessages = (clubs: Club[]) => {
           filter: clubs.length > 0 ? `club_id=in.(${clubs.map(c => `'${c.id}'`).join(',')})` : undefined
         },
         () => {
+          console.log('[useClubLastMessages] Received realtime message update');
           fetchLatestMessages(); // Refresh messages when changes occur
         }
       )
@@ -89,5 +92,13 @@ export const useClubLastMessages = (clubs: Club[]) => {
     };
   }, [clubs]);
 
-  return { lastMessages, sortedClubs: sortedClubs.length > 0 ? sortedClubs : clubs };
+  // Include debugging information in the returned object
+  return { 
+    lastMessages, 
+    sortedClubs: sortedClubs.length > 0 ? sortedClubs : clubs,
+    _debug: { 
+      lastMessagesKeys: Object.keys(lastMessages),
+      sortedClubIds: sortedClubs.map(c => c.id) 
+    }
+  };
 };

@@ -49,6 +49,9 @@ const ClubsList: React.FC<ClubsListProps> = ({
     return text?.length > 50 ? `${text.substring(0, 50)}...` : text;
   };
 
+  // Create a key that will change whenever unread status changes
+  const unreadKey = Array.from(unreadClubs).join(',');
+
   return (
     <div className="p-3">
       <h3 className="text-sm font-medium mb-2">Your Clubs</h3>
@@ -72,7 +75,11 @@ const ClubsList: React.FC<ClubsListProps> = ({
           console.log(`[ClubsList] Club ${club.name} isUnread:`, isUnread);
             
           return (
-            <div key={club.id} className="flex flex-col relative group">
+            <div 
+              // Use a composite key that changes when unread status changes
+              key={`${club.id}-${unreadKey}`} 
+              className="flex flex-col relative group"
+            >
               <button 
                 className={`w-full flex items-center p-3 rounded-md text-left transition-colors ${
                   selectedClub?.id === club.id ? 'bg-primary/10 text-primary' : 'hover:bg-gray-100'
@@ -86,15 +93,18 @@ const ClubsList: React.FC<ClubsListProps> = ({
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center">
-                      <p className={`truncate text-lg ${isUnread ? '!font-bold' : 'font-medium'}`}>
+                      <p className={`truncate text-lg ${isUnread ? '!font-bold' : 'font-medium'}`} style={{fontWeight: isUnread ? 'bold' : 'normal'}}>
                         {club.name}
                       </p>
                       {isUnread && (
-                        <Badge variant="dot" className="ml-2 !inline-block !visible" />
+                        <Badge variant="dot" className="ml-2 !inline-block !visible" style={{display: 'block', opacity: 1}} />
                       )}
                     </div>
                     {formattedTime && (
-                      <span className={`ml-2 text-xs ${isUnread ? '!font-bold !text-gray-900' : 'text-gray-500'}`}>
+                      <span 
+                        className={`ml-2 text-xs ${isUnread ? '!font-bold !text-gray-900' : 'text-gray-500'}`}
+                        style={{fontWeight: isUnread ? 'bold' : 'normal', color: isUnread ? '#111827' : ''}}
+                      >
                         {formattedTime}
                       </span>
                     )}
@@ -102,8 +112,14 @@ const ClubsList: React.FC<ClubsListProps> = ({
                   
                   <div className="flex items-center justify-between mt-1">
                     {lastMessage ? (
-                      <p className={`text-sm ${isUnread ? '!font-bold !text-gray-900' : 'text-gray-600'} truncate pr-2`}>
-                        <span className={isUnread ? '!font-bold' : 'font-medium'}>
+                      <p 
+                        className={`text-sm ${isUnread ? '!font-bold !text-gray-900' : 'text-gray-600'} truncate pr-2`}
+                        style={{fontWeight: isUnread ? 'bold' : 'normal', color: isUnread ? '#111827' : ''}}
+                      >
+                        <span 
+                          className={isUnread ? '!font-bold' : 'font-medium'}
+                          style={{fontWeight: isUnread ? 'bold' : 'normal'}}
+                        >
                           {lastMessage.sender?.name || 'Unknown'}:
                         </span>{' '}
                         {truncateMessage(lastMessage.message)}
