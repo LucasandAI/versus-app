@@ -32,6 +32,7 @@ const MemberActions: React.FC<MemberActionsProps> = ({
               size="sm" 
               className="h-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
               onClick={() => onMakeAdmin(memberId, memberName)}
+              data-testid={`make-admin-${memberId}`}
             >
               <UserCog className="h-4 w-4" />
               <span className="sr-only">Make Admin</span>

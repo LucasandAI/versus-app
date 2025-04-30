@@ -16,6 +16,37 @@ const MembersManagement: React.FC<MembersManagementProps> = ({
   onMakeAdmin,
   onRemoveMember
 }) => {
+  const handleMakeAdmin = async (memberId: string, memberName: string) => {
+    try {
+      // Update the member's admin status in Supabase
+      const { error } = await supabase
+        .from('club_members')
+        .update({ is_admin: true })
+        .eq('club_id', club.id)
+        .eq('user_id', memberId);
+      
+      if (error) {
+        throw new Error(`Failed to make member an admin: ${error.message}`);
+      }
+      
+      // If successful, call the parent handler to update UI
+      onMakeAdmin(memberId, memberName);
+      
+      toast({
+        title: "Admin Rights Granted",
+        description: `${memberName} is now an admin of the club.`
+      });
+      
+    } catch (error) {
+      console.error('Error updating club member admin status:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update admin status",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleRemoveMember = async (memberId: string, memberName: string) => {
     try {
       // First attempt to delete the member from Supabase
@@ -57,7 +88,7 @@ const MembersManagement: React.FC<MembersManagementProps> = ({
             <MemberActions 
               memberId={member.id}
               memberName={member.name}
-              onMakeAdmin={onMakeAdmin}
+              onMakeAdmin={handleMakeAdmin}
               onRemove={handleRemoveMember}
             />
           </div>

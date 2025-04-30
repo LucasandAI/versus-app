@@ -75,6 +75,41 @@ export const useClubActions = (club: Club) => {
     }
   };
 
+  const handleMakeMemberAdmin = async (memberId: string, memberName: string) => {
+    if (!club || !club.id) return false;
+    
+    try {
+      // Update member to be admin in Supabase
+      const { error } = await supabase
+        .from('club_members')
+        .update({ is_admin: true })
+        .eq('club_id', club.id)
+        .eq('user_id', memberId);
+
+      if (error) {
+        throw new Error(`Failed to make member an admin: ${error.message}`);
+      }
+
+      toast({
+        title: "Admin Rights Granted",
+        description: `${memberName} is now an admin of the club.`
+      });
+      
+      // Trigger refresh to update UI
+      window.dispatchEvent(new CustomEvent('userDataUpdated'));
+      
+      return true;
+    } catch (error) {
+      console.error('Error making member admin:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update admin status",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
   const handleJoinFromInvite = async () => {
     if (!club || !currentUser) return;
     
@@ -155,6 +190,7 @@ export const useClubActions = (club: Club) => {
   return {
     handleLeaveClub,
     handleJoinFromInvite,
-    handleDeclineInvite
+    handleDeclineInvite,
+    handleMakeMemberAdmin
   };
 };

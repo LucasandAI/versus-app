@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ClubMember, Match } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -10,12 +11,14 @@ interface ClubMembersListProps {
   members: ClubMember[] | undefined;
   currentMatch?: Match | null;
   onSelectMember?: (userId: string, name: string, avatar?: string) => void;
+  onRefresh?: () => void;
 }
 
 const ClubMembersList: React.FC<ClubMembersListProps> = ({ 
   members, 
   currentMatch,
-  onSelectMember
+  onSelectMember,
+  onRefresh
 }) => {
   const { navigateToUserProfile } = useNavigation();
   
@@ -51,6 +54,21 @@ const ClubMembersList: React.FC<ClubMembersListProps> = ({
       navigateToUserProfile(member.id, member.name || 'Unknown', member.avatar);
     }
   };
+
+  // Add event listener for userDataUpdated event
+  React.useEffect(() => {
+    const handleDataUpdate = () => {
+      if (onRefresh) {
+        onRefresh();
+      }
+    };
+
+    window.addEventListener('userDataUpdated', handleDataUpdate);
+    
+    return () => {
+      window.removeEventListener('userDataUpdated', handleDataUpdate);
+    };
+  }, [onRefresh]);
 
   const MAX_MEMBERS = 5;
   const actualMemberCount = deduplicatedMembers.length;
