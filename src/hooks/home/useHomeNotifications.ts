@@ -9,7 +9,7 @@ import { handleNotification, markAllNotificationsAsRead } from '@/lib/notificati
 export const useHomeNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadMessages, setUnreadMessages] = useState<Record<string, number>>({});
-  const { currentUser } = useApp();
+  const { currentUser, setCurrentUser } = useApp();
 
   // Initialize notifications from localStorage if available
   useEffect(() => {
@@ -53,6 +53,67 @@ export const useHomeNotifications = () => {
     }
   }, [notifications, currentUser?.id]);
 
+  const handleJoinClub = useCallback(async (clubId: string, clubName: string) => {
+    try {
+      console.log('[useHomeNotifications] Joining club:', clubId, clubName);
+      if (!currentUser?.id) {
+        console.log('[useHomeNotifications] No current user, skipping');
+        return;
+      }
+      
+      // Find the invitation notification
+      const invitation = notifications.find(
+        n => (n.type === 'invitation' || n.type === 'join_request') && n.clubId === clubId
+      );
+      
+      if (!invitation) {
+        console.error('[useHomeNotifications] Invitation not found');
+        return;
+      }
+      
+      // Add user to the club
+      const { error: joinError } = await supabase
+        .from('club_members')
+        .insert({
+          user_id: currentUser.id,
+          club_id: clubId,
+          is_admin: false
+        });
+      
+      if (joinError) {
+        if (joinError.code === '23505') { // Unique violation
+          toast.error("You're already a member of this club");
+        } else {
+          throw joinError;
+        }
+      } else {
+        // Delete the notification after successfully joining
+        await handleNotification(invitation.id, 'delete');
+        
+        // Remove notification from local state
+        setNotifications(prev => prev.filter(n => n.id !== invitation.id));
+        
+        // If this is a join request, also remove the request from club_requests table
+        if (invitation.type === 'join_request' && invitation.userId) {
+          await supabase
+            .from('club_requests')
+            .delete()
+            .eq('user_id', invitation.userId)
+            .eq('club_id', clubId);
+        }
+        
+        // Update current user clubs if needed
+        toast.success(`Successfully joined ${clubName}`);
+        
+        // Trigger a refresh of user data
+        window.dispatchEvent(new CustomEvent('userDataUpdated'));
+      }
+    } catch (error) {
+      console.error("[useHomeNotifications] Error joining club:", error);
+      toast.error("Failed to join club");
+    }
+  }, [notifications, currentUser]);
+
   const handleDeclineInvite = useCallback(async (id: string) => {
     try {
       console.log('[useHomeNotifications] Declining invitation:', id);
@@ -73,7 +134,16 @@ export const useHomeNotifications = () => {
       // Update local state
       setNotifications(prev => prev.filter(notification => notification.id !== id));
       
-      toast.success("Invitation declined");
+      // If this is a join request, also remove the request from club_requests table
+      if (notification.type === 'join_request' && notification.userId && notification.clubId) {
+        await supabase
+          .from('club_requests')
+          .delete()
+          .eq('user_id', notification.userId)
+          .eq('club_id', notification.clubId);
+      }
+      
+      toast.success(notification.type === 'invitation' ? "Invitation declined" : "Request denied");
     } catch (error) {
       console.error("[useHomeNotifications] Error declining invitation:", error);
       toast.error("Failed to decline invitation");
@@ -130,6 +200,7 @@ export const useHomeNotifications = () => {
     setUnreadMessages,
     updateUnreadCount,
     handleMarkAsRead,
+    handleJoinClub,
     handleDeclineInvite,
     handleClearAllNotifications
   };
