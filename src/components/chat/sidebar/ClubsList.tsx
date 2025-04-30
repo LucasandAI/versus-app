@@ -7,6 +7,7 @@ import { useNavigation } from '@/hooks/useNavigation';
 import { formatDistanceToNow } from 'date-fns';
 import { useClubLastMessages } from '@/hooks/chat/messages/useClubLastMessages';
 import { useUnreadMessages } from '@/context/unread-messages';
+import { Badge } from '@/components/ui/badge';
 
 interface ClubsListProps {
   clubs: Club[];
@@ -67,6 +68,8 @@ const ClubsList: React.FC<ClubsListProps> = ({
             ? formatDistanceToNow(new Date(lastMessage.timestamp), { addSuffix: false })
             : '';
           const isUnread = unreadClubs.has(club.id);
+          
+          console.log(`[ClubsList] Club ${club.name} isUnread:`, isUnread);
             
           return (
             <div key={club.id} className="flex flex-col relative group">
@@ -81,13 +84,15 @@ const ClubsList: React.FC<ClubsListProps> = ({
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-baseline">
-                    <p className={`truncate text-lg ${isUnread ? 'font-bold' : 'font-medium'}`}>
-                      {club.name}
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <p className={`truncate text-lg ${isUnread ? 'font-bold' : 'font-medium'}`}>
+                        {club.name}
+                      </p>
                       {isUnread && (
-                        <span className="ml-2 inline-flex h-2 w-2 bg-red-500 rounded-full" />
+                        <Badge variant="dot" className="ml-2 inline-block" />
                       )}
-                    </p>
+                    </div>
                     {formattedTime && (
                       <span className={`ml-2 text-xs ${isUnread ? 'font-bold text-gray-900' : 'text-gray-500'}`}>
                         {formattedTime}

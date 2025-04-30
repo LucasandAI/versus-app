@@ -1,7 +1,9 @@
+
 import React, { useEffect } from 'react';
 import { Club } from '@/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnreadMessages } from '@/context/unread-messages';
+import { Badge } from '@/components/ui/badge';
 
 interface DrawerHeaderProps {
   activeTab: "clubs" | "dm";
@@ -28,6 +30,8 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
   useEffect(() => {
     console.log('[DrawerHeader] unreadClubs updated:', Array.from(unreadClubs));
     console.log('[DrawerHeader] unreadConversations updated:', Array.from(unreadConversations));
+    console.log('[DrawerHeader] unreadClubs.size:', unreadClubs.size);
+    console.log('[DrawerHeader] unreadConversations.size:', unreadConversations.size);
   }, [unreadClubs, unreadConversations]);
 
   return (
@@ -37,13 +41,13 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
           <TabsTrigger value="clubs" className="inline-flex items-center justify-center gap-2">
             Club Chat
             {unreadClubs.size > 0 && (
-              <span className="h-2 w-2 bg-red-500 rounded-full" />
+              <Badge variant="dot" className="inline-block" />
             )}
           </TabsTrigger>
           <TabsTrigger value="dm" className="inline-flex items-center justify-center gap-2">
             Direct Messages
             {unreadConversations.size > 0 && (
-              <span className="h-2 w-2 bg-red-500 rounded-full" />
+              <Badge variant="dot" className="inline-block" />
             )}
           </TabsTrigger>
         </TabsList>
