@@ -37,6 +37,8 @@ export const useNotifications = ({ setNotifications }: UseNotificationsProps) =>
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       
+      console.log("Setting up realtime notifications subscription for user:", user.id);
+      
       // Subscribe to new notifications
       const channel = supabase
         .channel('notifications-changes')
@@ -71,10 +73,11 @@ export const useNotifications = ({ setNotifications }: UseNotificationsProps) =>
         )
         .subscribe();
         
+      console.log("Realtime subscription set up successfully");
       return channel;
     };
     
-    const channel = setupRealtimeSubscription();
+    const channelPromise = setupRealtimeSubscription();
     
     // Add event listeners for updates
     window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
@@ -87,9 +90,9 @@ export const useNotifications = ({ setNotifications }: UseNotificationsProps) =>
       window.removeEventListener('focus', fetchInitialNotifications);
       
       // Clean up the channel subscription
-      if (channel) {
-        channel.then(ch => {
-          supabase.removeChannel(ch);
+      if (channelPromise) {
+        channelPromise.then(ch => {
+          if (ch) supabase.removeChannel(ch);
         });
       }
     };

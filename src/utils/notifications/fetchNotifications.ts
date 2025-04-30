@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 // Function to fetch notifications for a user
 export const fetchUserNotifications = async (userId: string) => {
   try {
+    console.log('[fetchUserNotifications] Fetching notifications for user:', userId);
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
@@ -11,13 +12,14 @@ export const fetchUserNotifications = async (userId: string) => {
       .order('created_at', { ascending: false });
       
     if (error) {
-      console.error('Error fetching notifications:', error);
+      console.error('[fetchUserNotifications] Error fetching notifications:', error);
       return [];
     }
     
+    console.log('[fetchUserNotifications] Notifications fetched:', data?.length || 0, data);
     return data || [];
   } catch (error) {
-    console.error('Error in fetchUserNotifications:', error);
+    console.error('[fetchUserNotifications] Error in fetchUserNotifications:', error);
     return [];
   }
 };

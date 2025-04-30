@@ -25,6 +25,8 @@ const HomeNotifications: React.FC<HomeNotificationsProps> = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       
+      console.log("[HomeNotifications] Setting up notification listener for user:", user.id);
+      
       const channel = supabase
         .channel('public:notifications')
         .on(
@@ -35,7 +37,8 @@ const HomeNotifications: React.FC<HomeNotificationsProps> = ({
             table: 'notifications',
             filter: `user_id=eq.${user.id}`
           },
-          async (_) => {
+          async (payload) => {
+            console.log("[HomeNotifications] Notification change detected:", payload);
             // Refresh notifications when any change happens
             await refreshNotifications();
             const event = new CustomEvent('notificationsUpdated');
@@ -44,6 +47,8 @@ const HomeNotifications: React.FC<HomeNotificationsProps> = ({
         )
         .subscribe();
         
+      console.log("[HomeNotifications] Notification listener set up successfully");
+      
       return () => {
         supabase.removeChannel(channel);
       };

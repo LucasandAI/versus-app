@@ -40,9 +40,10 @@ export const handleNotification = (id: string, action: 'read' | 'delete') => {
 export const getNotificationsFromStorage = (): Notification[] => {
   try {
     const notifications = localStorage.getItem('notifications');
+    console.log('[getNotificationsFromStorage] Notifications from storage:', notifications ? JSON.parse(notifications).length : 0);
     return notifications ? JSON.parse(notifications) : [];
   } catch (error) {
-    console.error('Error getting notifications from storage:', error);
+    console.error('[getNotificationsFromStorage] Error getting notifications from storage:', error);
     return [];
   }
 };
@@ -51,7 +52,12 @@ export const getNotificationsFromStorage = (): Notification[] => {
 export const refreshNotifications = async () => {
   // Get current user
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) {
+    console.log('[refreshNotifications] No user found, skipping fetch');
+    return;
+  }
+  
+  console.log('[refreshNotifications] Fetching notifications for user:', user.id);
   
   // Fetch notifications from Supabase
   const { data, error } = await supabase
@@ -74,9 +80,11 @@ export const refreshNotifications = async () => {
     .order('created_at', { ascending: false });
     
   if (error) {
-    console.error('Error fetching notifications:', error);
+    console.error('[refreshNotifications] Error fetching notifications:', error);
     return;
   }
+  
+  console.log('[refreshNotifications] Notifications fetched:', data.length, data);
   
   // Process notifications
   const processedNotifications = data.map(notification => ({
@@ -95,6 +103,8 @@ export const refreshNotifications = async () => {
     data: notification.data || {},
     previouslyDisplayed: false
   }));
+  
+  console.log('[refreshNotifications] Processed notifications:', processedNotifications.length);
   
   // Update local storage
   localStorage.setItem('notifications', JSON.stringify(processedNotifications));

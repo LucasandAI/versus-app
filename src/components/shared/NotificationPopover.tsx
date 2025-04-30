@@ -33,12 +33,17 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   // Count notifications that haven't been read yet
   const unreadCount = notifications.filter(n => !n.read).length;
   
+  console.log("[NotificationPopover] Rendering with notifications:", notifications.length, 
+    "Unread count:", unreadCount, 
+    "Notification types:", notifications.map(n => n.type));
+  
   // When the popover opens, mark all notifications as read immediately
   const handleOpenChange = async (isOpen: boolean) => {
     setOpen(isOpen);
     
     // Mark all as read when opening the popover
     if (isOpen && unreadCount > 0) {
+      console.log("[NotificationPopover] Marking all notifications as read");
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       
