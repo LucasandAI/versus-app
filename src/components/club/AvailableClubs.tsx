@@ -28,12 +28,92 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
   const { currentUser } = useApp();
   const [pendingRequests, setPendingRequests] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    // Initialize member counts from the clubs prop
+    const initialCounts: Record<string, number> = {};
+    clubs.forEach(club => {
+      initialCounts[club.id] = club.members;
+    });
+    setMemberCounts(initialCounts);
+  }, [clubs]);
 
   useEffect(() => {
     if (currentUser) {
       fetchPendingRequests();
     }
-  }, [currentUser]);
+    
+    // Set up Supabase realtime subscription for club_members table
+    const clubMembershipChannel = supabase
+      .channel('available-clubs-membership-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'club_members'
+        },
+        async () => {
+          console.log('[AvailableClubs] Realtime update detected for club members, refreshing member counts');
+          await fetchLatestMemberCounts();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(clubMembershipChannel);
+    };
+  }, [currentUser, clubs]);
+  
+  // Handler for the clubMembershipChanged event
+  useEffect(() => {
+    const handleClubMembershipChange = async () => {
+      console.log('[AvailableClubs] clubMembershipChanged event received, refreshing member counts');
+      await fetchLatestMemberCounts();
+    };
+    
+    window.addEventListener('clubMembershipChanged', handleClubMembershipChange);
+    window.addEventListener('userDataUpdated', handleClubMembershipChange);
+    
+    return () => {
+      window.removeEventListener('clubMembershipChanged', handleClubMembershipChange);
+      window.removeEventListener('userDataUpdated', handleClubMembershipChange);
+    };
+  }, [clubs]);
+
+  const fetchLatestMemberCounts = async () => {
+    if (!clubs.length) return;
+    
+    try {
+      const clubIds = clubs.map(club => club.id);
+      const { data, error } = await supabase
+        .from('clubs')
+        .select('id, member_count')
+        .in('id', clubIds);
+        
+      if (error) {
+        console.error('[AvailableClubs] Error fetching member counts:', error);
+        return;
+      }
+      
+      if (data && Array.isArray(data)) {
+        const newCounts: Record<string, number> = {};
+        data.forEach(club => {
+          newCounts[club.id] = club.member_count;
+        });
+        
+        setMemberCounts(prev => ({
+          ...prev,
+          ...newCounts
+        }));
+        
+        console.log('[AvailableClubs] Updated member counts:', newCounts);
+      }
+    } catch (err) {
+      console.error('[AvailableClubs] Error fetching member counts:', err);
+    }
+  };
 
   const fetchPendingRequests = async () => {
     if (!currentUser) return;
@@ -109,44 +189,49 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
       </p>
 
       <div className="space-y-3">
-        {clubs.map((club) => (
-          <div 
-            key={club.id} 
-            className="flex items-center justify-between border-b last:border-0 pb-3 last:pb-0"
-          >
+        {clubs.map((club) => {
+          // Use the updated member count from our state, or fall back to the prop value
+          const currentMemberCount = memberCounts[club.id] !== undefined ? memberCounts[club.id] : club.members;
+          
+          return (
             <div 
-              className="flex items-center gap-3 cursor-pointer hover:text-primary"
-              onClick={() => handleClubClick(club)}
+              key={club.id} 
+              className="flex items-center justify-between border-b last:border-0 pb-3 last:pb-0"
             >
-              <UserAvatar
-                name={club.name}
-                image={club.logo}
-                size="sm"
-                className="h-10 w-10"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleClubClick(club);
-                }}
-              />
-              <div>
-                <h3 className="font-medium text-sm">{club.name}</h3>
-                <span className="text-xs text-gray-500">
-                  {formatLeagueWithTier(club.division, club.tier)} • {club.members}/5 members
-                </span>
+              <div 
+                className="flex items-center gap-3 cursor-pointer hover:text-primary"
+                onClick={() => handleClubClick(club)}
+              >
+                <UserAvatar
+                  name={club.name}
+                  image={club.logo}
+                  size="sm"
+                  className="h-10 w-10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleClubClick(club);
+                  }}
+                />
+                <div>
+                  <h3 className="font-medium text-sm">{club.name}</h3>
+                  <span className="text-xs text-gray-500">
+                    {formatLeagueWithTier(club.division, club.tier)} • {currentMemberCount}/5 members
+                  </span>
+                </div>
               </div>
+              <Button 
+                variant={pendingRequests[club.id] ? "outline" : "outline"}
+                size="sm" 
+                className={`h-8 ${pendingRequests[club.id] ? "text-red-500 hover:text-red-700" : ""}`}
+                icon={pendingRequests[club.id] ? <X className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                onClick={(e) => handleRequestClick(e, club.id, club.name)}
+                loading={isLoading}
+              >
+                {pendingRequests[club.id] ? "Cancel Request" : "Request"}
+              </Button>
             </div>
-            <Button 
-              variant={pendingRequests[club.id] ? "outline" : "outline"}
-              size="sm" 
-              className={`h-8 ${pendingRequests[club.id] ? "text-red-500 hover:text-red-700" : ""}`}
-              icon={pendingRequests[club.id] ? <X className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-              onClick={(e) => handleRequestClick(e, club.id, club.name)}
-              loading={isLoading}
-            >
-              {pendingRequests[club.id] ? "Cancel Request" : "Request"}
-            </Button>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

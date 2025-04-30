@@ -63,7 +63,16 @@ export const useClubActions = (club: Club) => {
       });
       
       setCurrentView('home');
+      
+      // Dispatch events to update UI components
       window.dispatchEvent(new CustomEvent('userDataUpdated'));
+      
+      // Small delay to ensure database updates are processed
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('clubMembershipChanged', { 
+          detail: { clubId: club.id } 
+        }));
+      }, 300);
       
     } catch (error) {
       console.error('Error leaving club:', error);

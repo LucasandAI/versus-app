@@ -5,6 +5,7 @@ import { useClubDetails } from './useClubDetails';
 import { useClubMembers } from './useClubMembers';
 import { useClubMatches } from './useClubMatches';
 import { useApp } from '@/context/AppContext';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useClubData = (clubId: string | undefined) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -73,17 +74,46 @@ export const useClubData = (clubId: string | undefined) => {
   useEffect(() => {
     loadClubData();
     
-    // Add event listener for userDataUpdated
+    // Add event listeners for data updates
     const handleDataUpdate = () => {
+      console.log('[useClubData] userDataUpdated event received, refreshing data');
       loadClubData();
     };
 
+    const handleClubMembershipChange = (event: CustomEvent) => {
+      if (event.detail?.clubId === clubId) {
+        console.log('[useClubData] clubMembershipChanged event for this club received, refreshing data');
+        loadClubData();
+      }
+    };
+
     window.addEventListener('userDataUpdated', handleDataUpdate);
+    window.addEventListener('clubMembershipChanged', handleClubMembershipChange as EventListener);
+    
+    // Set up Supabase realtime subscription for club_members table
+    const clubMembershipChannel = supabase
+      .channel('club-data-membership-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'club_members',
+          filter: `club_id=eq.${clubId}`
+        },
+        () => {
+          console.log('[useClubData] Realtime update detected for club members');
+          loadClubData();
+        }
+      )
+      .subscribe();
     
     return () => {
       window.removeEventListener('userDataUpdated', handleDataUpdate);
+      window.removeEventListener('clubMembershipChanged', handleClubMembershipChange as EventListener);
+      supabase.removeChannel(clubMembershipChannel);
     };
-  }, [loadClubData]);
+  }, [loadClubData, clubId]);
 
   return { club, isLoading, error, refreshClubData: loadClubData };
 };
