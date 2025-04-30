@@ -71,43 +71,61 @@ export const useHomeNotifications = () => {
         return;
       }
       
-      // Add user to the club
-      const { error: joinError } = await supabase
-        .from('club_members')
-        .insert({
-          user_id: currentUser.id,
-          club_id: clubId,
-          is_admin: false
-        });
-      
-      if (joinError) {
-        if (joinError.code === '23505') { // Unique violation
-          toast.error("You're already a member of this club");
-        } else {
+      // For join_request type, this means we're accepting someone else's request to join
+      if (invitation.type === 'join_request' && invitation.userId) {
+        // Add the requesting user to the club
+        const { error: joinError } = await supabase
+          .from('club_members')
+          .insert({
+            user_id: invitation.userId, // The user who sent the join request
+            club_id: clubId,
+            is_admin: false
+          });
+          
+        if (joinError) {
+          console.error('[useHomeNotifications] Error adding user to club:', joinError);
           throw joinError;
         }
+        
+        // Delete the join request from the club_requests table
+        await supabase
+          .from('club_requests')
+          .delete()
+          .eq('user_id', invitation.userId)
+          .eq('club_id', clubId);
+          
+        toast.success(`User has been added to the club`);
       } else {
-        // Delete the notification after successfully joining
-        await handleNotification(invitation.id, 'delete');
+        // This is an invitation for the current user to join
+        // Add user to the club
+        const { error: joinError } = await supabase
+          .from('club_members')
+          .insert({
+            user_id: currentUser.id,
+            club_id: clubId,
+            is_admin: false
+          });
         
-        // Remove notification from local state
-        setNotifications(prev => prev.filter(n => n.id !== invitation.id));
-        
-        // If this is a join request, also remove the request from club_requests table
-        if (invitation.type === 'join_request' && invitation.userId) {
-          await supabase
-            .from('club_requests')
-            .delete()
-            .eq('user_id', invitation.userId)
-            .eq('club_id', clubId);
+        if (joinError) {
+          if (joinError.code === '23505') { // Unique violation
+            toast.error("You're already a member of this club");
+          } else {
+            throw joinError;
+          }
+        } else {
+          toast.success(`Successfully joined ${clubName}`);
         }
-        
-        // Update current user clubs if needed
-        toast.success(`Successfully joined ${clubName}`);
-        
-        // Trigger a refresh of user data
-        window.dispatchEvent(new CustomEvent('userDataUpdated'));
       }
+      
+      // Delete the notification after successfully handling
+      await handleNotification(invitation.id, 'delete');
+      
+      // Remove notification from local state
+      setNotifications(prev => prev.filter(n => n.id !== invitation.id));
+      
+      // Trigger a refresh of user data
+      window.dispatchEvent(new CustomEvent('userDataUpdated'));
+      
     } catch (error) {
       console.error("[useHomeNotifications] Error joining club:", error);
       toast.error("Failed to join club");

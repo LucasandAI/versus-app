@@ -84,7 +84,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   const formatMessage = () => {
     let message = notification.message || '';
     
-    // For join requests
+    // For join requests - this is what admins see when users request to join their club
     if (notification.type === 'join_request' && notification.userName && notification.clubName) {
       return (
         <p className="text-sm">
@@ -105,7 +105,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
       );
     }
     
-    // For club invitations
+    // For club invitations - what users see when invited to join a club
     if (notification.type === 'invitation' && notification.clubName) {
       return (
         <p className="text-sm">
@@ -170,6 +170,9 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     return <p className="text-sm">{message}</p>;
   };
 
+  // Only show action buttons for join_request notifications (when you're the club admin)
+  const showActionButtons = notification.type === 'join_request';
+
   return (
     <div 
       className={backgroundClass} 
@@ -187,7 +190,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
           </span>
         </div>
         
-        {notification.type === 'join_request' && (
+        {/* Only show buttons for join requests */}
+        {showActionButtons && (
           <div className="flex gap-2 mt-1">
             <Button 
               onClick={handleJoinClub}
@@ -203,26 +207,6 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
               className="px-3 py-1 text-xs rounded h-7"
             >
               Deny
-            </Button>
-          </div>
-        )}
-
-        {notification.type === 'invitation' && (
-          <div className="flex gap-2 mt-1">
-            <Button 
-              onClick={handleJoinClub}
-              size="sm"
-              className="px-3 py-1 bg-primary text-white text-xs rounded h-7"
-            >
-              Accept
-            </Button>
-            <Button 
-              onClick={handleDeclineInvite}
-              size="sm"
-              variant="outline"
-              className="px-3 py-1 text-xs rounded h-7"
-            >
-              Decline
             </Button>
           </div>
         )}
