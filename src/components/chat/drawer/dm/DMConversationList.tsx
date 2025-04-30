@@ -9,18 +9,21 @@ import { useDirectConversationsContext } from '@/context/DirectConversationsCont
 interface Props {
   onSelectUser: (userId: string, userName: string, userAvatar: string, conversationId: string) => void;
   selectedUserId?: string;
-  unreadConversations?: Set<string>; // Added the missing prop
+  unreadConversations?: Set<string>; // This prop is now defined
 }
 
 const DMConversationList: React.FC<Props> = ({ 
   onSelectUser, 
   selectedUserId,
-  unreadConversations = new Set() // Added default value
+  unreadConversations = new Set() // Default value properly defined
 }) => {
   const { currentUser } = useApp();
   const { conversations, loading } = useDirectConversationsContext();
   
   const isEmpty = !loading && conversations.length === 0;
+  
+  // Debug logging to check the unread conversations
+  console.log('[DMConversationList] unreadConversations:', Array.from(unreadConversations));
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -48,25 +51,30 @@ const DMConversationList: React.FC<Props> = ({
           <div className="divide-y">
             {conversations
               .filter(conversation => conversation.userId !== currentUser?.id)
-              .map((conversation) => (
-                <ConversationItem
-                  key={conversation.conversationId}
-                  conversation={{
-                    ...conversation,
-                    lastMessage: conversation.lastMessage || '',
-                    timestamp: conversation.timestamp || ''
-                  }}
-                  isSelected={selectedUserId === conversation.userId}
-                  isUnread={unreadConversations.has(conversation.conversationId)}
-                  onSelect={() => onSelectUser(
-                    conversation.userId,
-                    conversation.userName,
-                    conversation.userAvatar,
-                    conversation.conversationId
-                  )}
-                  isLoading={false}
-                />
-              ))}
+              .map((conversation) => {
+                const isUnread = unreadConversations.has(conversation.conversationId);
+                console.log(`[DMConversationList] Conversation ${conversation.conversationId} isUnread: ${isUnread}`);
+                
+                return (
+                  <ConversationItem
+                    key={conversation.conversationId}
+                    conversation={{
+                      ...conversation,
+                      lastMessage: conversation.lastMessage || '',
+                      timestamp: conversation.timestamp || ''
+                    }}
+                    isSelected={selectedUserId === conversation.userId}
+                    isUnread={isUnread}
+                    onSelect={() => onSelectUser(
+                      conversation.userId,
+                      conversation.userName,
+                      conversation.userAvatar,
+                      conversation.conversationId
+                    )}
+                    isLoading={false}
+                  />
+                );
+              })}
           </div>
         )}
       </div>

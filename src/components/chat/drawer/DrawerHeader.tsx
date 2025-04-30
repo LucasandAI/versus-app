@@ -26,14 +26,6 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
     }
   }, [activeTab, selectedClub, markClubMessagesAsRead]);
   
-  // Debug logging for unreadClubs
-  useEffect(() => {
-    console.log('[DrawerHeader] unreadClubs updated:', Array.from(unreadClubs));
-    console.log('[DrawerHeader] unreadConversations updated:', Array.from(unreadConversations));
-    console.log('[DrawerHeader] unreadClubs.size:', unreadClubs.size);
-    console.log('[DrawerHeader] unreadConversations.size:', unreadConversations.size);
-  }, [unreadClubs, unreadConversations]);
-
   return (
     <div className="px-4 py-2 border-b">
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "clubs" | "dm")}>

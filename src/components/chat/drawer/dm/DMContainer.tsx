@@ -1,7 +1,11 @@
 
-import React from 'react';
-import DMSearchPanel from './DMSearchPanel';
+import React, { useState, useEffect } from 'react';
 import DMConversationList from './DMConversationList';
+import DMConversation from './DMConversation';
+import DMSearchPanel from './DMSearchPanel';
+import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
+import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
+import { useApp } from '@/context/AppContext';
 
 interface DMContainerProps {
   directMessageUser: {
@@ -16,34 +20,75 @@ interface DMContainerProps {
     userAvatar: string;
     conversationId: string;
   } | null>>;
-  unreadConversations?: Set<string>; // Added missing prop
+  unreadConversations?: Set<string>;
 }
 
 const DMContainer: React.FC<DMContainerProps> = ({ 
   directMessageUser, 
   setDirectMessageUser,
-  unreadConversations = new Set() // Added default value
+  unreadConversations = new Set()
 }) => {
-  const handleSelectUser = (userId: string, userName: string, userAvatar: string, conversationId: string) => {
-    setDirectMessageUser({
-      userId,
-      userName,
-      userAvatar,
-      conversationId
-    });
-  };
+  const [showSearch, setShowSearch] = useState(false);
+  const { getOrCreateConversation } = useDirectConversationsContext();
+  const { markDirectMessagesAsRead } = useMessageReadStatus();
+  const { currentUser } = useApp();
 
+  // Create a handler for search results selection
+  const handleSearchSelect = async (userId: string, userName: string, userAvatar: string) => {
+    const conversation = await getOrCreateConversation(userId, userName, userAvatar);
+    if (conversation) {
+      setDirectMessageUser({
+        userId,
+        userName,
+        userAvatar: userAvatar || '/placeholder.svg',
+        conversationId: conversation.conversationId
+      });
+      setShowSearch(false);
+    }
+  };
+  
+  // Mark conversation as read when selected
+  useEffect(() => {
+    if (directMessageUser && currentUser?.id) {
+      console.log(`[DMContainer] Marking conversation ${directMessageUser.conversationId} as read`);
+      markDirectMessagesAsRead(directMessageUser.conversationId, currentUser.id);
+    }
+  }, [directMessageUser, currentUser?.id, markDirectMessagesAsRead]);
+
+  // The user has selected a DM conversation
+  if (directMessageUser) {
+    return (
+      <DMConversation
+        user={{
+          id: directMessageUser.userId,
+          name: directMessageUser.userName,
+          avatar: directMessageUser.userAvatar
+        }}
+        conversationId={directMessageUser.conversationId}
+        onBack={() => setDirectMessageUser(null)}
+      />
+    );
+  }
+
+  // The user wants to search for someone
+  if (showSearch) {
+    return <DMSearchPanel onSelect={handleSearchSelect} onBack={() => setShowSearch(false)} />;
+  }
+
+  // Show the conversation list (default view)
   return (
-    <div className="h-full overflow-hidden flex flex-col">
-      <DMSearchPanel />
-      <div className="flex-1 overflow-hidden">
-        <DMConversationList 
-          onSelectUser={handleSelectUser} 
-          selectedUserId={directMessageUser?.userId}
-          unreadConversations={unreadConversations} // Pass the prop to DMConversationList if needed
-        />
-      </div>
-    </div>
+    <DMConversationList
+      onSelectUser={(userId, userName, userAvatar, conversationId) => {
+        setDirectMessageUser({
+          userId,
+          userName,
+          userAvatar,
+          conversationId
+        });
+      }}
+      selectedUserId={directMessageUser?.userId}
+      unreadConversations={unreadConversations}
+    />
   );
 };
 

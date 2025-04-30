@@ -57,13 +57,10 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
           ) : (
             <h2 className={`text-lg truncate max-w-[60%] ${isUnread ? 'font-bold' : 'font-medium'}`}>
               {conversation.userName}
-              {isUnread && (
-                <span className="ml-2 inline-flex h-2 w-2 bg-red-500 rounded-full" />
-              )}
             </h2>
           )}
           {formattedTime && !isLoading ? (
-            <span className={`text-xs ${isUnread ? 'font-bold' : 'text-gray-500'} flex-shrink-0 ml-auto`}>
+            <span className={`text-xs ${isUnread ? 'font-bold text-gray-900' : 'text-gray-500'} flex-shrink-0 ml-auto`}>
               {formattedTime}
             </span>
           ) : isLoading ? (
@@ -75,14 +72,12 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
           {isLoading ? (
             <Skeleton className="h-4 w-full flex-1" />
           ) : (
-            <p className={`text-sm truncate flex-1 ${isUnread ? 'text-gray-900' : 'text-gray-600'}`}>
+            <p className={`text-sm truncate flex-1 ${isUnread ? 'text-gray-900 font-semibold' : 'text-gray-600'}`}>
               {truncatedMessage}
             </p>
           )}
           {isUnread && (
-            <Badge variant="destructive" className="ml-1 h-5 min-w-5 flex items-center justify-center rounded-full p-1">
-              •
-            </Badge>
+            <Badge variant="dot" className="ml-2" />
           )}
         </div>
       </div>
