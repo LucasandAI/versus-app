@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { Club } from '@/types';
 import UserAvatar from '../../shared/UserAvatar';
@@ -31,10 +32,9 @@ const ClubsList: React.FC<ClubsListProps> = ({
   const { lastMessages, sortedClubs } = useClubLastMessages(clubs);
   const { unreadClubs, markClubMessagesAsRead } = useUnreadMessages();
   
-  // Debug: Log the unreadClubs set when it changes
+  // Add a debug effect to log unread clubs when they change
   useEffect(() => {
-    console.log('[ClubsList] unreadClubs set contents:', Array.from(unreadClubs));
-    console.log('[ClubsList] unreadClubs type:', typeof unreadClubs, unreadClubs instanceof Set);
+    console.log('[ClubsList] unreadClubs set updated:', Array.from(unreadClubs));
   }, [unreadClubs]);
   
   const handleClubClick = (club: Club, e: React.MouseEvent) => {
@@ -54,18 +54,19 @@ const ClubsList: React.FC<ClubsListProps> = ({
       
       <div className="space-y-1">
         {sortedClubs.map(club => {
+          // Add the suggested debug logging
+          console.log('[ClubsList] Rendering club:', {
+            clubId: club.id,
+            clubIdType: typeof club.id,
+            isUnread: unreadClubs.has(club.id),
+            unreadClubs: Array.from(unreadClubs)
+          });
+          
           const lastMessage = lastMessages[club.id];
           const formattedTime = lastMessage?.timestamp 
             ? formatDistanceToNow(new Date(lastMessage.timestamp), { addSuffix: false })
             : '';
           const isUnread = unreadClubs.has(club.id);
-          
-          // Debug: Log detailed information for each club
-          console.log(
-            `[ClubsList] Club ${club.name} (ID: ${club.id}): ` +
-            `isUnread=${isUnread}, ` + 
-            `club.id type: ${typeof club.id}`
-          );
             
           return (
             <div key={club.id} className="flex flex-col relative group">

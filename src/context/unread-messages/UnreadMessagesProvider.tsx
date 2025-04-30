@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useApp } from '@/context/AppContext';
 import UnreadMessagesContext from './UnreadMessagesContext';
 import { useDirectMessageUnreadState } from './hooks/useDirectMessageUnreadState';
@@ -51,9 +51,26 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
     fetchUnreadCounts
   });
   
+  // Listen for global unread messages events
+  useEffect(() => {
+    const handler = () => {
+      console.log('[UnreadMessagesProvider] Handling unreadMessagesUpdated event');
+    };
+    
+    window.addEventListener('unreadMessagesUpdated', handler);
+    return () => window.removeEventListener('unreadMessagesUpdated', handler);
+  }, []);
+  
   // Debug: Add effect to log the contents of unreadClubs whenever it changes
   useEffect(() => {
     console.log('[UnreadMessagesProvider] unreadClubs updated:', Array.from(unreadClubs));
+  }, [unreadClubs]);
+  
+  // Force re-render method that components can call
+  const forceRefresh = useCallback(() => {
+    console.log('[UnreadMessagesProvider] Force refresh triggered');
+    // The state update will trigger a re-render
+    setUnreadClubs(new Set(unreadClubs));
   }, [unreadClubs]);
   
   return (

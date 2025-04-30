@@ -1,11 +1,21 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 
 export const useClubUnreadState = (currentUserId: string | undefined) => {
   const [unreadClubs, setUnreadClubs] = useState<Set<string>>(new Set());
   const [clubUnreadCount, setClubUnreadCount] = useState(0);
+  
+  // Listen for global unreadMessagesUpdated events
+  useEffect(() => {
+    const handleUnreadUpdated = () => {
+      console.log('[useClubUnreadState] Detected unreadMessagesUpdated event');
+    };
+    
+    window.addEventListener('unreadMessagesUpdated', handleUnreadUpdated);
+    return () => window.removeEventListener('unreadMessagesUpdated', handleUnreadUpdated);
+  }, []);
 
   // Mark club as unread (for new incoming messages)
   const markClubAsUnread = useCallback((clubId: string) => {

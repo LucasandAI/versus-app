@@ -35,7 +35,11 @@ export const useUnreadSubscriptions = ({
           (payload) => {
             console.log('[useUnreadSubscriptions] New DM received:', payload);
             if (payload.new.receiver_id === currentUserId) {
+              console.log('[useUnreadSubscriptions] Marking conversation as unread:', payload.new.conversation_id);
               markConversationAsUnread(payload.new.conversation_id);
+              
+              // Dispatch global event to notify other components
+              window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
             }
           })
       .subscribe();
@@ -53,6 +57,9 @@ export const useUnreadSubscriptions = ({
             if (payload.new.sender_id !== currentUserId) {
               console.log(`[useUnreadSubscriptions] Marking club ${payload.new.club_id} as unread`);
               markClubAsUnread(payload.new.club_id);
+              
+              // Dispatch global event to notify other components
+              window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
             }
           })
       .subscribe();
