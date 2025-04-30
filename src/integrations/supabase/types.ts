@@ -681,6 +681,8 @@ export type Database = {
         | "achievement"
         | "invitation"
         | "activity"
+        | "incoming_request"
+        | "request_accepted"
       request_status: "pending" | "accepted" | "rejected"
     }
     CompositeTypes: {
@@ -812,6 +814,8 @@ export const Constants = {
         "achievement",
         "invitation",
         "activity",
+        "incoming_request",
+        "request_accepted",
       ],
       request_status: ["pending", "accepted", "rejected"],
     },

@@ -80,11 +80,9 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     return null;
   }
 
-  // Create a formatted message with clickable parts
+  // Create a formatted message with clickable parts based on notification type
   const formatMessage = () => {
-    let message = notification.message || '';
-    
-    // For join requests - this is what admins see when users request to join their club
+    // For join requests - what admins see when users request to join their club
     if (notification.type === 'join_request' && notification.userName && notification.clubName) {
       return (
         <p className="text-sm">
@@ -105,34 +103,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
       );
     }
     
-    // For club invitations - what users see when invited to join a club
-    if (notification.type === 'invitation' && notification.clubName) {
-      return (
-        <p className="text-sm">
-          {notification.userName && (
-            <>
-              <span 
-                className="font-medium text-primary cursor-pointer hover:underline"
-                onClick={handleUserClick}
-              >
-                {notification.userName}
-              </span>
-              {' has invited you to join '}
-            </>
-          )}
-          {!notification.userName && 'You\'ve been invited to join '}
-          <span 
-            className="font-medium text-primary cursor-pointer hover:underline"
-            onClick={handleClubClick}
-          >
-            {notification.clubName}
-          </span>
-        </p>
-      );
-    }
-    
-    // For added to club notifications
-    if (notification.type === 'added_to_club' && notification.clubName) {
+    // For accepted join requests notifications
+    if (notification.type === 'request_accepted' && notification.clubName) {
       return (
         <p className="text-sm">
           {'You\'ve been added to '}
@@ -146,28 +118,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
       );
     }
     
-    // Generic notification with club reference
-    if (notification.clubName && notification.clubId) {
-      // Find the club name in the message and make it clickable
-      const parts = message.split(notification.clubName);
-      if (parts.length > 1) {
-        return (
-          <p className="text-sm">
-            {parts[0]}
-            <span 
-              className="font-medium text-primary cursor-pointer hover:underline"
-              onClick={handleClubClick}
-            >
-              {notification.clubName}
-            </span>
-            {parts.slice(1).join(notification.clubName)}
-          </p>
-        );
-      }
-    }
-    
     // Default message without formatting
-    return <p className="text-sm">{message}</p>;
+    return <p className="text-sm">{notification.message}</p>;
   };
 
   // Only show action buttons for join_request notifications (when you're the club admin)
