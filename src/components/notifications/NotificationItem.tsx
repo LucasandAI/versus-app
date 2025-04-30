@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { Notification } from '@/types';
 import { useApp } from '@/context/AppContext';
@@ -28,7 +28,9 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   const { setSelectedClub, setCurrentView } = useApp();
   const { navigateToUserProfile } = useNavigation();
 
-  console.log("[NotificationItem] Rendering notification:", notification);
+  useEffect(() => {
+    console.log("[NotificationItem] Rendering notification:", notification);
+  }, [notification]);
 
   const handleClubClick = () => {
     if (!notification.clubId) return;
@@ -84,6 +86,11 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     "p-3 border-b hover:bg-gray-50 transition-colors",
     isNewNotification && "bg-blue-50"
   );
+
+  if (!notification || !notification.message) {
+    console.error("[NotificationItem] Invalid notification object:", notification);
+    return null;
+  }
 
   return (
     <div className={backgroundClass} onClick={() => {

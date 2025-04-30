@@ -17,7 +17,12 @@ const HomeNotifications: React.FC<HomeNotificationsProps> = ({
   // Set up real-time listener for the notifications table
   useEffect(() => {
     const setupNotificationListener = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error("[HomeNotifications] Error getting user:", error);
+        return;
+      }
+      
       if (!user) {
         console.log("[HomeNotifications] No user found, skipping notification listener setup");
         return;

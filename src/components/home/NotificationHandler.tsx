@@ -28,6 +28,8 @@ const NotificationHandler: React.FC<NotificationHandlerProps> = ({
         if (refreshedNotifications && refreshedNotifications.length > 0) {
           console.log("[NotificationHandler] Setting initial notifications:", refreshedNotifications.length);
           setNotifications(refreshedNotifications);
+        } else {
+          console.log("[NotificationHandler] No notifications to set or empty array returned");
         }
       } catch (error) {
         console.error("[NotificationHandler] Error fetching notifications:", error);

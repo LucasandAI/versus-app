@@ -85,7 +85,13 @@ export const getNotificationsFromStorage = (): Notification[] => {
 // Function to refresh notifications (used when initializing the app)
 export const refreshNotifications = async () => {
   // Get current user
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  
+  if (userError) {
+    console.error('[refreshNotifications] Error getting user:', userError);
+    return [];
+  }
+  
   if (!user) {
     console.log('[refreshNotifications] No user found, skipping fetch');
     return [];
@@ -118,6 +124,12 @@ export const refreshNotifications = async () => {
   
   console.log('[refreshNotifications] Raw notifications fetched:', data.length, data);
   
+  if (data.length === 0) {
+    console.log('[refreshNotifications] No notifications found for user');
+    localStorage.setItem('notifications', JSON.stringify([]));
+    return [];
+  }
+  
   // Process notifications to match the expected format
   const processedNotifications: Notification[] = data.map(item => ({
     id: item.id,
@@ -137,7 +149,7 @@ export const refreshNotifications = async () => {
   
   // Update local storage
   localStorage.setItem('notifications', JSON.stringify(processedNotifications));
-  console.log('[refreshNotifications] Notifications saved to localStorage');
+  console.log('[refreshNotifications] Notifications saved to localStorage:', processedNotifications.length);
   
   // Dispatch event to update UI
   const event = new CustomEvent('notificationsUpdated');

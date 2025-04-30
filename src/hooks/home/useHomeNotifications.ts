@@ -11,6 +11,20 @@ export const useHomeNotifications = () => {
   const [unreadMessages, setUnreadMessages] = useState<Record<string, number>>({});
   const { currentUser } = useApp();
 
+  // Initialize notifications from localStorage if available
+  useEffect(() => {
+    const storedNotifications = localStorage.getItem('notifications');
+    if (storedNotifications) {
+      try {
+        const parsedNotifications = JSON.parse(storedNotifications);
+        console.log('[useHomeNotifications] Initialized from localStorage:', parsedNotifications.length, parsedNotifications);
+        setNotifications(parsedNotifications);
+      } catch (error) {
+        console.error('[useHomeNotifications] Error parsing stored notifications:', error);
+      }
+    }
+  }, []);
+
   const handleMarkAsRead = useCallback(async (id: string) => {
     try {
       console.log('[useHomeNotifications] Marking notification as read:', id);

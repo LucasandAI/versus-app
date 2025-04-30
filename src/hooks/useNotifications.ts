@@ -14,7 +14,11 @@ export const useNotifications = ({ setNotifications }: UseNotificationsProps) =>
       console.log("[useNotifications] Loading notifications from storage");
       const notifications = getNotificationsFromStorage();
       console.log("[useNotifications] Loaded notifications:", notifications.length, notifications);
-      setNotifications(notifications);
+      if (notifications.length > 0) {
+        setNotifications(notifications);
+      } else {
+        console.log("[useNotifications] No notifications found in storage or empty array");
+      }
     };
 
     // Listen for notification updates
@@ -25,6 +29,9 @@ export const useNotifications = ({ setNotifications }: UseNotificationsProps) =>
     
     // Add event listeners for updates
     window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
+    
+    // Initial load from storage
+    loadNotificationsFromStorage();
     
     return () => {
       window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);

@@ -41,8 +41,6 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   // Listen for unreadMessagesUpdated event to update badge count
   useEffect(() => {
     const handleUnreadMessagesUpdated = () => {
-      // We'll rely on the context update above rather than trying to access
-      // the context directly inside this event handler
       setTimeout(() => {
         // This will trigger a re-render that will pick up the latest totalUnreadCount
         setBadgeCount(prev => prev); // Force an update
