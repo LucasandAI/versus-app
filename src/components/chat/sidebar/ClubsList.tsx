@@ -29,8 +29,13 @@ const ClubsList: React.FC<ClubsListProps> = ({
   setChatToDelete,
 }) => {
   const { navigateToClubDetail } = useNavigation();
-  const { lastMessages, sortedClubs } = useClubLastMessages(clubs);
   const { unreadClubs, markClubMessagesAsRead } = useUnreadMessages();
+  
+  // Create a dependency key from unreadClubs to force re-renders
+  const unreadClubsKey = Array.from(unreadClubs).join(',');
+  
+  // Pass unreadClubsKey to the hook to invalidate memoization when unread status changes
+  const { lastMessages, sortedClubs } = useClubLastMessages(clubs, unreadClubsKey);
   
   // Add a debug effect to log unread clubs when they change
   useEffect(() => {
