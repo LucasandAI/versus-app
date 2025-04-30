@@ -6,6 +6,7 @@ import { toast } from "sonner";
 export const useClubUnreadState = (currentUserId: string | undefined) => {
   const [unreadClubs, setUnreadClubs] = useState<Set<string>>(new Set());
   const [clubUnreadCount, setClubUnreadCount] = useState(0);
+  const [unreadMessagesPerClub, setUnreadMessagesPerClub] = useState<Record<string, number>>({});
   
   // Listen for global unreadMessagesUpdated events
   useEffect(() => {
@@ -28,12 +29,29 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
       if (!updated.has(normalizedClubId)) {
         updated.add(normalizedClubId);
         console.log(`[useClubUnreadState] Club ${normalizedClubId} added to unread set:`, Array.from(updated));
+        
+        // Update the unread messages count for this club
+        setUnreadMessagesPerClub(prev => {
+          const updated = { ...prev };
+          updated[normalizedClubId] = (updated[normalizedClubId] || 0) + 1;
+          return updated;
+        });
+        
         setClubUnreadCount(prev => prev + 1);
         
         // Dispatch event to notify UI components
         window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
       } else {
         console.log(`[useClubUnreadState] Club ${normalizedClubId} was already in unread set`);
+        
+        // If club is already marked as unread, just increment the message count
+        setUnreadMessagesPerClub(prev => {
+          const updated = { ...prev };
+          updated[normalizedClubId] = (updated[normalizedClubId] || 0) + 1;
+          return updated;
+        });
+        
+        setClubUnreadCount(prev => prev + 1);
       }
       return updated;
     });
@@ -45,6 +63,9 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
     
     console.log(`[useClubUnreadState] Marking club ${clubId} messages as read`);
     
+    // Get the number of unread messages for this club
+    const messageCount = unreadMessagesPerClub[clubId] || 0;
+    
     // Optimistically update local state
     setUnreadClubs(prev => {
       if (!prev.has(clubId)) {
@@ -55,7 +76,16 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
       const updated = new Set(prev);
       updated.delete(clubId);
       console.log(`[useClubUnreadState] Club ${clubId} removed from unread set:`, Array.from(updated));
-      setClubUnreadCount(prevCount => Math.max(0, prevCount - 1));
+      
+      // Subtract the actual count of unread messages for this club
+      setClubUnreadCount(prevCount => Math.max(0, prevCount - messageCount));
+      
+      // Clear the unread messages count for this club
+      setUnreadMessagesPerClub(prev => {
+        const updated = { ...prev };
+        delete updated[clubId];
+        return updated;
+      });
       
       // Dispatch event to notify UI components
       window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
@@ -97,20 +127,29 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
         reverted.add(clubId);
         return reverted;
       });
-      setClubUnreadCount(prev => prev + 1);
+      
+      // Restore the unread message count on error
+      setUnreadMessagesPerClub(prev => ({
+        ...prev,
+        [clubId]: messageCount
+      }));
+      
+      setClubUnreadCount(prev => prev + messageCount);
       
       // Notify UI components about the revert
       window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
       
       toast.error("Failed to mark club messages as read");
     }
-  }, [currentUserId]);
+  }, [currentUserId, unreadMessagesPerClub]);
 
   return {
     unreadClubs,
     setUnreadClubs,
     clubUnreadCount,
     setClubUnreadCount,
+    unreadMessagesPerClub,
+    setUnreadMessagesPerClub,
     markClubAsUnread,
     markClubMessagesAsRead
   };

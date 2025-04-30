@@ -16,6 +16,8 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
     setUnreadConversations,
     dmUnreadCount,
     setDmUnreadCount,
+    unreadMessagesPerConversation,
+    setUnreadMessagesPerConversation,
     markConversationAsUnread,
     markConversationAsRead
   } = useDirectMessageUnreadState(currentUser?.id);
@@ -25,6 +27,8 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
     setUnreadClubs,
     clubUnreadCount,
     setClubUnreadCount,
+    unreadMessagesPerClub,
+    setUnreadMessagesPerClub,
     markClubAsUnread,
     markClubMessagesAsRead
   } = useClubUnreadState(currentUser?.id);
@@ -39,7 +43,9 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
     setDmUnreadCount,
     setClubUnreadCount,
     setUnreadConversations,
-    setUnreadClubs
+    setUnreadClubs,
+    setUnreadMessagesPerConversation,
+    setUnreadMessagesPerClub
   });
   
   // Set up real-time subscriptions
@@ -77,8 +83,10 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
     <UnreadMessagesContext.Provider value={{
       unreadConversations,
       dmUnreadCount,
+      unreadMessagesPerConversation,
       unreadClubs,
       clubUnreadCount,
+      unreadMessagesPerClub,
       totalUnreadCount,
       markConversationAsRead,
       markClubMessagesAsRead,
