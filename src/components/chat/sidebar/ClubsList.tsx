@@ -94,9 +94,6 @@ const ClubsList: React.FC<ClubsListProps> = ({
                 <div className="flex items-center justify-between mb-1">
                   <h2 className={`text-lg truncate max-w-[60%] ${isUnread ? 'font-bold' : 'font-medium'}`}>
                     {club.name}
-                    {isUnread && (
-                      <span className="ml-2 inline-flex h-2 w-2 bg-red-500 rounded-full" />
-                    )}
                   </h2>
                   {formattedTime && (
                     <span className={`text-xs ${isUnread ? 'font-bold' : 'text-gray-500'} flex-shrink-0 ml-auto`}>
@@ -119,9 +116,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
                     )}
                   </p>
                   {isUnread && (
-                    <Badge variant="destructive" className="ml-1 h-5 min-w-5 flex items-center justify-center rounded-full p-1">
-                      •
-                    </Badge>
+                    <Badge variant="dot" className="ml-2" />
                   )}
                 </div>
                 

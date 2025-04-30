@@ -35,7 +35,7 @@ function Badge({ className, variant, ...props }: BadgeProps) {
   const inlineStyles: React.CSSProperties = variant === "dot" ? {
     display: "block",
     opacity: 1,
-    visibility: "visible" as const, // Type assertion to fix the error
+    visibility: "visible" as const,
     backgroundColor: "rgb(239, 68, 68)",
     width: "8px",
     height: "8px",

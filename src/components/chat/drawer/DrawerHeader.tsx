@@ -36,11 +36,6 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
               <Badge 
                 variant="dot" 
                 className="!inline-block !visible" 
-                style={{ 
-                  display: 'block', 
-                  opacity: 1, 
-                  visibility: 'visible' 
-                }} 
               />
             )}
           </TabsTrigger>
@@ -50,11 +45,6 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
               <Badge 
                 variant="dot" 
                 className="!inline-block !visible" 
-                style={{ 
-                  display: 'block', 
-                  opacity: 1, 
-                  visibility: 'visible' 
-                }} 
               />
             )}
           </TabsTrigger>
