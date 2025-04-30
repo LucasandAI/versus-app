@@ -174,7 +174,7 @@ export const hasPendingInvite = async (clubId: string): Promise<boolean> => {
     .eq('user_id', user.id)
     .eq('club_id', clubId)
     .in('type', ['invite', 'join_request'])
-    .eq('status', 'pending')
+    .eq('read', false)
     .single();
     
   if (error) {

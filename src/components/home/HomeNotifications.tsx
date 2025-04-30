@@ -15,10 +15,6 @@ const HomeNotifications: React.FC<HomeNotificationsProps> = ({
   setChatNotifications,
   setNotifications
 }) => {
-  // Set up notification hooks
-  useNotifications({ setNotifications });
-  useChatNotifications({ setChatNotifications });
-  
   // Set up real-time listener for the notifications table
   useEffect(() => {
     const setupNotificationListener = async () => {

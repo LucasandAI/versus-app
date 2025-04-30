@@ -40,6 +40,7 @@ const NotificationHandler: React.FC<NotificationHandlerProps> = ({
     initializeNotifications();
   }, [setNotifications]);
 
+  // Set up the hooks for notifications
   useNotifications({ setNotifications });
   useChatNotifications({ setChatNotifications });
 

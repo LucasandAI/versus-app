@@ -7,7 +7,19 @@ export const fetchUserNotifications = async (userId: string) => {
     console.log('[fetchUserNotifications] Fetching notifications for user:', userId);
     const { data, error } = await supabase
       .from('notifications')
-      .select('*')
+      .select(`
+        id,
+        user_id,
+        club_id,
+        type,
+        title,
+        message,
+        read,
+        created_at,
+        data,
+        clubs:club_id (name, logo),
+        users:user_id (name, avatar)
+      `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
       
