@@ -6,6 +6,7 @@ import { Notification } from '@/types';
 
 interface NotificationListProps {
   notifications: Notification[];
+  onMarkAsRead?: (id: string) => void;
   onUserClick: (userId: string, userName: string) => void;
   onJoinClub?: (clubId: string, clubName: string) => void;
   onDeclineInvite?: (id: string) => void;
@@ -15,6 +16,7 @@ interface NotificationListProps {
 
 export const NotificationList: React.FC<NotificationListProps> = ({
   notifications,
+  onMarkAsRead,
   onUserClick,
   onJoinClub,
   onDeclineInvite,
@@ -45,14 +47,16 @@ export const NotificationList: React.FC<NotificationListProps> = ({
     <>
       <div className="flex items-center justify-between p-4 border-b">
         <h3 className="font-medium">Notifications</h3>
-        <Button 
-          variant="link" 
-          size="sm" 
-          onClick={onClearAll}
-          className="text-xs text-gray-500 hover:text-gray-900 p-0 h-auto"
-        >
-          Clear all
-        </Button>
+        {sortedNotifications.length > 0 && (
+          <Button 
+            variant="link" 
+            size="sm" 
+            onClick={onClearAll}
+            className="text-xs text-gray-500 hover:text-gray-900 p-0 h-auto"
+          >
+            Clear all
+          </Button>
+        )}
       </div>
       
       <div className="max-h-[400px] overflow-y-auto">
@@ -60,6 +64,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({
           <NotificationItem
             key={notification.id}
             notification={notification}
+            onMarkAsRead={onMarkAsRead}
             onUserClick={onUserClick}
             onJoinClub={onJoinClub}
             onDeclineInvite={onDeclineInvite}

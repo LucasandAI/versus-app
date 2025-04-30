@@ -20,8 +20,14 @@ export const useNotifications = ({ setNotifications }: UseNotificationsProps) =>
     // Initially fetch fresh notifications from Supabase
     const fetchInitialNotifications = async () => {
       console.log("[useNotifications] Fetching initial notifications");
-      await refreshNotifications();
-      loadNotificationsFromStorage();
+      const notificationsData = await refreshNotifications();
+      if (notificationsData && notificationsData.length > 0) {
+        console.log("[useNotifications] Setting initial notifications:", notificationsData.length);
+        setNotifications(notificationsData);
+      } else {
+        // If no notifications were returned, try to load from localStorage as fallback
+        loadNotificationsFromStorage();
+      }
     };
 
     // Load notifications immediately

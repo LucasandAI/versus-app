@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useApp } from '@/context/AppContext';
 import { Notification } from '@/types';
+import { handleNotification, markAllNotificationsAsRead } from '@/lib/notificationUtils';
 
 export const useHomeNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -11,102 +12,85 @@ export const useHomeNotifications = () => {
   const { currentUser } = useApp();
 
   const handleMarkAsRead = useCallback(async (id: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id ? { ...notification, read: true } : notification
-      )
-    );
-    
     try {
-      if (!currentUser?.id) return;
+      console.log('[useHomeNotifications] Marking notification as read:', id);
+      if (!currentUser?.id) {
+        console.log('[useHomeNotifications] No current user, skipping');
+        return;
+      }
 
-      // Update notification in Supabase
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .match({ id, user_id: currentUser.id });
-      
-      if (error) throw error;
-      
-      // Update local storage for offline access
-      const updatedNotifications = notifications.map(notification => 
-        notification.id === id ? { ...notification, read: true } : notification
+      // Update local state optimistically
+      setNotifications(prev => 
+        prev.map(notification => 
+          notification.id === id ? { ...notification, read: true } : notification
+        )
       );
-      localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
       
-      // Dispatch event to update other parts of the UI
-      const event = new CustomEvent('notificationsUpdated');
-      window.dispatchEvent(event);
+      // Update in database and localStorage
+      const updatedNotifications = await handleNotification(id, 'read');
+      if (!updatedNotifications) {
+        // Revert optimistic update on failure
+        console.error('[useHomeNotifications] Failed to mark notification as read');
+        toast.error("Failed to mark notification as read");
+      }
     } catch (error) {
-      console.error("Error marking notification as read:", error);
+      console.error("[useHomeNotifications] Error marking notification as read:", error);
       toast.error("Failed to mark notification as read");
     }
   }, [notifications, currentUser?.id]);
 
   const handleDeclineInvite = useCallback(async (id: string) => {
     try {
-      if (!currentUser?.id) return;
+      console.log('[useHomeNotifications] Declining invitation:', id);
+      if (!currentUser?.id) {
+        console.log('[useHomeNotifications] No current user, skipping');
+        return;
+      }
       
       const notification = notifications.find(n => n.id === id);
       if (!notification) {
+        console.error('[useHomeNotifications] Invalid invitation data');
         throw new Error("Invalid invitation data");
       }
       
-      // Update notification as rejected and mark as read
-      const { error: notifError } = await supabase
-        .from('notifications')
-        .update({ read: true }) 
-        .match({ id });
-      
-      if (notifError) throw notifError;
+      // Delete the notification
+      await handleNotification(id, 'delete');
       
       // Update local state
       setNotifications(prev => prev.filter(notification => notification.id !== id));
       
-      // Update local storage
-      const updatedNotifications = notifications.filter(notification => notification.id !== id);
-      localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
-      
-      // Notify the UI
-      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
       toast.success("Invitation declined");
-      
     } catch (error) {
-      console.error("Error declining invitation:", error);
+      console.error("[useHomeNotifications] Error declining invitation:", error);
       toast.error("Failed to decline invitation");
     }
   }, [notifications, currentUser?.id]);
 
   const handleClearAllNotifications = useCallback(async () => {
     try {
-      if (!currentUser?.id) return;
+      console.log('[useHomeNotifications] Clearing all notifications');
+      if (!currentUser?.id) {
+        console.log('[useHomeNotifications] No current user, skipping');
+        return;
+      }
       
-      // Mark all notifications as read in Supabase
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('user_id', currentUser.id);
-      
-      if (error) throw error;
+      // Mark all notifications as read in database and localStorage
+      const updatedNotifications = await markAllNotificationsAsRead();
       
       // Update local state
-      setNotifications([]);
-      
-      // Update local storage
-      localStorage.setItem('notifications', JSON.stringify([]));
-      
-      // Notify the UI
-      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
-      toast.success("All notifications cleared");
-      
+      if (updatedNotifications) {
+        setNotifications(updatedNotifications);
+        toast.success("All notifications cleared");
+      }
     } catch (error) {
-      console.error("Error clearing notifications:", error);
+      console.error("[useHomeNotifications] Error clearing notifications:", error);
       toast.error("Failed to clear notifications");
     }
   }, [currentUser?.id]);
 
   // Define the updateUnreadCount function with the proper signature
   const updateUnreadCount = useCallback((count: number) => {
+    console.log('[useHomeNotifications] Updating unread count:', count);
     // We need to convert our count number to update the unreadMessages object
     const unreadMessagesCounts = localStorage.getItem('unreadMessages');
     try {
@@ -121,7 +105,7 @@ export const useHomeNotifications = () => {
         window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
       }
     } catch (e) {
-      console.error("Error parsing unread messages:", e);
+      console.error("[useHomeNotifications] Error parsing unread messages:", e);
     }
   }, []);
 

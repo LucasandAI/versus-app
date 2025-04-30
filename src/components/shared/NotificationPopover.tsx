@@ -32,9 +32,11 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   // Count notifications that haven't been read yet
   const unreadCount = notifications.filter(n => !n.read).length;
   
-  console.log("[NotificationPopover] Rendering with notifications:", notifications.length, 
+  console.log("[NotificationPopover] Rendering with notifications:", 
+    notifications.length, 
     "Unread count:", unreadCount, 
-    "Notification details:", notifications);
+    "Notification details:", notifications
+  );
   
   // When the popover opens, mark all notifications as read
   const handleOpenChange = async (isOpen: boolean) => {
@@ -44,6 +46,7 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
     if (isOpen && unreadCount > 0) {
       console.log("[NotificationPopover] Marking all notifications as read");
       await markAllNotificationsAsRead();
+      // We don't need to update state here as the event listener will handle it
     }
   };
 
@@ -81,6 +84,7 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
       <PopoverContent className="w-80 p-0 max-w-[90vw]" align="end">
         <NotificationList
           notifications={notifications}
+          onMarkAsRead={onMarkAsRead}
           onUserClick={onUserClick}
           onJoinClub={onJoinClub}
           onDeclineInvite={onDeclineInvite}

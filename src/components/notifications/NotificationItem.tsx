@@ -4,12 +4,13 @@ import UserAvatar from '@/components/shared/UserAvatar';
 import { Notification } from '@/types';
 import { useApp } from '@/context/AppContext';
 import { findClubFromStorage, getMockClub, handleClubError } from '@/lib/notificationUtils';
-import { handleNotification } from '@/lib/notificationUtils';
 import { cn } from '@/lib/utils';
 import { useNavigation } from '@/hooks/useNavigation';
+import { Button } from '@/components/ui/button';
 
 interface NotificationItemProps {
   notification: Notification;
+  onMarkAsRead?: (id: string) => void;
   onUserClick: (userId: string, userName: string) => void;
   onJoinClub?: (clubId: string, clubName: string) => void;
   onDeclineInvite?: (id: string) => void;
@@ -18,6 +19,7 @@ interface NotificationItemProps {
 
 export const NotificationItem: React.FC<NotificationItemProps> = ({
   notification,
+  onMarkAsRead,
   onUserClick,
   onJoinClub,
   onDeclineInvite,
@@ -44,24 +46,32 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
         handleClubError();
       }
     }
+
+    // Mark as read when clicked
+    if (onMarkAsRead && !notification.read) {
+      onMarkAsRead(notification.id);
+    }
   };
 
   const handleUserItemClick = () => {
     if (notification.userId) {
-      navigateToUserProfile(notification.userId, notification.userName || '', null);
+      navigateToUserProfile(notification.userId, notification.userName || notification.userId, null);
+      
+      // Mark as read when clicked
+      if (onMarkAsRead && !notification.read) {
+        onMarkAsRead(notification.id);
+      }
     }
   };
 
   const handleJoinClub = () => {
     if (onJoinClub && notification.clubId && notification.clubName) {
-      handleNotification(notification.id, 'delete');
       onJoinClub(notification.clubId, notification.clubName);
     }
   };
 
   const handleDeclineInvite = () => {
     if (onDeclineInvite) {
-      handleNotification(notification.id, 'delete');
       onDeclineInvite(notification.id);
     }
   };
@@ -74,7 +84,11 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   );
 
   return (
-    <div className={backgroundClass}>
+    <div className={backgroundClass} onClick={() => {
+      if (onMarkAsRead && !notification.read) {
+        onMarkAsRead(notification.id);
+      }
+    }}>
       <div className="flex items-start gap-3">
         <UserAvatar 
           name={notification.userName || 'User'} 
@@ -103,19 +117,31 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
           
           {notification.type === 'invitation' && (
             <div className="mt-2 flex gap-2">
-              <button 
+              <Button 
                 onClick={handleJoinClub}
-                className="px-3 py-1 bg-primary text-white text-xs rounded"
+                size="sm"
+                className="px-3 py-1 bg-primary text-white text-xs rounded h-auto"
               >
                 Accept
-              </button>
-              <button 
+              </Button>
+              <Button 
                 onClick={handleDeclineInvite}
-                className="px-3 py-1 bg-gray-200 text-gray-700 text-xs rounded"
+                size="sm"
+                variant="outline"
+                className="px-3 py-1 text-xs rounded h-auto"
               >
                 Decline
-              </button>
+              </Button>
             </div>
+          )}
+
+          {notification.clubId && notification.clubName && (
+            <p 
+              className="text-xs text-primary font-medium hover:underline cursor-pointer mt-1"
+              onClick={handleClubClick}
+            >
+              {notification.clubName}
+            </p>
           )}
         </div>
       </div>

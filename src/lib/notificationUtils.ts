@@ -88,7 +88,7 @@ export const refreshNotifications = async () => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     console.log('[refreshNotifications] No user found, skipping fetch');
-    return;
+    return [];
   }
   
   console.log('[refreshNotifications] Fetching notifications for user:', user.id);
@@ -102,8 +102,10 @@ export const refreshNotifications = async () => {
       club_id,
       type,
       message,
+      title,
       read,
       created_at,
+      data,
       clubs:club_id (name, logo)
     `)
     .eq('user_id', user.id)
@@ -111,22 +113,24 @@ export const refreshNotifications = async () => {
     
   if (error) {
     console.error('[refreshNotifications] Error fetching notifications:', error);
-    return;
+    return [];
   }
   
-  console.log('[refreshNotifications] Notifications fetched:', data.length, data);
+  console.log('[refreshNotifications] Raw notifications fetched:', data.length, data);
   
   // Process notifications to match the expected format
-  const processedNotifications = data.map(notification => ({
-    id: notification.id,
-    type: notification.type,
-    userId: notification.user_id,
-    clubId: notification.club_id,
-    clubName: notification.clubs?.name || 'Unknown Club',
-    clubLogo: notification.clubs?.logo || null,
-    message: notification.message || '',
-    timestamp: notification.created_at,
-    read: notification.read || false
+  const processedNotifications = data.map(item => ({
+    id: item.id,
+    type: item.type,
+    userId: item.user_id,
+    clubId: item.club_id,
+    clubName: item.clubs?.name || 'Unknown Club',
+    clubLogo: item.clubs?.logo || null,
+    title: item.title || '',
+    message: item.message || '',
+    timestamp: item.created_at,
+    read: item.read || false,
+    data: item.data || {}
   }));
   
   console.log('[refreshNotifications] Processed notifications:', processedNotifications);
@@ -158,7 +162,7 @@ export const markAllNotificationsAsRead = async () => {
     
   if (error) {
     console.error('[markAllNotificationsAsRead] Error marking notifications as read:', error);
-    return;
+    return [];
   }
   
   // Update local storage
@@ -183,7 +187,7 @@ export const markAllNotificationsAsRead = async () => {
     }
   }
   
-  return null;
+  return [];
 };
 
 // Function to check if a user has a pending invite for a specific club

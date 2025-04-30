@@ -96,23 +96,18 @@ export interface Match {
 
 export interface Notification {
   id: string;
-  type: 'invite' | 'join_request' | 'match_result' | 'match_start' | 'achievement' | 'invitation' | 'activity';
-  message: string;
-  timestamp: string;
-  read: boolean;
-  
-  // Fields for club-related notifications
-  clubId?: string;
-  clubName?: string;
-  clubLogo?: string | null;
-  
-  // Fields for user-related notifications
+  type: string;
   userId?: string;
   userName?: string;
   userAvatar?: string | null;
-  
-  // Field for displaying notifications
-  previouslyDisplayed?: boolean;
+  clubId?: string;
+  clubName?: string;
+  clubLogo?: string | null;
+  title?: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  data?: any;
 }
 
 export type AppView = 'connect' | 'home' | 'clubDetail' | 'leaderboard' | 'profile';

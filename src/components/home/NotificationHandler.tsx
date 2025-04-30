@@ -19,22 +19,11 @@ const NotificationHandler: React.FC<NotificationHandlerProps> = ({
     
     // Force refresh notifications on component mount to ensure we have the latest
     const initializeNotifications = async () => {
+      console.log("[NotificationHandler] Fetching initial notifications");
       const refreshedNotifications = await refreshNotifications();
-      if (refreshedNotifications) {
+      if (refreshedNotifications && refreshedNotifications.length > 0) {
         console.log("[NotificationHandler] Setting initial notifications:", refreshedNotifications.length);
         setNotifications(refreshedNotifications);
-      } else {
-        // Get updated notifications from localStorage after refresh
-        const storedNotifications = localStorage.getItem('notifications');
-        if (storedNotifications) {
-          try {
-            const parsedNotifications = JSON.parse(storedNotifications);
-            console.log("[NotificationHandler] Loaded notifications from storage:", parsedNotifications.length, parsedNotifications);
-            setNotifications(parsedNotifications);
-          } catch (error) {
-            console.error("[NotificationHandler] Error parsing notifications:", error);
-          }
-        }
       }
     };
     
