@@ -87,6 +87,29 @@ export const updateClubJoinRequest = async (
         console.error('Error updating join request:', error);
         return false;
       }
+      
+      // Delete all notifications related to this join request
+      try {
+        const { data: notifications, error: notificationError } = await supabase
+          .from('notifications')
+          .select('id')
+          .eq('club_id', clubId)
+          .eq('type', 'join_request')
+          .or(`data->requesterId.eq.${userId},data->userId.eq.${userId}`);
+          
+        if (notificationError) {
+          console.error('Error finding join request notifications:', notificationError);
+        } else if (notifications && notifications.length > 0) {
+          await supabase
+            .from('notifications')
+            .delete()
+            .in('id', notifications.map(n => n.id));
+            
+          console.log(`Deleted ${notifications.length} join request notifications`);
+        }
+      } catch (error) {
+        console.error('Error handling join request notifications:', error);
+      }
     } else {
       // Delete the request instead of updating to rejected
       const { error } = await supabase
@@ -98,6 +121,29 @@ export const updateClubJoinRequest = async (
       if (error) {
         console.error('Error deleting join request:', error);
         return false;
+      }
+      
+      // Delete all notifications related to this join request
+      try {
+        const { data: notifications, error: notificationError } = await supabase
+          .from('notifications')
+          .select('id')
+          .eq('club_id', clubId)
+          .eq('type', 'join_request')
+          .or(`data->requesterId.eq.${userId},data->userId.eq.${userId}`);
+          
+        if (notificationError) {
+          console.error('Error finding join request notifications:', notificationError);
+        } else if (notifications && notifications.length > 0) {
+          await supabase
+            .from('notifications')
+            .delete()
+            .in('id', notifications.map(n => n.id));
+            
+          console.log(`Deleted ${notifications.length} join request notifications`);
+        }
+      } catch (error) {
+        console.error('Error handling join request notifications:', error);
       }
     }
 
@@ -111,6 +157,7 @@ export const updateClubJoinRequest = async (
 // Function to delete a club join request
 export const deleteClubJoinRequest = async (userId: string, clubId: string): Promise<boolean> => {
   try {
+    // Delete the join request record
     const { error } = await supabase
       .from('club_requests')
       .delete()
@@ -120,6 +167,29 @@ export const deleteClubJoinRequest = async (userId: string, clubId: string): Pro
     if (error) {
       console.error('Error deleting join request:', error);
       return false;
+    }
+    
+    // Delete all notifications related to this join request
+    try {
+      const { data: notifications, error: notificationError } = await supabase
+        .from('notifications')
+        .select('id')
+        .eq('club_id', clubId)
+        .eq('type', 'join_request')
+        .or(`data->requesterId.eq.${userId},data->userId.eq.${userId}`);
+        
+      if (notificationError) {
+        console.error('Error finding join request notifications:', notificationError);
+      } else if (notifications && notifications.length > 0) {
+        await supabase
+          .from('notifications')
+          .delete()
+          .in('id', notifications.map(n => n.id));
+          
+        console.log(`Deleted ${notifications.length} join request notifications`);
+      }
+    } catch (error) {
+      console.error('Error handling join request notifications:', error);
     }
     
     return true;

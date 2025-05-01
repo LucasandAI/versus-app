@@ -82,6 +82,29 @@ export const useJoinRequest = (clubId: string) => {
 
       if (error) throw error;
 
+      // Delete any notifications related to this request
+      try {
+        const { data: notifications, error: notificationError } = await supabase
+          .from('notifications')
+          .select('id')
+          .eq('club_id', clubId)
+          .eq('type', 'join_request')
+          .or(`data->requesterId.eq.${userId},data->userId.eq.${userId}`);
+          
+        if (notificationError) {
+          console.error('Error finding join request notifications:', notificationError);
+        } else if (notifications && notifications.length > 0) {
+          await supabase
+            .from('notifications')
+            .delete()
+            .in('id', notifications.map(n => n.id));
+            
+          console.log(`Deleted ${notifications.length} join request notifications`);
+        }
+      } catch (error) {
+        console.error('Error handling join request notifications:', error);
+      }
+
       setHasPendingRequest(false);
       toast({
         title: "Request Canceled",

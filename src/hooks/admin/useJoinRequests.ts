@@ -58,7 +58,31 @@ export const useJoinRequests = () => {
       
       console.log('[useJoinRequests] Successfully updated request status to accepted');
 
-      // 3. Fetch the user's details to create a member object
+      // 3. Delete any notifications related to this join request
+      try {
+        // Find all notifications related to this request
+        const { data: notifications } = await supabase
+          .from('notifications')
+          .select('id')
+          .eq('club_id', request.clubId)
+          .eq('type', 'join_request')
+          .or(`data->requesterId.eq.${request.userId},data->userId.eq.${request.userId}`);
+          
+        if (notifications && notifications.length > 0) {
+          // Delete all related notifications
+          await supabase
+            .from('notifications')
+            .delete()
+            .in('id', notifications.map(n => n.id));
+            
+          console.log(`[useJoinRequests] Deleted ${notifications.length} related join request notifications`);
+        }
+      } catch (notificationError) {
+        console.error('[useJoinRequests] Error handling notifications:', notificationError);
+        // Continue even if notification handling fails
+      }
+
+      // 4. Fetch the user's details to create a member object
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('name, avatar')

@@ -99,8 +99,29 @@ export const useHomeNotifications = () => {
         throw joinError;
       }
       
-      // Delete the notification after successfully handling
-      await handleNotification(notification.id, 'delete');
+      // Delete all notifications related to this join request
+      try {
+        // Find all notifications related to this request
+        const { data: relatedNotifications } = await supabase
+          .from('notifications')
+          .select('id')
+          .eq('club_id', clubId)
+          .eq('type', 'join_request')
+          .or(`data->requesterId.eq.${requesterId},data->userId.eq.${requesterId}`);
+          
+        if (relatedNotifications && relatedNotifications.length > 0) {
+          // Delete all related notifications
+          await supabase
+            .from('notifications')
+            .delete()
+            .in('id', relatedNotifications.map(n => n.id));
+            
+          console.log(`[useHomeNotifications] Deleted ${relatedNotifications.length} related notifications`);
+        }
+      } catch (notificationError) {
+        console.error('[useHomeNotifications] Error handling related notifications:', notificationError);
+        // Continue even if notification handling fails
+      }
       
       // Remove notification from local state
       setNotifications(prev => prev.filter(n => n.id !== notification.id));
