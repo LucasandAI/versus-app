@@ -60,22 +60,64 @@ export const useJoinRequests = () => {
 
       // 3. Delete any notifications related to this join request
       try {
-        // Find all notifications related to this request
+        console.log('[useJoinRequests] Finding notifications related to request from user:', 
+          request.userId, 'for club:', request.clubId);
+        
+        // Find all notifications related to this request - we need to search by both requesterId and userId
         const { data: notifications } = await supabase
           .from('notifications')
           .select('id')
           .eq('club_id', request.clubId)
-          .eq('type', 'join_request')
-          .or(`data->requesterId.eq.${request.userId},data->userId.eq.${request.userId}`);
+          .eq('type', 'join_request');
           
         if (notifications && notifications.length > 0) {
+          console.log('[useJoinRequests] Found notifications to delete:', notifications);
+          
           // Delete all related notifications
-          await supabase
+          const { error: deleteError } = await supabase
             .from('notifications')
             .delete()
             .in('id', notifications.map(n => n.id));
             
-          console.log(`[useJoinRequests] Deleted ${notifications.length} related join request notifications`);
+          if (deleteError) {
+            console.error('[useJoinRequests] Error deleting notifications:', deleteError);
+          } else {
+            console.log(`[useJoinRequests] Deleted ${notifications.length} related join request notifications`);
+          }
+        } else {
+          console.log('[useJoinRequests] No notifications found for this request');
+          
+          // Try a different approach - check for notifications with the user ID in the data field
+          const { data: dataNotifications } = await supabase
+            .from('notifications')
+            .select('id, data')
+            .eq('club_id', request.clubId)
+            .eq('type', 'join_request');
+            
+          if (dataNotifications && dataNotifications.length > 0) {
+            console.log('[useJoinRequests] Found notifications with data:', dataNotifications);
+            
+            // Filter notifications that have the request.userId in their data
+            const matchingNotifications = dataNotifications.filter(n => 
+              n.data && 
+              ((n.data.requesterId && n.data.requesterId === request.userId) || 
+               (n.data.userId && n.data.userId === request.userId))
+            );
+            
+            if (matchingNotifications.length > 0) {
+              // Delete matching notifications
+              const { error: deleteDataError } = await supabase
+                .from('notifications')
+                .delete()
+                .in('id', matchingNotifications.map(n => n.id));
+                
+              if (deleteDataError) {
+                console.error('[useJoinRequests] Error deleting data-matched notifications:', deleteDataError);
+              } else {
+                console.log(`[useJoinRequests] Deleted ${matchingNotifications.length} matching notifications`);
+              }
+            }
+          }
         }
       } catch (notificationError) {
         console.error('[useJoinRequests] Error handling notifications:', notificationError);
@@ -156,22 +198,64 @@ export const useJoinRequests = () => {
 
       // Delete any notification related to this join request
       try {
+        console.log('[useJoinRequests] Finding notifications related to declined request:', 
+          request.userId, 'for club:', request.clubId);
+          
         // Find notifications related to this request
         const { data: notifications } = await supabase
           .from('notifications')
           .select('id')
           .eq('club_id', request.clubId)
-          .eq('type', 'join_request')
-          .or(`data->requesterId.eq.${request.userId},data->userId.eq.${request.userId}`);
+          .eq('type', 'join_request');
           
         if (notifications && notifications.length > 0) {
+          console.log('[useJoinRequests] Found notifications to delete:', notifications);
+          
           // Delete all related notifications
-          await supabase
+          const { error: deleteError } = await supabase
             .from('notifications')
             .delete()
             .in('id', notifications.map(n => n.id));
             
-          console.log(`[useJoinRequests] Deleted ${notifications.length} related notifications`);
+          if (deleteError) {
+            console.error('[useJoinRequests] Error deleting notifications:', deleteError);
+          } else {
+            console.log(`[useJoinRequests] Deleted ${notifications.length} related notifications`);
+          }
+        } else {
+          console.log('[useJoinRequests] No notifications found for this request');
+          
+          // Try a different approach - check for notifications with the user ID in the data field
+          const { data: dataNotifications } = await supabase
+            .from('notifications')
+            .select('id, data')
+            .eq('club_id', request.clubId)
+            .eq('type', 'join_request');
+            
+          if (dataNotifications && dataNotifications.length > 0) {
+            console.log('[useJoinRequests] Found notifications with data:', dataNotifications);
+            
+            // Filter notifications that have the request.userId in their data
+            const matchingNotifications = dataNotifications.filter(n => 
+              n.data && 
+              ((n.data.requesterId && n.data.requesterId === request.userId) || 
+               (n.data.userId && n.data.userId === request.userId))
+            );
+            
+            if (matchingNotifications.length > 0) {
+              // Delete matching notifications
+              const { error: deleteDataError } = await supabase
+                .from('notifications')
+                .delete()
+                .in('id', matchingNotifications.map(n => n.id));
+                
+              if (deleteDataError) {
+                console.error('[useJoinRequests] Error deleting data-matched notifications:', deleteDataError);
+              } else {
+                console.log(`[useJoinRequests] Deleted ${matchingNotifications.length} matching notifications`);
+              }
+            }
+          }
         }
       } catch (notificationError) {
         console.error('[useJoinRequests] Error handling notifications:', notificationError);

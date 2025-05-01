@@ -67,6 +67,13 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
       const clubName = notification.data?.clubName || notification.clubName;
       const requesterId = notification.data?.requesterId || notification.userId;
       
+      console.log("[NotificationItem] Accept join request with data:", {
+        clubId, 
+        clubName, 
+        requesterId, 
+        notificationData: notification.data
+      });
+      
       if (clubId && clubName && requesterId) {
         onJoinClub(clubId, clubName, requesterId);
       }
@@ -76,6 +83,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   const handleDeclineInvite = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onDeclineInvite) {
+      console.log("[NotificationItem] Declining notification:", notification.id);
       onDeclineInvite(notification.id);
     }
   };

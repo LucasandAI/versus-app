@@ -60,13 +60,15 @@ export const useHomeNotifications = () => {
         console.log('[useHomeNotifications] No current user, skipping');
         return;
       }
-      
+
       // Find the notification related to this club action
       const notification = notifications.find(
         n => (n.type === 'join_request') && 
             ((n.clubId === clubId || n.data?.clubId === clubId) &&
-             (n.data?.requesterId === requesterId))
+             (n.data?.requesterId === requesterId || n.userId === requesterId))
       );
+      
+      console.log('[useHomeNotifications] Found notification for join request:', notification);
       
       if (!notification) {
         console.error('[useHomeNotifications] Notification not found for this club action');
@@ -89,6 +91,8 @@ export const useHomeNotifications = () => {
         toast.error("Club is full (5/5 members). Cannot add more members.");
         return;
       }
+      
+      console.log('[useHomeNotifications] Adding requester to club:', requesterId, clubId);
       
       // Add the requesting user to the club members
       const { error: joinError } = await supabase
@@ -134,14 +138,16 @@ export const useHomeNotifications = () => {
             .in('id', relatedNotifications.map(n => n.id));
             
           console.log(`[useHomeNotifications] Deleted ${relatedNotifications.length} related notifications`);
+          
+          // Update local state as well
+          setNotifications(prev => 
+            prev.filter(n => !relatedNotifications.some(rn => rn.id === n.id))
+          );
         }
       } catch (notificationError) {
         console.error('[useHomeNotifications] Error handling related notifications:', notificationError);
         // Continue even if notification handling fails
       }
-      
-      // Remove notification from local state
-      setNotifications(prev => prev.filter(n => n.id !== notification.id));
       
       toast.success(`User has been added to the club`);
       
@@ -171,10 +177,14 @@ export const useHomeNotifications = () => {
         throw new Error("Invalid notification data");
       }
       
+      console.log('[useHomeNotifications] Found notification to decline:', notification);
+      
       // If this is a join request, delete the request record instead of updating status
       if (notification.type === 'join_request') {
         const requesterId = notification.data?.requesterId || notification.userId;
         const clubId = notification.data?.clubId || notification.clubId;
+        
+        console.log('[useHomeNotifications] Join request - requesterId:', requesterId, 'clubId:', clubId);
         
         if (!requesterId || !clubId) {
           console.error('[useHomeNotifications] Invalid notification data - missing requesterId or club ID');
@@ -192,6 +202,8 @@ export const useHomeNotifications = () => {
           console.error('[useHomeNotifications] Error deleting request:', error);
           throw error;
         }
+        
+        console.log('[useHomeNotifications] Successfully deleted club request');
         
         // Find and delete all related notifications
         try {
@@ -216,6 +228,11 @@ export const useHomeNotifications = () => {
                 .in('id', otherNotificationIds);
                 
               console.log(`[useHomeNotifications] Deleted ${otherNotificationIds.length} related notifications`);
+              
+              // Update local state as well
+              setNotifications(prev => 
+                prev.filter(n => !otherNotificationIds.includes(n.id))
+              );
             }
           }
         } catch (notificationError) {
