@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 // Function to create a new notification
@@ -11,6 +10,8 @@ export const createNotification = async (notification: {
   message?: string;
   data?: any;
 }) => {
+  // Keep this function as is - it's a generic utility
+  // The removal is from specific usages for join_request type
   try {
     const { error } = await supabase
       .from('notifications')

@@ -56,45 +56,8 @@ export const useJoinRequest = (clubId: string) => {
         description: "Your request to join has been sent to the club admins"
       });
       
-      // Create notification for club admins
-      try {
-        // Get club admins
-        const { data: admins } = await supabase
-          .from('club_members')
-          .select('user_id')
-          .eq('club_id', clubId)
-          .eq('is_admin', true);
-          
-        if (admins && admins.length > 0) {
-          // Get user information for the notification
-          const { data: userData } = await supabase
-            .from('users')
-            .select('name')
-            .eq('id', userId)
-            .single();
-            
-          // Get club information
-          const { data: clubData } = await supabase
-            .from('clubs')
-            .select('name')
-            .eq('id', clubId)
-            .single();
-            
-          // Create notifications for each admin
-          for (const admin of admins) {
-            await supabase.from('notifications').insert({
-              user_id: admin.user_id,
-              club_id: clubId,
-              type: 'join_request',
-              message: `${userData?.name || 'Someone'} has requested to join ${clubData?.name || 'your club'}.`,
-              read: false
-            });
-          }
-        }
-      } catch (notificationError) {
-        console.error('Error creating notifications:', notificationError);
-        // We don't want to fail the whole request if notifications fail
-      }
+      // Removed: manual notification creation for club admins
+      // The Supabase trigger will now handle this
       
       return true;
     } catch (error) {

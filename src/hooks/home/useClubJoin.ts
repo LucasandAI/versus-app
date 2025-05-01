@@ -70,33 +70,6 @@ export const useClubJoin = () => {
           description: `Your request to join ${clubName} has been sent`
         });
         
-        // Create notification for club admins
-        try {
-          // Get club admins
-          const { data: admins } = await supabase
-            .from('club_members')
-            .select('user_id')
-            .eq('club_id', clubId)
-            .eq('is_admin', true);
-            
-          if (admins && admins.length > 0) {
-            // Create notifications for each admin
-            for (const admin of admins) {
-              await supabase.from('notifications').insert({
-                user_id: admin.user_id,
-                club_id: clubId,
-                type: 'join_request',
-                message: `${currentUser.name} has requested to join your club.`,
-                status: 'pending',
-                read: false
-              });
-            }
-          }
-        } catch (notificationError) {
-          console.error('Error creating admin notifications:', notificationError);
-          // Continue even if notification creation fails
-        }
-        
         validateClubRequest(clubName);
       } catch (error) {
         console.error('Error in handleRequestToJoin:', error);
