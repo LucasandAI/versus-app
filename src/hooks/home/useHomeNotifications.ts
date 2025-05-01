@@ -9,7 +9,7 @@ import { handleNotification, markAllNotificationsAsRead } from '@/lib/notificati
 export const useHomeNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadMessages, setUnreadMessages] = useState<Record<string, number>>({});
-  const { currentUser, setCurrentUser } = useApp();
+  const { currentUser, setCurrentUser, refreshCurrentUser } = useApp();
 
   // Initialize notifications from localStorage if available
   useEffect(() => {
@@ -73,16 +73,21 @@ export const useHomeNotifications = () => {
         return;
       }
       
-      // Update the join request status to 'accepted'
-      const { error: requestError } = await supabase
-        .from('club_requests')
-        .update({ status: 'accepted' })
-        .eq('user_id', requesterId)
-        .eq('club_id', clubId);
+      // First check if the club already has 5 members (maximum)
+      const { data: clubMembers, error: membersError } = await supabase
+        .from('clubs')
+        .select('member_count')
+        .eq('id', clubId)
+        .single();
         
-      if (requestError) {
-        console.error('[useHomeNotifications] Error updating request status:', requestError);
-        throw requestError;
+      if (membersError) {
+        console.error('[useHomeNotifications] Error checking club members:', membersError);
+        throw membersError;
+      }
+      
+      if (clubMembers && clubMembers.member_count >= 5) {
+        toast.error("Club is full (5/5 members). Cannot add more members.");
+        return;
       }
       
       // Add the requesting user to the club members
@@ -97,6 +102,18 @@ export const useHomeNotifications = () => {
       if (joinError) {
         console.error('[useHomeNotifications] Error adding user to club:', joinError);
         throw joinError;
+      }
+      
+      // Update request status to accepted instead of deleting
+      const { error: requestError } = await supabase
+        .from('club_requests')
+        .update({ status: 'accepted' })
+        .eq('user_id', requesterId)
+        .eq('club_id', clubId);
+        
+      if (requestError) {
+        console.error('[useHomeNotifications] Error updating request status:', requestError);
+        throw requestError;
       }
       
       // Delete all notifications related to this join request
@@ -129,13 +146,16 @@ export const useHomeNotifications = () => {
       toast.success(`User has been added to the club`);
       
       // Trigger a refresh of user data
+      await refreshCurrentUser();
+      
+      // Dispatch an event to notify that user data has been updated
       window.dispatchEvent(new CustomEvent('userDataUpdated'));
       
     } catch (error) {
       console.error("[useHomeNotifications] Error joining club:", error);
       toast.error("Failed to process club action");
     }
-  }, [notifications, currentUser]);
+  }, [notifications, currentUser, refreshCurrentUser]);
 
   const handleDeclineInvite = useCallback(async (id: string) => {
     try {
