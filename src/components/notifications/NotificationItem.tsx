@@ -76,11 +76,15 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
       });
       
       if (clubId && clubName && requesterId) {
-        // Use the shared utility function
-        const success = await acceptJoinRequest(requesterId, clubId, clubName);
-        if (success && onMarkAsRead) {
-          // This removes the item from the UI even though we've already deleted it from DB
-          onMarkAsRead(notification.id);
+        try {
+          // Use the shared utility function
+          const success = await acceptJoinRequest(requesterId, clubId, clubName);
+          if (success && onMarkAsRead) {
+            // This notification will be deleted by the backend trigger, but we still need to update UI
+            onMarkAsRead(notification.id);
+          }
+        } catch (error) {
+          console.error("[NotificationItem] Error accepting join request:", error);
         }
       }
     }
@@ -101,11 +105,15 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
       });
       
       if (clubId && requesterId) {
-        // Use the shared utility function
-        const success = await denyJoinRequest(requesterId, clubId);
-        if (success && onMarkAsRead) {
-          // This removes the item from the UI even though we've already deleted it from DB
-          onMarkAsRead(notification.id);
+        try {
+          // Use the shared utility function
+          const success = await denyJoinRequest(requesterId, clubId);
+          if (success && onMarkAsRead) {
+            // This notification will be deleted by the backend trigger, but we still need to update UI
+            onMarkAsRead(notification.id);
+          }
+        } catch (error) {
+          console.error("[NotificationItem] Error declining join request:", error);
         }
       }
     } else if (onDeclineInvite) {

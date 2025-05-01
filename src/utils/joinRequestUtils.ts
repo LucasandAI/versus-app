@@ -1,6 +1,6 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useApp } from '@/context/AppContext';
 
 /**
  * Accepts a join request - adds user to club, updates request status, and deletes notifications
