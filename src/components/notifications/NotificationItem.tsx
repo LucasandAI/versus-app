@@ -31,50 +31,33 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   // Handle club name clicks
   const handleClubClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // First check if we have data in the new format
-    if (notification.data?.clubId && notification.data?.clubName) {
-      navigateToClub({ id: notification.data.clubId, name: notification.data.clubName });
-    }
-    // Fallback to old format
-    else if (notification.clubId && notification.clubName) {
+    if (notification.clubId && notification.clubName) {
       navigateToClub({ id: notification.clubId, name: notification.clubName });
-    }
-    
-    // Mark as read when clicked
-    if (onMarkAsRead && !notification.read) {
-      onMarkAsRead(notification.id);
+      
+      // Mark as read when clicked
+      if (onMarkAsRead && !notification.read) {
+        onMarkAsRead(notification.id);
+      }
     }
   };
 
   // Handle user name clicks
   const handleUserClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // First check if we have data in the new format
-    if (notification.data?.requesterId && notification.data?.requesterName) {
-      onUserClick(notification.data.requesterId, notification.data.requesterName);
-    }
-    // Fallback to old format
-    else if (notification.userId && notification.userName) {
+    if (notification.userId && notification.userName) {
       onUserClick(notification.userId, notification.userName);
-    }
-    
-    // Mark as read when clicked
-    if (onMarkAsRead && !notification.read) {
-      onMarkAsRead(notification.id);
+      
+      // Mark as read when clicked
+      if (onMarkAsRead && !notification.read) {
+        onMarkAsRead(notification.id);
+      }
     }
   };
 
   const handleJoinClub = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onJoinClub) {
-      // Use data from the new format if available
-      if (notification.data?.requesterId && notification.data?.clubId) {
-        onJoinClub(notification.data.requesterId, notification.data.clubId);
-      }
-      // Fallback to old format
-      else if (notification.clubId && notification.userId) {
-        onJoinClub(notification.userId, notification.clubId);
-      }
+    if (onJoinClub && notification.clubId && notification.clubName) {
+      onJoinClub(notification.clubId, notification.clubName);
     }
   };
 
@@ -100,47 +83,24 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   // Create a formatted message with clickable parts based on notification type
   const formatMessage = () => {
     // For join requests - what admins see when users request to join their club
-    if (notification.type === 'join_request') {
-      // Use the new data format
-      if (notification.data?.requesterName && notification.data?.clubName) {
-        return (
-          <p className="text-sm">
-            <span 
-              className="font-medium text-primary cursor-pointer hover:underline"
-              onClick={handleUserClick}
-            >
-              {notification.data.requesterName}
-            </span>
-            {' has requested to join '}
-            <span 
-              className="font-medium text-primary cursor-pointer hover:underline"
-              onClick={handleClubClick}
-            >
-              {notification.data.clubName}
-            </span>
-          </p>
-        );
-      }
-      // Fallback to old format
-      else if (notification.userName && notification.clubName) {
-        return (
-          <p className="text-sm">
-            <span 
-              className="font-medium text-primary cursor-pointer hover:underline"
-              onClick={handleUserClick}
-            >
-              {notification.userName}
-            </span>
-            {' has requested to join '}
-            <span 
-              className="font-medium text-primary cursor-pointer hover:underline"
-              onClick={handleClubClick}
-            >
-              {notification.clubName}
-            </span>
-          </p>
-        );
-      }
+    if (notification.type === 'join_request' && notification.userName && notification.clubName) {
+      return (
+        <p className="text-sm">
+          <span 
+            className="font-medium text-primary cursor-pointer hover:underline"
+            onClick={handleUserClick}
+          >
+            {notification.userName}
+          </span>
+          {' has requested to join '}
+          <span 
+            className="font-medium text-primary cursor-pointer hover:underline"
+            onClick={handleClubClick}
+          >
+            {notification.clubName}
+          </span>
+        </p>
+      );
     }
     
     // For accepted join requests notifications

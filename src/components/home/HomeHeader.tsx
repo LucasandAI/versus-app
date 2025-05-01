@@ -1,57 +1,71 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { MessageCircle } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { HomeIcon, PlusCircle, Search, Users, MessageSquare, UserRound } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import UserAvatar from '../shared/UserAvatar';
+import Button from '../shared/Button';
 import NotificationPopover from '../shared/NotificationPopover';
-import { Notification } from '@/types';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 
 interface HomeHeaderProps {
-  onCreateClubClick?: () => void;
-  onSearchClick?: () => void;
-  notifications: Notification[];
+  notifications: any[];
   onMarkAsRead: (id: string) => void;
   onClearAll: () => void;
-  onUserClick: (userId: string, userName: string) => void;
-  onJoinClub?: (requesterId: string, clubId: string) => void;
-  onDeclineInvite?: (notificationId: string) => void;
+  onUserClick: (userId: string, name: string) => void;
+  onJoinClub: (clubId: string, clubName: string) => void;
+  onDeclineInvite: (id: string) => void;
 }
 
 const HomeHeader: React.FC<HomeHeaderProps> = ({
-  onCreateClubClick,
-  onSearchClick,
   notifications,
   onMarkAsRead,
   onClearAll,
   onUserClick,
   onJoinClub,
-  onDeclineInvite
+  onDeclineInvite,
 }) => {
-  const { currentUser, setCurrentView } = useApp();
-  const { open: openChatDrawer } = useChatDrawerGlobal();
+  const { setCurrentView, currentUser, setSelectedUser } = useApp();
+  const { open } = useChatDrawerGlobal();
+  const { totalUnreadCount } = useUnreadMessages();
+  const [badgeCount, setBadgeCount] = useState(totalUnreadCount);
   
-  const handleProfileClick = () => {
+  console.log("[HomeHeader] Rendering with notifications:", 
+    notifications.length, notifications);
+  
+  // Update badge count when totalUnreadCount changes
+  useEffect(() => {
+    setBadgeCount(totalUnreadCount);
+  }, [totalUnreadCount]);
+  
+  // Listen for unreadMessagesUpdated event to update badge count
+  useEffect(() => {
+    const handleUnreadMessagesUpdated = () => {
+      setTimeout(() => {
+        // This will trigger a re-render that will pick up the latest totalUnreadCount
+        setBadgeCount(prev => prev); // Force an update
+      }, 100);
+    };
+    
+    window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
+    
+    return () => {
+      window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
+    };
+  }, []);
+  
+  const handleViewOwnProfile = () => {
     if (currentUser) {
+      setSelectedUser(currentUser);
       setCurrentView('profile');
     }
   };
 
   return (
-    <div className="pb-4 flex items-center justify-between">
-      <h1 className="text-2xl font-bold">Home</h1>
-      
+    <div className="flex items-center justify-between mb-6">
+      <h1 className="text-2xl font-bold">My Clubs</h1>
       <div className="flex items-center gap-2">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="p-2 h-9"
-          onClick={openChatDrawer}
-        >
-          <MessageSquare className="h-4 w-4" />
-        </Button>
-
-        <NotificationPopover
+        <NotificationPopover 
           notifications={notifications}
           onMarkAsRead={onMarkAsRead}
           onClearAll={onClearAll}
@@ -59,38 +73,19 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           onJoinClub={onJoinClub}
           onDeclineInvite={onDeclineInvite}
         />
-        
-        {onSearchClick && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="p-2 h-9"
-            onClick={onSearchClick}
-          >
-            <Search className="h-4 w-4" />
-          </Button>
-        )}
-
         <Button 
-          variant="outline" 
-          size="sm" 
-          className="p-2 h-9"
-          onClick={handleProfileClick}
-        >
-          <UserRound className="h-4 w-4" />
-        </Button>
-
-        {onCreateClubClick && (
-          <Button 
-            size="sm" 
-            variant="default" 
-            onClick={onCreateClubClick}
-            className="h-9"
-          >
-            <PlusCircle className="h-4 w-4 mr-1" /> 
-            <span>Create Club</span>
-          </Button>
-        )}
+          variant="link"
+          onClick={open}
+          className="text-primary hover:bg-gray-100 rounded-full p-2"
+          icon={<MessageCircle className="h-5 w-5" />}
+          badge={badgeCount > 0 ? badgeCount : 0}
+        />
+        <UserAvatar 
+          name={currentUser?.name || "User"} 
+          image={currentUser?.avatar} 
+          size="sm"
+          onClick={handleViewOwnProfile}
+        />
       </div>
     </div>
   );
