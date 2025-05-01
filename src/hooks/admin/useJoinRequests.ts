@@ -1,5 +1,4 @@
-
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { JoinRequest, Club, ClubMember } from '@/types';
 import { toast } from '@/hooks/use-toast';
@@ -12,6 +11,24 @@ export const useJoinRequests = () => {
   const [error, setError] = useState<string | null>(null);
   const [requests, setRequests] = useState<JoinRequest[]>([]);
   const { setSelectedClub, currentUser, refreshCurrentUser } = useApp();
+
+  // Listen for the userDataUpdated event to refresh data
+  useEffect(() => {
+    const handleUserDataUpdate = () => {
+      console.log('[useJoinRequests] User data update detected, refreshing user data');
+      if (refreshCurrentUser) {
+        refreshCurrentUser().catch(err => {
+          console.error('[useJoinRequests] Error refreshing user data:', err);
+        });
+      }
+    };
+
+    window.addEventListener('userDataUpdated', handleUserDataUpdate);
+    
+    return () => {
+      window.removeEventListener('userDataUpdated', handleUserDataUpdate);
+    };
+  }, [refreshCurrentUser]);
 
   const handleAcceptRequest = async (request: JoinRequest, club: Club) => {
     setProcessingRequests(prev => ({ ...prev, [request.id]: true }));

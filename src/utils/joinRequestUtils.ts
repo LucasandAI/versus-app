@@ -1,7 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { refreshCurrentUser } from '@/context/AppContext';
+import { useApp } from '@/context/AppContext';
 
 /**
  * Accepts a join request - adds user to club, updates request status, and deletes notifications
@@ -69,13 +68,12 @@ export const acceptJoinRequest = async (
     
     // Trigger refresh of user data
     try {
-      await refreshCurrentUser();
+      // We can't use refreshCurrentUser directly since it's part of the context
+      // Instead, we dispatch an event for components to handle refresh
+      window.dispatchEvent(new CustomEvent('userDataUpdated'));
     } catch (refreshError) {
       console.error('[joinRequestUtils] Error refreshing user data:', refreshError);
     }
-    
-    // Dispatch event to notify that user data has been updated
-    window.dispatchEvent(new CustomEvent('userDataUpdated'));
     
     return true;
   } catch (error) {

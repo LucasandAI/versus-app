@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -24,6 +23,24 @@ export const useHomeNotifications = () => {
       }
     }
   }, []);
+
+  // Listen for the userDataUpdated event to refresh data
+  useEffect(() => {
+    const handleUserDataUpdate = () => {
+      console.log('[useHomeNotifications] User data update detected, refreshing user data');
+      if (refreshCurrentUser) {
+        refreshCurrentUser().catch(err => {
+          console.error('[useHomeNotifications] Error refreshing user data:', err);
+        });
+      }
+    };
+
+    window.addEventListener('userDataUpdated', handleUserDataUpdate);
+    
+    return () => {
+      window.removeEventListener('userDataUpdated', handleUserDataUpdate);
+    };
+  }, [refreshCurrentUser]);
 
   const handleMarkAsRead = useCallback(async (id: string) => {
     try {
