@@ -45,18 +45,18 @@ export const useJoinRequests = () => {
       
       console.log('[useJoinRequests] Successfully added user to club_members');
 
-      // 2. Delete the request from club_requests
+      // 2. Update the request status to 'accepted' instead of deleting
       const { error: requestError } = await supabase
         .from('club_requests')
-        .delete()
+        .update({ status: 'accepted' })
         .eq('id', request.id);
 
       if (requestError) {
-        console.error('[useJoinRequests] Error deleting request:', requestError);
+        console.error('[useJoinRequests] Error updating request status:', requestError);
         throw requestError;
       }
       
-      console.log('[useJoinRequests] Successfully deleted request from club_requests');
+      console.log('[useJoinRequests] Successfully updated request status to accepted');
 
       // 3. Create notification for the user
       try {
@@ -65,7 +65,7 @@ export const useJoinRequests = () => {
           .insert({
             user_id: request.userId,
             club_id: request.clubId,
-            type: 'join_request',
+            type: 'request_accepted',
             title: "Request Accepted",
             description: `Your request to join ${club.name} has been accepted.`,
             message: `You've been added to ${club.name}.`,
@@ -147,10 +147,10 @@ export const useJoinRequests = () => {
     try {
       setError(null);
 
-      // Delete the request instead of updating its status
+      // Update the request status to 'rejected' instead of deleting
       const { error: requestError } = await supabase
         .from('club_requests')
-        .delete()
+        .update({ status: 'rejected' })
         .eq('id', request.id);
 
       if (requestError) throw requestError;
@@ -201,11 +201,12 @@ export const useJoinRequests = () => {
     try {
       console.log('[useJoinRequests] Fetching club requests for club:', clubId);
       
-      // Query club_requests table directly
+      // Query club_requests table directly, but only fetch pending requests
       const { data: requestsData, error: requestsError } = await supabase
         .from('club_requests')
-        .select('id, user_id, club_id, created_at')
-        .eq('club_id', clubId);
+        .select('id, user_id, club_id, created_at, status')
+        .eq('club_id', clubId)
+        .eq('status', 'pending');
 
       if (requestsError) {
         console.error('[useJoinRequests] Error fetching club requests:', requestsError);
@@ -239,7 +240,8 @@ export const useJoinRequests = () => {
             clubId: request.club_id,
             userName: 'Unknown User',
             userAvatar: '',
-            createdAt: request.created_at
+            createdAt: request.created_at,
+            status: request.status
           });
         } else {
           formattedRequests.push({
@@ -248,7 +250,8 @@ export const useJoinRequests = () => {
             clubId: request.club_id,
             userName: userData.name || 'Unknown',
             userAvatar: userData.avatar || '',
-            createdAt: request.created_at
+            createdAt: request.created_at,
+            status: request.status
           });
         }
       }

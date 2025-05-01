@@ -87,13 +87,18 @@ export const useHomeNotifications = () => {
           throw joinError;
         }
         
-        // Delete the join request from the club_requests table
-        await supabase
+        // Update the join request status to 'accepted' instead of deleting
+        const { error: requestError } = await supabase
           .from('club_requests')
-          .delete()
+          .update({ status: 'accepted' })
           .eq('user_id', notification.userId)
           .eq('club_id', clubId);
           
+        if (requestError) {
+          console.error('[useHomeNotifications] Error updating request status:', requestError);
+          throw requestError;
+        }
+        
         toast.success(`User has been added to the club`);
       }
       
@@ -126,13 +131,18 @@ export const useHomeNotifications = () => {
         throw new Error("Invalid notification data");
       }
       
-      // If this is a join request, also remove the request from club_requests table
+      // If this is a join request, update the request status to 'rejected' instead of deleting
       if (notification.type === 'join_request' && notification.userId && notification.clubId) {
-        await supabase
+        const { error } = await supabase
           .from('club_requests')
-          .delete()
+          .update({ status: 'rejected' })
           .eq('user_id', notification.userId)
           .eq('club_id', notification.clubId);
+          
+        if (error) {
+          console.error('[useHomeNotifications] Error updating request status:', error);
+          throw error;
+        }
       }
       
       // Delete the notification

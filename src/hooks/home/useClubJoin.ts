@@ -32,10 +32,10 @@ export const useClubJoin = () => {
           .maybeSingle();
           
         if (existingRequest) {
-          // Request exists, so cancel it
+          // Request exists, so update its status to 'cancelled'
           const { error } = await supabase
             .from('club_requests')
-            .delete()
+            .update({ status: 'cancelled' })
             .eq('user_id', currentUser.id)
             .eq('club_id', clubId)
             .eq('status', 'pending');

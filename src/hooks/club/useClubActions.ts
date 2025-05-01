@@ -142,7 +142,7 @@ export const useClubActions = (club: Club) => {
           throw new Error(`Failed to join club: ${error.message}`);
         }
         
-        // Update the invitation status
+        // Update the invitation status to 'accepted'
         if (invitation.id) {
           await supabase
             .from('club_invites')
@@ -176,7 +176,7 @@ export const useClubActions = (club: Club) => {
     
     if (invitation) {
       try {
-        // Update the invitation status
+        // Update the invitation status to 'rejected'
         if (invitation.id) {
           await supabase
             .from('club_invites')

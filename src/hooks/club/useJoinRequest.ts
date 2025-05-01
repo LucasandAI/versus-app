@@ -22,6 +22,7 @@ export const useJoinRequest = (clubId: string) => {
         .select('*')
         .eq('club_id', clubId)
         .eq('user_id', userId)
+        .eq('status', 'pending')
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -43,7 +44,8 @@ export const useJoinRequest = (clubId: string) => {
         .from('club_requests')
         .insert([{
           user_id: userId,
-          club_id: clubId
+          club_id: clubId,
+          status: 'pending'
         }]);
 
       if (error) throw error;
@@ -111,11 +113,13 @@ export const useJoinRequest = (clubId: string) => {
   const cancelJoinRequest = async (userId: string) => {
     setIsRequesting(true);
     try {
+      // Update status to 'cancelled' instead of deleting
       const { error } = await supabase
         .from('club_requests')
-        .delete()
+        .update({ status: 'cancelled' })
         .eq('club_id', clubId)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .eq('status', 'pending');
 
       if (error) throw error;
 
