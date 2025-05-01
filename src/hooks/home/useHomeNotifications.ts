@@ -99,6 +99,9 @@ export const useHomeNotifications = () => {
           throw requestError;
         }
         
+        // Note: We're removing the manual notification creation here
+        // as it's now handled by the Supabase trigger
+        
         toast.success(`User has been added to the club`);
       }
       
