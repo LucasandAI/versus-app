@@ -8,7 +8,7 @@ interface NotificationListProps {
   notifications: Notification[];
   onMarkAsRead?: (id: string) => void;
   onUserClick: (userId: string, userName: string) => void;
-  onJoinClub?: (clubId: string, clubName: string) => void;
+  onJoinClub?: (clubId: string, clubName: string, requesterId: string) => void;
   onDeclineInvite?: (id: string) => void;
   onClearAll: () => void;
   formatTime: (timestamp: string) => string;
