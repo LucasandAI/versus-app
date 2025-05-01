@@ -53,201 +53,43 @@ export const useHomeNotifications = () => {
     }
   }, [notifications, currentUser?.id]);
 
-  const handleJoinClub = useCallback(async (clubId: string, clubName: string, requesterId: string) => {
-    try {
-      console.log('[useHomeNotifications] Handling join club action:', clubId, clubName, requesterId);
-      if (!currentUser?.id) {
-        console.log('[useHomeNotifications] No current user, skipping');
-        return;
-      }
+  // This function is now simplified - we just pass the notification ID to our UI
+  // The actual join club functionality is in the shared utility
+  const handleJoinClub = useCallback((clubId: string, clubName: string, requesterId: string) => {
+    console.log('[useHomeNotifications] Join club function called, but actual implementation is now in the NotificationItem component');
+  }, []);
 
-      // Find the notification related to this club action
-      const notification = notifications.find(
-        n => (n.type === 'join_request') && 
-            ((n.clubId === clubId || n.data?.clubId === clubId) &&
-             (n.data?.requesterId === requesterId || n.userId === requesterId))
-      );
-      
-      console.log('[useHomeNotifications] Found notification for join request:', notification);
-      
-      if (!notification) {
-        console.error('[useHomeNotifications] Notification not found for this club action');
-        return;
-      }
-      
-      // First check if the club already has 5 members (maximum)
-      const { data: clubMembers, error: membersError } = await supabase
-        .from('clubs')
-        .select('member_count')
-        .eq('id', clubId)
-        .single();
-        
-      if (membersError) {
-        console.error('[useHomeNotifications] Error checking club members:', membersError);
-        throw membersError;
-      }
-      
-      if (clubMembers && clubMembers.member_count >= 5) {
-        toast.error("Club is full (5/5 members). Cannot add more members.");
-        return;
-      }
-      
-      console.log('[useHomeNotifications] Adding requester to club:', requesterId, clubId);
-      
-      // Add the requesting user to the club members
-      const { error: joinError } = await supabase
-        .from('club_members')
-        .insert({
-          user_id: requesterId,
-          club_id: clubId,
-          is_admin: false
-        });
-        
-      if (joinError) {
-        console.error('[useHomeNotifications] Error adding user to club:', joinError);
-        throw joinError;
-      }
-      
-      // Update request status to accepted instead of deleting
-      const { error: requestError } = await supabase
-        .from('club_requests')
-        .update({ status: 'accepted' })
-        .eq('user_id', requesterId)
-        .eq('club_id', clubId);
-        
-      if (requestError) {
-        console.error('[useHomeNotifications] Error updating request status:', requestError);
-        throw requestError;
-      }
-      
-      // Delete all notifications related to this join request
-      try {
-        // Find all notifications related to this request
-        const { data: relatedNotifications } = await supabase
-          .from('notifications')
-          .select('id')
-          .eq('club_id', clubId)
-          .eq('type', 'join_request')
-          .or(`data->requesterId.eq.${requesterId},data->userId.eq.${requesterId}`);
-          
-        if (relatedNotifications && relatedNotifications.length > 0) {
-          // Delete all related notifications
-          await supabase
-            .from('notifications')
-            .delete()
-            .in('id', relatedNotifications.map(n => n.id));
-            
-          console.log(`[useHomeNotifications] Deleted ${relatedNotifications.length} related notifications`);
-          
-          // Update local state as well
-          setNotifications(prev => 
-            prev.filter(n => !relatedNotifications.some(rn => rn.id === n.id))
-          );
-        }
-      } catch (notificationError) {
-        console.error('[useHomeNotifications] Error handling related notifications:', notificationError);
-        // Continue even if notification handling fails
-      }
-      
-      toast.success(`User has been added to the club`);
-      
-      // Trigger a refresh of user data
-      await refreshCurrentUser();
-      
-      // Dispatch an event to notify that user data has been updated
-      window.dispatchEvent(new CustomEvent('userDataUpdated'));
-      
-    } catch (error) {
-      console.error("[useHomeNotifications] Error joining club:", error);
-      toast.error("Failed to process club action");
-    }
-  }, [notifications, currentUser, refreshCurrentUser]);
-
+  // This function is now simplified - we just pass the notification ID to our UI
+  // The actual decline functionality is in the shared utility
   const handleDeclineInvite = useCallback(async (id: string) => {
     try {
-      console.log('[useHomeNotifications] Declining notification:', id);
+      console.log('[useHomeNotifications] Decline invite function called for notification:', id);
       if (!currentUser?.id) {
         console.log('[useHomeNotifications] No current user, skipping');
         return;
       }
       
+      // Find the notification
       const notification = notifications.find(n => n.id === id);
       if (!notification) {
         console.error('[useHomeNotifications] Invalid notification data');
         throw new Error("Invalid notification data");
       }
       
-      console.log('[useHomeNotifications] Found notification to decline:', notification);
-      
-      // If this is a join request, delete the request record instead of updating status
-      if (notification.type === 'join_request') {
-        const requesterId = notification.data?.requesterId || notification.userId;
-        const clubId = notification.data?.clubId || notification.clubId;
+      // For non-join-request notifications, just delete the notification
+      if (notification.type !== 'join_request') {
+        // Delete the notification
+        await handleNotification(id, 'delete');
         
-        console.log('[useHomeNotifications] Join request - requesterId:', requesterId, 'clubId:', clubId);
+        // Update local state
+        setNotifications(prev => prev.filter(notification => notification.id !== id));
         
-        if (!requesterId || !clubId) {
-          console.error('[useHomeNotifications] Invalid notification data - missing requesterId or club ID');
-          throw new Error("Invalid notification data");
-        }
-        
-        // Delete the join request record
-        const { error } = await supabase
-          .from('club_requests')
-          .delete()
-          .eq('user_id', requesterId)
-          .eq('club_id', clubId);
-          
-        if (error) {
-          console.error('[useHomeNotifications] Error deleting request:', error);
-          throw error;
-        }
-        
-        console.log('[useHomeNotifications] Successfully deleted club request');
-        
-        // Find and delete all related notifications
-        try {
-          // Find notifications related to this request
-          const { data: relatedNotifications } = await supabase
-            .from('notifications')
-            .select('id')
-            .eq('club_id', clubId)
-            .eq('type', 'join_request')
-            .or(`data->requesterId.eq.${requesterId},data->userId.eq.${requesterId}`);
-            
-          if (relatedNotifications && relatedNotifications.length > 0) {
-            // Delete all related notifications except the current one (which will be deleted below)
-            const otherNotificationIds = relatedNotifications
-              .map(n => n.id)
-              .filter(nId => nId !== id);
-              
-            if (otherNotificationIds.length > 0) {
-              await supabase
-                .from('notifications')
-                .delete()
-                .in('id', otherNotificationIds);
-                
-              console.log(`[useHomeNotifications] Deleted ${otherNotificationIds.length} related notifications`);
-              
-              // Update local state as well
-              setNotifications(prev => 
-                prev.filter(n => !otherNotificationIds.includes(n.id))
-              );
-            }
-          }
-        } catch (notificationError) {
-          console.error('[useHomeNotifications] Error handling related notifications:', notificationError);
-          // Continue even if this part fails
-        }
+        toast.success("Notification removed");
+      } else {
+        // For join requests, the actual functionality is now in NotificationItem component
+        // We just remove it from UI here
+        setNotifications(prev => prev.filter(notification => notification.id !== id));
       }
-      
-      // Delete the notification
-      await handleNotification(id, 'delete');
-      
-      // Update local state
-      setNotifications(prev => prev.filter(notification => notification.id !== id));
-      
-      toast.success(notification.type === 'join_request' ? "Request denied" : "Notification removed");
     } catch (error) {
       console.error("[useHomeNotifications] Error declining notification:", error);
       toast.error("Failed to process notification");

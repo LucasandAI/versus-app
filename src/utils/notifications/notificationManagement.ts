@@ -90,22 +90,39 @@ export const updateClubJoinRequest = async (
       
       // Delete all notifications related to this join request
       try {
+        // Use the improved notification query with proper type handling
         const { data: notifications, error: notificationError } = await supabase
           .from('notifications')
-          .select('id')
+          .select('id, data')
           .eq('club_id', clubId)
-          .eq('type', 'join_request')
-          .or(`data->requesterId.eq.${userId},data->userId.eq.${userId}`);
+          .eq('type', 'join_request');
           
         if (notificationError) {
           console.error('Error finding join request notifications:', notificationError);
         } else if (notifications && notifications.length > 0) {
-          await supabase
-            .from('notifications')
-            .delete()
-            .in('id', notifications.map(n => n.id));
+          const matchingNotifications = notifications.filter(notification => {
+            const data = notification.data;
+            if (!data) return false;
             
-          console.log(`Deleted ${notifications.length} join request notifications`);
+            if (typeof data === 'object') {
+              // Handle object data safely
+              const objData = data as Record<string, any>;
+              return (
+                (objData.requesterId && objData.requesterId === userId) ||
+                (objData.userId && objData.userId === userId)
+              );
+            }
+            return false;
+          });
+          
+          if (matchingNotifications.length > 0) {
+            await supabase
+              .from('notifications')
+              .delete()
+              .in('id', matchingNotifications.map(n => n.id));
+              
+            console.log(`Deleted ${matchingNotifications.length} join request notifications`);
+          }
         }
       } catch (error) {
         console.error('Error handling join request notifications:', error);
@@ -125,22 +142,39 @@ export const updateClubJoinRequest = async (
       
       // Delete all notifications related to this join request
       try {
+        // Use the improved notification query with proper type handling
         const { data: notifications, error: notificationError } = await supabase
           .from('notifications')
-          .select('id')
+          .select('id, data')
           .eq('club_id', clubId)
-          .eq('type', 'join_request')
-          .or(`data->requesterId.eq.${userId},data->userId.eq.${userId}`);
+          .eq('type', 'join_request');
           
         if (notificationError) {
           console.error('Error finding join request notifications:', notificationError);
         } else if (notifications && notifications.length > 0) {
-          await supabase
-            .from('notifications')
-            .delete()
-            .in('id', notifications.map(n => n.id));
+          const matchingNotifications = notifications.filter(notification => {
+            const data = notification.data;
+            if (!data) return false;
             
-          console.log(`Deleted ${notifications.length} join request notifications`);
+            if (typeof data === 'object') {
+              // Handle object data safely
+              const objData = data as Record<string, any>;
+              return (
+                (objData.requesterId && objData.requesterId === userId) ||
+                (objData.userId && objData.userId === userId)
+              );
+            }
+            return false;
+          });
+          
+          if (matchingNotifications.length > 0) {
+            await supabase
+              .from('notifications')
+              .delete()
+              .in('id', matchingNotifications.map(n => n.id));
+              
+            console.log(`Deleted ${matchingNotifications.length} join request notifications`);
+          }
         }
       } catch (error) {
         console.error('Error handling join request notifications:', error);
@@ -171,22 +205,39 @@ export const deleteClubJoinRequest = async (userId: string, clubId: string): Pro
     
     // Delete all notifications related to this join request
     try {
+      // Use the improved notification query with proper type handling
       const { data: notifications, error: notificationError } = await supabase
         .from('notifications')
-        .select('id')
+        .select('id, data')
         .eq('club_id', clubId)
-        .eq('type', 'join_request')
-        .or(`data->requesterId.eq.${userId},data->userId.eq.${userId}`);
+        .eq('type', 'join_request');
         
       if (notificationError) {
         console.error('Error finding join request notifications:', notificationError);
       } else if (notifications && notifications.length > 0) {
-        await supabase
-          .from('notifications')
-          .delete()
-          .in('id', notifications.map(n => n.id));
+        const matchingNotifications = notifications.filter(notification => {
+          const data = notification.data;
+          if (!data) return false;
           
-        console.log(`Deleted ${notifications.length} join request notifications`);
+          if (typeof data === 'object') {
+            // Handle object data safely
+            const objData = data as Record<string, any>;
+            return (
+              (objData.requesterId && objData.requesterId === userId) ||
+              (objData.userId && objData.userId === userId)
+            );
+          }
+          return false;
+        });
+        
+        if (matchingNotifications.length > 0) {
+          await supabase
+            .from('notifications')
+            .delete()
+            .in('id', matchingNotifications.map(n => n.id));
+            
+          console.log(`Deleted ${matchingNotifications.length} join request notifications`);
+        }
       }
     } catch (error) {
       console.error('Error handling join request notifications:', error);

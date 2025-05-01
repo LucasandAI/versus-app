@@ -4,6 +4,7 @@ import { Notification } from '@/types';
 import { cn } from '@/lib/utils';
 import { useNavigation } from '@/hooks/useNavigation';
 import { Button } from '@/components/ui/button';
+import { acceptJoinRequest, denyJoinRequest } from '@/utils/joinRequestUtils';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -60,9 +61,9 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     }
   };
 
-  const handleJoinClub = (e: React.MouseEvent) => {
+  const handleJoinClub = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onJoinClub && notification.type === 'join_request') {
+    if (notification.type === 'join_request') {
       const clubId = notification.data?.clubId || notification.clubId;
       const clubName = notification.data?.clubName || notification.clubName;
       const requesterId = notification.data?.requesterId || notification.userId;
@@ -75,14 +76,40 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
       });
       
       if (clubId && clubName && requesterId) {
-        onJoinClub(clubId, clubName, requesterId);
+        // Use the shared utility function
+        const success = await acceptJoinRequest(requesterId, clubId, clubName);
+        if (success && onMarkAsRead) {
+          // This removes the item from the UI even though we've already deleted it from DB
+          onMarkAsRead(notification.id);
+        }
       }
     }
   };
 
-  const handleDeclineInvite = (e: React.MouseEvent) => {
+  const handleDeclineInvite = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onDeclineInvite) {
+    
+    if (notification.type === 'join_request') {
+      const clubId = notification.data?.clubId || notification.clubId;
+      const requesterId = notification.data?.requesterId || notification.userId;
+      
+      console.log("[NotificationItem] Declining join request:", {
+        notificationId: notification.id,
+        clubId,
+        requesterId,
+        notification
+      });
+      
+      if (clubId && requesterId) {
+        // Use the shared utility function
+        const success = await denyJoinRequest(requesterId, clubId);
+        if (success && onMarkAsRead) {
+          // This removes the item from the UI even though we've already deleted it from DB
+          onMarkAsRead(notification.id);
+        }
+      }
+    } else if (onDeclineInvite) {
+      // Handle other types of notifications
       console.log("[NotificationItem] Declining notification:", notification.id);
       onDeclineInvite(notification.id);
     }
