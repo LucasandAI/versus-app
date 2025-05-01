@@ -28,11 +28,20 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     console.log("[NotificationItem] Rendering notification:", notification);
   }, [notification]);
 
+  // Get data from notification.data
+  const requesterId = notification.data?.requesterId;
+  const requesterName = notification.data?.requesterName || notification.userName;
+  const clubIdFromData = notification.data?.clubId || notification.clubId;
+  const clubNameFromData = notification.data?.clubName || notification.clubName;
+
   // Handle club name clicks
   const handleClubClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (notification.clubId && notification.clubName) {
-      navigateToClub({ id: notification.clubId, name: notification.clubName });
+    const clubId = clubIdFromData;
+    const clubName = clubNameFromData;
+    
+    if (clubId && clubName) {
+      navigateToClub({ id: clubId, name: clubName });
       
       // Mark as read when clicked
       if (onMarkAsRead && !notification.read) {
@@ -44,8 +53,11 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   // Handle user name clicks
   const handleUserClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (notification.userId && notification.userName) {
-      onUserClick(notification.userId, notification.userName);
+    const userId = requesterId || notification.userId;
+    const userName = requesterName || notification.userName;
+    
+    if (userId && userName) {
+      onUserClick(userId, userName);
       
       // Mark as read when clicked
       if (onMarkAsRead && !notification.read) {
@@ -56,8 +68,12 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
 
   const handleJoinClub = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onJoinClub && notification.clubId && notification.clubName) {
-      onJoinClub(notification.clubId, notification.clubName);
+    if (onJoinClub && notification.type === 'join_request') {
+      const clubId = clubIdFromData;
+      const clubName = clubNameFromData;
+      if (clubId && clubName && requesterId) {
+        onJoinClub(clubId, clubName);
+      }
     }
   };
 
@@ -83,28 +99,28 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   // Create a formatted message with clickable parts based on notification type
   const formatMessage = () => {
     // For join requests - what admins see when users request to join their club
-    if (notification.type === 'join_request' && notification.userName && notification.clubName) {
+    if (notification.type === 'join_request' && requesterName && clubNameFromData) {
       return (
         <p className="text-sm">
           <span 
             className="font-medium text-primary cursor-pointer hover:underline"
             onClick={handleUserClick}
           >
-            {notification.userName}
+            {requesterName}
           </span>
           {' has requested to join '}
           <span 
             className="font-medium text-primary cursor-pointer hover:underline"
             onClick={handleClubClick}
           >
-            {notification.clubName}
+            {clubNameFromData}
           </span>
         </p>
       );
     }
     
     // For accepted join requests notifications
-    if (notification.type === 'request_accepted' && notification.clubName) {
+    if (notification.type === 'request_accepted' && clubNameFromData) {
       return (
         <p className="text-sm">
           {'You\'ve been added to '}
@@ -112,7 +128,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
             className="font-medium text-primary cursor-pointer hover:underline"
             onClick={handleClubClick}
           >
-            {notification.clubName}
+            {clubNameFromData}
           </span>
         </p>
       );
