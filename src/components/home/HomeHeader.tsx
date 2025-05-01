@@ -13,7 +13,7 @@ interface HomeHeaderProps {
   onMarkAsRead: (id: string) => void;
   onClearAll: () => void;
   onUserClick: (userId: string, name: string) => void;
-  onJoinClub: (clubId: string, clubName: string) => void;
+  onJoinClub: (clubId: string, clubName: string, requesterId: string) => void;
   onDeclineInvite: (id: string) => void;
 }
 

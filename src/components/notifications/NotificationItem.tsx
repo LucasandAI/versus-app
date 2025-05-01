@@ -9,7 +9,7 @@ interface NotificationItemProps {
   notification: Notification;
   onMarkAsRead?: (id: string) => void;
   onUserClick: (userId: string, userName: string) => void;
-  onJoinClub?: (clubId: string, clubName: string) => void;
+  onJoinClub?: (clubId: string, clubName: string, requesterId: string) => void;
   onDeclineInvite?: (id: string) => void;
   formatTime: (timestamp: string) => string;
 }
@@ -28,17 +28,11 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     console.log("[NotificationItem] Rendering notification:", notification);
   }, [notification]);
 
-  // Get data from notification.data
-  const requesterId = notification.data?.requesterId;
-  const requesterName = notification.data?.requesterName || notification.userName;
-  const clubIdFromData = notification.data?.clubId || notification.clubId;
-  const clubNameFromData = notification.data?.clubName || notification.clubName;
-
   // Handle club name clicks
   const handleClubClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const clubId = clubIdFromData;
-    const clubName = clubNameFromData;
+    const clubId = notification.data?.clubId || notification.clubId;
+    const clubName = notification.data?.clubName || notification.clubName;
     
     if (clubId && clubName) {
       navigateToClub({ id: clubId, name: clubName });
@@ -53,8 +47,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   // Handle user name clicks
   const handleUserClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const userId = requesterId || notification.userId;
-    const userName = requesterName || notification.userName;
+    const userId = notification.data?.requesterId || notification.userId;
+    const userName = notification.data?.requesterName || notification.userName;
     
     if (userId && userName) {
       onUserClick(userId, userName);
@@ -69,10 +63,12 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   const handleJoinClub = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onJoinClub && notification.type === 'join_request') {
-      const clubId = clubIdFromData;
-      const clubName = clubNameFromData;
+      const clubId = notification.data?.clubId || notification.clubId;
+      const clubName = notification.data?.clubName || notification.clubName;
+      const requesterId = notification.data?.requesterId || notification.userId;
+      
       if (clubId && clubName && requesterId) {
-        onJoinClub(clubId, clubName);
+        onJoinClub(clubId, clubName, requesterId);
       }
     }
   };
@@ -99,28 +95,28 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   // Create a formatted message with clickable parts based on notification type
   const formatMessage = () => {
     // For join requests - what admins see when users request to join their club
-    if (notification.type === 'join_request' && requesterName && clubNameFromData) {
+    if (notification.type === 'join_request' && notification.data?.requesterName && notification.data?.clubName) {
       return (
         <p className="text-sm">
           <span 
             className="font-medium text-primary cursor-pointer hover:underline"
             onClick={handleUserClick}
           >
-            {requesterName}
+            {notification.data.requesterName}
           </span>
           {' has requested to join '}
           <span 
             className="font-medium text-primary cursor-pointer hover:underline"
             onClick={handleClubClick}
           >
-            {clubNameFromData}
+            {notification.data.clubName}
           </span>
         </p>
       );
     }
     
     // For accepted join requests notifications
-    if (notification.type === 'request_accepted' && clubNameFromData) {
+    if (notification.type === 'request_accepted' && notification.data?.clubName) {
       return (
         <p className="text-sm">
           {'You\'ve been added to '}
@@ -128,7 +124,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
             className="font-medium text-primary cursor-pointer hover:underline"
             onClick={handleClubClick}
           >
-            {clubNameFromData}
+            {notification.data.clubName}
           </span>
         </p>
       );

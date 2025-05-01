@@ -15,7 +15,7 @@ interface NotificationPopoverProps {
   onMarkAsRead: (id: string) => void;
   onClearAll: () => void;
   onUserClick: (userId: string, userName: string) => void;
-  onJoinClub?: (clubId: string, clubName: string) => void;
+  onJoinClub?: (clubId: string, clubName: string, requesterId: string) => void;
   onDeclineInvite?: (notificationId: string) => void;
 }
 

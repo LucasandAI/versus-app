@@ -53,9 +53,9 @@ export const useHomeNotifications = () => {
     }
   }, [notifications, currentUser?.id]);
 
-  const handleJoinClub = useCallback(async (clubId: string, clubName: string) => {
+  const handleJoinClub = useCallback(async (clubId: string, clubName: string, requesterId: string) => {
     try {
-      console.log('[useHomeNotifications] Handling join club action:', clubId, clubName);
+      console.log('[useHomeNotifications] Handling join club action:', clubId, clubName, requesterId);
       if (!currentUser?.id) {
         console.log('[useHomeNotifications] No current user, skipping');
         return;
@@ -63,7 +63,9 @@ export const useHomeNotifications = () => {
       
       // Find the notification related to this club action
       const notification = notifications.find(
-        n => (n.type === 'join_request') && (n.clubId === clubId || n.data?.clubId === clubId)
+        n => (n.type === 'join_request') && 
+            ((n.clubId === clubId || n.data?.clubId === clubId) &&
+             (n.data?.requesterId === requesterId))
       );
       
       if (!notification) {
@@ -71,43 +73,30 @@ export const useHomeNotifications = () => {
         return;
       }
       
-      // For join_request type, this means we're accepting someone else's request to join
-      if (notification.type === 'join_request') {
-        // Get the requester ID from the notification data
-        const requesterId = notification.data?.requesterId || notification.userId;
+      // Update the join request status to 'accepted'
+      const { error: requestError } = await supabase
+        .from('club_requests')
+        .update({ status: 'accepted' })
+        .eq('user_id', requesterId)
+        .eq('club_id', clubId);
         
-        if (!requesterId) {
-          console.error('[useHomeNotifications] Invalid notification data - missing requester ID');
-          throw new Error("Invalid notification data - missing requester ID");
-        }
+      if (requestError) {
+        console.error('[useHomeNotifications] Error updating request status:', requestError);
+        throw requestError;
+      }
+      
+      // Add the requesting user to the club members
+      const { error: joinError } = await supabase
+        .from('club_members')
+        .insert({
+          user_id: requesterId,
+          club_id: clubId,
+          is_admin: false
+        });
         
-        // Update the join request status to 'accepted'
-        const { error: requestError } = await supabase
-          .from('club_requests')
-          .update({ status: 'accepted' })
-          .eq('user_id', requesterId)
-          .eq('club_id', clubId);
-          
-        if (requestError) {
-          console.error('[useHomeNotifications] Error updating request status:', requestError);
-          throw requestError;
-        }
-        
-        // Add the requesting user to the club members
-        const { error: joinError } = await supabase
-          .from('club_members')
-          .insert({
-            user_id: requesterId,
-            club_id: clubId,
-            is_admin: false
-          });
-          
-        if (joinError) {
-          console.error('[useHomeNotifications] Error adding user to club:', joinError);
-          throw joinError;
-        }
-        
-        toast.success(`User has been added to the club`);
+      if (joinError) {
+        console.error('[useHomeNotifications] Error adding user to club:', joinError);
+        throw joinError;
       }
       
       // Delete the notification after successfully handling
@@ -115,6 +104,8 @@ export const useHomeNotifications = () => {
       
       // Remove notification from local state
       setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      
+      toast.success(`User has been added to the club`);
       
       // Trigger a refresh of user data
       window.dispatchEvent(new CustomEvent('userDataUpdated'));
@@ -139,24 +130,25 @@ export const useHomeNotifications = () => {
         throw new Error("Invalid notification data");
       }
       
-      // If this is a join request, update the request status to 'rejected'
+      // If this is a join request, delete the request record
       if (notification.type === 'join_request') {
         const requesterId = notification.data?.requesterId || notification.userId;
         const clubId = notification.data?.clubId || notification.clubId;
         
         if (!requesterId || !clubId) {
-          console.error('[useHomeNotifications] Invalid notification data - missing requester ID or club ID');
+          console.error('[useHomeNotifications] Invalid notification data - missing requesterId or club ID');
           throw new Error("Invalid notification data");
         }
         
+        // Delete the join request record
         const { error } = await supabase
           .from('club_requests')
-          .update({ status: 'rejected' })
+          .delete()
           .eq('user_id', requesterId)
           .eq('club_id', clubId);
           
         if (error) {
-          console.error('[useHomeNotifications] Error updating request status:', error);
+          console.error('[useHomeNotifications] Error deleting request:', error);
           throw error;
         }
       }
