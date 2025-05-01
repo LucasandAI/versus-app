@@ -45,7 +45,7 @@ export interface JoinRequest {
   userName: string;
   userAvatar: string;
   createdAt: string;
-  status: 'pending' | 'accepted' | 'rejected' | 'cancelled';
+  status: 'pending' | 'accepted' | 'rejected';
 }
 
 export interface ClubRequest {

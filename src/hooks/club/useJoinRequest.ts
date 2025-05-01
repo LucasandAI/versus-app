@@ -113,10 +113,10 @@ export const useJoinRequest = (clubId: string) => {
   const cancelJoinRequest = async (userId: string) => {
     setIsRequesting(true);
     try {
-      // Update status to 'cancelled' instead of deleting
+      // Delete the request instead of updating to 'cancelled'
       const { error } = await supabase
         .from('club_requests')
-        .update({ status: 'cancelled' })
+        .delete()
         .eq('club_id', clubId)
         .eq('user_id', userId)
         .eq('status', 'pending');

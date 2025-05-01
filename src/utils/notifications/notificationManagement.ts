@@ -69,7 +69,7 @@ export const updateNotificationStatus = async (
 export const updateClubJoinRequest = async (
   userId: string, 
   clubId: string, 
-  status: 'accepted' | 'rejected' | 'cancelled'
+  status: 'accepted' | 'rejected'
 ): Promise<boolean> => {
   try {
     const { error } = await supabase
@@ -91,7 +91,24 @@ export const updateClubJoinRequest = async (
   }
 };
 
-// Function to delete a club join request (legacy - kept for compatibility)
+// Function to delete a club join request
 export const deleteClubJoinRequest = async (userId: string, clubId: string): Promise<boolean> => {
-  return updateClubJoinRequest(userId, clubId, 'cancelled');
+  try {
+    const { error } = await supabase
+      .from('club_requests')
+      .delete()
+      .eq('user_id', userId)
+      .eq('club_id', clubId)
+      .eq('status', 'pending');
+      
+    if (error) {
+      console.error('Error deleting join request:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in deleteClubJoinRequest:', error);
+    return false;
+  }
 };

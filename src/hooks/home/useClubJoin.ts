@@ -1,4 +1,3 @@
-
 import { useApp } from '@/context/AppContext';
 import { getClubToJoin } from '@/utils/club';
 import { useClubValidation } from './useClubValidation';
@@ -32,10 +31,10 @@ export const useClubJoin = () => {
           .maybeSingle();
           
         if (existingRequest) {
-          // Request exists, so update its status to 'cancelled'
+          // Delete the request instead of updating to 'cancelled'
           const { error } = await supabase
             .from('club_requests')
-            .update({ status: 'cancelled' })
+            .delete()
             .eq('user_id', currentUser.id)
             .eq('club_id', clubId)
             .eq('status', 'pending');
