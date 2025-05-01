@@ -53,31 +53,45 @@ export const useHomeNotifications = () => {
     }
   }, [notifications, currentUser?.id]);
 
-  const handleJoinClub = useCallback(async (clubId: string, clubName: string) => {
+  const handleJoinClub = useCallback(async (requesterId: string, clubId: string) => {
     try {
-      console.log('[useHomeNotifications] Handling join club action:', clubId, clubName);
+      console.log('[useHomeNotifications] Handling join club action:', requesterId, clubId);
       if (!currentUser?.id) {
         console.log('[useHomeNotifications] No current user, skipping');
         return;
       }
       
-      // Find the notification related to this club action
+      // Find the notification related to this join request
       const notification = notifications.find(
-        n => (n.type === 'join_request') && n.clubId === clubId
+        n => (n.type === 'join_request') && 
+             ((n.data?.clubId === clubId && n.data?.requesterId === requesterId) || 
+              (n.clubId === clubId && n.userId === requesterId))
       );
       
       if (!notification) {
-        console.error('[useHomeNotifications] Notification not found for this club action');
+        console.error('[useHomeNotifications] Notification not found for this join request');
         return;
       }
       
-      // For join_request type, this means we're accepting someone else's request to join
-      if (notification.type === 'join_request' && notification.userId) {
-        // Add the requesting user to the club
+      // For join_request type, accept the request
+      if (notification.type === 'join_request') {
+        // 1. Update the club_requests status to 'accepted'
+        const { error: requestError } = await supabase
+          .from('club_requests')
+          .update({ status: 'accepted' })
+          .eq('user_id', requesterId)
+          .eq('club_id', clubId);
+          
+        if (requestError) {
+          console.error('[useHomeNotifications] Error updating request status:', requestError);
+          throw requestError;
+        }
+        
+        // 2. Add the requesting user to the club members
         const { error: joinError } = await supabase
           .from('club_members')
           .insert({
-            user_id: notification.userId, // The user who sent the join request
+            user_id: requesterId,
             club_id: clubId,
             is_admin: false
           });
@@ -85,18 +99,6 @@ export const useHomeNotifications = () => {
         if (joinError) {
           console.error('[useHomeNotifications] Error adding user to club:', joinError);
           throw joinError;
-        }
-        
-        // Update the join request status to 'accepted' instead of deleting
-        const { error: requestError } = await supabase
-          .from('club_requests')
-          .update({ status: 'accepted' })
-          .eq('user_id', notification.userId)
-          .eq('club_id', clubId);
-          
-        if (requestError) {
-          console.error('[useHomeNotifications] Error updating request status:', requestError);
-          throw requestError;
         }
         
         // Note: The manual notification creation has been removed
@@ -134,13 +136,17 @@ export const useHomeNotifications = () => {
         throw new Error("Invalid notification data");
       }
       
-      // If this is a join request, update the request status to 'rejected' instead of deleting
-      if (notification.type === 'join_request' && notification.userId && notification.clubId) {
+      // Determine the user ID and club ID from either the new data format or old format
+      const userId = notification.data?.requesterId || notification.userId;
+      const clubId = notification.data?.clubId || notification.clubId;
+      
+      // If this is a join request, update the request status to 'rejected'
+      if (notification.type === 'join_request' && userId && clubId) {
         const { error } = await supabase
           .from('club_requests')
           .update({ status: 'rejected' })
-          .eq('user_id', notification.userId)
-          .eq('club_id', notification.clubId);
+          .eq('user_id', userId)
+          .eq('club_id', clubId);
           
         if (error) {
           console.error('[useHomeNotifications] Error updating request status:', error);
