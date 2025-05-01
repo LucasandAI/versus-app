@@ -130,24 +130,27 @@ export const useJoinRequests = () => {
 
       if (requestError) throw requestError;
 
-      // Create notification for the user
+      // Delete any notification related to this join request
       try {
-        // Delete any notification related to this request that was sent to admins
+        // Find notifications related to this request
         const { data: notifications } = await supabase
           .from('notifications')
           .select('id')
           .eq('club_id', request.clubId)
           .eq('type', 'join_request')
-          .like('data->>requesterId', request.userId);
+          .or(`data->requesterId.eq.${request.userId},data->userId.eq.${request.userId}`);
           
         if (notifications && notifications.length > 0) {
+          // Delete all related notifications
           await supabase
             .from('notifications')
             .delete()
             .in('id', notifications.map(n => n.id));
+            
+          console.log(`[useJoinRequests] Deleted ${notifications.length} related notifications`);
         }
       } catch (notificationError) {
-        console.error('Error handling notifications:', notificationError);
+        console.error('[useJoinRequests] Error handling notifications:', notificationError);
         // Continue even if notification handling fails
       }
 

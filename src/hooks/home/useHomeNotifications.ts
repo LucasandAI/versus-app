@@ -151,6 +151,36 @@ export const useHomeNotifications = () => {
           console.error('[useHomeNotifications] Error deleting request:', error);
           throw error;
         }
+        
+        // Find and delete all related notifications
+        try {
+          // Find notifications related to this request
+          const { data: relatedNotifications } = await supabase
+            .from('notifications')
+            .select('id')
+            .eq('club_id', clubId)
+            .eq('type', 'join_request')
+            .or(`data->requesterId.eq.${requesterId},data->userId.eq.${requesterId}`);
+            
+          if (relatedNotifications && relatedNotifications.length > 0) {
+            // Delete all related notifications except the current one (which will be deleted below)
+            const otherNotificationIds = relatedNotifications
+              .map(n => n.id)
+              .filter(nId => nId !== id);
+              
+            if (otherNotificationIds.length > 0) {
+              await supabase
+                .from('notifications')
+                .delete()
+                .in('id', otherNotificationIds);
+                
+              console.log(`[useHomeNotifications] Deleted ${otherNotificationIds.length} related notifications`);
+            }
+          }
+        } catch (notificationError) {
+          console.error('[useHomeNotifications] Error handling related notifications:', notificationError);
+          // Continue even if this part fails
+        }
       }
       
       // Delete the notification
