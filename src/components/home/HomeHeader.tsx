@@ -1,10 +1,11 @@
 
 import React from 'react';
 import { useApp } from '@/context/AppContext';
-import { HomeIcon, PlusCircle, Search, Users } from 'lucide-react';
+import { HomeIcon, PlusCircle, Search, Users, MessageSquare, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotificationPopover from '../shared/NotificationPopover';
 import { Notification } from '@/types';
+import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
 
 interface HomeHeaderProps {
   onCreateClubClick?: () => void;
@@ -27,13 +28,29 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   onJoinClub,
   onDeclineInvite
 }) => {
-  const { currentUser } = useApp();
+  const { currentUser, setCurrentView } = useApp();
+  const { open: openChatDrawer } = useChatDrawerGlobal();
+  
+  const handleProfileClick = () => {
+    if (currentUser) {
+      setCurrentView('profile');
+    }
+  };
 
   return (
     <div className="pb-4 flex items-center justify-between">
       <h1 className="text-2xl font-bold">Home</h1>
       
       <div className="flex items-center gap-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="p-2 h-9"
+          onClick={openChatDrawer}
+        >
+          <MessageSquare className="h-4 w-4" />
+        </Button>
+
         <NotificationPopover
           notifications={notifications}
           onMarkAsRead={onMarkAsRead}
@@ -53,6 +70,15 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
             <Search className="h-4 w-4" />
           </Button>
         )}
+
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="p-2 h-9"
+          onClick={handleProfileClick}
+        >
+          <UserRound className="h-4 w-4" />
+        </Button>
 
         {onCreateClubClick && (
           <Button 
