@@ -130,7 +130,7 @@ export const useHomeNotifications = () => {
         throw new Error("Invalid notification data");
       }
       
-      // If this is a join request, delete the request record
+      // If this is a join request, delete the request record instead of updating status
       if (notification.type === 'join_request') {
         const requesterId = notification.data?.requesterId || notification.userId;
         const clubId = notification.data?.clubId || notification.clubId;

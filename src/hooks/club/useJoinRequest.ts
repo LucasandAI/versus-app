@@ -56,9 +56,6 @@ export const useJoinRequest = (clubId: string) => {
         description: "Your request to join has been sent to the club admins"
       });
       
-      // Removed: manual notification creation for club admins
-      // The Supabase trigger will now handle this
-      
       return true;
     } catch (error) {
       console.error('Error sending join request:', error);
@@ -76,13 +73,12 @@ export const useJoinRequest = (clubId: string) => {
   const cancelJoinRequest = async (userId: string) => {
     setIsRequesting(true);
     try {
-      // Delete the request instead of updating to 'cancelled'
+      // Delete the request directly
       const { error } = await supabase
         .from('club_requests')
         .delete()
         .eq('club_id', clubId)
-        .eq('user_id', userId)
-        .eq('status', 'pending');
+        .eq('user_id', userId);
 
       if (error) throw error;
 

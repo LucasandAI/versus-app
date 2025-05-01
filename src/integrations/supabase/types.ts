@@ -80,21 +80,21 @@ export type Database = {
           club_id: string
           created_at: string
           id: string
-          status: Database["public"]["Enums"]["request_status"]
+          status: Database["public"]["Enums"]["request_status_old"]
           user_id: string
         }
         Insert: {
           club_id: string
           created_at?: string
           id?: string
-          status?: Database["public"]["Enums"]["request_status"]
+          status?: Database["public"]["Enums"]["request_status_old"]
           user_id: string
         }
         Update: {
           club_id?: string
           created_at?: string
           id?: string
-          status?: Database["public"]["Enums"]["request_status"]
+          status?: Database["public"]["Enums"]["request_status_old"]
           user_id?: string
         }
         Relationships: [
@@ -683,7 +683,9 @@ export type Database = {
         | "activity"
         | "incoming_request"
         | "request_accepted"
-      request_status: "pending" | "accepted" | "rejected"
+      request_status: "pending" | "accepted"
+      request_status_legacy: "pending" | "accepted"
+      request_status_old: "pending" | "accepted" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -817,7 +819,9 @@ export const Constants = {
         "incoming_request",
         "request_accepted",
       ],
-      request_status: ["pending", "accepted", "rejected"],
+      request_status: ["pending", "accepted"],
+      request_status_legacy: ["pending", "accepted"],
+      request_status_old: ["pending", "accepted", "rejected"],
     },
   },
 } as const

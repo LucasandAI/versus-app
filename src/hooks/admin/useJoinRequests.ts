@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { JoinRequest, Club, ClubMember } from '@/types';
@@ -121,28 +122,33 @@ export const useJoinRequests = () => {
     try {
       setError(null);
 
-      // Update the request status to 'rejected' instead of deleting
+      // Delete the request instead of updating status to 'rejected'
       const { error: requestError } = await supabase
         .from('club_requests')
-        .update({ status: 'rejected' })
+        .delete()
         .eq('id', request.id);
 
       if (requestError) throw requestError;
 
       // Create notification for the user
       try {
-        await supabase
+        // Delete any notification related to this request that was sent to admins
+        const { data: notifications } = await supabase
           .from('notifications')
-          .insert({
-            user_id: request.userId,
-            club_id: request.clubId,
-            type: 'join_request',
-            message: `Your request to join the club has been declined.`,
-            read: false
-          });
+          .select('id')
+          .eq('club_id', request.clubId)
+          .eq('type', 'join_request')
+          .like('data->>requesterId', request.userId);
+          
+        if (notifications && notifications.length > 0) {
+          await supabase
+            .from('notifications')
+            .delete()
+            .in('id', notifications.map(n => n.id));
+        }
       } catch (notificationError) {
-        console.error('Error creating notification:', notificationError);
-        // Continue even if notification creation fails
+        console.error('Error handling notifications:', notificationError);
+        // Continue even if notification handling fails
       }
 
       // Optimistically update the UI

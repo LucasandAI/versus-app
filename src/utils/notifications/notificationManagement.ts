@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 // Function to create a new notification
@@ -73,16 +74,31 @@ export const updateClubJoinRequest = async (
   status: 'accepted' | 'rejected'
 ): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('club_requests')
-      .update({ status })
-      .eq('user_id', userId)
-      .eq('club_id', clubId)
-      .eq('status', 'pending');
+    if (status === 'accepted') {
+      // Update to accepted
+      const { error } = await supabase
+        .from('club_requests')
+        .update({ status })
+        .eq('user_id', userId)
+        .eq('club_id', clubId)
+        .eq('status', 'pending');
 
-    if (error) {
-      console.error('Error updating join request:', error);
-      return false;
+      if (error) {
+        console.error('Error updating join request:', error);
+        return false;
+      }
+    } else {
+      // Delete the request instead of updating to rejected
+      const { error } = await supabase
+        .from('club_requests')
+        .delete()
+        .eq('user_id', userId)
+        .eq('club_id', clubId);
+
+      if (error) {
+        console.error('Error deleting join request:', error);
+        return false;
+      }
     }
 
     return true;
@@ -99,8 +115,7 @@ export const deleteClubJoinRequest = async (userId: string, clubId: string): Pro
       .from('club_requests')
       .delete()
       .eq('user_id', userId)
-      .eq('club_id', clubId)
-      .eq('status', 'pending');
+      .eq('club_id', clubId);
       
     if (error) {
       console.error('Error deleting join request:', error);
