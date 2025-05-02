@@ -13,7 +13,6 @@ interface HomeHeaderProps {
   onMarkAsRead: (id: string) => void;
   onClearAll: () => void;
   onUserClick: (userId: string, name: string) => void;
-  onJoinClub: (clubId: string, clubName: string, requesterId: string) => void;
   onDeclineInvite: (id: string) => void;
 }
 
@@ -22,7 +21,6 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   onMarkAsRead,
   onClearAll,
   onUserClick,
-  onJoinClub,
   onDeclineInvite,
 }) => {
   const { setCurrentView, currentUser, setSelectedUser } = useApp();
@@ -70,7 +68,6 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           onMarkAsRead={onMarkAsRead}
           onClearAll={onClearAll}
           onUserClick={onUserClick}
-          onJoinClub={onJoinClub}
           onDeclineInvite={onDeclineInvite}
         />
         <Button 

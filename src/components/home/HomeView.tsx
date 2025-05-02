@@ -32,7 +32,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   const {
     notifications,
     setNotifications,
-    updateUnreadCount,
     handleMarkAsRead,
     handleDeclineInvite,
     handleClearAllNotifications
@@ -81,7 +80,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
             onMarkAsRead={handleMarkAsRead}
             onClearAll={handleClearAllNotifications}
             onUserClick={handleSelectUser}
-            onJoinClub={handleJoinClub}
             onDeclineInvite={handleDeclineInvite}
           />
 
