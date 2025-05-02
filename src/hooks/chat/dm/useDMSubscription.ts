@@ -98,16 +98,23 @@ export const useDMSubscription = (
           const senderId = newMessage.sender_id;
           const isFromOtherUser = senderId === otherUserId;
           
-          let user = null;
+          // Get user data for the sender if it's not the current user
+          let userData = null;
           
-          if (isFromOtherUser && (!userCache[senderId] || !userCache[senderId].name)) {
-            console.log(`[useDMSubscription] Fetching sender data for ${senderId}`);
-            user = await fetchUserData(senderId);
-          } else if (isFromOtherUser) {
-            user = userCache[senderId];
+          if (isFromOtherUser) {
+            // Check if we have data in cache
+            if (userCache[senderId] && userCache[senderId].name) {
+              userData = userCache[senderId];
+              console.log(`[useDMSubscription] Using cached user data for ${senderId}:`, userData);
+            } else {
+              // Fetch user data if not in cache or incomplete
+              console.log(`[useDMSubscription] Fetching sender data for ${senderId}`);
+              userData = await fetchUserData(senderId);
+              console.log(`[useDMSubscription] Fetched user data for ${senderId}:`, userData);
+            }
           }
           
-          // Format the message for the UI with improved sender metadata
+          // Format the message for the UI with complete sender metadata
           const chatMessage: ChatMessage = {
             id: newMessage.id,
             text: newMessage.text,
@@ -115,13 +122,19 @@ export const useDMSubscription = (
               id: newMessage.sender_id,
               name: newMessage.sender_id === currentUserId 
                 ? 'You' 
-                : (user?.name || 'User'),
+                : (userData?.name || 'User'),
               avatar: newMessage.sender_id === currentUserId 
                 ? undefined 
-                : (user?.avatar || '/placeholder.svg')
+                : (userData?.avatar || '/placeholder.svg')
             },
             timestamp: newMessage.timestamp
           };
+          
+          console.log('[useDMSubscription] Dispatching message with user data:', {
+            messageId,
+            senderName: chatMessage.sender.name,
+            senderAvatar: chatMessage.sender.avatar
+          });
           
           // Dispatch a custom event with the stable conversation ID
           window.dispatchEvent(new CustomEvent('dmMessageReceived', { 
