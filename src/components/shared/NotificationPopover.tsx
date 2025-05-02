@@ -8,6 +8,7 @@ import { markAllNotificationsAsRead } from '@/lib/notificationUtils';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
 
 interface NotificationPopoverProps {
   notifications: Notification[];
@@ -132,29 +133,50 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
     return date.toLocaleDateString();
   };
 
-  return <Popover open={open} onOpenChange={handleOpenChange}>
+  return (
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button className="relative text-primary hover:bg-gray-100 rounded-full p-2">
           {unreadCount > 0 ? <BellDot className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
-          {unreadCount > 0 && <span className="absolute -top-1 -right-1 h-4 w-4 text-[10px] flex items-center justify-center bg-red-500 text-white rounded-full">
+          {unreadCount > 0 && (
+            <Badge 
+              variant="unread" 
+              className="absolute -top-1 -right-1 min-w-5 h-5 flex items-center justify-center text-[10px]"
+            >
               {unreadCount > 9 ? '9+' : unreadCount}
-            </span>}
+            </Badge>
+          )}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0 max-w-[90vw]" align="end">
         <div className="flex items-center justify-between p-3 border-b">
           <h3 className="font-medium">Notifications</h3>
           <div className="flex gap-2">
-            {unreadCount > 0}
-            {localNotifications.length > 0 && <Button variant="ghost" size="sm" className="text-xs text-red-500 hover:text-red-700 flex items-center" onClick={handleClearAll}>
+            {localNotifications.length > 0 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-xs text-red-500 hover:text-red-700 flex items-center" 
+                onClick={handleClearAll}
+              >
                 <Trash2 className="h-3 w-3 mr-1" />
                 Clear All
-              </Button>}
+              </Button>
+            )}
           </div>
         </div>
-        <NotificationList notifications={localNotifications} onMarkAsRead={onMarkAsRead} onUserClick={onUserClick} onDeclineInvite={onDeclineInvite} onClearAll={onClearAll} formatTime={formatTime} onOptimisticDelete={handleOptimisticDelete} />
+        <NotificationList 
+          notifications={localNotifications} 
+          onMarkAsRead={onMarkAsRead} 
+          onUserClick={onUserClick} 
+          onDeclineInvite={onDeclineInvite} 
+          onClearAll={onClearAll} 
+          formatTime={formatTime} 
+          onOptimisticDelete={handleOptimisticDelete} 
+        />
       </PopoverContent>
-    </Popover>;
+    </Popover>
+  );
 };
 
 export default NotificationPopover;
