@@ -82,27 +82,52 @@ export const useJoinRequest = (clubId: string) => {
 
       if (error) throw error;
 
-      // Delete any notifications related to this request
+      // Delete any admin notifications related to this join request
       try {
+        // Find notifications with type 'join_request' for this club where the data contains this user's ID
         const { data: notifications, error: notificationError } = await supabase
           .from('notifications')
-          .select('id')
+          .select('id, data')
           .eq('club_id', clubId)
-          .eq('type', 'join_request')
-          .or(`data->requesterId.eq.${userId},data->userId.eq.${userId}`);
+          .eq('type', 'join_request');
           
         if (notificationError) {
           console.error('Error finding join request notifications:', notificationError);
         } else if (notifications && notifications.length > 0) {
-          await supabase
-            .from('notifications')
-            .delete()
-            .in('id', notifications.map(n => n.id));
+          // Filter to only get notifications related to this user
+          const notificationsToDelete = notifications.filter(notification => {
+            // Safely check if data exists and contains requesterId or userId matching this user
+            if (!notification.data) return false;
             
-          console.log(`Deleted ${notifications.length} join request notifications`);
+            const data = notification.data as Record<string, any>;
+            return (
+              (data.requesterId && data.requesterId === userId) || 
+              (data.userId && data.userId === userId)
+            );
+          });
+          
+          if (notificationsToDelete.length > 0) {
+            const notificationIds = notificationsToDelete.map(n => n.id);
+            
+            console.log(`[cancelJoinRequest] Deleting ${notificationIds.length} notifications:`, notificationIds);
+            
+            // Delete the notifications
+            const { error: deleteError } = await supabase
+              .from('notifications')
+              .delete()
+              .in('id', notificationIds);
+              
+            if (deleteError) {
+              console.error('Error deleting notifications:', deleteError);
+            } else {
+              console.log('Successfully deleted admin notifications for join request');
+            }
+          } else {
+            console.log('No matching notifications found to delete');
+          }
         }
       } catch (error) {
-        console.error('Error handling join request notifications:', error);
+        console.error('Error handling notification deletion:', error);
       }
 
       setHasPendingRequest(false);
@@ -110,6 +135,10 @@ export const useJoinRequest = (clubId: string) => {
         title: "Request Canceled",
         description: "Your join request has been canceled"
       });
+      
+      // Dispatch event to update notifications in the UI
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+      
       return true;
     } catch (error) {
       console.error('Error canceling join request:', error);

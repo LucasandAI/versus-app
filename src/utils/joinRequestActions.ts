@@ -188,7 +188,10 @@ const deleteRelatedNotification = async (
       // For join requests sent to admins, the data contains the requester's ID
       if (notification.data && typeof notification.data === 'object') {
         const data = notification.data as Record<string, any>;
-        if (data.userId === requesterId) {
+        if (
+          (data.requesterId && data.requesterId === requesterId) || 
+          (data.userId && data.userId === requesterId)
+        ) {
           return true;
         }
       }

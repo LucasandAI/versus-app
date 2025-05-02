@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Bell, BellDot, Trash2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -7,6 +8,7 @@ import { markAllNotificationsAsRead } from '@/lib/notificationUtils';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+
 interface NotificationPopoverProps {
   notifications: Notification[];
   onMarkAsRead: (id: string) => void;
@@ -14,6 +16,7 @@ interface NotificationPopoverProps {
   onUserClick: (userId: string, userName: string) => void;
   onDeclineInvite?: (notificationId: string) => void;
 }
+
 const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   notifications,
   onMarkAsRead,
@@ -28,6 +31,21 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   React.useEffect(() => {
     setLocalNotifications(notifications);
   }, [notifications]);
+
+  // Listen for notification updates from other parts of the app
+  React.useEffect(() => {
+    const handleNotificationsUpdated = () => {
+      // This will be handled by the parent component which will refetch notifications
+      // and pass them down as props, triggering the useEffect above
+      console.log("[NotificationPopover] Received notificationsUpdated event");
+    };
+
+    window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
+    
+    return () => {
+      window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
+    };
+  }, []);
 
   // Count notifications that haven't been read yet
   const unreadCount = localNotifications.filter(n => !n.read).length;
@@ -100,6 +118,8 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
       window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     }
   };
+
+  // Helper function to format notification timestamps
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -111,6 +131,7 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
     if (diffHours < 24) return `${diffHours}h ago`;
     return date.toLocaleDateString();
   };
+
   return <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button className="relative text-primary hover:bg-gray-100 rounded-full p-2">
@@ -135,4 +156,5 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
       </PopoverContent>
     </Popover>;
 };
+
 export default NotificationPopover;
