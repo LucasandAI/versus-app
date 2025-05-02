@@ -81,17 +81,31 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
     );
   }
   
+  // Add debug logging to see what's being processed
+  console.log('[ChatMessages] Processing messages array:', messages.length);
+  
   // Only normalize messages once per unique message set
   // Using useMemo with messages reference as dependency
-  const normalizedMessages = useMemo(() => 
-    messages.map(message => normalizeMessage(message)),
-    [messages, normalizeMessage]
-  );
+  const normalizedMessages = useMemo(() => {
+    console.log('[ChatMessages] Normalizing messages, count:', messages.length);
+    // Debug log a sample message to see what's coming in
+    if (messages.length > 0) {
+      console.log('[ChatMessages] Sample message before normalization:', messages[messages.length - 1]);
+    }
+    
+    const normalized = messages.map(message => normalizeMessage(message));
+    
+    // Debug log the normalized result for comparison
+    if (normalized.length > 0) {
+      console.log('[ChatMessages] Sample normalized message:', normalized[normalized.length - 1]);
+    }
+    
+    return normalized;
+  }, [messages, normalizeMessage]);
 
   // Track if messages changed and need scroll
   if (prevMessageLengthRef.current !== messages.length) {
     // Use requestAnimationFrame to scroll after render
-    // Fix: Wrap scrollToBottom in an anonymous function
     if (messages.length > prevMessageLengthRef.current) {
       requestAnimationFrame(() => scrollToBottom());
     }

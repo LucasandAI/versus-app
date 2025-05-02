@@ -30,6 +30,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const [canDelete, setCanDelete] = useState(false);
   const { navigateToUserProfile } = useNavigation();
   
+  // Debug log to see what's being rendered
+  console.log(`[MessageItem] Rendering message with id ${message.id}, sender:`, message.sender);
+  
   useEffect(() => {
     const checkDeletePermission = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -67,6 +70,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
     return message.timestamp;
   };
 
+  // Make sure we have proper sender data
+  const senderName = message.sender?.name || 'Unknown';
+  const senderAvatar = message.sender?.avatar || undefined;
+
   const renderDeleteButton = () => {
     if (!isUserMessage || !canDelete || !onDeleteMessage) {
       return (
@@ -83,14 +90,14 @@ const MessageItem: React.FC<MessageItemProps> = ({
     );
   };
 
-  // The key fix here - Use the proper alignment for messages
+  // Use the proper alignment for messages
   return (
     <div className={`flex ${isUserMessage ? 'justify-end mr-4' : 'justify-start ml-4'} mb-6 group`}>
       {/* Avatar appears only for non-user messages (support messages) */}
       {!isUserMessage && (
         <UserAvatar
-          name={message.sender?.name || "Unknown"}
-          image={message.sender?.avatar}
+          name={senderName}
+          image={senderAvatar}
           size="sm"
           className={`flex-shrink-0 mr-2 ${!isSupport ? 'cursor-pointer hover:opacity-80' : ''}`}
           onClick={!isSupport ? handleProfileClick : undefined}
@@ -104,7 +111,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
             className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left w-full`}
             onClick={!isSupport ? handleProfileClick : undefined}
           >
-            {message.sender?.name || "Unknown"}
+            {senderName}
             {message.isSupport && <span className="ml-1 text-blue-500">(Support)</span>}
           </button>
         )}

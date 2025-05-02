@@ -10,15 +10,17 @@ interface DMHeaderProps {
 
 // Memoized component to prevent unnecessary re-renders
 const DMHeader: React.FC<DMHeaderProps> = memo(({ userId, userName, userAvatar }) => {
-  // Use the provided values directly, no state or fetching needed
+  console.log(`[DMHeader] Rendering for user ${userId} with name "${userName}" and avatar "${userAvatar}"`);
+  
+  // Never fall back to "User" - only use the provided userName
   return (
     <>
       <UserAvatar 
-        name={userName || 'User'} 
+        name={userName} 
         image={userAvatar} 
         size="sm" 
       />
-      <h3 className="font-semibold">{userName || 'User'}</h3>
+      <h3 className="font-semibold">{userName}</h3>
     </>
   );
 });

@@ -49,7 +49,19 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   useEffect(() => {
     userRef.current = user;
     conversationIdRef.current = conversationId;
+    
+    // Log when we receive new user data to help debug
+    console.log(`[DMConversation] User data updated: id=${user.id}, name=${user.name}, avatar=${user.avatar || 'none'}`);
   }, [user, conversationId]);
+  
+  // Log comprehensive user data when the component mounts
+  useEffect(() => {
+    console.log(`[DMConversation] Initial render with user:`, {
+      id: user.id,
+      name: user.name,
+      avatar: user.avatar || 'none'
+    });
+  }, []);
   
   // Fetch user data if not already in cache - only do this once
   const initialFetchDoneRef = useRef(false);
@@ -72,6 +84,18 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     currentUser?.id
   );
   
+  // Enhanced logging to ensure we're passing the correct user data
+  const fullUserObject = useMemo(() => {
+    const result = {
+      id: user.id,
+      name: user.name || (userCache[user.id]?.name || 'Unknown User'),
+      avatar: user.avatar || (userCache[user.id]?.avatar || undefined)
+    };
+    
+    console.log(`[DMConversation] Providing full user object to subscription:`, result);
+    return result;
+  }, [user, userCache]);
+  
   // Use subscription hook with the full user object to prevent flickering
   useDMSubscription(
     conversationId, 
@@ -79,11 +103,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     currentUser?.id, 
     setMessages,
     // Pass the full user object to prevent flickering on new messages
-    {
-      id: user.id,
-      name: user.name,
-      avatar: user.avatar
-    }
+    fullUserObject
   );
   
   // Use scroll management hook with optimized scrolling
@@ -183,18 +203,20 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     const cachedUser = userCache[user.id];
     
     if (cachedUser) {
-      return {
+      const result = {
         id: user.id,
-        name: cachedUser.name || user.name,
-        avatar: cachedUser.avatar || user.avatar
+        name: user.name || cachedUser.name,
+        avatar: user.avatar || cachedUser.avatar
       };
+      console.log(`[DMConversation] Using enhanced user data for display:`, result);
+      return result;
     }
     
     return user;
   }, [user, userCache]);
 
   // Log when the component renders to track unnecessary re-renders
-  console.log(`[DMConversation] Rendering for user ${user.id} (${user.name})`);
+  console.log(`[DMConversation] Rendering for user ${user.id} (${displayedUser.name})`);
 
   return (
     <div className="flex flex-col h-full w-full">
