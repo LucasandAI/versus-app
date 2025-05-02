@@ -34,8 +34,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   formatTime: providedFormatTime,
 }) => {
   const renderCountRef = useRef(0);
-  const previousMessagesLengthRef = useRef<number>(0);
-  const messagesStableIdRef = useRef<string>("");
   const [forceUpdateKey, setForceUpdateKey] = useState(Date.now());
   
   const {
@@ -67,54 +65,33 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const finalLastMessageRef = providedLastMessageRef || defaultLastMessageRef;
   const finalFormatTime = providedFormatTime || defaultFormatTime;
   
-  // Generate a stable ID for the current messages array to detect real changes
-  const generateMessagesId = () => {
-    if (!Array.isArray(messages) || messages.length === 0) return "";
-    // Use last message's ID and timestamp as a fingerprint
-    const lastMsg = messages[messages.length - 1];
-    return `${lastMsg?.id || "none"}-${lastMsg?.timestamp || "none"}-${messages.length}`;
-  };
-  
-  // Enhanced debug effect to track message updates with more detail
+  // Enhanced debug effect to track message updates
   useEffect(() => {
     renderCountRef.current += 1;
-    const hasNewMessages = Array.isArray(messages) && messages.length > previousMessagesLengthRef.current;
-    const currentMessagesId = generateMessagesId();
-    const isReallyNewMessages = currentMessagesId !== messagesStableIdRef.current;
     
     console.log(`[ChatMessages] 🔄 Render #${renderCountRef.current}`, {
-      messageCount: Array.isArray(messages) ? messages.length : 'No messages array',
-      previousCount: previousMessagesLengthRef.current,
-      newMessages: hasNewMessages,
-      messagesChanged: isReallyNewMessages,
-      currentId: currentMessagesId,
-      previousId: messagesStableIdRef.current
+      messageCount: Array.isArray(messages) ? messages.length : 'No messages array'
     });
     
-    // Update our tracking references
-    if (isReallyNewMessages) {
-      messagesStableIdRef.current = currentMessagesId;
-      // Force update when messages really change
-      setForceUpdateKey(Date.now());
-    }
-    
-    if (Array.isArray(messages)) {
-      previousMessagesLengthRef.current = messages.length;
-      
-      if (messages.length > 0 && hasNewMessages) {
-        // Log info about last message
-        const lastMsg = messages[messages.length - 1];
-        console.log('[ChatMessages] ✨ Last message:', {
-          id: lastMsg.id,
-          sender: lastMsg.sender?.name || lastMsg.sender_id,
-          message: lastMsg.message?.substring(0, 30) + (lastMsg.message?.length > 30 ? '...' : '')
-        });
-        
-        // Auto-scroll on new messages with a slight delay to ensure DOM is updated
-        setTimeout(scrollToBottom, 100);
-      }
+    // Auto-scroll on new messages with a slight delay to ensure DOM is updated
+    if (Array.isArray(messages) && messages.length > 0) {
+      setTimeout(scrollToBottom, 100);
     }
   }, [messages, scrollToBottom]);
+  
+  // Force a re-render when a club message event is received
+  useEffect(() => {
+    const handleForceUpdate = (e: CustomEvent) => {
+      setForceUpdateKey(Date.now());
+      setTimeout(scrollToBottom, 100);
+    };
+    
+    window.addEventListener('clubMessageForceUpdate', handleForceUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('clubMessageForceUpdate', handleForceUpdate as EventListener);
+    };
+  }, [scrollToBottom]);
   
   if (!Array.isArray(messages)) {
     return (
@@ -126,6 +103,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     );
   }
 
+  // Always create a fresh array to ensure proper re-rendering
   const normalizedMessages = messages.map(message => normalizeMessage(message));
 
   // Determine if this is a club chat by checking if there are club members
@@ -145,9 +123,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
       <div className="bg-blue-50 px-2 py-1 text-xs">
         💬 Messages: {normalizedMessages.length} | 🔄 Renders: {renderCountRef.current}
         {normalizedMessages.length > 0 && (
-          <span> | 🆔 ID: {messagesStableIdRef.current.substring(0, 8)}...</span>
+          <span> | 🆔 Latest: {normalizedMessages[normalizedMessages.length - 1]?.id?.substring(0, 6) || 'none'}...</span>
         )}
-        | 🔑 Key: {messageListKey.substring(0, 15)}...
       </div>
       
       <MessageList 

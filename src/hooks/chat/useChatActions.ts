@@ -1,222 +1,99 @@
 
-import { useCallback } from 'react';
-import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
+import { useUnreadMessages } from '@/context/unread-messages';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export const useChatActions = () => {
   const { currentUser } = useApp();
+  const { markClubMessagesAsRead } = useUnreadMessages();
 
-  const sendMessageToClub = useCallback(async (clubId: string, messageText: string, setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>) => {
-    try {
-      if (!currentUser) {
-        throw new Error('Not authenticated');
-      }
-      
-      // Generate a unique temp ID for optimistic UI
-      const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      
-      // Create a fresh optimistic message with the current text input
-      const optimisticMessage = {
-        id: tempId,
-        message: messageText,
-        club_id: clubId,
-        sender_id: currentUser.id,
-        timestamp: new Date().toISOString(),
-        sender: {
-          id: currentUser.id,
-          name: currentUser.name,
-          avatar: currentUser.avatar
-        }
-      };
-      
-      console.log('[useChatActions] Created optimistic message:', optimisticMessage);
-      
-      // Directly update local state with optimistic message if setClubMessages is provided
-      if (setClubMessages) {
-        setClubMessages(prevMessages => {
-          const clubMessages = prevMessages[clubId] || [];
-          
-          // Check if message already exists to prevent duplicates
-          if (clubMessages.some(msg => msg.id === optimisticMessage.id)) {
-            return prevMessages;
-          }
-          
-          console.log('[useChatActions] Updated local messages with optimistic update');
-          
-          return {
-            ...prevMessages,
-            [clubId]: [...clubMessages, optimisticMessage]
-          };
-        });
-      }
-
-      // Add debug log before insert attempt
-      console.log('[Chat Debug] About to insert message:', { clubId, messageText });
-
-      const { data: insertedMessage, error: insertError } = await supabase
-        .from('club_chat_messages')
-        .insert({
-          club_id: clubId,
-          message: messageText,
-          sender_id: currentUser.id
-        })
-        .select(`
-          id, 
-          message, 
-          timestamp, 
-          sender_id,
-          club_id,
-          sender:sender_id(id, name, avatar)
-        `)
-        .single();
-      
-      // Add debug log after insert attempt
-      console.log('[Chat Debug] Insert result:', { data: insertedMessage, error: insertError });
-
-      if (insertError) {
-        console.error('[useChatActions] Error sending message:', insertError);
-        
-        if (insertError.code === '42501') {
-          toast({
-            title: "Permission Error",
-            description: "You don't have permission to send messages in this club",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Message Send Error",
-            description: insertError.message || "Failed to send message",
-            variant: "destructive"
-          });
-        }
-        
-        // Remove optimistic message on error if setClubMessages is provided
-        if (setClubMessages) {
-          setClubMessages(prevMessages => {
-            const clubMessages = prevMessages[clubId] || [];
-            
-            return {
-              ...prevMessages,
-              [clubId]: clubMessages.filter(msg => msg.id !== tempId)
-            };
-          });
-        }
-        
-        return null;
-      }
-
-      console.log('[useChatActions] Message sent successfully:', insertedMessage);
-      
-      // Replace optimistic message with real one
-      if (setClubMessages && insertedMessage) {
-        setClubMessages(prevMessages => {
-          const clubMessages = prevMessages[clubId] || [];
-          
-          return {
-            ...prevMessages,
-            [clubId]: clubMessages.map(msg => 
-              msg.id === tempId ? insertedMessage : msg
-            )
-          };
-        });
-      }
-      
-      return insertedMessage;
-    } catch (error) {
-      console.error('[useChatActions] Unexpected error sending message:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred while sending the message",
-        variant: "destructive"
-      });
+  /**
+   * Send a message to a club chat
+   */
+  const sendClubMessage = async (message: string, clubId?: string) => {
+    if (!message.trim() || !clubId || !currentUser?.id) {
+      console.log('[sendClubMessage] Invalid parameters');
       return null;
     }
-  }, [currentUser]);
 
-  const deleteMessage = useCallback(async (messageId: string, setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>) => {
-    console.log('[useChatActions] Deleting message with ID:', messageId);
-    
-    // 1. Immediately remove from UI - true optimistic deletion
-    if (setClubMessages) {
-      setClubMessages(prevMessages => {
-        const updatedMessages = { ...prevMessages };
-        
-        // Update each club's messages
-        Object.keys(updatedMessages).forEach(clubId => {
-          const originalLength = updatedMessages[clubId].length;
-          updatedMessages[clubId] = updatedMessages[clubId].filter(msg => msg.id !== messageId);
-          
-          // Log if we actually found and removed a message
-          if (originalLength !== updatedMessages[clubId].length) {
-            console.log(`[useChatActions] Optimistically removed message ${messageId} from club ${clubId}`);
-          }
-        });
-        
-        return updatedMessages;
-      });
-    }
-
-    // 2. Skip Supabase deletion for temp messages
-    if (messageId.startsWith('temp-')) {
-      console.log('[useChatActions] Skipping Supabase deletion for temp message:', messageId);
-      return true;
-    }
-
-    // 3. Call Supabase for real messages
     try {
-      console.log('[useChatActions] Deleting message from Supabase:', messageId);
+      // Insert the message into the database
+      const { data, error } = await supabase.from('club_chat_messages').insert({
+        message: message.trim(),
+        club_id: clubId,
+        sender_id: currentUser.id,
+      }).select('*, sender:sender_id(*)').single();
+
+      if (error) {
+        throw error;
+      }
+
+      console.log('[sendClubMessage] Message sent:', data);
       
+      // Mark messages as read since we just sent one
+      markClubMessagesAsRead(clubId);
+      
+      return data;
+    } catch (error) {
+      console.error('[sendClubMessage] Error sending message:', error);
+      toast.error('Failed to send message');
+      return null;
+    }
+  };
+
+  /**
+   * Delete a message from a club chat 
+   */
+  const deleteMessage = async (messageId: string, setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>) => {
+    try {
+      // First get the message to find which club it belongs to
+      const { data: messageData, error: messageError } = await supabase
+        .from('club_chat_messages')
+        .select('club_id')
+        .eq('id', messageId)
+        .single();
+
+      if (messageError) throw messageError;
+
+      // Delete the message
       const { error } = await supabase
         .from('club_chat_messages')
         .delete()
         .eq('id', messageId);
-      
-      if (error) {
-        console.error('[useChatActions] Error deleting message:', error);
-        toast({
-          title: "Delete Error",
-          description: error.message || "Failed to delete message",
-          variant: "destructive"
+
+      if (error) throw error;
+
+      // If we have access to the state updater, update it
+      if (setClubMessages && messageData?.club_id) {
+        setClubMessages(prev => {
+          const clubId = messageData.club_id;
+          
+          // If this club doesn't exist in state, nothing to update
+          if (!prev[clubId]) return prev;
+          
+          // Filter out the deleted message
+          const updatedMessages = prev[clubId].filter(msg => msg.id !== messageId);
+          
+          return {
+            ...prev,
+            [clubId]: updatedMessages
+          };
         });
-        
-        // Fetch the message again if deletion failed to restore it in UI
-        const { data: message } = await supabase
-          .from('club_chat_messages')
-          .select('*, sender:sender_id(*)')
-          .eq('id', messageId)
-          .single();
-        
-        if (message && setClubMessages) {
-          setClubMessages(prevMessages => {
-            const clubId = message.club_id;
-            const clubMessages = prevMessages[clubId] || [];
-            
-            return {
-              ...prevMessages,
-              [clubId]: [...clubMessages, message]
-            };
-          });
-        }
-        
-        return false;
       }
-      
-      console.log('[useChatActions] Message deleted successfully:', messageId);
+
       return true;
     } catch (error) {
-      console.error('[useChatActions] Error deleting message:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred while deleting the message",
-        variant: "destructive"
-      });
+      console.error('[deleteMessage] Error deleting message:', error);
+      toast.error('Failed to delete message');
       return false;
     }
-  }, []);
+  };
 
   return {
-    sendMessageToClub,
+    sendClubMessage,
     deleteMessage
   };
 };
+
+export default useChatActions;
