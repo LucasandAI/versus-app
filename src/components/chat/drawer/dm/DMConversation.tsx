@@ -1,4 +1,5 @@
-import React, { useRef, useEffect } from 'react';
+
+import React, { useRef, useEffect, useCallback, memo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -25,11 +26,14 @@ interface DMConversationProps {
   onBack: () => void;
 }
 
-const DMConversation: React.FC<DMConversationProps> = ({ 
+// Use memo to prevent unnecessary re-renders
+const DMConversation: React.FC<DMConversationProps> = memo(({ 
   user, 
   conversationId,
   onBack
 }) => {
+  console.log('[DMConversation] Rendering with conversationId:', conversationId);
+  
   const { currentUser } = useApp();
   const { navigateToUserProfile } = useNavigation();
   const { conversations, fetchConversations } = useConversations([]);
@@ -37,7 +41,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
   const [isSending, setIsSending] = React.useState(false);
   const { formatTime } = useMessageFormatting();
   
-  // Use our new hook for active messages
+  // Use our hook for active messages
   const { messages, setMessages, addOptimisticMessage } = useActiveDMMessages(
     conversationId, 
     user.id,
@@ -53,6 +57,13 @@ const DMConversation: React.FC<DMConversationProps> = ({
   // Custom hooks for conversation management
   const { createConversation } = useConversationManagement(currentUser?.id, user.id);
   
+  // Memoize user object to prevent re-renders
+  const memoizedUser = React.useMemo(() => ({
+    id: user.id,
+    name: user.name,
+    avatar: user.avatar || '/placeholder.svg'
+  }), [user.id, user.name, user.avatar]);
+  
   // Mark conversation as read when opened
   useEffect(() => {
     if (conversationId && conversationId !== 'new') {
@@ -60,7 +71,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
     }
   }, [conversationId, markConversationAsRead]);
 
-  const handleSendMessage = async (text: string) => {
+  const handleSendMessage = useCallback(async (text: string) => {
     if (!text.trim() || !currentUser?.id) return;
     
     setIsSending(true);
@@ -125,7 +136,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
     } finally {
       setIsSending(false);
     }
-  };
+  }, [conversationId, currentUser, user.id, addOptimisticMessage, createConversation, scrollToBottom, setMessages]);
 
   return (
     <div className="flex flex-col h-full w-full">
@@ -173,6 +184,8 @@ const DMConversation: React.FC<DMConversationProps> = ({
       </div>
     </div>
   );
-};
+});
+
+DMConversation.displayName = 'DMConversation';
 
 export default DMConversation;

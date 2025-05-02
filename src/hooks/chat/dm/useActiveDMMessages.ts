@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
 import { useUserData } from './useUserData';
@@ -19,10 +19,10 @@ export const useActiveDMMessages = (
   
   // Fetch other user's data if needed
   useEffect(() => {
-    if (otherUserId && !userCache[otherUserId]) {
+    if (otherUserId && !userCache[otherUserId] && currentUserId) {
       fetchUserData(otherUserId);
     }
-  }, [otherUserId, userCache, fetchUserData]);
+  }, [otherUserId, userCache, fetchUserData, currentUserId]);
 
   // Listen for DM message events
   useEffect(() => {
@@ -59,59 +59,60 @@ export const useActiveDMMessages = (
     };
   }, [conversationId]);
 
-  // Load initial messages for the conversation
-  useEffect(() => {
+  // Load initial messages for the conversation - use memo to prevent unnecessary refetches
+  const fetchMessages = useCallback(async () => {
     // Skip for new conversations
     if (!conversationId || conversationId === 'new' || !currentUserId) {
       return;
     }
 
-    const fetchMessages = async () => {
-      try {
-        const { data } = await supabase
-          .from('direct_messages')
-          .select(`
-            id, 
-            text, 
-            sender_id, 
-            receiver_id,
-            conversation_id,
-            timestamp
-          `)
-          .eq('conversation_id', conversationId)
-          .order('timestamp', { ascending: true })
-          .limit(50);
+    try {
+      const { data } = await supabase
+        .from('direct_messages')
+        .select(`
+          id, 
+          text, 
+          sender_id, 
+          receiver_id,
+          conversation_id,
+          timestamp
+        `)
+        .eq('conversation_id', conversationId)
+        .order('timestamp', { ascending: true })
+        .limit(50);
 
-        if (data && data.length > 0) {
-          // Transform database records to ChatMessage format
-          const formattedMessages: ChatMessage[] = data.map(msg => {
-            const isCurrentUser = msg.sender_id === currentUserId;
-            const user = isCurrentUser ? null : userCache[msg.sender_id];
-            
-            return {
-              id: msg.id,
-              text: msg.text,
-              sender: {
-                id: msg.sender_id,
-                name: isCurrentUser ? 'You' : user?.name || 'User',
-                avatar: isCurrentUser ? undefined : user?.avatar || '/placeholder.svg'
-              },
-              timestamp: msg.timestamp
-            };
-          });
+      if (data && data.length > 0) {
+        // Transform database records to ChatMessage format
+        const formattedMessages: ChatMessage[] = data.map(msg => {
+          const isCurrentUser = msg.sender_id === currentUserId;
+          const user = isCurrentUser ? null : userCache[msg.sender_id];
           
-          setMessages(formattedMessages);
-        }
-      } catch (error) {
-        console.error('[useActiveDMMessages] Error fetching DM messages:', error);
+          return {
+            id: msg.id,
+            text: msg.text,
+            sender: {
+              id: msg.sender_id,
+              name: isCurrentUser ? 'You' : user?.name || 'User',
+              avatar: isCurrentUser ? undefined : user?.avatar || '/placeholder.svg'
+            },
+            timestamp: msg.timestamp
+          };
+        });
+        
+        setMessages(formattedMessages);
       }
-    };
-
-    fetchMessages();
+    } catch (error) {
+      console.error('[useActiveDMMessages] Error fetching DM messages:', error);
+    }
   }, [conversationId, currentUserId, userCache]);
+  
+  // Only fetch messages when the conversation changes
+  useEffect(() => {
+    fetchMessages();
+  }, [fetchMessages]);
 
   // Add a new message optimistically (for local UI updates)
-  const addOptimisticMessage = (message: ChatMessage) => {
+  const addOptimisticMessage = useCallback((message: ChatMessage) => {
     setMessages(prev => {
       // Check if message already exists
       const exists = prev.some(msg => msg.id === message.id);
@@ -122,7 +123,7 @@ export const useActiveDMMessages = (
         optimistic: true // Mark as optimistic
       }];
     });
-  };
+  }, []);
 
   return { 
     messages, 

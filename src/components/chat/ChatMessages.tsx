@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { ChatMessage } from '@/types';
 import MessageList from './message/MessageList';
 import { useMessageUser } from './message/useMessageUser';
@@ -24,7 +24,8 @@ interface ChatMessagesProps {
   scrollRef?: React.RefObject<HTMLDivElement>;
 }
 
-const ChatMessages: React.FC<ChatMessagesProps> = ({
+// Use memo to prevent unnecessary re-renders
+const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   messages,
   clubMembers,
   isSupport = false,
@@ -36,7 +37,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   scrollRef: providedScrollRef,
 }) => {
   // Log the received messages length as requested
-  console.log('[ChatMessages] Received messages length:', messages.length);
+  console.log('[ChatMessages] Rendering with messages length:', messages.length);
   
   const {
     currentUserId,
@@ -78,7 +79,11 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     );
   }
 
-  const normalizedMessages = messages.map(message => normalizeMessage(message));
+  // Memoize normalized messages to prevent unnecessary processing
+  const normalizedMessages = React.useMemo(() => 
+    messages.map(message => normalizeMessage(message)),
+    [messages, normalizeMessage]
+  );
 
   // Determine if this is a club chat by checking if there are club members
   const isClubChat = clubMembers.length > 0;
@@ -103,6 +108,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
       />
     </div>
   );
-};
+});
+
+ChatMessages.displayName = 'ChatMessages';
 
 export default ChatMessages;

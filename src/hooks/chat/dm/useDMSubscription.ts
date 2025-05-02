@@ -61,12 +61,18 @@ export const useDMSubscription = (
           schema: 'public',
           table: 'direct_messages',
           filter: `conversation_id=eq.${conversationId}`
-        }, (payload) => {
+        }, async (payload) => {
           if (!isMounted.current) return;
           
           console.log('[useDMSubscription] New direct message received:', payload);
           
           const newMessage = payload.new;
+          
+          // Ensure we have the user data for proper display
+          if (newMessage.sender_id !== currentUserId && !userCache[newMessage.sender_id]) {
+            await fetchUserData(newMessage.sender_id);
+          }
+          
           const user = userCache[otherUserId];
           
           // Format the message for the UI
