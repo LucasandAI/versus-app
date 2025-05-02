@@ -17,6 +17,8 @@ export const useActiveDMMessages = (
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const { userCache, fetchUserData } = useUserData();
   const processedMsgIds = useRef(new Set<string>()).current;
+  const messageUpdateQueue = useRef<ChatMessage[]>([]);
+  const isProcessingUpdates = useRef(false);
   
   // Fetch other user's data if needed
   useEffect(() => {
@@ -24,6 +26,49 @@ export const useActiveDMMessages = (
       fetchUserData(otherUserId);
     }
   }, [otherUserId, userCache, fetchUserData, currentUserId]);
+
+  // Process message updates in batches to avoid multiple state updates
+  const processMessageQueue = useCallback(() => {
+    if (isProcessingUpdates.current || messageUpdateQueue.current.length === 0) return;
+    
+    isProcessingUpdates.current = true;
+    
+    // Process all queued messages at once
+    const messagesToAdd = [...messageUpdateQueue.current];
+    messageUpdateQueue.current = [];
+    
+    setMessages(prev => {
+      const updatedMessages = [...prev];
+      let hasNewMessages = false;
+      
+      messagesToAdd.forEach(msg => {
+        // Skip if we've already processed this message
+        if (!processedMsgIds.has(msg.id)) {
+          updatedMessages.push(msg);
+          processedMsgIds.add(msg.id);
+          hasNewMessages = true;
+        }
+      });
+      
+      if (hasNewMessages) {
+        // Sort messages by timestamp
+        return updatedMessages.sort(
+          (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+      }
+      return prev;
+    });
+    
+    // Reset processing flag after a short delay
+    setTimeout(() => {
+      isProcessingUpdates.current = false;
+      
+      // Check if new messages arrived during processing
+      if (messageUpdateQueue.current.length > 0) {
+        processMessageQueue();
+      }
+    }, 50);
+  }, [processedMsgIds]);
 
   // Listen for DM message events with optimized handler
   useEffect(() => {
@@ -34,18 +79,13 @@ export const useActiveDMMessages = (
         // Skip if we've already processed this message
         if (processedMsgIds.has(newMessage.id)) return;
         
-        setMessages(prev => {
-          // Additional check to prevent duplicates
-          if (prev.some(msg => msg.id === newMessage.id)) return prev;
-          
-          // Add to processed set
-          processedMsgIds.add(newMessage.id);
-          
-          // Add the new message and sort by timestamp
-          return [...prev, newMessage].sort(
-            (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-          );
-        });
+        // Queue message update
+        messageUpdateQueue.current.push(newMessage);
+        
+        // Schedule processing
+        if (!isProcessingUpdates.current) {
+          requestAnimationFrame(processMessageQueue);
+        }
       }
     };
 
@@ -72,13 +112,14 @@ export const useActiveDMMessages = (
       window.removeEventListener('dmMessageReceived', handleDMMessageReceived as EventListener);
       window.removeEventListener('dmMessageDeleted', handleDMMessageDeleted as EventListener);
     };
-  }, [conversationId, processedMsgIds]);
+  }, [conversationId, processedMsgIds, processMessageQueue]);
 
   // Whenever conversation changes, clear processed message IDs
   useEffect(() => {
     return () => {
       // Clear the processed message set when unmounting or when conversation changes
       processedMsgIds.clear();
+      messageUpdateQueue.current = [];
     };
   }, [conversationId, processedMsgIds]);
 
@@ -139,18 +180,17 @@ export const useActiveDMMessages = (
 
   // Add a new message optimistically (for local UI updates)
   const addOptimisticMessage = useCallback((message: ChatMessage) => {
-    setMessages(prev => {
-      // Skip if already processed
-      if (processedMsgIds.has(message.id)) return prev;
-      
-      // Add to processed set
-      processedMsgIds.add(message.id);
-      
-      return [...prev, {
-        ...message,
-        optimistic: true // Mark as optimistic
-      }];
-    });
+    // Skip if already processed
+    if (processedMsgIds.has(message.id)) return;
+    
+    // Add to processed set
+    processedMsgIds.add(message.id);
+    
+    // Add to messages
+    setMessages(prev => [...prev, {
+      ...message,
+      optimistic: true // Mark as optimistic
+    }]);
   }, [processedMsgIds]);
 
   return { 

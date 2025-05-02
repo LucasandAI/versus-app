@@ -22,20 +22,15 @@ export const useMessageScroll = (messages: any[]) => {
     
     // Use requestAnimationFrame to ensure DOM updates are complete
     requestAnimationFrame(() => {
-      if (lastMessageRef.current) {
-        lastMessageRef.current.scrollIntoView({
-          behavior: smooth ? 'smooth' : 'auto',
-          block: 'end',
-          inline: 'nearest'
-        });
-      } else if (scrollRef.current) {
-        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      if (scrollRef.current) {
+        const { scrollHeight, clientHeight } = scrollRef.current;
+        scrollRef.current.scrollTop = scrollHeight - clientHeight;
       }
       
       // Release scroll lock after animation completes
       setTimeout(() => {
         scrollLockRef.current = false;
-      }, smooth ? 300 : 50);
+      }, smooth ? 100 : 50);
     });
     
     scrollTimeoutRef.current = null;

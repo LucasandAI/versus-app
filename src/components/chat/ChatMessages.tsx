@@ -1,6 +1,6 @@
 
 import React, { memo, useMemo } from 'react';
-import { ChatMessage } from '@/types';
+import { ChatMessage } from '@/types/chat';
 import MessageList from './message/MessageList';
 import { useMessageUser } from './message/useMessageUser';
 import { useMessageNormalization } from './message/useMessageNormalization';
@@ -36,8 +36,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   formatTime: providedFormatTime,
   scrollRef: providedScrollRef,
 }) => {
-  // Log the received messages length as requested
-  console.log('[ChatMessages] Rendering with messages length:', messages.length);
+  // Only log once per render, don't log inside useMemo or other hooks to avoid spam
+  console.log('[ChatMessages] Rendering with messages length:', Array.isArray(messages) ? messages.length : 0);
   
   const {
     currentUserId,
@@ -63,7 +63,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
     normalizeMessage
   } = useMessageNormalization(currentUserId, senderId => getMemberName(senderId, currentUserId, clubMembers));
 
-  // Use provided values or defaults
+  // Use provided values or defaults - memoize these to avoid unnecessary re-renders
   const finalUserAvatar = providedUserAvatar || defaultUserAvatar;
   const finalLastMessageRef = providedLastMessageRef || defaultLastMessageRef;
   const finalFormatTime = providedFormatTime || defaultFormatTime;
@@ -80,8 +80,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
     );
   }
 
-  // Only normalize messages once per unique message set
-  // Using stringified IDs as dependency to avoid deep comparisons
+  // Only normalize messages once per unique message set using a stable message ID set
+  // Using useMemo with messageIds as dependency
   const messageIds = useMemo(() => 
     messages.map(msg => msg.id).join(','),
     [messages]

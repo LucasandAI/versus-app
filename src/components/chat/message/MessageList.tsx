@@ -1,6 +1,6 @@
 
 import React, { memo } from 'react';
-import { ChatMessage } from '@/types';
+import { ChatMessage } from '@/types/chat';
 import MessageItem from './MessageItem';
 
 interface MessageListProps {
@@ -31,6 +31,34 @@ const MessageList: React.FC<MessageListProps> = memo(({
   currentUserId,
   lastMessageRef
 }) => {
+  // Use useMemo to avoid recreating message items on every render
+  const messageItems = React.useMemo(() => {
+    return messages.map((message: ChatMessage, index: number) => {
+      const isUserMessage = currentUserId && 
+                           message.sender && 
+                           String(message.sender.id) === String(currentUserId);
+      const isLastMessage = index === messages.length - 1;
+      
+      return (
+        <div 
+          key={`msg-${message.id}`} 
+          ref={isLastMessage ? lastMessageRef : undefined}
+          className={`mb-3 ${isLastMessage ? 'pb-5' : ''}`}
+        >
+          <MessageItem 
+            message={message} 
+            isUserMessage={isUserMessage} 
+            isSupport={isSupport} 
+            onDeleteMessage={onDeleteMessage} 
+            onSelectUser={onSelectUser} 
+            formatTime={formatTime} 
+            currentUserAvatar={currentUserAvatar} 
+          />
+        </div>
+      );
+    });
+  }, [messages, currentUserId, lastMessageRef, isSupport, onDeleteMessage, onSelectUser, formatTime, currentUserAvatar]);
+
   return (
     <div className="flex-1 px-0 py-2">
       {messages.length === 0 ? (
@@ -38,33 +66,12 @@ const MessageList: React.FC<MessageListProps> = memo(({
           No messages yet. Start the conversation!
         </div>
       ) : (
-        messages.map((message: ChatMessage, index: number) => {
-          const isUserMessage = currentUserId && 
-                               message.sender && 
-                               String(message.sender.id) === String(currentUserId);
-          const isLastMessage = index === messages.length - 1;
-          
-          return (
-            <div 
-              key={message.id} 
-              ref={isLastMessage ? lastMessageRef : undefined}
-              className={`mb-3 ${isLastMessage ? 'pb-5' : ''}`}
-            >
-              <MessageItem 
-                message={message} 
-                isUserMessage={isUserMessage} 
-                isSupport={isSupport} 
-                onDeleteMessage={onDeleteMessage} 
-                onSelectUser={onSelectUser} 
-                formatTime={formatTime} 
-                currentUserAvatar={currentUserAvatar} 
-              />
-            </div>
-          );
-        })
+        <>
+          {messageItems}
+          {/* Add proper spacing at the bottom to ensure visibility above the input bar */}
+          <div className="h-4"></div>
+        </>
       )}
-      {/* Add proper spacing at the bottom to ensure visibility above the input bar */}
-      <div className="h-4"></div>
     </div>
   );
 });
