@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ChatMessage } from '@/types';
 import MessageList from './message/MessageList';
@@ -33,6 +32,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   lastMessageRef: providedLastMessageRef,
   formatTime: providedFormatTime,
 }) => {
+  // Log the received messages length as requested
+  console.log('[ChatMessages] Received messages length:', messages.length);
+  
   const {
     currentUserId,
     currentUserAvatar: defaultUserAvatar

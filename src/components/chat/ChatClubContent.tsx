@@ -33,6 +33,9 @@ const ChatClubContent = ({
   const { deleteMessage } = useChatActions();
   const effectiveClubId = clubId || club?.id;
   
+  // Log the messages length as requested
+  console.log('[ChatClubContent] Messages length:', messages.length);
+  
   useEffect(() => {
     console.log('[ChatClubContent] Club changed, resetting state for:', effectiveClubId);
     setIsSending(false);
