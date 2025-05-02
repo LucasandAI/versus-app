@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -8,7 +9,7 @@ import { handleNotification, markAllNotificationsAsRead } from '@/lib/notificati
 export const useHomeNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadMessages, setUnreadMessages] = useState<Record<string, number>>({});
-  const { currentUser, setCurrentUser, refreshCurrentUser } = useApp();
+  const { currentUser, refreshCurrentUser } = useApp();
 
   // Initialize notifications from localStorage if available
   useEffect(() => {
@@ -70,30 +71,25 @@ export const useHomeNotifications = () => {
     }
   }, [notifications, currentUser?.id]);
 
-  // This function is now simplified - we just pass the notification ID to our UI
-  // The actual join club functionality is in the shared utility
-  const handleJoinClub = useCallback((clubId: string, clubName: string, requesterId: string) => {
-    console.log('[useHomeNotifications] Join club function called, but actual implementation is now in the NotificationItem component');
+  // These functions are simplified - actual implementation is now in joinRequestActions.ts
+  const handleJoinClub = useCallback(() => {
+    console.log('[useHomeNotifications] Join club function called, but actual implementation has been moved to NotificationItem component');
   }, []);
 
-  // This function is now simplified - we just pass the notification ID to our UI
-  // The actual decline functionality is in the shared utility
   const handleDeclineInvite = useCallback(async (id: string) => {
     try {
-      console.log('[useHomeNotifications] Decline invite function called for notification:', id);
+      console.log('[useHomeNotifications] Decline notification:', id);
       if (!currentUser?.id) {
         console.log('[useHomeNotifications] No current user, skipping');
         return;
       }
       
-      // Find the notification
+      // For non-join-request notifications, just delete the notification
       const notification = notifications.find(n => n.id === id);
       if (!notification) {
-        console.error('[useHomeNotifications] Invalid notification data');
         throw new Error("Invalid notification data");
       }
       
-      // For non-join-request notifications, just delete the notification
       if (notification.type !== 'join_request') {
         // Delete the notification
         await handleNotification(id, 'delete');
@@ -104,7 +100,7 @@ export const useHomeNotifications = () => {
         toast.success("Notification removed");
       } else {
         // For join requests, the actual functionality is now in NotificationItem component
-        // We just remove it from UI here
+        // We just remove it from UI here if needed
         setNotifications(prev => prev.filter(notification => notification.id !== id));
       }
     } catch (error) {
@@ -145,8 +141,6 @@ export const useHomeNotifications = () => {
       const totalCount = Object.values(parsed).reduce((sum: number, val: any) => 
         sum + (typeof val === 'number' ? val : 0), 0);
       
-      // Use this count for your UI instead of updating the record directly
-      // We'll track this as a separate value in the state
       if (totalCount !== count) {
         // Just dispatch an event to notify handlers that unread messages updated
         window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));

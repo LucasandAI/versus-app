@@ -1,16 +1,15 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Notification } from '@/types';
 import { cn } from '@/lib/utils';
 import { useNavigation } from '@/hooks/useNavigation';
 import { Button } from '@/components/ui/button';
-import { acceptJoinRequest, denyJoinRequest } from '@/utils/joinRequestUtils';
+import { acceptJoinRequestFromNotification, denyJoinRequestFromNotification } from '@/utils/joinRequestActions';
 
 interface NotificationItemProps {
   notification: Notification;
   onMarkAsRead?: (id: string) => void;
   onUserClick: (userId: string, userName: string) => void;
-  onJoinClub?: (clubId: string, clubName: string, requesterId: string) => void;
   onDeclineInvite?: (id: string) => void;
   formatTime: (timestamp: string) => string;
 }
@@ -19,20 +18,15 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   notification,
   onMarkAsRead,
   onUserClick,
-  onJoinClub,
   onDeclineInvite,
   formatTime,
 }) => {
   const { navigateToClub } = useNavigation();
 
-  useEffect(() => {
-    console.log("[NotificationItem] Rendering notification:", notification);
-  }, [notification]);
-
   // Handle club name clicks
   const handleClubClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const clubId = notification.data?.clubId || notification.clubId;
+    const clubId = notification.clubId;
     const clubName = notification.data?.clubName || notification.clubName;
     
     if (clubId && clubName) {
@@ -48,7 +42,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   // Handle user name clicks
   const handleUserClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const userId = notification.data?.requesterId || notification.userId;
+    const userId = notification.user_id || notification.userId;
     const userName = notification.data?.requesterName || notification.userName;
     
     if (userId && userName) {
@@ -64,36 +58,31 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   const handleJoinClub = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (notification.type === 'join_request') {
-      // Extract requesterId from notification.data
-      const requesterId = notification.data?.requesterId || notification.userId;
-      const clubId = notification.data?.clubId || notification.clubId;
-      const clubName = notification.data?.clubName || notification.clubName;
+      const userId = notification.user_id;
+      const clubId = notification.club_id;
       
-      console.log("[NotificationItem] Accept join request with data:", {
-        requesterId,
+      console.log("[NotificationItem] Accepting join request:", {
+        userId,
         clubId, 
-        clubName, 
-        notificationData: notification.data
+        notificationId: notification.id
       });
       
-      if (!requesterId) {
-        console.error("[NotificationItem] Missing requesterId for accept action");
+      if (!userId || !clubId) {
+        console.error("[NotificationItem] Missing user_id or club_id for accept action");
         return;
       }
       
-      if (clubId && clubName && requesterId) {
-        try {
-          // Use the shared utility function
-          const success = await acceptJoinRequest(requesterId, clubId, clubName);
-          console.log("[NotificationItem] Accept result:", success);
-          
-          if (success && onMarkAsRead) {
-            // This notification will be deleted by the backend trigger, but we still need to update UI
-            onMarkAsRead(notification.id);
-          }
-        } catch (error) {
-          console.error("[NotificationItem] Error accepting join request:", error);
+      try {
+        // Use new utility function directly from DB state
+        const success = await acceptJoinRequestFromNotification(userId, clubId);
+        console.log("[NotificationItem] Accept result:", success);
+        
+        if (success && onMarkAsRead) {
+          // Mark notification as read in UI
+          onMarkAsRead(notification.id);
         }
+      } catch (error) {
+        console.error("[NotificationItem] Error accepting join request:", error);
       }
     }
   };
@@ -102,39 +91,34 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     e.stopPropagation();
     
     if (notification.type === 'join_request') {
-      // Extract requesterId from notification.data
-      const requesterId = notification.data?.requesterId || notification.userId;
-      const clubId = notification.data?.clubId || notification.clubId;
+      const userId = notification.user_id;
+      const clubId = notification.club_id;
       
       console.log("[NotificationItem] Declining join request:", {
-        requesterId,
+        userId,
         clubId,
-        notificationId: notification.id,
-        notification
+        notificationId: notification.id
       });
       
-      if (!requesterId) {
-        console.error("[NotificationItem] Missing requesterId for decline action");
+      if (!userId || !clubId) {
+        console.error("[NotificationItem] Missing user_id or club_id for decline action");
         return;
       }
       
-      if (clubId && requesterId) {
-        try {
-          // Use the shared utility function
-          const success = await denyJoinRequest(requesterId, clubId);
-          console.log("[NotificationItem] Decline result:", success);
-          
-          if (success && onMarkAsRead) {
-            // This notification will be deleted by the backend trigger, but we still need to update UI
-            onMarkAsRead(notification.id);
-          }
-        } catch (error) {
-          console.error("[NotificationItem] Error declining join request:", error);
+      try {
+        // Use new utility function directly from DB state
+        const success = await denyJoinRequestFromNotification(userId, clubId);
+        console.log("[NotificationItem] Decline result:", success);
+        
+        if (success && onMarkAsRead) {
+          // Mark notification as read in UI
+          onMarkAsRead(notification.id);
         }
+      } catch (error) {
+        console.error("[NotificationItem] Error declining join request:", error);
       }
     } else if (onDeclineInvite) {
       // Handle other types of notifications
-      console.log("[NotificationItem] Declining notification:", notification.id);
       onDeclineInvite(notification.id);
     }
   };
