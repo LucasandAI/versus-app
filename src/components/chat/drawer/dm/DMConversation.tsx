@@ -1,15 +1,17 @@
 
 import React, { useRef, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 import ChatMessages from '../../ChatMessages';
-import { useDMMessages } from '@/hooks/chat/dm/useDMMessages';
+import { useActiveDMMessages } from '@/hooks/chat/dm/useActiveDMMessages';
 import { useDMSubscription } from '@/hooks/chat/dm/useDMSubscription';
 import { useNavigation } from '@/hooks/useNavigation';
 import { useConversations } from '@/hooks/chat/dm/useConversations';
 import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
 import { useConversationManagement } from '@/hooks/chat/dm/useConversationManagement';
-import { useMessageHandling } from '@/hooks/chat/dm/useMessageHandling';
 import { useUnreadMessages } from '@/context/UnreadMessagesContext';
+import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
 import DMMessageInput from './DMMessageInput';
 import DMHeader from './DMHeader';
 import { ArrowLeft } from 'lucide-react';
@@ -31,35 +33,26 @@ const DMConversation: React.FC<DMConversationProps> = ({
 }) => {
   const { currentUser } = useApp();
   const { navigateToUserProfile } = useNavigation();
-  const { messages, setMessages, addMessage, isSending, setIsSending, deleteMessage } = useDMMessages(user.id, user.name, conversationId);
   const { conversations, fetchConversations } = useConversations([]);
-  const { formatTime } = useMessageFormatting();
-  const lastMessageRef = useRef<HTMLDivElement>(null);
   const { markConversationAsRead } = useUnreadMessages();
+  const [isSending, setIsSending] = React.useState(false);
+  const { formatTime } = useMessageFormatting();
   
-  // Custom hooks
-  const { createConversation } = useConversationManagement(currentUser?.id, user.id);
-  const { handleSendMessage, handleDeleteMessage } = useMessageHandling(
-    currentUser?.id,
+  // Use our new hook for active messages
+  const { messages, setMessages, addOptimisticMessage } = useActiveDMMessages(
+    conversationId, 
     user.id,
-    conversationId,
-    setMessages,
-    setIsSending,
-    createConversation
+    currentUser?.id
   );
   
   // Use subscription hook
-  useDMSubscription(conversationId, user.id, currentUser?.id, setMessages, addMessage);
-
-  // Scroll to bottom on new messages
-  React.useEffect(() => {
-    if (lastMessageRef.current) {
-      lastMessageRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'end'
-      });
-    }
-  }, [messages.length]);
+  useDMSubscription(conversationId, user.id, currentUser?.id, setMessages);
+  
+  // Use scroll management hook
+  const { scrollRef, lastMessageRef, scrollToBottom } = useMessageScroll(messages);
+  
+  // Custom hooks for conversation management
+  const { createConversation } = useConversationManagement(currentUser?.id, user.id);
   
   // Mark conversation as read when opened
   useEffect(() => {
@@ -67,6 +60,72 @@ const DMConversation: React.FC<DMConversationProps> = ({
       markConversationAsRead(conversationId);
     }
   }, [conversationId, markConversationAsRead]);
+
+  const handleSendMessage = async (text: string) => {
+    if (!text.trim() || !currentUser?.id) return;
+    
+    setIsSending(true);
+    
+    // Create optimistic message
+    const optimisticMessage = {
+      id: `optimistic-${Date.now()}`,
+      text,
+      sender: {
+        id: currentUser.id,
+        name: 'You',
+      },
+      timestamp: new Date().toISOString(),
+      optimistic: true
+    };
+    
+    // Add optimistic message to UI
+    addOptimisticMessage(optimisticMessage);
+    
+    // Scroll to bottom
+    scrollToBottom();
+    
+    try {
+      let finalConversationId = conversationId;
+      
+      // Create conversation if needed
+      if (conversationId === 'new') {
+        const newConversation = await createConversation();
+        if (newConversation) {
+          finalConversationId = newConversation.conversationId;
+        } else {
+          throw new Error("Failed to create conversation");
+        }
+      }
+      
+      // Send message to database
+      const { data, error } = await supabase
+        .from('direct_messages')
+        .insert({
+          text,
+          sender_id: currentUser.id,
+          receiver_id: user.id,
+          conversation_id: finalConversationId
+        })
+        .select('id')
+        .single();
+      
+      if (error) throw error;
+      
+    } catch (error) {
+      console.error('[DMConversation] Error sending message:', error);
+      
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
+      
+      toast({
+        title: "Failed to send message",
+        description: "Please try again",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full w-full">
@@ -95,13 +154,13 @@ const DMConversation: React.FC<DMConversationProps> = ({
           <ChatMessages 
             messages={messages}
             clubMembers={currentUser ? [currentUser] : []}
-            onDeleteMessage={deleteMessage}
             onSelectUser={(userId, userName, userAvatar) => 
               navigateToUserProfile(userId, userName, userAvatar)
             }
             currentUserAvatar={currentUser?.avatar}
             lastMessageRef={lastMessageRef}
             formatTime={formatTime}
+            scrollRef={scrollRef}
           />
         </div>
         

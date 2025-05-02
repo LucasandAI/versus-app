@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ChatMessage } from '@/types';
 import MessageList from './message/MessageList';
@@ -20,6 +21,7 @@ interface ChatMessagesProps {
   currentUserAvatar?: string;
   lastMessageRef?: React.RefObject<HTMLDivElement>;
   formatTime?: (isoString: string) => string;
+  scrollRef?: React.RefObject<HTMLDivElement>;
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({
@@ -31,6 +33,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   currentUserAvatar: providedUserAvatar,
   lastMessageRef: providedLastMessageRef,
   formatTime: providedFormatTime,
+  scrollRef: providedScrollRef,
 }) => {
   // Log the received messages length as requested
   console.log('[ChatMessages] Received messages length:', messages.length);
@@ -50,7 +53,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   } = useMessageFormatting();
   
   const {
-    scrollRef,
+    scrollRef: defaultScrollRef,
     lastMessageRef: defaultLastMessageRef,
     scrollToBottom
   } = useMessageScroll(messages);
@@ -63,6 +66,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const finalUserAvatar = providedUserAvatar || defaultUserAvatar;
   const finalLastMessageRef = providedLastMessageRef || defaultLastMessageRef;
   const finalFormatTime = providedFormatTime || defaultFormatTime;
+  const finalScrollRef = providedScrollRef || defaultScrollRef;
   
   if (!Array.isArray(messages)) {
     return (
@@ -81,7 +85,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
 
   return (
     <div 
-      ref={scrollRef} 
+      ref={finalScrollRef} 
       className={`overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent ${
         isClubChat ? 'h-[calc(73vh-8rem)]' : 'h-[calc(73vh-6rem)]'
       }`}

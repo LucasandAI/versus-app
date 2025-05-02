@@ -3,8 +3,6 @@ import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
-import debounce from 'lodash/debounce';
-import { useApp } from '@/context/AppContext';
 
 // Helper function to find a matching optimistic message
 const findMatchingOptimisticMessage = (
@@ -37,14 +35,12 @@ export const useDMSubscription = (
   conversationId: string | undefined,
   otherUserId: string | undefined,
   currentUserId: string | undefined,
-  setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
-  addMessage: (message: ChatMessage) => void
+  setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>
 ) => {
   const subscriptionError = useRef(false);
   const isMounted = useRef(true);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const { isSessionReady } = useApp();
-
+  
   // Clean up function
   const cleanupSubscription = useCallback(() => {
     if (channelRef.current) {
@@ -63,21 +59,21 @@ export const useDMSubscription = (
     };
   }, [cleanupSubscription]);
 
-  // Setup subscription when conversation details and session are ready
+  // Setup subscription when conversation details are ready
   useEffect(() => {
     // Clean up any existing subscription
     cleanupSubscription();
     
     // Guard clause: early return if not ready
-    if (!isSessionReady || !conversationId || !currentUserId || !otherUserId || conversationId === 'new') {
+    if (!conversationId || !currentUserId || !otherUserId || conversationId === 'new') {
       return;
     }
     
     try {
-      console.log(`[useDMSubscription] Setting up subscription for conversation ${conversationId}, session ready`);
+      console.log(`[useDMSubscription] Setting up subscription for conversation ${conversationId}`);
       
       const channel = supabase
-        .channel(`direct_messages:${conversationId}:${Date.now()}`)
+        .channel(`direct_messages:${conversationId}`)
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
@@ -113,6 +109,12 @@ export const useDMSubscription = (
               );
             } else {
               console.log('[useDMSubscription] No matching optimistic message found, adding new message');
+              
+              // Dispatch an event for the new message to notify other components
+              window.dispatchEvent(new CustomEvent('dmMessageReceived', { 
+                detail: { conversationId, message: chatMessage } 
+              }));
+              
               return [...prevMessages, chatMessage];
             }
           });
@@ -138,5 +140,5 @@ export const useDMSubscription = (
     }
     
     return cleanupSubscription;
-  }, [isSessionReady, conversationId, currentUserId, otherUserId, setMessages, cleanupSubscription]);
+  }, [conversationId, currentUserId, otherUserId, setMessages, cleanupSubscription]);
 };
