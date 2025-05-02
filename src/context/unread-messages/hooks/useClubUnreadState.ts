@@ -23,7 +23,6 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
     console.log(`[useClubUnreadState] Marking club ${clubId} as unread`);
     
     setUnreadClubs(prev => {
-      // ALWAYS create a new Set to trigger re-renders
       const updated = new Set(prev);
       const normalizedClubId = clubId.toString(); // Convert to string to ensure consistency
       
@@ -33,13 +32,11 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
         
         // Update the unread messages count for this club
         setUnreadMessagesPerClub(prev => {
-          // Create a new object to ensure React detects the change
           const updated = { ...prev };
           updated[normalizedClubId] = (updated[normalizedClubId] || 0) + 1;
           return updated;
         });
         
-        // Important! This needs to force a state update to trigger re-renders
         setClubUnreadCount(prev => prev + 1);
         
         // Dispatch event to notify UI components
@@ -49,13 +46,11 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
         
         // If club is already marked as unread, just increment the message count
         setUnreadMessagesPerClub(prev => {
-          // Create a new object to ensure React detects the change
           const updated = { ...prev };
           updated[normalizedClubId] = (updated[normalizedClubId] || 0) + 1;
           return updated;
         });
         
-        // Still increment the count to trigger re-renders
         setClubUnreadCount(prev => prev + 1);
       }
       return updated;
@@ -78,7 +73,6 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
         return prev;
       }
       
-      // Create a new Set to ensure React detects the change
       const updated = new Set(prev);
       updated.delete(clubId);
       console.log(`[useClubUnreadState] Club ${clubId} removed from unread set:`, Array.from(updated));
@@ -127,7 +121,7 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
     } catch (error) {
       console.error('[useClubUnreadState] Error marking club messages as read:', error);
       
-      // Revert optimistic update on error - create a new Set to ensure React detects the change
+      // Revert optimistic update on error
       setUnreadClubs(prev => {
         const reverted = new Set(prev);
         reverted.add(clubId);

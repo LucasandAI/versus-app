@@ -16,7 +16,6 @@ const UnreadMessagesContext = createContext<UnreadMessagesContextType>({
   markConversationAsUnread: () => {},
   markClubAsUnread: () => {},
   fetchUnreadCounts: async () => {},
-  forceRefresh: () => {}, // Added the missing forceRefresh function
 });
 
 // Export the hook for consuming the context

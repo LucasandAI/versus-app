@@ -1,12 +1,12 @@
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MessageCircle } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '../shared/UserAvatar';
 import Button from '../shared/Button';
 import NotificationPopover from '../shared/NotificationPopover';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
-import { useUnreadMessages } from '@/context/unread-messages';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 
 interface HomeHeaderProps {
   notifications: any[];
@@ -25,44 +25,32 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
 }) => {
   const { setCurrentView, currentUser, setSelectedUser } = useApp();
   const { open } = useChatDrawerGlobal();
-  const { totalUnreadCount, forceRefresh } = useUnreadMessages();
+  const { totalUnreadCount } = useUnreadMessages();
   const [badgeCount, setBadgeCount] = useState(totalUnreadCount);
-  const badgeCountRef = useRef(totalUnreadCount);
   
   console.log("[HomeHeader] Rendering with notifications:", 
-    notifications.length, notifications, "unread count:", totalUnreadCount);
+    notifications.length, notifications);
   
   // Update badge count when totalUnreadCount changes
   useEffect(() => {
-    if (totalUnreadCount !== badgeCountRef.current) {
-      console.log("[HomeHeader] Total unread count changed:", totalUnreadCount);
-      setBadgeCount(totalUnreadCount);
-      badgeCountRef.current = totalUnreadCount;
-    }
+    setBadgeCount(totalUnreadCount);
   }, [totalUnreadCount]);
   
   // Listen for unreadMessagesUpdated event to update badge count
   useEffect(() => {
-    const handleUnreadMessagesUpdated = useCallback(() => {
-      console.log("[HomeHeader] Unread messages updated event received");
+    const handleUnreadMessagesUpdated = () => {
       setTimeout(() => {
-        forceRefresh();
-      }, 10);
-    }, [forceRefresh]);
-    
-    const handleClubMessageReceived = useCallback((event: CustomEvent) => {
-      console.log("[HomeHeader] Club message received for club:", event.detail?.clubId);
-      forceRefresh();
-    }, [forceRefresh]);
+        // This will trigger a re-render that will pick up the latest totalUnreadCount
+        setBadgeCount(prev => prev); // Force an update
+      }, 100);
+    };
     
     window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
-    window.addEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
     
     return () => {
       window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
-      window.removeEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
     };
-  }, [forceRefresh]);
+  }, []);
   
   const handleViewOwnProfile = () => {
     if (currentUser) {

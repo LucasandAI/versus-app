@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import ChatDrawerContainer from './ChatDrawerContainer';
 import DrawerHeader from './DrawerHeader';
@@ -36,40 +36,35 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     conversationId: string;
   } | null>(null);
   
-  // Get unread state from context
-  const { unreadClubs, unreadConversations, forceRefresh, totalUnreadCount } = useUnreadMessages();
-  
-  // Force state update when unread messages change
+  // Add a local copy of unreadClubs for direct passing and forced re-renders
+  const { unreadClubs, unreadConversations } = useUnreadMessages();
+  const [localUnreadClubs, setLocalUnreadClubs] = useState<Set<string>>(new Set());
+  const [localUnreadConversations, setLocalUnreadConversations] = useState<Set<string>>(new Set());
   const [forceUpdateKey, setForceUpdateKey] = useState(Date.now());
   
-  // Listen for unread messages updates
+  // Force re-render when unreadClubs changes
+  useEffect(() => {
+    setLocalUnreadClubs(new Set(unreadClubs));
+    setForceUpdateKey(Date.now());
+  }, [unreadClubs]);
+
+  // Force re-render when unreadConversations changes
+  useEffect(() => {
+    setLocalUnreadConversations(new Set(unreadConversations));
+  }, [unreadConversations]);
+  
+  // Listen for global unread message events
   useEffect(() => {
     const handleUnreadMessagesUpdate = () => {
       console.log('[MainChatDrawer] Detected unreadMessagesUpdated event, forcing re-render');
       setForceUpdateKey(Date.now());
-      forceRefresh();
-    };
-    
-    const handleClubMessageReceived = (event: CustomEvent) => {
-      console.log('[MainChatDrawer] Detected clubMessageReceived event for club:', event.detail?.clubId);
-      setForceUpdateKey(Date.now());
-      forceRefresh();
     };
     
     window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdate);
-    window.addEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
-    
     return () => {
       window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdate);
-      window.removeEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
     };
-  }, [forceRefresh]);
-  
-  // Also force re-render when totalUnreadCount changes
-  useEffect(() => {
-    console.log('[MainChatDrawer] totalUnreadCount changed:', totalUnreadCount);
-    setForceUpdateKey(Date.now());
-  }, [totalUnreadCount]);
+  }, []);
   
   const { sendMessageToClub, deleteMessage } = useChatActions();
   const { currentUser } = useApp();
@@ -157,8 +152,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             messages={clubMessages}
             deleteChat={() => {}}
             unreadMessages={{}}
-            unreadClubs={unreadClubs}
-            unreadConversations={unreadConversations}
+            unreadClubs={localUnreadClubs}
+            unreadConversations={localUnreadConversations}
             handleNewMessage={() => {}}
             onSendMessage={handleSendMessage}
             onDeleteMessage={handleDeleteMessage}

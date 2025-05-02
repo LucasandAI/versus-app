@@ -3,6 +3,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { Club } from '@/types';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { createClubChannel, cleanupChannels } from './utils/subscriptionUtils';
+import { processNewMessage } from './utils/messageHandlerUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import { useUnreadMessages } from '@/context/UnreadMessagesContext';
@@ -15,7 +16,7 @@ export const useClubMessageSubscriptions = (
 ) => {
   const channelsRef = useRef<RealtimeChannel[]>([]);
   const { currentUser, isSessionReady } = useApp();
-  const { markClubMessagesAsRead, markClubAsUnread, forceRefresh } = useUnreadMessages();
+  const { markClubMessagesAsRead } = useUnreadMessages();
   
   const selectedClubRef = useRef<string | null>(null);
   
@@ -154,20 +155,9 @@ export const useClubMessageSubscriptions = (
         // we need to update the unread count for this club
         if (payload.new.sender_id !== currentUser.id && 
             (!selectedClubRef.current || selectedClubRef.current !== clubId)) {
-          console.log(`[useClubMessageSubscriptions] Received message from another user for club ${clubId}`);
-          
-          // Mark the club as unread - CRITICAL for the UI update
-          markClubAsUnread(clubId);
-          
-          // Force refresh to update UI immediately
-          setTimeout(() => {
-            forceRefresh();
-            
-            // Dispatch custom event for other components to react
-            window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
-              detail: { clubId } 
-            }));
-          }, 10);
+          window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
+            detail: { clubId } 
+          }));
         }
       });
 
@@ -180,7 +170,7 @@ export const useClubMessageSubscriptions = (
       channelsRef.current = [];
       activeSubscriptionsRef.current = {};
     };
-  }, [userClubs, isOpen, setClubMessages, currentUser?.id, isSessionReady, markClubAsUnread, forceRefresh]);
+  }, [userClubs, isOpen, setClubMessages, currentUser?.id, isSessionReady]);
 
   // Listen for club selection changes to track the currently viewed club
   useEffect(() => {

@@ -1,5 +1,5 @@
 
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useApp } from '@/context/AppContext';
 import UnreadMessagesContext from './UnreadMessagesContext';
 import { useDirectMessageUnreadState } from './hooks/useDirectMessageUnreadState';
@@ -9,7 +9,6 @@ import { useUnreadSubscriptions } from './hooks/useUnreadSubscriptions';
 
 export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const { currentUser, isSessionReady } = useApp();
-  const [forceUpdateTrigger, setForceUpdateTrigger] = useState(0);
   
   // State for unread tracking from hooks
   const {
@@ -62,7 +61,6 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
   useEffect(() => {
     const handler = () => {
       console.log('[UnreadMessagesProvider] Handling unreadMessagesUpdated event');
-      setForceUpdateTrigger(prev => prev + 1);
     };
     
     window.addEventListener('unreadMessagesUpdated', handler);
@@ -72,25 +70,14 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
   // Debug: Add effect to log the contents of unreadClubs whenever it changes
   useEffect(() => {
     console.log('[UnreadMessagesProvider] unreadClubs updated:', Array.from(unreadClubs));
-    console.log('[UnreadMessagesProvider] clubUnreadCount:', clubUnreadCount);
-    console.log('[UnreadMessagesProvider] totalUnreadCount:', totalUnreadCount);
-  }, [unreadClubs, clubUnreadCount, totalUnreadCount]);
+  }, [unreadClubs]);
   
   // Force re-render method that components can call
   const forceRefresh = useCallback(() => {
     console.log('[UnreadMessagesProvider] Force refresh triggered');
-    setForceUpdateTrigger(prev => prev + 1);
-    
-    // Create new Set instances to ensure state updates are detected
+    // The state update will trigger a re-render
     setUnreadClubs(new Set(unreadClubs));
-    setUnreadConversations(new Set(unreadConversations));
-    
-    // Also force update the count values to ensure they're refreshed
-    setClubUnreadCount(prev => {
-      // This forces a re-render even if the value is the same
-      return prev;
-    });
-  }, [unreadClubs, unreadConversations, setUnreadClubs, setUnreadConversations, setClubUnreadCount]);
+  }, [unreadClubs]);
   
   return (
     <UnreadMessagesContext.Provider value={{
@@ -105,8 +92,7 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       markClubMessagesAsRead,
       markConversationAsUnread,
       markClubAsUnread,
-      fetchUnreadCounts,
-      forceRefresh
+      fetchUnreadCounts
     }}>
       {children}
     </UnreadMessagesContext.Provider>
