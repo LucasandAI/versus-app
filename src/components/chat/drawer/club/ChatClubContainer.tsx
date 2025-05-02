@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { Club } from '@/types';
 import ChatSidebarContent from '../ChatSidebarContent';
 import ChatClubContent from '../../../chat/ChatClubContent';
@@ -16,18 +16,16 @@ interface ChatClubContainerProps {
   unreadClubs?: Set<string>;
   onSendMessage: (message: string, clubId?: string) => void;
   onDeleteMessage?: (messageId: string) => void;
-  setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
 }
 
 const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   clubs,
   selectedClub,
   onSelectClub,
-  messages = {}, // No longer the primary source of truth
+  messages = {},
   unreadClubs = new Set(),
   onSendMessage,
-  onDeleteMessage,
-  setClubMessages
+  onDeleteMessage
 }) => {
   const {
     navigateToClubDetail
@@ -35,30 +33,13 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   const {
     markClubMessagesAsRead
   } = useUnreadMessages();
-  
-  // Add a ref to track renders for debugging
-  const renderCountRef = useRef(0);
-  const previousSelectedClubRef = useRef<string | null>(null);
-  
-  // Debug effect to track renders
-  useEffect(() => {
-    renderCountRef.current += 1;
-    console.log(`[ChatClubContainer] 🔄 Render #${renderCountRef.current}`, {
-      selectedClub: selectedClub?.id,
-      prevSelectedClub: previousSelectedClubRef.current,
-      hasMessages: selectedClub ? (messages[selectedClub.id]?.length || 0) : 0
-    });
-    
-    if (selectedClub?.id !== previousSelectedClubRef.current) {
-      previousSelectedClubRef.current = selectedClub?.id || null;
-    }
-  });
 
   // Mark messages as read when a club is selected
   useEffect(() => {
     if (selectedClub) {
-      console.log(`[ChatClubContainer] 📋 Selected club: ${selectedClub.id}`);
-      console.log(`[ChatClubContainer] ✅ Marking club ${selectedClub.id} messages as read`);
+      console.log(`[ChatClubContainer] Selected club: ${selectedClub.id} (type: ${typeof selectedClub.id})`);
+      console.log(`[ChatClubContainer] Marking club ${selectedClub.id} messages as read`);
+      console.log(`[ChatClubContainer] Current unreadClubs:`, Array.from(unreadClubs));
 
       // Mark as read when selected
       markClubMessagesAsRead(selectedClub.id);
@@ -74,7 +55,7 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
       // Dispatch club deselected event when component unmounts or club changes
       window.dispatchEvent(new CustomEvent('clubDeselected'));
     };
-  }, [selectedClub, markClubMessagesAsRead]);
+  }, [selectedClub, markClubMessagesAsRead, unreadClubs]);
 
   const handleMatchClick = () => {
     // Future implementation
@@ -103,20 +84,11 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
 
   // Create a key for forced re-renders when unread status changes
   const unreadKey = JSON.stringify([...unreadClubs].sort());
-  const clubKey = selectedClub ? `club-${selectedClub.id}-${renderCountRef.current}` : 'no-club';
 
   // If no club is selected, show the clubs list
   if (!selectedClub) {
     return <div className="flex flex-col h-full overflow-hidden">
-        <ChatSidebarContent 
-          key={`sidebar-content-${unreadKey}`} 
-          clubs={clubs} 
-          selectedClub={selectedClub} 
-          onSelectClub={onSelectClub} 
-          onSelectUser={handleSelectUser} 
-          activeTab="clubs" 
-          unreadClubs={unreadClubs} 
-        />
+        <ChatSidebarContent key={`sidebar-content-${unreadKey}`} clubs={clubs} selectedClub={selectedClub} onSelectClub={onSelectClub} onSelectUser={handleSelectUser} activeTab="clubs" unreadClubs={unreadClubs} />
       </div>;
   }
 
@@ -134,16 +106,7 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
       </div>
       
       <div className="flex-1">
-        <ChatClubContent 
-          key={clubKey}
-          club={selectedClub} 
-          onMatchClick={handleMatchClick} 
-          onSelectUser={handleSelectUser} 
-          onSendMessage={onSendMessage} 
-          onDeleteMessage={onDeleteMessage} 
-          setClubMessages={setClubMessages}
-          clubId={selectedClub.id}
-        />
+        <ChatClubContent club={selectedClub} messages={messages[selectedClub.id] || []} onMatchClick={handleMatchClick} onSelectUser={handleSelectUser} onSendMessage={onSendMessage} onDeleteMessage={onDeleteMessage} />
       </div>
     </div>;
 };

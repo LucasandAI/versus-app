@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Club } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
@@ -7,7 +7,6 @@ import { useClubMessageSubscriptions } from '@/hooks/chat/messages/useClubMessag
 
 export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
   const [clubMessages, setClubMessages] = useState<Record<string, any[]>>({});
-  const [messageUpdateCounter, setMessageUpdateCounter] = useState(0); // Debug counter
   const { currentUser } = useApp();
   const activeSubscriptionsRef = useRef<Record<string, boolean>>({});
   
@@ -58,10 +57,6 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
             );
           });
           
-          console.log('[useClubMessages] Initial message fetch complete:', Object.keys(messagesMap).map(
-            clubId => `${clubId}: ${messagesMap[clubId].length} messages`
-          ));
-          
           setClubMessages(messagesMap);
         }
       } catch (error) {
@@ -72,42 +67,11 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
     fetchInitialMessages();
   }, [isOpen, currentUser?.id, userClubs]);
   
-  // Enhanced wrapper for setClubMessages with more detailed tracking
-  const wrappedSetClubMessages = useCallback((update: React.SetStateAction<Record<string, any[]>>) => {
-    setMessageUpdateCounter(prev => prev + 1);
-    const count = messageUpdateCounter + 1;
-    
-    console.log(`[useClubMessages] (#${count}) Updating club messages`);
-    
-    if (typeof update === 'function') {
-      setClubMessages(prev => {
-        const newMessages = update(prev);
-        console.log(`[useClubMessages] (#${count}) Updated messages:`, 
-          Object.keys(newMessages).map(clubId => `${clubId}: ${newMessages[clubId]?.length || 0} messages`));
-          
-        // IMPORTANT: Create an entirely new object reference to ensure React re-renders
-        return JSON.parse(JSON.stringify(newMessages));
-      });
-    } else {
-      console.log(`[useClubMessages] (#${count}) Direct update with:`, 
-        Object.keys(update).map(clubId => `${clubId}: ${update[clubId]?.length || 0} messages`));
-      
-      // IMPORTANT: Create an entirely new object reference to ensure React re-renders
-      setClubMessages(JSON.parse(JSON.stringify(update)));
-    }
-  }, [messageUpdateCounter]);
-  
   // Set up real-time subscription for messages
-  useClubMessageSubscriptions(userClubs, isOpen, activeSubscriptionsRef, wrappedSetClubMessages);
-  
-  // Debug effect to log when clubMessages changes
-  useEffect(() => {
-    console.log('[useClubMessages] Club messages updated:', 
-      Object.keys(clubMessages).map(clubId => `${clubId}: ${clubMessages[clubId]?.length || 0} messages`));
-  }, [clubMessages]);
+  useClubMessageSubscriptions(userClubs, isOpen, activeSubscriptionsRef, setClubMessages);
   
   return {
     clubMessages,
-    setClubMessages: wrappedSetClubMessages
+    setClubMessages
   };
 };

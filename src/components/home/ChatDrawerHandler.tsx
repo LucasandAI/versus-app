@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Club } from '@/types';
 import ChatDrawer from '../chat/ChatDrawer';
 import { useClubMessages } from '@/hooks/chat/useClubMessages';
@@ -20,14 +20,6 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
   
   // Use our hook for real-time club messages
   const { clubMessages, setClubMessages } = useClubMessages(userClubs, isOpen);
-
-  // Debug effect to log message updates
-  useEffect(() => {
-    console.log('[ChatDrawerHandler] Club messages updated:', 
-      Object.keys(clubMessages).map(clubId => 
-        `${clubId}: ${clubMessages[clubId]?.length || 0} messages`
-      ).join(', ') || 'No messages');
-  }, [clubMessages]);
 
   console.log('[ChatDrawerHandler] Rendering with clubMessages:', clubMessages);
 

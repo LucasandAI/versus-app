@@ -66,7 +66,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     };
   }, []);
   
-  const { sendClubMessage, deleteMessage } = useChatActions();
+  const { sendMessageToClub, deleteMessage } = useChatActions();
   const { currentUser } = useApp();
   
   // Access conversations from context
@@ -118,7 +118,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const handleSendMessage = async (message: string, clubId?: string) => {
     if (message && clubId && setClubMessages) {
       console.log('[MainChatDrawer] Sending message to club:', clubId);
-      return await sendClubMessage(message, clubId);
+      return await sendMessageToClub(clubId, message, setClubMessages);
     }
   };
   

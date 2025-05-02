@@ -30,10 +30,6 @@ const MessageList: React.FC<MessageListProps> = ({
   currentUserId,
   lastMessageRef
 }) => {
-  // 🚨 NEW ADDITION: Add a console log to verify when MessageList re-renders
-  const messageIds = messages.map(m => m.id).join(',').substring(0, 30) + '...';
-  console.log(`[MessageList] Rendering with ${messages.length} messages. IDs: ${messageIds}`);
-  
   return (
     <div className="flex-1 px-0 py-2">
       {messages.length === 0 ? (
@@ -41,8 +37,7 @@ const MessageList: React.FC<MessageListProps> = ({
           No messages yet. Start the conversation!
         </div>
       ) : (
-        // 🚨 IMPROVED: Ensure we're iterating over a fresh copy of messages
-        [...messages].map((message: ChatMessage, index: number) => {
+        messages.map((message: ChatMessage, index: number) => {
           const isUserMessage = currentUserId && 
                                message.sender && 
                                String(message.sender.id) === String(currentUserId);
@@ -50,7 +45,7 @@ const MessageList: React.FC<MessageListProps> = ({
           
           return (
             <div 
-              key={`${message.id}-${isLastMessage ? 'last' : index}`}
+              key={message.id} 
               ref={isLastMessage ? lastMessageRef : undefined}
               className={`mb-3 ${isLastMessage ? 'pb-5' : ''}`}
             >
