@@ -44,13 +44,17 @@ const ChatClubContent = ({
     deleteMessage: hookDeleteMessage
   } = useActiveClubMessages(effectiveClubId);
   
+  // Debug counter to verify message updates
+  const messageCount = messages?.length || 0;
+  
   // Log when the message array changes to help debug
   useEffect(() => {
     console.log('[ChatClubContent] Messages updated for club:', {
       clubId: effectiveClubId,
-      messageCount: messages?.length || 0
+      messageCount,
+      messagesReference: messages
     });
-  }, [messages, effectiveClubId]);
+  }, [messages, effectiveClubId, messageCount]);
   
   useEffect(() => {
     console.log('[ChatClubContent] Club changed, resetting state for:', effectiveClubId);
@@ -123,14 +127,21 @@ const ChatClubContent = ({
         onClubClick={handleClubClick}
       />
       
+      {/* Debug message counter - temporary */}
+      <div className="bg-gray-100 py-1 px-3 text-xs text-gray-700 flex justify-between">
+        <span>Messages: {messageCount}</span>
+        <span>Club ID: {effectiveClubId?.substring(0, 8)}</span>
+      </div>
+      
       <div className="flex-1 flex flex-col relative overflow-hidden">
         <div className="flex-1 min-h-0">
           <ChatMessages 
-            messages={messages} 
+            messages={messages || []} 
             clubMembers={club.members || []}
             onDeleteMessage={handleDeleteMessage}
             onSelectUser={onSelectUser}
             clubId={effectiveClubId}
+            key={`messages-${effectiveClubId}`} // Force re-render on club change
           />
         </div>
         

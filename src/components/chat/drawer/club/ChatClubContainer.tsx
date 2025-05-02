@@ -16,6 +16,7 @@ interface ChatClubContainerProps {
   unreadClubs?: Set<string>;
   onSendMessage: (message: string, clubId?: string) => void;
   onDeleteMessage?: (messageId: string) => void;
+  activeClubMessages?: any[]; // Add this prop
 }
 
 const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
@@ -25,7 +26,8 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   messages = {},
   unreadClubs = new Set(),
   onSendMessage,
-  onDeleteMessage
+  onDeleteMessage,
+  activeClubMessages = [] // Use active messages from parent
 }) => {
   const {
     navigateToClubDetail
@@ -37,7 +39,7 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   // Mark messages as read when a club is selected
   useEffect(() => {
     if (selectedClub) {
-      console.log(`[ChatClubContainer] Selected club: ${selectedClub.id} (type: ${typeof selectedClub.id})`);
+      console.log(`[ChatClubContainer] Selected club: ${selectedClub.id}`);
       console.log(`[ChatClubContainer] Marking club ${selectedClub.id} messages as read`);
       console.log(`[ChatClubContainer] Current unreadClubs:`, Array.from(unreadClubs));
 
@@ -82,12 +84,22 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
     }
   };
 
+  // Log active club messages
+  useEffect(() => {
+    if (selectedClub && activeClubMessages) {
+      console.log(`[ChatClubContainer] Active messages for club ${selectedClub.id}:`, activeClubMessages.length);
+    }
+  }, [selectedClub, activeClubMessages]);
+
   // If no club is selected, show the clubs list
   if (!selectedClub) {
     return <div className="flex flex-col h-full overflow-hidden">
         <ChatSidebarContent clubs={clubs} selectedClub={selectedClub} onSelectClub={onSelectClub} onSelectUser={handleSelectUser} activeTab="clubs" unreadClubs={unreadClubs} />
       </div>;
   }
+
+  // Get active messages for this club
+  const messageCount = activeClubMessages?.length || 0;
 
   // If a club is selected, show the full-width chat
   return <div className="flex flex-col h-full">
@@ -99,7 +111,7 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
           <UserAvatar name={selectedClub.name} image={selectedClub.logo} size="sm" />
           <h3 className="font-semibold">{selectedClub.name}</h3>
         </div>
-        <div className="w-9"></div>
+        <div className="w-9 text-xs text-gray-500">{messageCount > 0 ? `${messageCount} msgs` : ''}</div>
       </div>
       
       <div className="flex-1">
@@ -110,6 +122,7 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
           onSendMessage={onSendMessage} 
           onDeleteMessage={onDeleteMessage}
           clubId={selectedClub.id}
+          messages={activeClubMessages} // Pass active messages
         />
       </div>
     </div>;

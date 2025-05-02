@@ -1,34 +1,44 @@
 
 import React, { useState, useEffect } from 'react';
-import { Club } from '@/types';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import ChatDrawerHeader from './ChatDrawerHeader';
 import ChatDrawerContainer from './ChatDrawerContainer';
-import DrawerHeader from './DrawerHeader';
-import { ChatProvider } from '@/context/ChatContext';
-import { Drawer, DrawerContent } from '@/components/ui/drawer';
-import { useChatActions } from '@/hooks/chat/useChatActions';
-import { useApp } from '@/context/AppContext';
-import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
-import { useUnreadMessages } from '@/context/unread-messages';
+import ChatDrawerTabs from './ChatDrawerTabs';
+import { Club } from '@/types';
+import { useChatInteractions } from '@/hooks/chat/useChatInteractions';
+import { useActiveClubMessages } from '@/hooks/chat/useActiveClubMessages';
+import { toast } from '@/hooks/use-toast';
 
 interface MainChatDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   clubs: Club[];
-  onNewMessage?: (count: number) => void;
-  clubMessages?: Record<string, any[]>;
+  unreadMessages?: Record<string, number>;
+  unreadClubs?: Set<string>;
+  unreadConversations?: Set<string>;
+  messages?: Record<string, any[]>;
   setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
+  onNewMessage?: (count: number) => void;
+  onSendMessage?: (message: string, clubId?: string) => Promise<void> | void;
+  onDeleteMessage?: (messageId: string) => void;
 }
 
-const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
+const MainChatDrawer = ({
   open,
   onOpenChange,
-  clubs,
-  onNewMessage,
-  clubMessages = {},
+  clubs = [],
+  unreadMessages = {},
+  unreadClubs = new Set(),
+  unreadConversations = new Set(),
+  messages = {},
   setClubMessages,
-}) => {
-  const [activeTab, setActiveTab] = useState<"clubs"|"dm">("clubs");
+  onNewMessage,
+  onSendMessage,
+  onDeleteMessage
+}: MainChatDrawerProps) => {
+  const [activeTab, setActiveTab] = useState<'clubs' | 'dm'>('clubs');
   const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(null);
+  const [activeClubId, setActiveClubId] = useState<string | null>(null);
   const [directMessageUser, setDirectMessageUser] = useState<{
     userId: string;
     userName: string;
@@ -36,110 +46,151 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     conversationId: string;
   } | null>(null);
   
-  // Add a local copy of unreadClubs for direct passing and forced re-renders
-  const { unreadClubs, unreadConversations } = useUnreadMessages();
-  const [localUnreadClubs, setLocalUnreadClubs] = useState<Set<string>>(new Set());
-  const [localUnreadConversations, setLocalUnreadConversations] = useState<Set<string>>(new Set());
+  // Use the hook to get active club messages
+  const { 
+    messages: activeClubMessages, 
+    addMessage: addActiveClubMessage,
+    deleteMessage: deleteActiveClubMessage 
+  } = useActiveClubMessages(activeClubId);
   
-  // Force re-render when unreadClubs changes
-  useEffect(() => {
-    setLocalUnreadClubs(new Set(unreadClubs));
-  }, [unreadClubs]);
-
-  // Force re-render when unreadConversations changes
-  useEffect(() => {
-    setLocalUnreadConversations(new Set(unreadConversations));
-  }, [unreadConversations]);
+  // Load chat interactions
+  const {
+    handleNewMessage,
+    deleteChat,
+    unreadMessages: localUnreadMessages
+  } = useChatInteractions();
   
-  // Listen for global unread message events
+  // Sync activeClubId with selectedLocalClub
   useEffect(() => {
-    const handleUnreadMessagesUpdate = () => {
-      console.log('[MainChatDrawer] Detected unreadMessagesUpdated event, forcing re-render');
-      setLocalUnreadClubs(new Set(unreadClubs));
-      setLocalUnreadConversations(new Set(unreadConversations));
+    if (selectedLocalClub?.id && selectedLocalClub.id !== activeClubId) {
+      console.log(`[MainChatDrawer] Setting active club ID from selection: ${selectedLocalClub.id}`);
+      setActiveClubId(selectedLocalClub.id);
+    } else if (!selectedLocalClub && activeClubId) {
+      console.log('[MainChatDrawer] Clearing active club ID as no club selected');
+      setActiveClubId(null);
+    }
+  }, [selectedLocalClub, activeClubId]);
+  
+  // Sync selectedLocalClub with activeClubId
+  useEffect(() => {
+    if (activeClubId && (!selectedLocalClub || selectedLocalClub.id !== activeClubId)) {
+      console.log(`[MainChatDrawer] Finding club for active club ID: ${activeClubId}`);
+      const matchingClub = clubs.find(club => club.id === activeClubId);
+      if (matchingClub) {
+        console.log(`[MainChatDrawer] Found matching club: ${matchingClub.name}`);
+        setSelectedLocalClub(matchingClub);
+      }
+    }
+  }, [activeClubId, clubs, selectedLocalClub]);
+  
+  // Listen for events to set active club
+  useEffect(() => {
+    const handleClubSelected = (e: CustomEvent) => {
+      if (e.detail?.clubId) {
+        const clubId = e.detail.clubId;
+        console.log(`[MainChatDrawer] clubSelected event received: ${clubId}`);
+        const matchingClub = clubs.find(club => club.id === clubId);
+        if (matchingClub) {
+          setSelectedLocalClub(matchingClub);
+          setActiveClubId(clubId);
+          setActiveTab('clubs');
+        }
+      }
     };
     
-    window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdate);
-    return () => {
-      window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdate);
+    const handleOpenDirectMessage = (e: CustomEvent) => {
+      const { userId, userName, userAvatar } = e.detail;
+      console.log(`[MainChatDrawer] openDirectMessage event received: ${userName}`);
+      
+      if (userId && userName) {
+        setDirectMessageUser({
+          userId,
+          userName,
+          userAvatar: userAvatar || '',
+          conversationId: 'new' // This will be replaced with actual ID
+        });
+        setActiveTab('dm');
+        setSelectedLocalClub(null);
+        setActiveClubId(null);
+      }
     };
-  }, [unreadClubs, unreadConversations]);
-  
-  const { sendMessageToClub, deleteMessage } = useChatActions();
-  const { currentUser } = useApp();
-  
-  // Access conversations from context
-  const { fetchConversations } = useDirectConversationsContext();
 
-  // Effect to fetch conversations when drawer opens
-  useEffect(() => {
-    if (open && currentUser?.id) {
-      // Only fetch if we're on the DM tab
-      if (activeTab === "dm") {
-        console.log("[MainChatDrawer] Drawer opened with DM tab, ensuring conversations are loaded");
-        fetchConversations();
+    window.addEventListener('clubSelected', handleClubSelected as EventListener);
+    window.addEventListener('openDirectMessage', handleOpenDirectMessage as EventListener);
+    
+    return () => {
+      window.removeEventListener('clubSelected', handleClubSelected as EventListener);
+      window.removeEventListener('openDirectMessage', handleOpenDirectMessage as EventListener);
+    };
+  }, [clubs]);
+  
+  // Handle club selection
+  const handleSelectClub = (club: Club | null) => {
+    console.log('[MainChatDrawer] Club selected:', club?.name || 'none');
+    
+    if (club !== selectedLocalClub) {
+      setSelectedLocalClub(club);
+      setActiveClubId(club?.id || null);
+      
+      if (club?.id) {
+        // Dispatch club selected event
+        window.dispatchEvent(new CustomEvent('clubSelected', {
+          detail: { clubId: club.id }
+        }));
       }
     }
-  }, [open, currentUser?.id, activeTab, fetchConversations]);
-  
-  useEffect(() => {
-    const handleOpenDM = (event: CustomEvent<{
-      userId: string;
-      userName: string;
-      userAvatar?: string;
-      conversationId?: string;
-    }>) => {
-      setActiveTab("dm");
-      
-      // If conversationId is not provided, we'll need to fetch/create it
-      if (!event.detail.conversationId) {
-        console.log("[MainChatDrawer] Opening DM with user:", event.detail.userName);
-      }
-      
-      setDirectMessageUser({
-        userId: event.detail.userId,
-        userName: event.detail.userName,
-        userAvatar: event.detail.userAvatar || '/placeholder.svg',
-        conversationId: event.detail.conversationId || 'new'
-      });
-    };
-
-    window.addEventListener('openDirectMessage', handleOpenDM as EventListener);
-    return () => {
-      window.removeEventListener('openDirectMessage', handleOpenDM as EventListener);
-    };
-  }, [fetchConversations]);
-
-  const handleSelectClub = (club: Club) => {
-    setSelectedLocalClub(club);
   };
-
+  
+  // Handle message sending
   const handleSendMessage = async (message: string, clubId?: string) => {
-    if (message && clubId && setClubMessages) {
-      console.log('[MainChatDrawer] Sending message to club:', clubId);
-      return await sendMessageToClub(clubId, message, setClubMessages);
+    console.log(`[MainChatDrawer] Send message requested for club ${clubId || 'unknown'}`);
+    
+    if (!message.trim()) {
+      console.log('[MainChatDrawer] Empty message, not sending');
+      return;
+    }
+    
+    try {
+      // Call the provided onSendMessage function
+      if (onSendMessage) {
+        await onSendMessage(message, clubId);
+        console.log(`[MainChatDrawer] Message sent to club ${clubId || 'unknown'}`);
+      }
+    } catch (error) {
+      console.error('[MainChatDrawer] Error sending message:', error);
+      toast({
+        title: "Failed to send message",
+        description: "Please try again",
+        variant: "destructive"
+      });
     }
   };
   
+  // Handle message deletion
   const handleDeleteMessage = async (messageId: string) => {
-    if (messageId && setClubMessages) {
-      console.log('[MainChatDrawer] Deleting message:', messageId);
-      return await deleteMessage(messageId, setClubMessages);
+    console.log(`[MainChatDrawer] Delete message requested: ${messageId}`);
+    
+    if (onDeleteMessage) {
+      await onDeleteMessage(messageId);
     }
-  };
-  
-  const handleTabChange = (tab: "clubs" | "dm") => {
-    setActiveTab(tab);
+    
+    // Also delete from active club messages
+    if (activeClubId) {
+      deleteActiveClubMessage(messageId);
+    }
   };
 
   return (
-    <ChatProvider>
-      <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="h-[80vh] rounded-t-xl p-0 flex flex-col">
-          <DrawerHeader 
-            activeTab={activeTab} 
-            setActiveTab={handleTabChange}
-            selectedClub={selectedLocalClub}
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="sm:max-w-md p-0 border-l">
+        <div className="flex flex-col h-full overflow-hidden">
+          <ChatDrawerHeader />
+          
+          <ChatDrawerTabs 
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            unreadClubs={unreadClubs}
+            unreadConversations={unreadConversations}
           />
           
           <ChatDrawerContainer 
@@ -147,20 +198,21 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             clubs={clubs}
             selectedLocalClub={selectedLocalClub}
             onSelectClub={handleSelectClub}
-            messages={clubMessages}
-            deleteChat={() => {}}
-            unreadMessages={{}}
-            unreadClubs={localUnreadClubs}
-            unreadConversations={localUnreadConversations}
-            handleNewMessage={() => {}}
+            messages={messages}
+            deleteChat={deleteChat}
+            unreadMessages={localUnreadMessages}
+            unreadClubs={unreadClubs}
+            unreadConversations={unreadConversations}
+            handleNewMessage={handleNewMessage}
             onSendMessage={handleSendMessage}
             onDeleteMessage={handleDeleteMessage}
             directMessageUser={directMessageUser}
             setDirectMessageUser={setDirectMessageUser}
+            activeClubMessages={activeClubMessages}
           />
-        </DrawerContent>
-      </Drawer>
-    </ChatProvider>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 };
 
