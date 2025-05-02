@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Notification } from '@/types';
 import { cn } from '@/lib/utils';
@@ -47,14 +48,18 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   // Handle user name clicks
   const handleUserClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    
     let userId = notification.userId;
     let userName = notification.userName || 'Unknown User';
     
-    // For join requests, the user ID might be in a different location
+    // For join requests, the user ID might be in the data field under various properties
     if (notification.type === 'join_request' && notification.data) {
-      userId = notification.data.userId || userId;
-      userName = notification.data.requesterName || notification.data.userName || userName;
+      // Try all possible locations for user ID in the notification data
+      userId = notification.data.userId || notification.data.requesterId || userId;
+      userName = notification.data.userName || notification.data.requesterName || userName;
     }
+    
+    console.log("[NotificationItem] User click data:", { userId, userName, notificationData: notification.data });
     
     if (userId && userName) {
       console.log("[NotificationItem] Navigating to user:", userId, userName);
@@ -182,24 +187,36 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   // Create a formatted message with clickable parts based on notification type
   const formatMessage = () => {
     // For join requests - what admins see when users request to join their club
-    if (notification.type === 'join_request' && notification.data?.requesterName && notification.data?.clubName) {
-      return (
-        <p className="text-sm">
-          <span 
-            className="font-medium text-primary cursor-pointer hover:underline"
-            onClick={handleUserClick}
-          >
-            {notification.data.requesterName}
-          </span>
-          {' has requested to join '}
-          <span 
-            className="font-medium text-primary cursor-pointer hover:underline"
-            onClick={handleClubClick}
-          >
-            {notification.data.clubName}
-          </span>
-        </p>
-      );
+    if (notification.type === 'join_request') {
+      // Try to get user and club names from different possible locations in the data
+      const userName = notification.data?.requesterName || notification.data?.userName;
+      const clubName = notification.data?.clubName;
+      
+      console.log("[NotificationItem] Formatting join request:", { 
+        userName, 
+        clubName, 
+        data: notification.data 
+      });
+      
+      if (userName && clubName) {
+        return (
+          <p className="text-sm">
+            <span 
+              className="font-medium text-primary cursor-pointer hover:underline"
+              onClick={handleUserClick}
+            >
+              {userName}
+            </span>
+            {' has requested to join '}
+            <span 
+              className="font-medium text-primary cursor-pointer hover:underline"
+              onClick={handleClubClick}
+            >
+              {clubName}
+            </span>
+          </p>
+        );
+      }
     }
     
     // For accepted join requests notifications
@@ -266,3 +283,4 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     </div>
   );
 };
+
