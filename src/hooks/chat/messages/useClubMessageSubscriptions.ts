@@ -3,10 +3,9 @@ import { useEffect, useRef, useCallback } from 'react';
 import { Club } from '@/types';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { createClubChannel, cleanupChannels } from './utils/subscriptionUtils';
-import { processNewMessage } from './utils/messageHandlerUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
-import { useUnreadMessages } from '@/context/UnreadMessagesContext';
+import { useUnreadMessages } from '@/context/unread-messages';
 
 export const useClubMessageSubscriptions = (
   userClubs: Club[],
@@ -19,8 +18,51 @@ export const useClubMessageSubscriptions = (
   const channelsRef = useRef<RealtimeChannel[]>([]);
   const { currentUser, isSessionReady } = useApp();
   const { markClubMessagesAsRead } = useUnreadMessages();
+  const messageUpdateCount = useRef(0);
   
   const selectedClubRef = useRef<string | null>(null);
+  
+  // Helper function to safely update club messages with a new array reference
+  const safeUpdateClubMessages = useCallback((
+    clubId: string, 
+    messageWithSender: any, 
+    updater: (prev: any[]) => any[]
+  ) => {
+    messageUpdateCount.current += 1;
+    const updateId = messageUpdateCount.current;
+    
+    setClubMessages(prevState => {
+      const clubMessages = prevState[clubId] || [];
+      const updatedMessages = updater(clubMessages);
+      
+      // If nothing changed, return the same state to avoid unnecessary re-renders
+      if (updatedMessages === clubMessages) {
+        return prevState;
+      }
+      
+      console.log(`[useClubMessageSubscriptions] Updating club ${clubId} messages (update #${updateId})`, {
+        previousCount: clubMessages.length,
+        newCount: updatedMessages.length,
+        isActiveClub: clubId === activeClubId,
+        selectedClub: selectedClubRef.current
+      });
+      
+      // IMPORTANT: Always create a new object reference for React to detect the change
+      const newState = {
+        ...prevState,
+        [clubId]: updatedMessages
+      };
+      
+      // If this is the active club, also update the activeClubMessages state if provided
+      if (clubId === activeClubId && setActiveClubMessages) {
+        console.log(`[useClubMessageSubscriptions] This is the active club, updating active messages array`);
+        // Trigger a state update with a completely new array
+        setActiveClubMessages([...updatedMessages]);
+      }
+      
+      return newState;
+    });
+  }, [activeClubId, setClubMessages, setActiveClubMessages]);
   
   useEffect(() => {
     // Skip if not authenticated, session not ready, drawer not open, or no clubs
@@ -65,28 +107,18 @@ export const useClubMessageSubscriptions = (
               const deletedMessageId = payload.old.id;
               const clubId = payload.old.club_id;
               
-              setClubMessages(prev => {
-                if (!prev[clubId]) return prev;
-                
-                const updatedClubMessages = prev[clubId].filter(msg => {
+              safeUpdateClubMessages(
+                clubId,
+                null,
+                prev => prev.filter(msg => {
                   const msgId = typeof msg.id === 'string' ? msg.id : 
                               (msg.id ? String(msg.id) : null);
                   const deleteId = typeof deletedMessageId === 'string' ? deletedMessageId : 
                                   String(deletedMessageId);
                   
                   return msgId !== deleteId;
-                });
-                
-                // Also update active messages if this is the active club
-                if (clubId === activeClubId && setActiveClubMessages) {
-                  setActiveClubMessages(updatedClubMessages);
-                }
-                
-                return {
-                  ...prev,
-                  [clubId]: updatedClubMessages
-                };
-              });
+                })
+              );
             }
           })
       .subscribe();
@@ -142,47 +174,37 @@ export const useClubMessageSubscriptions = (
         
         // Process the message with sender details
         fetchSenderDetails().then(messageWithSender => {
-          // Update the main clubMessages state
-          setClubMessages(prev => {
-            const clubMsgs = prev[clubId] || [];
-            
-            // Check if message already exists to prevent duplicates
-            const messageExists = clubMsgs.some(msg => msg.id === messageWithSender.id);
-            if (messageExists) return prev;
-
-            // Create a new array with the message appended and sorted by timestamp
-            const updatedMessages = [...clubMsgs, messageWithSender].sort(
-              (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-            );
-            
-            // IMPORTANT: Always create a new object reference to ensure React detects the change
-            return {
-              ...prev,
-              [clubId]: updatedMessages
-            };
+          console.log(`[useClubMessageSubscriptions] Processing new message for club ${clubId}`, {
+            messageId: messageWithSender.id,
+            isActiveClub: clubId === activeClubId,
+            activeClubId,
+            selectedClub: selectedClubRef.current
           });
           
-          // If this is the active club, also update the activeClubMessages state
-          if (clubId === activeClubId && setActiveClubMessages) {
-            console.log('[useClubMessageSubscriptions] Updating active club messages with new message');
-            setActiveClubMessages(prev => {
+          // Update with the new message using our safe update function
+          safeUpdateClubMessages(
+            clubId,
+            messageWithSender,
+            prevMessages => {
               // Check if message already exists to prevent duplicates
-              const messageExists = prev.some(msg => msg.id === messageWithSender.id);
-              if (messageExists) return prev;
-              
+              if (prevMessages.some(msg => msg.id === messageWithSender.id)) {
+                console.log('[useClubMessageSubscriptions] Message already exists, skipping');
+                return prevMessages; // Return the same array to prevent unnecessary re-renders
+              }
+
               // Create a new array with the message appended and sorted by timestamp
-              const updatedMessages = [...prev, messageWithSender].sort(
+              console.log('[useClubMessageSubscriptions] Adding new message to club messages array');
+              return [...prevMessages, messageWithSender].sort(
                 (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
               );
-              
-              return updatedMessages;
-            });
-          }
+            }
+          );
           
           // If the message is from another user and NOT the currently viewed club,
           // we need to update the unread count for this club
           if (payload.new.sender_id !== currentUser.id && 
               (!selectedClubRef.current || selectedClubRef.current !== clubId)) {
+            console.log('[useClubMessageSubscriptions] Dispatching clubMessageReceived event');
             window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
               detail: { clubId } 
             }));
@@ -199,13 +221,14 @@ export const useClubMessageSubscriptions = (
       channelsRef.current = [];
       activeSubscriptionsRef.current = {};
     };
-  }, [userClubs, isOpen, setClubMessages, currentUser?.id, isSessionReady, activeClubId, setActiveClubMessages]);
+  }, [userClubs, isOpen, currentUser?.id, isSessionReady, activeClubId, safeUpdateClubMessages]);
 
   // Listen for club selection changes to track the currently viewed club
   useEffect(() => {
     const handleClubSelected = (e: CustomEvent) => {
       const clubId = e.detail?.clubId;
       if (clubId) {
+        console.log(`[useClubMessageSubscriptions] Club selected: ${clubId} (current: ${selectedClubRef.current})`);
         selectedClubRef.current = clubId;
         
         // Mark club messages as read when selected
@@ -216,6 +239,7 @@ export const useClubMessageSubscriptions = (
     };
 
     const handleClubDeselected = () => {
+      console.log('[useClubMessageSubscriptions] Club deselected');
       selectedClubRef.current = null;
     };
 
@@ -230,6 +254,9 @@ export const useClubMessageSubscriptions = (
   
   // Track the active club ID
   useEffect(() => {
-    selectedClubRef.current = activeClubId;
+    if (selectedClubRef.current !== activeClubId) {
+      console.log(`[useClubMessageSubscriptions] Active club ID changed: ${activeClubId} (was: ${selectedClubRef.current})`);
+      selectedClubRef.current = activeClubId;
+    }
   }, [activeClubId]);
 };

@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import { useUnreadMessages } from '@/context/unread-messages';
@@ -13,6 +13,7 @@ export const useActiveClubMessages = (clubId: string | null) => {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const isMounted = useRef(true);
   const initialFetchDone = useRef(false);
+  const messageUpdateCount = useRef(0);
 
   // Clean up resources when unmounting
   useEffect(() => {
@@ -61,6 +62,7 @@ export const useActiveClubMessages = (clubId: string | null) => {
         if (error) throw error;
 
         if (isMounted.current) {
+          console.log(`[useActiveClubMessages] Fetched ${data?.length || 0} messages for club ${clubId}`);
           setMessages(data || []);
           setLoading(false);
           initialFetchDone.current = true;
@@ -78,6 +80,27 @@ export const useActiveClubMessages = (clubId: string | null) => {
 
     fetchMessages();
   }, [clubId, currentUser?.id, isSessionReady, markClubMessagesAsRead]);
+
+  // Add a safe message setter that guarantees a new array reference
+  const safeSetMessages = useCallback((updater: React.SetStateAction<any[]>) => {
+    messageUpdateCount.current += 1;
+    const updateId = messageUpdateCount.current;
+    
+    setMessages(prevMessages => {
+      const newMessages = typeof updater === 'function' 
+        ? updater(prevMessages) 
+        : updater;
+      
+      console.log(`[useActiveClubMessages] Updating messages (id: ${updateId}, club: ${clubId})`, {
+        prevCount: prevMessages.length,
+        newCount: newMessages.length,
+        isNewReference: newMessages !== prevMessages
+      });
+      
+      // Always ensure we return a new array reference to trigger re-renders
+      return [...newMessages];
+    });
+  }, [clubId]);
 
   // Set up subscription for real-time updates
   useEffect(() => {
@@ -104,7 +127,7 @@ export const useActiveClubMessages = (clubId: string | null) => {
       }, async (payload) => {
         if (!isMounted.current) return;
         
-        console.log(`[useActiveClubMessages] New message for club ${clubId}:`, payload.new?.id);
+        console.log(`[useActiveClubMessages] New message received for club ${clubId}:`, payload.new?.id);
         
         // When a new message is received, fetch the sender details if not present
         let messageWithSender = payload.new;
@@ -128,10 +151,21 @@ export const useActiveClubMessages = (clubId: string | null) => {
           }
         }
         
-        // Update the messages state with a new array reference to trigger re-render
-        setMessages(prev => [...prev, messageWithSender].sort(
-          (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-        ));
+        // Update the messages state using our safe setter to guarantee a new reference
+        safeSetMessages(prev => {
+          // Check if message already exists to avoid duplicates
+          if (prev.some(msg => msg.id === messageWithSender.id)) {
+            console.log('[useActiveClubMessages] Duplicate message, skipping', messageWithSender.id);
+            return prev; // No change needed
+          }
+          
+          console.log('[useActiveClubMessages] Adding new message to state:', messageWithSender.id);
+          
+          // Create a completely new array with the new message added and sorted
+          return [...prev, messageWithSender].sort(
+            (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+        });
         
         // If message is not from current user, dispatch event for notification
         if (messageWithSender.sender_id !== currentUser.id) {
@@ -150,8 +184,8 @@ export const useActiveClubMessages = (clubId: string | null) => {
         
         console.log(`[useActiveClubMessages] Message deleted from club ${clubId}:`, payload.old?.id);
         
-        // Remove the deleted message
-        setMessages(prev => prev.filter(msg => msg.id !== payload.old?.id));
+        // Remove the deleted message using our safe setter
+        safeSetMessages(prev => prev.filter(msg => msg.id !== payload.old?.id));
       })
       .subscribe();
 
@@ -164,27 +198,29 @@ export const useActiveClubMessages = (clubId: string | null) => {
         channelRef.current = null;
       }
     };
-  }, [clubId, currentUser?.id, isSessionReady]);
+  }, [clubId, currentUser?.id, isSessionReady, safeSetMessages]);
 
-  const addMessage = (message: any) => {
+  const addMessage = useCallback((message: any) => {
     // Check if the message already exists to avoid duplicates
-    if (messages.some(msg => msg.id === message.id)) {
-      return;
-    }
-    
-    // Add the message to the array
-    setMessages(prev => [...prev, message].sort(
-      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    ));
-  };
+    safeSetMessages(prev => {
+      if (prev.some(msg => msg.id === message.id)) {
+        return prev;
+      }
+      
+      // Add the message to the array with a new array reference
+      return [...prev, message].sort(
+        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+    });
+  }, [safeSetMessages]);
 
-  const deleteMessage = (messageId: string) => {
-    setMessages(prev => prev.filter(msg => msg.id !== messageId));
-  };
+  const deleteMessage = useCallback((messageId: string) => {
+    safeSetMessages(prev => prev.filter(msg => msg.id !== messageId));
+  }, [safeSetMessages]);
 
   return {
     messages,
-    setMessages,
+    setMessages: safeSetMessages,
     addMessage,
     loading,
     isSending,
