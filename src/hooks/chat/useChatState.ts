@@ -16,7 +16,7 @@ export const useChatState = (open: boolean, onNewMessage?: (count: number) => vo
 
   const { unreadMessages, updateUnreadCount } = useUnreadNotifications(open, onNewMessage);
   const { messages, setMessages, handleNewMessage } = useMessageHandling(saveMessages, updateUnreadCount);
-  const { sendMessageToClub } = useChatActions();
+  const { sendClubMessage } = useChatActions();
   const { deleteChat } = useChatDeletion();
   const { refreshKey, refreshChats } = useRefreshState();
 
@@ -37,7 +37,7 @@ export const useChatState = (open: boolean, onNewMessage?: (count: number) => vo
       messagePreview: message.substring(0, 20) + (message.length > 20 ? '...' : '') 
     });
     
-    const result = await sendMessageToClub(clubId, message, setClubMessages);
+    const result = await sendClubMessage(message, clubId);
     
     if (result) {
       console.log('[useChatState] Message sent successfully');
@@ -52,7 +52,7 @@ export const useChatState = (open: boolean, onNewMessage?: (count: number) => vo
     refreshKey,
     refreshChats,
     handleNewMessage,
-    sendMessageToClub: handleSendClubMessage,
+    sendClubMessage: handleSendClubMessage,
     setUnreadMessages: updateUnreadCount,
     deleteChat
   };

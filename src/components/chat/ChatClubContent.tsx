@@ -7,6 +7,7 @@ import ChatInput from './ChatInput';
 import { useNavigation } from '@/hooks/useNavigation';
 import { useChatActions } from '@/hooks/chat/useChatActions';
 import { useActiveClubMessages } from '@/hooks/chat/messages/useActiveClubMessages';
+import { useApp } from '@/context/AppContext';
 
 interface ChatClubContentProps {
   club: Club;
@@ -34,6 +35,7 @@ const ChatClubContent = ({
   const { deleteMessage: deleteMessageAction } = useChatActions();
   const effectiveClubId = clubId || club?.id;
   const renderCountRef = useRef(0);
+  const { currentUser } = useApp();
   
   // Use our new local-state hook for this specific club
   const {
@@ -84,15 +86,19 @@ const ChatClubContent = ({
       const messageToSend = message.trim();
       if (effectiveClubId) {
         // Add optimistic message if we have the user data
-        if (club) {
+        if (currentUser) {
           const optimisticId = `temp-${Date.now()}`;
           const optimisticMessage = {
             id: optimisticId,
             message: messageToSend,
-            sender_id: club.currentMember?.id,
+            sender_id: currentUser.id,
             club_id: effectiveClubId,
             timestamp: new Date().toISOString(),
-            sender: club.currentMember,
+            sender: {
+              id: currentUser.id,
+              name: currentUser.name,
+              avatar: currentUser.avatar
+            },
             optimistic: true
           };
           
