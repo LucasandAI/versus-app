@@ -23,4 +23,7 @@ export interface UnreadMessagesContextType {
   
   // Fetch unread counts from server
   fetchUnreadCounts: () => Promise<void>;
+  
+  // Force refresh UI
+  forceRefresh: () => void;
 }

@@ -36,35 +36,30 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     conversationId: string;
   } | null>(null);
   
-  // Add a local copy of unreadClubs for direct passing and forced re-renders
-  const { unreadClubs, unreadConversations } = useUnreadMessages();
-  const [localUnreadClubs, setLocalUnreadClubs] = useState<Set<string>>(new Set());
-  const [localUnreadConversations, setLocalUnreadConversations] = useState<Set<string>>(new Set());
+  // Get unread state from context
+  const { unreadClubs, unreadConversations, forceRefresh } = useUnreadMessages();
+  
+  // Force state update when unread messages change
   const [forceUpdateKey, setForceUpdateKey] = useState(Date.now());
   
-  // Force re-render when unreadClubs changes
-  useEffect(() => {
-    setLocalUnreadClubs(new Set(unreadClubs));
-    setForceUpdateKey(Date.now());
-  }, [unreadClubs]);
-
-  // Force re-render when unreadConversations changes
-  useEffect(() => {
-    setLocalUnreadConversations(new Set(unreadConversations));
-  }, [unreadConversations]);
-  
-  // Listen for global unread message events
+  // Listen for unread messages updates
   useEffect(() => {
     const handleUnreadMessagesUpdate = () => {
       console.log('[MainChatDrawer] Detected unreadMessagesUpdated event, forcing re-render');
-      setForceUpdateKey(Date.now());
+      setTimeout(() => {
+        setForceUpdateKey(Date.now());
+        forceRefresh();
+      }, 50);
     };
     
     window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdate);
+    window.addEventListener('clubMessageReceived', handleUnreadMessagesUpdate);
+    
     return () => {
       window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdate);
+      window.removeEventListener('clubMessageReceived', handleUnreadMessagesUpdate);
     };
-  }, []);
+  }, [forceRefresh]);
   
   const { sendMessageToClub, deleteMessage } = useChatActions();
   const { currentUser } = useApp();
@@ -152,8 +147,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             messages={clubMessages}
             deleteChat={() => {}}
             unreadMessages={{}}
-            unreadClubs={localUnreadClubs}
-            unreadConversations={localUnreadConversations}
+            unreadClubs={unreadClubs}
+            unreadConversations={unreadConversations}
             handleNewMessage={() => {}}
             onSendMessage={handleSendMessage}
             onDeleteMessage={handleDeleteMessage}

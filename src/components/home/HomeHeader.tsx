@@ -6,7 +6,7 @@ import UserAvatar from '../shared/UserAvatar';
 import Button from '../shared/Button';
 import NotificationPopover from '../shared/NotificationPopover';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
-import { useUnreadMessages } from '@/context/UnreadMessagesContext';
+import { useUnreadMessages } from '@/context/unread-messages';
 
 interface HomeHeaderProps {
   notifications: any[];
@@ -25,7 +25,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
 }) => {
   const { setCurrentView, currentUser, setSelectedUser } = useApp();
   const { open } = useChatDrawerGlobal();
-  const { totalUnreadCount } = useUnreadMessages();
+  const { totalUnreadCount, forceRefresh } = useUnreadMessages();
   const [badgeCount, setBadgeCount] = useState(totalUnreadCount);
   
   console.log("[HomeHeader] Rendering with notifications:", 
@@ -33,24 +33,28 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   
   // Update badge count when totalUnreadCount changes
   useEffect(() => {
+    console.log("[HomeHeader] Total unread count changed:", totalUnreadCount);
     setBadgeCount(totalUnreadCount);
   }, [totalUnreadCount]);
   
   // Listen for unreadMessagesUpdated event to update badge count
   useEffect(() => {
     const handleUnreadMessagesUpdated = () => {
+      console.log("[HomeHeader] Unread messages updated event received");
       setTimeout(() => {
-        // This will trigger a re-render that will pick up the latest totalUnreadCount
-        setBadgeCount(prev => prev); // Force an update
+        forceRefresh();
+        setBadgeCount(totalUnreadCount);
       }, 100);
     };
     
     window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
+    window.addEventListener('clubMessageReceived', handleUnreadMessagesUpdated);
     
     return () => {
       window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
+      window.removeEventListener('clubMessageReceived', handleUnreadMessagesUpdated);
     };
-  }, []);
+  }, [forceRefresh, totalUnreadCount]);
   
   const handleViewOwnProfile = () => {
     if (currentUser) {

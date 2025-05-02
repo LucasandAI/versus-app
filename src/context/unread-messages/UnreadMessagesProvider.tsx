@@ -1,5 +1,5 @@
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import UnreadMessagesContext from './UnreadMessagesContext';
 import { useDirectMessageUnreadState } from './hooks/useDirectMessageUnreadState';
@@ -9,6 +9,7 @@ import { useUnreadSubscriptions } from './hooks/useUnreadSubscriptions';
 
 export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const { currentUser, isSessionReady } = useApp();
+  const [forceUpdateTrigger, setForceUpdateTrigger] = useState(0);
   
   // State for unread tracking from hooks
   const {
@@ -61,6 +62,7 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
   useEffect(() => {
     const handler = () => {
       console.log('[UnreadMessagesProvider] Handling unreadMessagesUpdated event');
+      setForceUpdateTrigger(prev => prev + 1);
     };
     
     window.addEventListener('unreadMessagesUpdated', handler);
@@ -75,9 +77,11 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
   // Force re-render method that components can call
   const forceRefresh = useCallback(() => {
     console.log('[UnreadMessagesProvider] Force refresh triggered');
-    // The state update will trigger a re-render
+    setForceUpdateTrigger(prev => prev + 1);
+    // Also create a new Set instance to ensure state updates are detected
     setUnreadClubs(new Set(unreadClubs));
-  }, [unreadClubs]);
+    setUnreadConversations(new Set(unreadConversations));
+  }, [unreadClubs, unreadConversations, setUnreadClubs, setUnreadConversations]);
   
   return (
     <UnreadMessagesContext.Provider value={{
@@ -92,7 +96,8 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       markClubMessagesAsRead,
       markConversationAsUnread,
       markClubAsUnread,
-      fetchUnreadCounts
+      fetchUnreadCounts,
+      forceRefresh
     }}>
       {children}
     </UnreadMessagesContext.Provider>

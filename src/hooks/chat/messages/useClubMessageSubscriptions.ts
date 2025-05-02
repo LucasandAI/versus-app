@@ -16,7 +16,7 @@ export const useClubMessageSubscriptions = (
 ) => {
   const channelsRef = useRef<RealtimeChannel[]>([]);
   const { currentUser, isSessionReady } = useApp();
-  const { markClubMessagesAsRead } = useUnreadMessages();
+  const { markClubMessagesAsRead, markClubAsUnread, forceRefresh } = useUnreadMessages();
   
   const selectedClubRef = useRef<string | null>(null);
   
@@ -155,6 +155,16 @@ export const useClubMessageSubscriptions = (
         // we need to update the unread count for this club
         if (payload.new.sender_id !== currentUser.id && 
             (!selectedClubRef.current || selectedClubRef.current !== clubId)) {
+          console.log(`[useClubMessageSubscriptions] Received message from another user for club ${clubId}`);
+          
+          // Mark the club as unread
+          markClubAsUnread(clubId);
+          
+          // Force refresh to update UI
+          setTimeout(() => {
+            forceRefresh();
+          }, 50);
+          
           window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
             detail: { clubId } 
           }));
@@ -170,7 +180,7 @@ export const useClubMessageSubscriptions = (
       channelsRef.current = [];
       activeSubscriptionsRef.current = {};
     };
-  }, [userClubs, isOpen, setClubMessages, currentUser?.id, isSessionReady]);
+  }, [userClubs, isOpen, setClubMessages, currentUser?.id, isSessionReady, markClubAsUnread, forceRefresh]);
 
   // Listen for club selection changes to track the currently viewed club
   useEffect(() => {
