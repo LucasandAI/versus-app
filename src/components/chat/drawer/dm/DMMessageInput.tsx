@@ -21,7 +21,7 @@ const DMMessageInput: React.FC<DMMessageInputProps> = ({
         onSendMessage={onSendMessage}
         isSending={isSending}
         clubId={userId}
-        conversationId={conversationId || 'new'}
+        conversationId={conversationId}
         conversationType="dm"
       />
     </div>
