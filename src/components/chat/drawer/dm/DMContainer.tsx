@@ -27,7 +27,7 @@ interface DMContainerProps {
 const DMContainer: React.FC<DMContainerProps> = memo(({ 
   directMessageUser, 
   setDirectMessageUser,
-  unreadConversations = new Set()
+  unreadConversations = new Set<string>()
 }) => {
   const [showSearch, setShowSearch] = useState(false);
   const { getOrCreateConversation } = useDirectConversationsContext();

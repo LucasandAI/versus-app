@@ -91,8 +91,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   // Track if messages changed and need scroll
   if (prevMessageLengthRef.current !== messages.length) {
     // Use requestAnimationFrame to scroll after render
+    // Fix: Wrap scrollToBottom in an anonymous function
     if (messages.length > prevMessageLengthRef.current) {
-      requestAnimationFrame(scrollToBottom);
+      requestAnimationFrame(() => scrollToBottom());
     }
     prevMessageLengthRef.current = messages.length;
   }
