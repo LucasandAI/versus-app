@@ -2,11 +2,11 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { Club } from '@/types';
 import { RealtimeChannel } from '@supabase/supabase-js';
-import { createClubChannel, cleanupChannels } from './utils/subscriptionUtils';
-import { processNewMessage } from './utils/messageHandlerUtils';
+import { cleanupChannels } from './utils/subscriptionUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import { useUnreadMessages } from '@/context/UnreadMessagesContext';
+import { handleNewMessagePayload, handleMessageDeletion } from './utils/subscriptionHandlers';
 
 export const useClubMessageSubscriptions = (
   userClubs: Club[],
@@ -57,30 +57,7 @@ export const useClubMessageSubscriptions = (
               undefined
           },
           (payload) => {
-            console.log('[useClubMessageSubscriptions] Message deletion event received:', payload);
-            
-            if (payload.old && payload.old.id && payload.old.club_id) {
-              const deletedMessageId = payload.old.id;
-              const clubId = payload.old.club_id;
-              
-              setClubMessages(prev => {
-                if (!prev[clubId]) return prev;
-                
-                const updatedClubMessages = prev[clubId].filter(msg => {
-                  const msgId = typeof msg.id === 'string' ? msg.id : 
-                              (msg.id ? String(msg.id) : null);
-                  const deleteId = typeof deletedMessageId === 'string' ? deletedMessageId : 
-                                  String(deletedMessageId);
-                  
-                  return msgId !== deleteId;
-                });
-                
-                return {
-                  ...prev,
-                  [clubId]: updatedClubMessages
-                };
-              });
-            }
+            handleMessageDeletion(payload, setClubMessages);
           })
       .subscribe();
       
@@ -110,72 +87,13 @@ export const useClubMessageSubscriptions = (
         schema: 'public',
         table: 'club_chat_messages'
       }, (payload) => {
-        console.log('[useClubMessageSubscriptions] Received message:', payload);
-        
-        if (!payload.new || !payload.new.club_id) return;
-        
-        // Get the club ID from the message
-        const messageClubId = payload.new.club_id;
-        
-        // Check if this message belongs to one of the user's clubs
-        const isRelevantClub = userClubs.some(club => club.id === messageClubId);
-        if (!isRelevantClub) return;
-        
-        console.log(`[useClubMessageSubscriptions] 🔥 New message received for club ${messageClubId}:`, payload.new?.id);
-        
-        // When a new message is received, fetch the sender details
-        const fetchSenderDetails = async () => {
-          if (!payload.new?.sender_id) return payload.new;
-          
-          try {
-            const { data: senderData } = await supabase
-              .from('users')
-              .select('id, name, avatar')
-              .eq('id', payload.new.sender_id)
-              .single();
-              
-            if (senderData) {
-              return {
-                ...payload.new,
-                sender: senderData
-              };
-            }
-            
-            return payload.new;
-          } catch (error) {
-            console.error('[useClubMessageSubscriptions] Error fetching sender details:', error);
-            return payload.new;
-          }
-        };
-        
-        // Process the message with sender details
-        fetchSenderDetails().then(messageWithSender => {
-          const clubId = messageWithSender.club_id;
-          
-          setClubMessages(prev => {
-            const clubMsgs = prev[clubId] || [];
-            
-            // Check if message already exists to prevent duplicates
-            const messageExists = clubMsgs.some(msg => msg.id === messageWithSender.id);
-            if (messageExists) return prev;
-            
-            return {
-              ...prev,
-              [clubId]: [...clubMsgs, messageWithSender].sort(
-                (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-              )
-            };
-          });
-        });
-        
-        // If the message is from another user and NOT the currently viewed club,
-        // we need to update the unread count for this club
-        if (payload.new.sender_id !== currentUser.id && 
-            (!selectedClubRef.current || selectedClubRef.current !== messageClubId)) {
-          window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
-            detail: { clubId: messageClubId } 
-          }));
-        }
+        handleNewMessagePayload(
+          payload, 
+          userClubs, 
+          setClubMessages, 
+          currentUser, 
+          selectedClubRef.current
+        );
       })
       .subscribe((status) => {
         console.log('[useClubMessageSubscriptions] All club messages channel status:', status);
