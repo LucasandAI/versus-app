@@ -1,14 +1,21 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { UserCache } from './types';
 
 export const useUserData = () => {
   const [userCache, setUserCache] = useState<UserCache>({});
   const [fetchingUsers, setFetchingUsers] = useState<Set<string>>(new Set());
+  const pendingFetches = useRef<Record<string, Promise<any>>>({});
 
   // Callback to fetch user data
   const fetchUserData = useCallback(async (userId: string) => {
+    // If we already have a pending fetch for this user, return that promise
+    if (pendingFetches.current[userId]) {
+      console.log(`[useUserData] Returning existing fetch promise for user ${userId}`);
+      return pendingFetches.current[userId];
+    }
+    
     // Skip if already fetching this user
     if (fetchingUsers.has(userId)) {
       console.log(`[useUserData] Already fetching user ${userId}`);
@@ -24,35 +31,58 @@ export const useUserData = () => {
       
       console.log(`[useUserData] Fetching user data for ${userId}`);
       
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('name, avatar, bio')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('[useUserData] Error fetching user data:', error);
-        return null;
-      }
-
-      if (userData) {
-        const userWithDefaults = {
-          name: userData.name || 'User',
-          avatar: userData.avatar || '/placeholder.svg',
-          bio: userData.bio || ''
-        };
-        
-        console.log(`[useUserData] Fetched data for user ${userId}:`, userWithDefaults);
-        
-        setUserCache(prev => ({
-          ...prev,
-          [userId]: userWithDefaults
-        }));
-        
-        return userWithDefaults;
-      }
+      // Create a new promise for this fetch
+      const fetchPromise = new Promise(async (resolve) => {
+        try {
+          const { data: userData, error } = await supabase
+            .from('users')
+            .select('name, avatar, bio')
+            .eq('id', userId)
+            .single();
+  
+          if (error) {
+            console.error('[useUserData] Error fetching user data:', error);
+            resolve(null);
+            return;
+          }
+  
+          if (userData) {
+            const userWithDefaults = {
+              name: userData.name || 'User',
+              avatar: userData.avatar || '/placeholder.svg',
+              bio: userData.bio || ''
+            };
+            
+            console.log(`[useUserData] Successfully fetched data for user ${userId}:`, userWithDefaults);
+            
+            setUserCache(prev => ({
+              ...prev,
+              [userId]: userWithDefaults
+            }));
+            
+            resolve(userWithDefaults);
+            return userWithDefaults;
+          }
+          
+          resolve(null);
+        } catch (error) {
+          console.error('[useUserData] Exception fetching user data:', error);
+          resolve(null);
+        }
+      });
+      
+      // Store the promise
+      pendingFetches.current[userId] = fetchPromise;
+      
+      // Wait for the fetch to complete
+      const result = await fetchPromise;
+      
+      // Remove from pending fetches
+      delete pendingFetches.current[userId];
+      
+      return result;
     } catch (error) {
-      console.error('[useUserData] Exception fetching user data:', error);
+      console.error('[useUserData] Exception in fetchUserData:', error);
       return null;
     } finally {
       setFetchingUsers(prev => {

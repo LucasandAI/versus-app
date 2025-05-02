@@ -102,15 +102,21 @@ export const useDMSubscription = (
           let userData = null;
           
           if (isFromOtherUser) {
-            // Check if we have data in cache
-            if (userCache[senderId] && userCache[senderId].name) {
+            // Always fetch fresh user data for the sender to ensure we have the latest
+            console.log(`[useDMSubscription] Fetching sender data for ${senderId}`);
+            userData = await fetchUserData(senderId);
+            console.log(`[useDMSubscription] Fetched user data for ${senderId}:`, userData);
+            
+            // If fetch failed but we have cached data, use that as fallback
+            if (!userData && userCache[senderId]) {
               userData = userCache[senderId];
               console.log(`[useDMSubscription] Using cached user data for ${senderId}:`, userData);
-            } else {
-              // Fetch user data if not in cache or incomplete
-              console.log(`[useDMSubscription] Fetching sender data for ${senderId}`);
-              userData = await fetchUserData(senderId);
-              console.log(`[useDMSubscription] Fetched user data for ${senderId}:`, userData);
+            }
+            
+            // If we still don't have user data, use defaults but log a warning
+            if (!userData) {
+              console.warn(`[useDMSubscription] Failed to get user data for ${senderId}`);
+              userData = { name: 'User', avatar: '/placeholder.svg', bio: '' };
             }
           }
           

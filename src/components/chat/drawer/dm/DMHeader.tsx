@@ -15,24 +15,36 @@ const DMHeader: React.FC<DMHeaderProps> = ({ userId, userName, userAvatar }) => 
   const [displayAvatar, setDisplayAvatar] = useState(userAvatar);
   
   useEffect(() => {
-    // Update from props
-    setDisplayName(userName);
-    setDisplayAvatar(userAvatar);
-    
-    // Try to get from cache if available
-    const cachedUser = userCache[userId];
-    if (cachedUser) {
-      if (cachedUser.name) setDisplayName(cachedUser.name);
-      if (cachedUser.avatar) setDisplayAvatar(cachedUser.avatar);
-    } else {
-      // Fetch if not in cache
-      fetchUserData(userId).then(userData => {
+    const fetchAndUpdateUserData = async () => {
+      // Update from props first
+      setDisplayName(userName);
+      setDisplayAvatar(userAvatar);
+      
+      try {
+        // Try to get from cache if available
+        const cachedUser = userCache[userId];
+        if (cachedUser?.name) {
+          console.log(`[DMHeader] Using cached user data for ${userId}:`, cachedUser);
+          setDisplayName(cachedUser.name);
+          if (cachedUser.avatar) setDisplayAvatar(cachedUser.avatar);
+          return;
+        }
+        
+        // Fetch if not in cache or incomplete
+        console.log(`[DMHeader] Fetching user data for ${userId}`);
+        const userData = await fetchUserData(userId);
+        console.log(`[DMHeader] Fetched user data for ${userId}:`, userData);
+        
         if (userData) {
           setDisplayName(userData.name);
-          setDisplayAvatar(userData.avatar);
+          if (userData.avatar) setDisplayAvatar(userData.avatar);
         }
-      });
-    }
+      } catch (error) {
+        console.error(`[DMHeader] Error fetching user data for ${userId}:`, error);
+      }
+    };
+    
+    fetchAndUpdateUserData();
   }, [userId, userName, userAvatar, userCache, fetchUserData]);
 
   return (
