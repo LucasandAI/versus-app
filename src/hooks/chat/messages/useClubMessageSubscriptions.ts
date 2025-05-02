@@ -100,27 +100,28 @@ export const useClubMessageSubscriptions = (
     
     channelsRef.current.push(debugGlobalChannel);
     
-    // Create individual channels for each club (for INSERT events)
-    userClubs.forEach(club => {
-      const clubId = club.id;
-      activeSubscriptionsRef.current[clubId] = true;
-      
-      // Create unique channel for this club - SIMPLIFIED CHANNEL NAME
-      const channel = supabase.channel(`club_messages:${clubId}`);
-      
-      // Subscribe to the channel
-      channel.subscribe((status) => {
-        console.log(`[useClubMessageSubscriptions] Channel status for club ${clubId}:`, status);
-      });
-
-      // Add specific message handler for this club
-      channel.on('postgres_changes', {
+    // Create a single channel for all club messages
+    const clubMessagesChannel = supabase.channel('all_club_messages');
+    
+    // Subscribe to all club chat messages without filter
+    clubMessagesChannel
+      .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
-        table: 'club_chat_messages',
-        filter: `club_id=eq.${clubId}`
+        table: 'club_chat_messages'
       }, (payload) => {
-        console.log(`[useClubMessageSubscriptions] 🔥 New message received for club ${clubId}:`, payload.new?.id);
+        console.log('[useClubMessageSubscriptions] Received message:', payload);
+        
+        if (!payload.new || !payload.new.club_id) return;
+        
+        // Get the club ID from the message
+        const messageClubId = payload.new.club_id;
+        
+        // Check if this message belongs to one of the user's clubs
+        const isRelevantClub = userClubs.some(club => club.id === messageClubId);
+        if (!isRelevantClub) return;
+        
+        console.log(`[useClubMessageSubscriptions] 🔥 New message received for club ${messageClubId}:`, payload.new?.id);
         
         // When a new message is received, fetch the sender details
         const fetchSenderDetails = async () => {
@@ -149,6 +150,8 @@ export const useClubMessageSubscriptions = (
         
         // Process the message with sender details
         fetchSenderDetails().then(messageWithSender => {
+          const clubId = messageWithSender.club_id;
+          
           setClubMessages(prev => {
             const clubMsgs = prev[clubId] || [];
             
@@ -168,14 +171,21 @@ export const useClubMessageSubscriptions = (
         // If the message is from another user and NOT the currently viewed club,
         // we need to update the unread count for this club
         if (payload.new.sender_id !== currentUser.id && 
-            (!selectedClubRef.current || selectedClubRef.current !== clubId)) {
+            (!selectedClubRef.current || selectedClubRef.current !== messageClubId)) {
           window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
-            detail: { clubId } 
+            detail: { clubId: messageClubId } 
           }));
         }
+      })
+      .subscribe((status) => {
+        console.log('[useClubMessageSubscriptions] All club messages channel status:', status);
       });
 
-      channelsRef.current.push(channel);
+    channelsRef.current.push(clubMessagesChannel);
+    
+    // Set active subscriptions for each club
+    userClubs.forEach(club => {
+      activeSubscriptionsRef.current[club.id] = true;
     });
     
     return () => {
