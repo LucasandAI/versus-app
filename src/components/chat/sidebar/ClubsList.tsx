@@ -34,7 +34,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
   const { navigateToClubDetail } = useNavigation();
   const { lastMessages, sortedClubs } = useClubLastMessages(clubs);
   const { unreadClubs: contextUnreadClubs, markClubMessagesAsRead } = useUnreadMessages();
-  const [forceUpdateKey, setForceUpdateKey] = useState(Date.now());
+  const [refreshToggle, setRefreshToggle] = useState(false);
   
   // Use either the passed props (preferred) or fall back to context
   const unreadClubs = propUnreadClubs || contextUnreadClubs;
@@ -49,8 +49,8 @@ const ClubsList: React.FC<ClubsListProps> = ({
   useEffect(() => {
     const handleClubMessage = (event: CustomEvent) => {
       console.log('[ClubsList] Received clubMessageInserted event:', event.detail);
-      // Force refresh the component
-      setForceUpdateKey(Date.now());
+      // Use boolean toggle for gentle updates
+      setRefreshToggle(prev => !prev);
     };
     
     window.addEventListener('clubMessageInserted', handleClubMessage as EventListener);
@@ -71,8 +71,8 @@ const ClubsList: React.FC<ClubsListProps> = ({
     return text?.length > 50 ? `${text.substring(0, 50)}...` : text;
   };
 
-  // Create a key that will change whenever unread status changes or force update
-  const unreadKey = `${Array.from(unreadClubs).join(',')}-${forceUpdateKey}`;
+  // Create a key that will change whenever unread status changes or refresh toggle changes
+  const unreadKey = `${Array.from(unreadClubs).join(',')}-${refreshToggle}`;
   
   return (
     <div className="p-3">
@@ -93,7 +93,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
             
           return (
             <div 
-              key={`${club.id}-${isUnread ? 'unread' : 'read'}-${unreadKey}`}
+              key={`${club.id}-${isUnread ? 'unread' : 'read'}-${refreshToggle}`}
               className={`flex items-start px-4 py-3 cursor-pointer hover:bg-gray-50 relative group
                 ${selectedClub?.id === club.id ? 'bg-primary/10 text-primary' : ''}
                 ${isUnread ? 'font-medium' : ''}`}

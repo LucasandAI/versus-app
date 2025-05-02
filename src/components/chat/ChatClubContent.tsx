@@ -26,7 +26,7 @@ const ChatClubContent = ({
   const { currentUser } = useApp();
   const { deleteMessage: deleteClubMessage } = useChatActions();
   const effectiveClubId = clubId || club?.id;
-  const [forceUpdateKey, setForceUpdateKey] = useState(Date.now());
+  const [refreshToggle, setRefreshToggle] = useState(false);
   
   // Use the hook for active club messages
   const { 
@@ -49,7 +49,7 @@ const ChatClubContent = ({
     const handleClubMessage = (event: CustomEvent) => {
       if (event.detail.clubId === effectiveClubId) {
         console.log('[ChatClubContent] Received clubMessageInserted event for this club:', event.detail);
-        setForceUpdateKey(Date.now());
+        setRefreshToggle(prev => !prev);
       }
     };
     
@@ -114,7 +114,7 @@ const ChatClubContent = ({
   };
 
   // Generate a key to force ChatMessages re-render when messages change
-  const messagesKey = `${effectiveClubId}-${messages.length}-${forceUpdateKey}`;
+  const messagesKey = `${effectiveClubId}-${messages.length}-${refreshToggle}`;
 
   return (
     <div className="flex flex-col h-full">

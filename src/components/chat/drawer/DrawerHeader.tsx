@@ -17,7 +17,7 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
   selectedClub 
 }) => {
   const { unreadConversations, unreadClubs, markClubMessagesAsRead } = useUnreadMessages();
-  const [forceUpdateKey, setForceUpdateKey] = useState(Date.now());
+  const [refreshToggle, setRefreshToggle] = useState(false);
 
   // Mark club messages as read when a club is selected and the clubs tab is active
   useEffect(() => {
@@ -31,7 +31,7 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
   useEffect(() => {
     const handleClubMessage = () => {
       console.log('[DrawerHeader] Received clubMessageInserted event, refreshing state');
-      setForceUpdateKey(Date.now());
+      setRefreshToggle(prev => !prev);
     };
     
     window.addEventListener('clubMessageInserted', handleClubMessage as EventListener);
@@ -42,7 +42,7 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
   }, []);
   
   // Create a key that changes whenever unread status updates
-  const unreadBadgeKey = `${unreadClubs.size}-${unreadConversations.size}-${forceUpdateKey}`;
+  const unreadBadgeKey = `${unreadClubs.size}-${unreadConversations.size}-${refreshToggle}`;
   
   return (
     <div className="px-4 py-2 border-b">

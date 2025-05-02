@@ -1,5 +1,5 @@
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import UnreadMessagesContext from './UnreadMessagesContext';
 import { useDirectMessageUnreadState } from './hooks/useDirectMessageUnreadState';
@@ -9,6 +9,7 @@ import { useUnreadSubscriptions } from './hooks/useUnreadSubscriptions';
 
 export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const { currentUser, isSessionReady } = useApp();
+  const [refreshToggle, setRefreshToggle] = useState(false);
   
   // State for unread tracking from hooks
   const {
@@ -76,6 +77,7 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       if (senderId !== currentUser?.id) {
         console.log('[UnreadMessagesProvider] Club message received, marking as unread:', clubId);
         markClubAsUnread(clubId);
+        setRefreshToggle(prev => !prev);
       }
     };
     
@@ -91,7 +93,8 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
   // Force re-render method that components can call
   const forceRefresh = useCallback(() => {
     console.log('[UnreadMessagesProvider] Force refresh triggered');
-    // The state update will trigger a re-render
+    setRefreshToggle(prev => !prev);
+    // Use the new unreadClubs Set to preserve reference integrity
     setUnreadClubs(new Set(unreadClubs));
   }, [unreadClubs, setUnreadClubs]);
   
