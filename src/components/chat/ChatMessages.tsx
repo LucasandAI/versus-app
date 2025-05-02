@@ -21,6 +21,7 @@ interface ChatMessagesProps {
   currentUserAvatar?: string;
   lastMessageRef?: React.RefObject<HTMLDivElement>;
   formatTime?: (isoString: string) => string;
+  clubId?: string; // Added clubId prop
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({
@@ -32,6 +33,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   currentUserAvatar: providedUserAvatar,
   lastMessageRef: providedLastMessageRef,
   formatTime: providedFormatTime,
+  clubId, // Destructure the clubId prop
 }) => {
   const {
     currentUserId,
@@ -72,6 +74,24 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     // Scroll to bottom when messages change
     scrollToBottom();
   }, [messages, scrollToBottom]);
+  
+  // Listen for new club messages when we have a clubId
+  useEffect(() => {
+    if (!clubId) return;
+    
+    const handleNewMessage = (e: CustomEvent) => {
+      if (e.detail?.clubId === clubId) {
+        console.log('[ChatMessages] New message received for current club, scrolling to bottom');
+        scrollToBottom();
+      }
+    };
+    
+    window.addEventListener('newClubMessageReceived', handleNewMessage as EventListener);
+    
+    return () => {
+      window.removeEventListener('newClubMessageReceived', handleNewMessage as EventListener);
+    };
+  }, [clubId, scrollToBottom]);
   
   if (!Array.isArray(messages)) {
     return (

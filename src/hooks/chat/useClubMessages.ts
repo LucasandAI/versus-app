@@ -9,6 +9,7 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
   const [clubMessages, setClubMessages] = useState<Record<string, any[]>>({});
   const { currentUser } = useApp();
   const activeSubscriptionsRef = useRef<Record<string, boolean>>({});
+  const initialFetchDoneRef = useRef<Record<string, boolean>>({});
   
   // Fetch initial messages when drawer opens
   useEffect(() => {
@@ -16,8 +17,17 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
     
     const fetchInitialMessages = async () => {
       try {
-        // Get last 50 messages for each club
-        const clubIds = userClubs.map(club => club.id);
+        // Get club IDs that haven't been fetched yet
+        const clubIds = userClubs
+          .filter(club => !initialFetchDoneRef.current[club.id])
+          .map(club => club.id);
+        
+        if (clubIds.length === 0) {
+          console.log('[useClubMessages] All clubs already fetched, skipping');
+          return;
+        }
+        
+        console.log('[useClubMessages] Fetching initial messages for clubs:', clubIds);
         
         const { data, error } = await supabase
           .from('club_chat_messages')
@@ -40,25 +50,37 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
         if (error) throw error;
         
         if (data) {
-          const messagesMap: Record<string, any[]> = {};
-          
-          // Group messages by club_id
-          data.forEach(message => {
-            if (!messagesMap[message.club_id]) {
-              messagesMap[message.club_id] = [];
-            }
-            messagesMap[message.club_id].push(message);
+          // Use a functional update to ensure we're working with the latest state
+          setClubMessages(prevMessages => {
+            const messagesMap = {...prevMessages};
+            
+            // Group messages by club_id
+            data.forEach(message => {
+              if (!messagesMap[message.club_id]) {
+                messagesMap[message.club_id] = [];
+              }
+              
+              // Only add if not already present
+              if (!messagesMap[message.club_id].some(m => m.id === message.id)) {
+                messagesMap[message.club_id].push(message);
+              }
+            });
+            
+            // Sort messages by timestamp (oldest first) for each club
+            Object.keys(messagesMap).forEach(clubId => {
+              messagesMap[clubId] = messagesMap[clubId].sort(
+                (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+              );
+            });
+            
+            // Mark clubs as fetched
+            clubIds.forEach(clubId => {
+              initialFetchDoneRef.current[clubId] = true;
+            });
+            
+            console.log('[useClubMessages] Initial messages organized:', Object.keys(messagesMap).length);
+            return messagesMap;
           });
-          
-          // Sort messages by timestamp (oldest first) for each club
-          Object.keys(messagesMap).forEach(clubId => {
-            messagesMap[clubId] = messagesMap[clubId].sort(
-              (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-            );
-          });
-          
-          console.log('[useClubMessages] Initial messages fetched:', Object.keys(messagesMap).length);
-          setClubMessages(messagesMap);
         }
       } catch (error) {
         console.error('[useClubMessages] Error fetching initial messages:', error);
@@ -71,14 +93,18 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
   // Set up real-time subscription for messages
   useClubMessageSubscriptions(userClubs, isOpen, activeSubscriptionsRef, setClubMessages);
   
+  // Safe setter function that ensures we're always creating a new object reference
   const safeSetClubMessages = (updater: React.SetStateAction<Record<string, any[]>>) => {
-    setClubMessages((prevState) => {
+    setClubMessages(prevState => {
       const nextState = typeof updater === 'function' ? updater(prevState) : updater;
+      
       console.log('[useClubMessages] Updating messages state:', {
         prevClubIds: Object.keys(prevState).length,
         nextClubIds: Object.keys(nextState).length
       });
-      return nextState;
+      
+      // Always return a new object to ensure React detects changes
+      return {...nextState};
     });
   };
   
@@ -87,3 +113,5 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
     setClubMessages: safeSetClubMessages
   };
 };
+
+export default useClubMessages;

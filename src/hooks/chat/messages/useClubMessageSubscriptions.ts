@@ -147,11 +147,21 @@ export const useClubMessageSubscriptions = (
               (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
             );
             
-            // Force a re-render by creating a new object reference
-            return {
+            // IMPORTANT: Always create a new object reference to ensure React detects the change
+            const newState = {
               ...prev,
               [clubId]: updatedMessages
             };
+            
+            // Dispatch an event specifically for this club to force UI updates
+            window.dispatchEvent(new CustomEvent('newClubMessageReceived', { 
+              detail: { 
+                clubId,
+                messageId: messageWithSender.id 
+              } 
+            }));
+            
+            return newState;
           });
         });
         

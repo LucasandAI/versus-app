@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Club } from '@/types';
 import ChatDrawer from '../chat/ChatDrawer';
 import { useClubMessages } from '@/hooks/chat/useClubMessages';
@@ -24,19 +24,32 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
   // Add a local state to force re-renders when needed
   const [forceUpdateKey, setForceUpdateKey] = useState(Date.now());
   
-  // Listen for real-time message events
+  // Force update function that can be called from anywhere
+  const forceUpdate = useCallback(() => {
+    console.log('[ChatDrawerHandler] Forcing update of chat drawer');
+    setForceUpdateKey(Date.now());
+  }, []);
+  
+  // Listen for new club message events to force re-renders
   useEffect(() => {
-    const handleNewMessage = () => {
-      console.log('[ChatDrawerHandler] New message detected, updating UI');
-      setForceUpdateKey(Date.now());
+    const handleNewMessage = (e: CustomEvent) => {
+      console.log('[ChatDrawerHandler] New club message received event detected:', e.detail);
+      forceUpdate();
     };
     
-    window.addEventListener('clubMessageReceived', handleNewMessage);
+    const handleClubMessageReceived = () => {
+      console.log('[ChatDrawerHandler] Club message received event detected');
+      forceUpdate();
+    };
+    
+    window.addEventListener('newClubMessageReceived', handleNewMessage as EventListener);
+    window.addEventListener('clubMessageReceived', handleClubMessageReceived);
     
     return () => {
-      window.removeEventListener('clubMessageReceived', handleNewMessage);
+      window.removeEventListener('newClubMessageReceived', handleNewMessage as EventListener);
+      window.removeEventListener('clubMessageReceived', handleClubMessageReceived);
     };
-  }, []);
+  }, [forceUpdate]);
 
   console.log('[ChatDrawerHandler] Rendering with clubMessages:', 
     Object.keys(clubMessages).length, 
