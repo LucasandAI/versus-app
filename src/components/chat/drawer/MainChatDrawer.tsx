@@ -74,6 +74,23 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     };
   }, []);
   
+  // NEW EFFECT: Sync activeClubId with selectedLocalClub
+  useEffect(() => {
+    if (activeClubId && clubs && clubs.length > 0) {
+      console.log(`[MainChatDrawer] Syncing activeClubId: ${activeClubId} with selectedLocalClub`);
+      
+      // Find the matching club object
+      const matchingClub = clubs.find(club => club.id === activeClubId);
+      
+      if (matchingClub) {
+        console.log(`[MainChatDrawer] Found matching club: ${matchingClub.name}`);
+        setSelectedLocalClub(matchingClub);
+      } else {
+        console.log(`[MainChatDrawer] No matching club found for activeClubId: ${activeClubId}`);
+      }
+    }
+  }, [activeClubId, clubs]);
+  
   const { sendMessageToClub, deleteMessage } = useChatActions();
   const { currentUser } = useApp();
   
@@ -121,6 +138,12 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
 
   const handleSelectClub = (club: Club) => {
     setSelectedLocalClub(club);
+    
+    // Sync the selection with activeClubId
+    if (setActiveClubId && club) {
+      console.log(`[MainChatDrawer] Setting activeClubId to: ${club.id} from handleSelectClub`);
+      setActiveClubId(club.id);
+    }
   };
 
   const handleSendMessage = async (message: string, clubId?: string) => {
