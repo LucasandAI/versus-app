@@ -15,6 +15,7 @@ import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
 import DMMessageInput from './DMMessageInput';
 import DMHeader from './DMHeader';
 import { ArrowLeft } from 'lucide-react';
+import { useUserData } from '@/hooks/chat/dm/useUserData';
 
 interface DMConversationProps {
   user: {
@@ -38,6 +39,19 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   const { markConversationAsRead } = useUnreadMessages();
   const [isSending, setIsSending] = React.useState(false);
   const { formatTime } = useMessageFormatting();
+  const { userCache, fetchUserData } = useUserData();
+  
+  // Fetch user data if not already in cache
+  useEffect(() => {
+    const fetchUserIfNeeded = async () => {
+      if (!userCache[user.id]) {
+        console.log(`[DMConversation] Fetching data for user ${user.id}`);
+        await fetchUserData(user.id);
+      }
+    };
+    
+    fetchUserIfNeeded();
+  }, [user.id, userCache, fetchUserData]);
   
   // Use our hook for active messages
   const { messages, setMessages, addOptimisticMessage } = useActiveDMMessages(
@@ -138,6 +152,21 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     currentUser ? [currentUser] : [], 
     [currentUser]
   );
+  
+  // Get the actual user data from cache if available
+  const displayedUser = useMemo(() => {
+    const cachedUser = userCache[user.id];
+    
+    if (cachedUser) {
+      return {
+        id: user.id,
+        name: cachedUser.name || user.name,
+        avatar: cachedUser.avatar || user.avatar
+      };
+    }
+    
+    return user;
+  }, [user, userCache]);
 
   return (
     <div className="flex flex-col h-full w-full">
@@ -152,9 +181,9 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
         <div className="flex-1 flex justify-center">
           <div 
             className="flex items-center gap-3 cursor-pointer hover:opacity-80" 
-            onClick={() => navigateToUserProfile(user.id, user.name, user.avatar)}
+            onClick={() => navigateToUserProfile(displayedUser.id, displayedUser.name, displayedUser.avatar)}
           >
-            <DMHeader userId={user.id} userName={user.name} userAvatar={user.avatar} />
+            <DMHeader userId={displayedUser.id} userName={displayedUser.name} userAvatar={displayedUser.avatar} />
           </div>
         </div>
         {/* This empty div helps maintain balance in the header */}

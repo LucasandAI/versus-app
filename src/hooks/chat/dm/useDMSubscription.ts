@@ -37,12 +37,17 @@ export const useDMSubscription = (
     };
   }, [cleanupSubscription]);
 
-  // Fetch other user's data if needed
+  // Fetch other user's data when component mounts or otherUserId changes
   useEffect(() => {
-    if (otherUserId && !userCache[otherUserId]) {
-      fetchUserData(otherUserId);
+    if (otherUserId) {
+      console.log(`[useDMSubscription] Fetching user data for ${otherUserId}`);
+      fetchUserData(otherUserId).then(userData => {
+        console.log(`[useDMSubscription] Fetched user data:`, userData);
+      }).catch(err => {
+        console.error(`[useDMSubscription] Error fetching user data:`, err);
+      });
     }
-  }, [otherUserId, userCache, fetchUserData]);
+  }, [otherUserId, fetchUserData]);
 
   // Clear processed message cache when conversation changes
   useEffect(() => {
@@ -90,11 +95,15 @@ export const useDMSubscription = (
           processedMessages.current.add(messageId);
           
           // Ensure we have the user data for proper display
-          if (newMessage.sender_id !== currentUserId && !userCache[newMessage.sender_id]) {
-            await fetchUserData(newMessage.sender_id);
+          const senderId = newMessage.sender_id;
+          const isFromOtherUser = senderId === otherUserId;
+          
+          if (isFromOtherUser && (!userCache[senderId] || !userCache[senderId].name)) {
+            console.log(`[useDMSubscription] Fetching sender data for ${senderId}`);
+            await fetchUserData(senderId);
           }
           
-          const user = userCache[otherUserId];
+          const senderData = isFromOtherUser ? userCache[senderId] : null;
           
           // Format the message for the UI
           const chatMessage: ChatMessage = {
@@ -102,8 +111,12 @@ export const useDMSubscription = (
             text: newMessage.text,
             sender: {
               id: newMessage.sender_id,
-              name: newMessage.sender_id === currentUserId ? 'You' : user?.name || 'User',
-              avatar: newMessage.sender_id === currentUserId ? undefined : user?.avatar || '/placeholder.svg'
+              name: newMessage.sender_id === currentUserId 
+                ? 'You' 
+                : (senderData?.name || 'User'),
+              avatar: newMessage.sender_id === currentUserId 
+                ? undefined 
+                : (senderData?.avatar || '/placeholder.svg')
             },
             timestamp: newMessage.timestamp
           };
