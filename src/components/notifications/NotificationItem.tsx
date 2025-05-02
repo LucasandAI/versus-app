@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Notification } from '@/types';
 import { cn } from '@/lib/utils';
@@ -24,37 +23,49 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   formatTime,
   onOptimisticDelete,
 }) => {
-  const { navigateToClub } = useNavigation();
+  const { navigateToClub, navigateToUserProfile } = useNavigation();
 
   // Handle club name clicks
   const handleClubClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     const clubId = notification.clubId || notification.data?.clubId;
-    const clubName = notification.data?.clubName || notification.clubName;
+    const clubName = notification.data?.clubName || notification.clubName || 'Unknown Club';
     
     if (clubId && clubName) {
+      console.log("[NotificationItem] Navigating to club:", clubId, clubName);
       navigateToClub({ id: clubId, name: clubName });
       
       // Mark as read when clicked
       if (onMarkAsRead && !notification.read) {
         onMarkAsRead(notification.id);
       }
+    } else {
+      console.warn("[NotificationItem] Cannot navigate to club, missing data:", clubId, clubName);
     }
   };
 
   // Handle user name clicks
   const handleUserClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const userId = notification.data?.userId || notification.userId;
-    const userName = notification.data?.requesterName || notification.userName;
+    let userId = notification.userId;
+    let userName = notification.userName || 'Unknown User';
+    
+    // For join requests, the user ID might be in a different location
+    if (notification.type === 'join_request' && notification.data) {
+      userId = notification.data.userId || userId;
+      userName = notification.data.requesterName || notification.data.userName || userName;
+    }
     
     if (userId && userName) {
-      onUserClick(userId, userName);
+      console.log("[NotificationItem] Navigating to user:", userId, userName);
+      navigateToUserProfile(userId, userName);
       
       // Mark as read when clicked
       if (onMarkAsRead && !notification.read) {
         onMarkAsRead(notification.id);
       }
+    } else {
+      console.warn("[NotificationItem] Cannot navigate to user, missing data:", userId, userName);
     }
   };
 
@@ -192,7 +203,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     }
     
     // For accepted join requests notifications
-    if (notification.type === 'request_accepted' && notification.data?.clubName) {
+    if (notification.type === 'request_accepted' && (notification.data?.clubName || notification.clubName)) {
+      const clubName = notification.data?.clubName || notification.clubName;
       return (
         <p className="text-sm">
           {'You\'ve been added to '}
@@ -200,7 +212,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
             className="font-medium text-primary cursor-pointer hover:underline"
             onClick={handleClubClick}
           >
-            {notification.data.clubName}
+            {clubName}
           </span>
         </p>
       );

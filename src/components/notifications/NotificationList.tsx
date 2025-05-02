@@ -1,7 +1,10 @@
+
 import React from 'react';
 import { Notification } from '@/types';
 import { NotificationItem } from './NotificationItem';
 import { Button } from '../ui/button';
+import { Trash2 } from 'lucide-react';
+
 interface NotificationListProps {
   notifications: Notification[];
   onMarkAsRead: (id: string) => void;
@@ -9,8 +12,9 @@ interface NotificationListProps {
   onDeclineInvite?: (id: string) => void;
   onClearAll: () => void;
   formatTime: (timestamp: string) => string;
-  onOptimisticDelete?: (id: string) => void; // New prop for optimistic updates
+  onOptimisticDelete?: (id: string) => void; // Prop for optimistic updates
 }
+
 export const NotificationList: React.FC<NotificationListProps> = ({
   notifications,
   onMarkAsRead,
@@ -25,15 +29,29 @@ export const NotificationList: React.FC<NotificationListProps> = ({
 
   // Check if there are any notifications at all
   const isEmpty = notifications.length === 0;
-  return <div className="max-h-[80vh] flex flex-col">
-      {/* Header with clear all button */}
-      
-      
+  
+  return (
+    <div className="max-h-[80vh] flex flex-col">
       {/* List of notifications */}
       <div className="overflow-y-auto">
-        {isEmpty ? <div className="p-4 text-center text-gray-500">
+        {isEmpty ? (
+          <div className="p-4 text-center text-gray-500">
             No notifications yet
-          </div> : notifications.map(notification => <NotificationItem key={notification.id} notification={notification} onMarkAsRead={onMarkAsRead} onUserClick={onUserClick} onDeclineInvite={onDeclineInvite} formatTime={formatTime} onOptimisticDelete={onOptimisticDelete} />)}
+          </div>
+        ) : (
+          notifications.map(notification => (
+            <NotificationItem 
+              key={notification.id} 
+              notification={notification} 
+              onMarkAsRead={onMarkAsRead} 
+              onUserClick={onUserClick} 
+              onDeclineInvite={onDeclineInvite} 
+              formatTime={formatTime}
+              onOptimisticDelete={onOptimisticDelete}
+            />
+          ))
+        )}
       </div>
-    </div>;
+    </div>
+  );
 };
