@@ -23,10 +23,7 @@ export const setupMessageSubscriptions = (
         { 
           event: 'DELETE', 
           schema: 'public', 
-          table: 'club_chat_messages',
-          filter: userClubs.length > 0 ? 
-            `club_id=in.(${userClubs.map(club => `'${club.id}'`).join(',')})` : 
-            undefined
+          table: 'club_chat_messages'
         },
         (payload) => {
           console.log('[setupSubscriptions] Message deletion event received:', payload);
