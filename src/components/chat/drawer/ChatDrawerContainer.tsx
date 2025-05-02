@@ -29,7 +29,6 @@ interface ChatDrawerContainerProps {
     userAvatar: string;
     conversationId: string;
   } | null>>;
-  activeClubMessages?: any[]; // Add this prop
 }
 
 const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
@@ -47,7 +46,6 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   onDeleteMessage,
   directMessageUser,
   setDirectMessageUser,
-  activeClubMessages = [], // Use the active club messages
 }) => {
   return (
     <div className="flex-1 overflow-hidden">
@@ -60,7 +58,6 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
           unreadClubs={unreadClubs}
           onSendMessage={onSendMessage}
           onDeleteMessage={onDeleteMessage}
-          activeClubMessages={activeClubMessages} // Pass active messages
         />
       ) : (
         <DMContainer

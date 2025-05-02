@@ -1,5 +1,5 @@
 
-import React, { useEffect, memo } from 'react';
+import React, { useEffect } from 'react';
 import { ChatMessage } from '@/types';
 import MessageList from './message/MessageList';
 import { useMessageUser } from './message/useMessageUser';
@@ -69,8 +69,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     console.log('[ChatMessages] Messages updated:', {
       count: Array.isArray(messages) ? messages.length : 0,
       isArray: Array.isArray(messages),
-      clubId,
-      messagesReference: messages
+      clubId
     });
     
     scrollToBottom();
@@ -113,18 +112,4 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   );
 };
 
-// Use React.memo to prevent unnecessary re-renders, but with a custom comparison
-export default React.memo(ChatMessages, (prevProps, nextProps) => {
-  // Always re-render if the messages array reference changes
-  if (prevProps.messages !== nextProps.messages) {
-    return false; // Return false to trigger re-render
-  }
-  
-  // Always re-render if club ID changes
-  if (prevProps.clubId !== nextProps.clubId) {
-    return false;
-  }
-  
-  // Default to standard shallow comparison for other props
-  return true;
-});
+export default ChatMessages;
