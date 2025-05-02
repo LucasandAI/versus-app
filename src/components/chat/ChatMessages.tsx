@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ChatMessage } from '@/types';
 import MessageList from './message/MessageList';
 import { useMessageUser } from './message/useMessageUser';
@@ -33,6 +33,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   lastMessageRef: providedLastMessageRef,
   formatTime: providedFormatTime,
 }) => {
+  const renderCountRef = useRef(0);
+  const previousMessagesLengthRef = useRef<number>(0);
+  
   const {
     currentUserId,
     currentUserAvatar: defaultUserAvatar
@@ -62,6 +65,35 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const finalLastMessageRef = providedLastMessageRef || defaultLastMessageRef;
   const finalFormatTime = providedFormatTime || defaultFormatTime;
   
+  // Debug effect to track message updates
+  useEffect(() => {
+    renderCountRef.current += 1;
+    const hasNewMessages = Array.isArray(messages) && messages.length > previousMessagesLengthRef.current;
+    
+    console.log(`[ChatMessages] Render #${renderCountRef.current}`, {
+      messageCount: Array.isArray(messages) ? messages.length : 'No messages array',
+      previousCount: previousMessagesLengthRef.current,
+      newMessages: hasNewMessages
+    });
+    
+    if (Array.isArray(messages)) {
+      previousMessagesLengthRef.current = messages.length;
+      
+      if (messages.length > 0 && hasNewMessages) {
+        // Log info about last message
+        const lastMsg = messages[messages.length - 1];
+        console.log('[ChatMessages] Last message:', {
+          id: lastMsg.id,
+          sender: lastMsg.sender?.name || lastMsg.sender_id,
+          message: lastMsg.message?.substring(0, 30) + (lastMsg.message?.length > 30 ? '...' : '')
+        });
+        
+        // Auto-scroll on new messages
+        setTimeout(scrollToBottom, 100);
+      }
+    }
+  }, [messages, scrollToBottom]);
+  
   if (!Array.isArray(messages)) {
     return (
       <div className="flex-1 p-4">
@@ -84,6 +116,11 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
         isClubChat ? 'h-[calc(73vh-8rem)]' : 'h-[calc(73vh-6rem)]'
       }`}
     >
+      {/* Debug information */}
+      <div className="bg-blue-50 px-2 py-1 text-xs">
+        Messages: {normalizedMessages.length} | Renders: {renderCountRef.current}
+      </div>
+      
       <MessageList 
         messages={normalizedMessages} 
         clubMembers={clubMembers} 

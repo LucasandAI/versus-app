@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Club } from '@/types';
 import ChatHeader from './ChatHeader';
 import ChatMessages from './ChatMessages';
@@ -32,6 +32,27 @@ const ChatClubContent = ({
   const [isSending, setIsSending] = useState(false);
   const { deleteMessage } = useChatActions();
   const effectiveClubId = clubId || club?.id;
+  const messageCountRef = useRef(0);
+  const renderCountRef = useRef(0);
+  
+  // Track message updates
+  useEffect(() => {
+    messageCountRef.current = messages?.length || 0;
+    renderCountRef.current += 1;
+    console.log(`[ChatClubContent] Render #${renderCountRef.current} for club ${club?.name} (${effectiveClubId})`);
+    console.log(`[ChatClubContent] Messages received: ${messageCountRef.current}`);
+    
+    if (messages?.length > 0) {
+      // Log last message details
+      const lastMessage = messages[messages.length - 1];
+      console.log(`[ChatClubContent] Last message:`, {
+        id: lastMessage.id,
+        sender: lastMessage.sender?.name || lastMessage.sender_id,
+        timestamp: lastMessage.timestamp,
+        text: lastMessage.message?.substring(0, 30) + (lastMessage.message?.length > 30 ? '...' : '')
+      });
+    }
+  }, [messages, effectiveClubId, club?.name]);
   
   useEffect(() => {
     console.log('[ChatClubContent] Club changed, resetting state for:', effectiveClubId);
@@ -82,6 +103,11 @@ const ChatClubContent = ({
       />
       
       <div className="flex-1 flex flex-col relative overflow-hidden">
+        {/* Debug info */}
+        <div className="bg-yellow-100 px-2 py-1 text-xs">
+          Messages: {messageCountRef.current} | Renders: {renderCountRef.current}
+        </div>
+        
         <div className="flex-1 min-h-0">
           <ChatMessages 
             messages={messages} 

@@ -19,6 +19,7 @@ export const useClubMessageSubscriptions = (
   const { markClubMessagesAsRead } = useUnreadMessages();
   
   const selectedClubRef = useRef<string | null>(null);
+  const messageCountRef = useRef<number>(0); // For debugging
   
   useEffect(() => {
     // Skip if not authenticated, session not ready, drawer not open, or no clubs
@@ -106,7 +107,10 @@ export const useClubMessageSubscriptions = (
         table: 'club_chat_messages',
         filter: `club_id=eq.${clubId}`
       }, (payload) => {
-        console.log(`[useClubMessageSubscriptions] New message for club ${clubId}:`, payload.new?.id);
+        messageCountRef.current += 1;
+        const count = messageCountRef.current;
+        console.log(`[useClubMessageSubscriptions] (#${count}) New message for club ${clubId}:`, payload.new?.id);
+        console.log(`[useClubMessageSubscriptions] (#${count}) Currently selected club:`, selectedClubRef.current);
         
         // When a new message is received, fetch the sender details
         const fetchSenderDetails = async () => {
@@ -135,19 +139,38 @@ export const useClubMessageSubscriptions = (
         
         // Process the message with sender details
         fetchSenderDetails().then(messageWithSender => {
+          console.log(`[useClubMessageSubscriptions] (#${count}) Setting club messages with new message for club ${clubId}`);
+          console.log(`[useClubMessageSubscriptions] (#${count}) Message sender:`, messageWithSender.sender_id);
+          console.log(`[useClubMessageSubscriptions] (#${count}) Current user:`, currentUser.id);
+          
           setClubMessages(prev => {
             const clubMsgs = prev[clubId] || [];
             
             // Check if message already exists to prevent duplicates
             const messageExists = clubMsgs.some(msg => msg.id === messageWithSender.id);
-            if (messageExists) return prev;
             
-            return {
+            if (messageExists) {
+              console.log(`[useClubMessageSubscriptions] (#${count}) Message already exists, skipping`);
+              return prev;
+            }
+            
+            console.log(`[useClubMessageSubscriptions] (#${count}) Adding message to club ${clubId}`);
+            console.log(`[useClubMessageSubscriptions] (#${count}) Previous message count:`, clubMsgs.length);
+            
+            // Create a new array to ensure React detects the change
+            const newMessages = [...clubMsgs, messageWithSender].sort(
+              (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+            );
+            
+            console.log(`[useClubMessageSubscriptions] (#${count}) New message count:`, newMessages.length);
+            
+            // Important: Create a new object reference to ensure React detects the change
+            const updatedMessages = {
               ...prev,
-              [clubId]: [...clubMsgs, messageWithSender].sort(
-                (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-              )
+              [clubId]: newMessages
             };
+            
+            return updatedMessages;
           });
         });
         
@@ -177,6 +200,7 @@ export const useClubMessageSubscriptions = (
     const handleClubSelected = (e: CustomEvent) => {
       const clubId = e.detail?.clubId;
       if (clubId) {
+        console.log(`[useClubMessageSubscriptions] Club selected: ${clubId}`);
         selectedClubRef.current = clubId;
         
         // Mark club messages as read when selected
@@ -187,6 +211,7 @@ export const useClubMessageSubscriptions = (
     };
 
     const handleClubDeselected = () => {
+      console.log('[useClubMessageSubscriptions] Club deselected');
       selectedClubRef.current = null;
     };
 

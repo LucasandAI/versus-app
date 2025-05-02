@@ -92,6 +92,12 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
       </div>;
   }
 
+  // Get club messages with a fallback to empty array
+  const clubMessages = messages[selectedClub.id] || [];
+  
+  // Add a debug line to confirm the messages are correctly passed
+  console.log(`[ChatClubContainer] Rendering selected club ${selectedClub.name} with ${clubMessages.length} messages`);
+
   // If a club is selected, show the full-width chat
   return <div className="flex flex-col h-full">
       <div className="border-b p-3 flex items-center">
@@ -106,7 +112,14 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
       </div>
       
       <div className="flex-1">
-        <ChatClubContent club={selectedClub} messages={messages[selectedClub.id] || []} onMatchClick={handleMatchClick} onSelectUser={handleSelectUser} onSendMessage={onSendMessage} onDeleteMessage={onDeleteMessage} />
+        <ChatClubContent 
+          club={selectedClub} 
+          messages={clubMessages} 
+          onMatchClick={handleMatchClick} 
+          onSelectUser={handleSelectUser} 
+          onSendMessage={onSendMessage} 
+          onDeleteMessage={onDeleteMessage} 
+        />
       </div>
     </div>;
 };
