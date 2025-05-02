@@ -89,9 +89,9 @@ const DMConversation: React.FC<DMConversationProps> = ({
       
       // Create conversation if needed
       if (conversationId === 'new') {
-        const newConversation = await createConversation();
-        if (newConversation) {
-          finalConversationId = newConversation.conversationId;
+        const newConversationId = await createConversation();
+        if (newConversationId) {
+          finalConversationId = newConversationId;
         } else {
           throw new Error("Failed to create conversation");
         }
