@@ -12,7 +12,9 @@ export const useClubMessageSubscriptions = (
   userClubs: Club[],
   isOpen: boolean,
   activeSubscriptionsRef: React.MutableRefObject<Record<string, boolean>>,
-  setClubMessages: React.Dispatch<React.SetStateAction<Record<string, any[]>>>
+  setClubMessages: React.Dispatch<React.SetStateAction<Record<string, any[]>>>,
+  activeClubId: string | null = null,
+  setActiveClubMessages?: React.Dispatch<React.SetStateAction<any[]>>
 ) => {
   const channelsRef = useRef<RealtimeChannel[]>([]);
   const { currentUser, isSessionReady } = useApp();
@@ -75,6 +77,11 @@ export const useClubMessageSubscriptions = (
                   return msgId !== deleteId;
                 });
                 
+                // Also update active messages if this is the active club
+                if (clubId === activeClubId && setActiveClubMessages) {
+                  setActiveClubMessages(updatedClubMessages);
+                }
+                
                 return {
                   ...prev,
                   [clubId]: updatedClubMessages
@@ -135,6 +142,7 @@ export const useClubMessageSubscriptions = (
         
         // Process the message with sender details
         fetchSenderDetails().then(messageWithSender => {
+          // Update the main clubMessages state
           setClubMessages(prev => {
             const clubMsgs = prev[clubId] || [];
             
@@ -148,31 +156,38 @@ export const useClubMessageSubscriptions = (
             );
             
             // IMPORTANT: Always create a new object reference to ensure React detects the change
-            const newState = {
+            return {
               ...prev,
               [clubId]: updatedMessages
             };
-            
-            // Dispatch an event specifically for this club to force UI updates
-            window.dispatchEvent(new CustomEvent('newClubMessageReceived', { 
-              detail: { 
-                clubId,
-                messageId: messageWithSender.id 
-              } 
-            }));
-            
-            return newState;
           });
+          
+          // If this is the active club, also update the activeClubMessages state
+          if (clubId === activeClubId && setActiveClubMessages) {
+            console.log('[useClubMessageSubscriptions] Updating active club messages with new message');
+            setActiveClubMessages(prev => {
+              // Check if message already exists to prevent duplicates
+              const messageExists = prev.some(msg => msg.id === messageWithSender.id);
+              if (messageExists) return prev;
+              
+              // Create a new array with the message appended and sorted by timestamp
+              const updatedMessages = [...prev, messageWithSender].sort(
+                (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+              );
+              
+              return updatedMessages;
+            });
+          }
+          
+          // If the message is from another user and NOT the currently viewed club,
+          // we need to update the unread count for this club
+          if (payload.new.sender_id !== currentUser.id && 
+              (!selectedClubRef.current || selectedClubRef.current !== clubId)) {
+            window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
+              detail: { clubId } 
+            }));
+          }
         });
-        
-        // If the message is from another user and NOT the currently viewed club,
-        // we need to update the unread count for this club
-        if (payload.new.sender_id !== currentUser.id && 
-            (!selectedClubRef.current || selectedClubRef.current !== clubId)) {
-          window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
-            detail: { clubId } 
-          }));
-        }
       });
 
       channelsRef.current.push(channel);
@@ -184,7 +199,7 @@ export const useClubMessageSubscriptions = (
       channelsRef.current = [];
       activeSubscriptionsRef.current = {};
     };
-  }, [userClubs, isOpen, setClubMessages, currentUser?.id, isSessionReady]);
+  }, [userClubs, isOpen, setClubMessages, currentUser?.id, isSessionReady, activeClubId, setActiveClubMessages]);
 
   // Listen for club selection changes to track the currently viewed club
   useEffect(() => {
@@ -212,4 +227,9 @@ export const useClubMessageSubscriptions = (
       window.removeEventListener('clubDeselected', handleClubDeselected);
     };
   }, [currentUser?.id, markClubMessagesAsRead]);
+  
+  // Track the active club ID
+  useEffect(() => {
+    selectedClubRef.current = activeClubId;
+  }, [activeClubId]);
 };

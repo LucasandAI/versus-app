@@ -68,30 +68,13 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   useEffect(() => {
     console.log('[ChatMessages] Messages updated:', {
       count: Array.isArray(messages) ? messages.length : 0,
-      isArray: Array.isArray(messages)
+      isArray: Array.isArray(messages),
+      clubId
     });
     
     // Scroll to bottom when messages change
     scrollToBottom();
-  }, [messages, scrollToBottom]);
-  
-  // Listen for new club messages when we have a clubId
-  useEffect(() => {
-    if (!clubId) return;
-    
-    const handleNewMessage = (e: CustomEvent) => {
-      if (e.detail?.clubId === clubId) {
-        console.log('[ChatMessages] New message received for current club, scrolling to bottom');
-        scrollToBottom();
-      }
-    };
-    
-    window.addEventListener('newClubMessageReceived', handleNewMessage as EventListener);
-    
-    return () => {
-      window.removeEventListener('newClubMessageReceived', handleNewMessage as EventListener);
-    };
-  }, [clubId, scrollToBottom]);
+  }, [messages, scrollToBottom, clubId]);
   
   if (!Array.isArray(messages)) {
     return (

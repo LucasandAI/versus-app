@@ -19,42 +19,19 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
   const { currentUser } = useApp();
   
   // Use our hook for real-time club messages
-  const { clubMessages, setClubMessages } = useClubMessages(userClubs, isOpen);
-  
-  // Add a local state to force re-renders when needed
-  const [forceUpdateKey, setForceUpdateKey] = useState(Date.now());
-  
-  // Force update function that can be called from anywhere
-  const forceUpdate = useCallback(() => {
-    console.log('[ChatDrawerHandler] Forcing update of chat drawer');
-    setForceUpdateKey(Date.now());
-  }, []);
-  
-  // Listen for new club message events to force re-renders
-  useEffect(() => {
-    const handleNewMessage = (e: CustomEvent) => {
-      console.log('[ChatDrawerHandler] New club message received event detected:', e.detail);
-      forceUpdate();
-    };
-    
-    const handleClubMessageReceived = () => {
-      console.log('[ChatDrawerHandler] Club message received event detected');
-      forceUpdate();
-    };
-    
-    window.addEventListener('newClubMessageReceived', handleNewMessage as EventListener);
-    window.addEventListener('clubMessageReceived', handleClubMessageReceived);
-    
-    return () => {
-      window.removeEventListener('newClubMessageReceived', handleNewMessage as EventListener);
-      window.removeEventListener('clubMessageReceived', handleClubMessageReceived);
-    };
-  }, [forceUpdate]);
+  const { 
+    clubMessages, 
+    setClubMessages, 
+    activeClubId, 
+    setActiveClubId, 
+    activeClubMessages, 
+    setActiveClubMessages 
+  } = useClubMessages(userClubs, isOpen);
 
   console.log('[ChatDrawerHandler] Rendering with clubMessages:', 
-    Object.keys(clubMessages).length, 
-    'clubs and key:', 
-    forceUpdateKey);
+    Object.keys(clubMessages).length,
+    'active club:', activeClubId,
+    'active messages:', activeClubMessages?.length || 0);
 
   const handleSendMessage = async (message: string, clubId?: string) => {
     console.log('[ChatDrawerHandler] Send message requested:', { message, clubId });
@@ -63,15 +40,21 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
 
   return (
     <ChatDrawer 
-      key={`chat-drawer-${forceUpdateKey}`}
       open={isOpen} 
       onOpenChange={(open) => {
-        if (!open) close();
+        if (!open) {
+          close();
+          // Clear active club when drawer closes
+          setActiveClubId(null);
+        }
       }} 
       clubs={userClubs}
       clubMessages={clubMessages}
       setClubMessages={setClubMessages}
       onSendMessage={handleSendMessage}
+      activeClubId={activeClubId}
+      setActiveClubId={setActiveClubId}
+      activeClubMessages={activeClubMessages}
     />
   );
 };

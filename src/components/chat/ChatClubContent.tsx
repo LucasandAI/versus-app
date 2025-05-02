@@ -10,61 +10,66 @@ import { useChatActions } from '@/hooks/chat/useChatActions';
 interface ChatClubContentProps {
   club: Club;
   messages: any[];
+  activeMessages?: any[]; // Added activeMessages prop
   onMatchClick: () => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   onSendMessage: (message: string, clubId?: string) => void;
   onDeleteMessage?: (messageId: string) => void;
   setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
   clubId?: string;
+  setActiveClubId?: (clubId: string | null) => void;
 }
 
 const ChatClubContent = ({ 
   club,
   messages,
+  activeMessages, // Use this prop if available
   onMatchClick,
   onSelectUser,
   onSendMessage,
   onDeleteMessage,
   setClubMessages,
-  clubId
+  clubId,
+  setActiveClubId
 }: ChatClubContentProps) => {
   const { navigateToClubDetail } = useNavigation();
   const [isSending, setIsSending] = useState(false);
   const { deleteMessage } = useChatActions();
   const effectiveClubId = clubId || club?.id;
-  const [forceUpdateKey, setForceUpdateKey] = useState(Date.now());
+  
+  // Use activeMessages if provided, otherwise fallback to messages
+  const displayMessages = activeMessages || messages;
   
   // Log when the message array changes to help debug
   useEffect(() => {
     console.log('[ChatClubContent] Messages updated for club:', {
       clubId: effectiveClubId,
-      messageCount: messages?.length || 0,
-      messageIds: messages?.slice(0, 3).map(m => m.id).join(', ')
+      messageCount: displayMessages?.length || 0,
+      activeMessages: !!activeMessages
     });
-  }, [messages, effectiveClubId]);
+  }, [displayMessages, effectiveClubId, activeMessages]);
   
   useEffect(() => {
     console.log('[ChatClubContent] Club changed, resetting state for:', effectiveClubId);
     setIsSending(false);
-  }, [effectiveClubId]);
-  
-  // Listen for new messages for this club and force a re-render
-  useEffect(() => {
-    if (!effectiveClubId) return;
     
-    const handleNewMessage = (e: CustomEvent) => {
-      if (e.detail?.clubId === effectiveClubId) {
-        console.log('[ChatClubContent] New message received, forcing update');
-        setForceUpdateKey(Date.now());
-      }
-    };
-    
-    window.addEventListener('newClubMessageReceived', handleNewMessage as EventListener);
+    // Set the active club ID when club changes
+    if (setActiveClubId && effectiveClubId) {
+      setActiveClubId(effectiveClubId);
+      
+      // Notify other components about club selection
+      window.dispatchEvent(new CustomEvent('clubSelected', {
+        detail: { clubId: effectiveClubId }
+      }));
+    }
     
     return () => {
-      window.removeEventListener('newClubMessageReceived', handleNewMessage as EventListener);
+      // Clear active club ID when component unmounts
+      if (setActiveClubId) {
+        window.dispatchEvent(new CustomEvent('clubDeselected'));
+      }
     };
-  }, [effectiveClubId]);
+  }, [effectiveClubId, setActiveClubId]);
 
   const handleDeleteMessage = async (messageId: string) => {
     console.log('[ChatClubContent] Deleting message:', messageId);
@@ -112,8 +117,7 @@ const ChatClubContent = ({
       <div className="flex-1 flex flex-col relative overflow-hidden">
         <div className="flex-1 min-h-0">
           <ChatMessages 
-            key={`chat-messages-${effectiveClubId}-${forceUpdateKey}`}
-            messages={messages} 
+            messages={displayMessages} 
             clubMembers={club.members || []}
             onDeleteMessage={handleDeleteMessage}
             onSelectUser={onSelectUser}
