@@ -46,6 +46,7 @@ export const useMessageScroll = (messages: any[]) => {
       if (!scrollRef.current) return;
       
       const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+      // Only consider at bottom if within 50px of bottom
       const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
       
       isUserScrolling.current = !isAtBottom;

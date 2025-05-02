@@ -39,9 +39,10 @@ const MessageList: React.FC<MessageListProps> = memo(({
                            String(message.sender.id) === String(currentUserId);
       const isLastMessage = index === messages.length - 1;
       
+      // Remove key with message.id to prevent remounting on ID changes
       return (
         <div 
-          key={`msg-${message.id}`} 
+          key={`msg-${index}`} 
           ref={isLastMessage ? lastMessageRef : undefined}
           className={`mb-3 ${isLastMessage ? 'pb-5' : ''}`}
         >

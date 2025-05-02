@@ -32,7 +32,8 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   conversationId,
   onBack
 }) => {
-  console.log('[DMConversation] Rendering with conversationId:', conversationId);
+  // Remove console.log for production or wrap in isDev check
+  // console.log('[DMConversation] Rendering with conversationId:', conversationId);
   
   const { currentUser } = useApp();
   const { navigateToUserProfile } = useNavigation();
@@ -40,6 +41,16 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   const { markConversationAsRead } = useUnreadMessages();
   const [isSending, setIsSending] = React.useState(false);
   const { formatTime } = useMessageFormatting();
+  
+  // Create stable refs to prevent component remount
+  const userRef = useRef(user);
+  const conversationIdRef = useRef(conversationId);
+  
+  // Update refs when props change
+  useEffect(() => {
+    userRef.current = user;
+    conversationIdRef.current = conversationId;
+  }, [user, conversationId]);
   
   // Use our hook for active messages
   const { messages, setMessages, addOptimisticMessage } = useActiveDMMessages(
@@ -100,10 +111,10 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     });
     
     try {
-      let finalConversationId = conversationId;
+      let finalConversationId = conversationIdRef.current;
       
       // Create conversation if needed
-      if (conversationId === 'new') {
+      if (finalConversationId === 'new') {
         const newConversationId = await createConversation();
         if (newConversationId) {
           finalConversationId = newConversationId;
@@ -118,7 +129,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
         .insert({
           text,
           sender_id: currentUser.id,
-          receiver_id: user.id,
+          receiver_id: userRef.current.id,
           conversation_id: finalConversationId
         })
         .select('id')
@@ -140,7 +151,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     } finally {
       setIsSending(false);
     }
-  }, [conversationId, currentUser, user.id, addOptimisticMessage, createConversation, scrollToBottom, setMessages]);
+  }, [conversationIdRef, currentUser, userRef, addOptimisticMessage, createConversation, scrollToBottom, setMessages]);
   
   // Memoize the header component
   const headerComponent = useMemo(() => (
@@ -154,15 +165,15 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       <div className="flex-1 flex justify-center">
         <div 
           className="flex items-center gap-3 cursor-pointer hover:opacity-80" 
-          onClick={() => navigateToUserProfile(user.id, user.name, user.avatar)}
+          onClick={() => navigateToUserProfile(memoizedUser.id, memoizedUser.name, memoizedUser.avatar)}
         >
-          <DMHeader userId={user.id} userName={user.name} userAvatar={user.avatar} />
+          <DMHeader userId={memoizedUser.id} userName={memoizedUser.name} userAvatar={memoizedUser.avatar} />
         </div>
       </div>
       {/* This empty div helps maintain balance in the header */}
       <div className="w-9"></div>
     </div>
-  ), [user.id, user.name, user.avatar, onBack, navigateToUserProfile]);
+  ), [memoizedUser, onBack, navigateToUserProfile]);
 
   // Memoized chat messages component to avoid unnecessary re-renders
   const chatMessagesComponent = useMemo(() => (
