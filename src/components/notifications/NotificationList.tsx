@@ -1,16 +1,17 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { NotificationItem } from './NotificationItem';
 import { Notification } from '@/types';
+import { NotificationItem } from './NotificationItem';
+import { Button } from '../ui/button';
 
 interface NotificationListProps {
   notifications: Notification[];
-  onMarkAsRead?: (id: string) => void;
+  onMarkAsRead: (id: string) => void;
   onUserClick: (userId: string, userName: string) => void;
   onDeclineInvite?: (id: string) => void;
   onClearAll: () => void;
   formatTime: (timestamp: string) => string;
+  onOptimisticDelete?: (id: string) => void; // New prop for optimistic updates
 }
 
 export const NotificationList: React.FC<NotificationListProps> = ({
@@ -20,55 +21,51 @@ export const NotificationList: React.FC<NotificationListProps> = ({
   onDeclineInvite,
   onClearAll,
   formatTime,
+  onOptimisticDelete,
 }) => {
-  console.log("[NotificationList] Rendering with notifications:", notifications.length, notifications);
-
-  // Sort notifications by read status (unread first) and then by timestamp (newest first)
-  const sortedNotifications = [...notifications].sort((a, b) => {
-    // First sort by read status (unread first)
-    if (a.read !== b.read) {
-      return a.read ? 1 : -1;
-    }
-    // Then sort by timestamp (newest first)
-    return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-  });
-
-  if (sortedNotifications.length === 0) {
-    return (
-      <div className="p-4 text-center text-gray-500">
-        No notifications
-      </div>
-    );
-  }
+  // Check if there are any unread notifications
+  const hasUnread = notifications.some(notification => !notification.read);
+  
+  // Check if there are any notifications at all
+  const isEmpty = notifications.length === 0;
 
   return (
-    <>
-      <div className="flex items-center justify-between p-4 border-b">
+    <div className="max-h-[80vh] flex flex-col">
+      {/* Header with clear all button */}
+      <div className="flex items-center justify-between p-3 border-b">
         <h3 className="font-medium">Notifications</h3>
-        {sortedNotifications.length > 0 && (
+        {hasUnread && (
           <Button 
-            variant="link" 
+            variant="ghost" 
             size="sm" 
+            className="text-xs text-gray-500 hover:text-gray-900"
             onClick={onClearAll}
-            className="text-xs text-gray-500 hover:text-gray-900 p-0 h-auto"
           >
-            Clear all
+            Mark all as read
           </Button>
         )}
       </div>
       
-      <div className="max-h-[400px] overflow-y-auto">
-        {sortedNotifications.map(notification => (
-          <NotificationItem
-            key={notification.id}
-            notification={notification}
-            onMarkAsRead={onMarkAsRead}
-            onUserClick={onUserClick}
-            onDeclineInvite={onDeclineInvite}
-            formatTime={formatTime}
-          />
-        ))}
+      {/* List of notifications */}
+      <div className="overflow-y-auto">
+        {isEmpty ? (
+          <div className="p-4 text-center text-gray-500">
+            No notifications yet
+          </div>
+        ) : (
+          notifications.map((notification) => (
+            <NotificationItem
+              key={notification.id}
+              notification={notification}
+              onMarkAsRead={onMarkAsRead}
+              onUserClick={onUserClick}
+              onDeclineInvite={onDeclineInvite}
+              formatTime={formatTime}
+              onOptimisticDelete={onOptimisticDelete}
+            />
+          ))
+        )}
       </div>
-    </>
+    </div>
   );
 };

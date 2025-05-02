@@ -26,14 +26,20 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   onDeclineInvite
 }) => {
   const [open, setOpen] = useState(false);
+  const [localNotifications, setLocalNotifications] = useState<Notification[]>(notifications);
+  
+  // Update local state when props change
+  React.useEffect(() => {
+    setLocalNotifications(notifications);
+  }, [notifications]);
   
   // Count notifications that haven't been read yet
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = localNotifications.filter(n => !n.read).length;
   
   console.log("[NotificationPopover] Rendering with notifications:", 
-    notifications.length, 
+    localNotifications.length, 
     "Unread count:", unreadCount, 
-    "Notifications content:", notifications
+    "Notifications content:", localNotifications
   );
   
   // When the popover opens, mark all notifications as read
@@ -46,6 +52,12 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
       await markAllNotificationsAsRead();
       // We don't need to update state here as the event listener will handle it
     }
+  };
+
+  // Handle optimistic UI updates for notification deletion
+  const handleOptimisticDelete = (id: string) => {
+    console.log("[NotificationPopover] Optimistically removing notification:", id);
+    setLocalNotifications(prev => prev.filter(notification => notification.id !== id));
   };
 
   const formatTime = (timestamp: string) => {
@@ -81,12 +93,13 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0 max-w-[90vw]" align="end">
         <NotificationList
-          notifications={notifications}
+          notifications={localNotifications}
           onMarkAsRead={onMarkAsRead}
           onUserClick={onUserClick}
           onDeclineInvite={onDeclineInvite}
           onClearAll={onClearAll}
           formatTime={formatTime}
+          onOptimisticDelete={handleOptimisticDelete}
         />
       </PopoverContent>
     </Popover>

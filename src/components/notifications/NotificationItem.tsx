@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { useNavigation } from '@/hooks/useNavigation';
 import { Button } from '@/components/ui/button';
 import { acceptJoinRequestFromNotification, denyJoinRequestFromNotification } from '@/utils/joinRequestActions';
+import { toast } from 'sonner';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -12,6 +13,7 @@ interface NotificationItemProps {
   onUserClick: (userId: string, userName: string) => void;
   onDeclineInvite?: (id: string) => void;
   formatTime: (timestamp: string) => string;
+  onOptimisticDelete?: (id: string) => void; // New prop for optimistic UI updates
 }
 
 export const NotificationItem: React.FC<NotificationItemProps> = ({
@@ -20,6 +22,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   onUserClick,
   onDeclineInvite,
   formatTime,
+  onOptimisticDelete,
 }) => {
   const { navigateToClub } = useNavigation();
 
@@ -74,17 +77,30 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
         return;
       }
       
+      // Apply optimistic UI update before the actual operation
+      if (onOptimisticDelete) {
+        onOptimisticDelete(notification.id);
+      }
+      
       try {
-        // Use utility function directly from DB state
+        // Use utility function for the actual database operation
         const success = await acceptJoinRequestFromNotification(requesterId, clubId);
         console.log("[NotificationItem] Accept result:", success);
         
-        if (success && onMarkAsRead) {
-          // Mark notification as read in UI
-          onMarkAsRead(notification.id);
+        if (!success && onOptimisticDelete) {
+          // If operation failed, show error and restore the notification in UI
+          toast.error("Failed to accept join request. Please try again.");
+          // The notification will be restored through the notificationsUpdated event
+          window.dispatchEvent(new CustomEvent('notificationsUpdated'));
         }
       } catch (error) {
         console.error("[NotificationItem] Error accepting join request:", error);
+        toast.error("Error processing request");
+        
+        // Restore the UI state on error
+        if (onOptimisticDelete) {
+          window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+        }
       }
     }
   };
@@ -109,17 +125,30 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
         return;
       }
       
+      // Apply optimistic UI update before the actual operation
+      if (onOptimisticDelete) {
+        onOptimisticDelete(notification.id);
+      }
+      
       try {
-        // Use utility function directly from DB state
+        // Use utility function for the actual database operation
         const success = await denyJoinRequestFromNotification(requesterId, clubId);
         console.log("[NotificationItem] Decline result:", success);
         
-        if (success && onMarkAsRead) {
-          // Mark notification as read in UI
-          onMarkAsRead(notification.id);
+        if (!success && onOptimisticDelete) {
+          // If operation failed, show error and restore the notification in UI
+          toast.error("Failed to deny join request. Please try again.");
+          // The notification will be restored through the notificationsUpdated event
+          window.dispatchEvent(new CustomEvent('notificationsUpdated'));
         }
       } catch (error) {
         console.error("[NotificationItem] Error declining join request:", error);
+        toast.error("Error processing request");
+        
+        // Restore the UI state on error
+        if (onOptimisticDelete) {
+          window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+        }
       }
     } else if (onDeclineInvite) {
       // Handle other types of notifications
