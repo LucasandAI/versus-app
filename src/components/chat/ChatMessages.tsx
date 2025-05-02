@@ -70,7 +70,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     renderCountRef.current += 1;
     
     console.log(`[ChatMessages] 🔄 Render #${renderCountRef.current}`, {
-      messageCount: Array.isArray(messages) ? messages.length : 'No messages array'
+      messageCount: Array.isArray(messages) ? messages.length : 'No messages array',
+      lastMessageId: messages?.length > 0 ? messages[messages.length-1]?.id : 'none'
     });
     
     // Auto-scroll on new messages with a slight delay to ensure DOM is updated
@@ -82,6 +83,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   // Force a re-render when a club message event is received
   useEffect(() => {
     const handleForceUpdate = (e: CustomEvent) => {
+      console.log('[ChatMessages] 🔄 Forcing update due to clubMessageForceUpdate event', 
+        e.detail ? JSON.stringify(e.detail) : '');
       setForceUpdateKey(Date.now());
       setTimeout(scrollToBottom, 100);
     };
@@ -103,14 +106,16 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     );
   }
 
-  // Always create a fresh array to ensure proper re-rendering
-  const normalizedMessages = messages.map(message => normalizeMessage(message));
+  // 🚨 NEW ADDITION: Always create a fresh array to ensure proper re-rendering
+  const normalizedMessages = [...messages].map(message => normalizeMessage(message));
 
   // Determine if this is a club chat by checking if there are club members
   const isClubChat = clubMembers.length > 0;
   
-  // Create a unique key that changes when messages update
-  const messageListKey = `messages-${normalizedMessages.length}-${forceUpdateKey}`;
+  // 🚨 IMPROVED: Create a more detailed key that changes when important values change
+  const lastMessageId = normalizedMessages.length > 0 ? 
+    normalizedMessages[normalizedMessages.length - 1].id : 'no-messages';
+  const messageListKey = `messages-${normalizedMessages.length}-${lastMessageId}-${forceUpdateKey}-${renderCountRef.current}`;
 
   return (
     <div 
@@ -125,6 +130,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
         {normalizedMessages.length > 0 && (
           <span> | 🆔 Latest: {normalizedMessages[normalizedMessages.length - 1]?.id?.substring(0, 6) || 'none'}...</span>
         )}
+        | 🔑 Key: {messageListKey.substring(0, 15)}...
       </div>
       
       <MessageList 

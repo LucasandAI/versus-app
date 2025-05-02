@@ -208,6 +208,11 @@ export const useActiveClubMessages = (clubId: string) => {
               // Force update to ensure render
               forceUpdate();
               
+              // 🚨 NEW ADDITION: Dispatch force update event to trigger re-render in all components
+              window.dispatchEvent(new CustomEvent('clubMessageForceUpdate', { 
+                detail: { clubId, messageId: messageWithSender.id }
+              }));
+              
             } catch (error) {
               console.error('[useActiveClubMessages] Error processing message:', error);
             }
@@ -235,6 +240,11 @@ export const useActiveClubMessages = (clubId: string) => {
             
             // Force update to ensure render
             forceUpdate();
+            
+            // 🚨 NEW ADDITION: Dispatch force update event for deleted messages too
+            window.dispatchEvent(new CustomEvent('clubMessageForceUpdate', { 
+              detail: { clubId, messageId: payload.old.id, deleted: true }
+            }));
           })
       .subscribe((status) => {
         console.log(`[useActiveClubMessages] Subscription status for club ${clubId}:`, status);
@@ -270,6 +280,7 @@ export const useActiveClubMessages = (clubId: string) => {
     messageIdsRef.current.add(message.id);
     
     setMessages(prev => {
+      // 🚨 NEW ADDITION: Always create a fresh array to ensure reference changes
       const newMessages = [...prev, message].sort(
         (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
@@ -283,15 +294,21 @@ export const useActiveClubMessages = (clubId: string) => {
       return newMessages;
     });
     
+    // 🚨 NEW ADDITION: Dispatch force update event for optimistic messages too
+    window.dispatchEvent(new CustomEvent('clubMessageForceUpdate', { 
+      detail: { clubId, messageId: message.id, optimistic: true }
+    }));
+    
     return true;
-  }, []);
+  }, [clubId]);
   
   // Delete message function
   const deleteMessage = useCallback((messageId: string) => {
     messageIdsRef.current.delete(messageId);
     
     setMessages(prev => {
-      const filtered = prev.filter(msg => msg.id !== messageId);
+      // 🚨 NEW ADDITION: Always create a fresh array to ensure reference changes
+      const filtered = [...prev].filter(msg => msg.id !== messageId);
       
       setDebugInfo(current => ({
         ...current,
@@ -300,7 +317,12 @@ export const useActiveClubMessages = (clubId: string) => {
       
       return filtered;
     });
-  }, []);
+    
+    // 🚨 NEW ADDITION: Dispatch force update event for deleted messages
+    window.dispatchEvent(new CustomEvent('clubMessageForceUpdate', { 
+      detail: { clubId, messageId, deleted: true }
+    }));
+  }, [clubId]);
   
   return {
     messages,

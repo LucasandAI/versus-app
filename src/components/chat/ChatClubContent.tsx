@@ -36,6 +36,7 @@ const ChatClubContent = ({
   const effectiveClubId = clubId || club?.id;
   const renderCountRef = useRef(0);
   const { currentUser } = useApp();
+  const [forceRenderKey, setForceRenderKey] = useState(Date.now());
   
   // Use our new local-state hook for this specific club
   const {
@@ -54,6 +55,20 @@ const ChatClubContent = ({
   
   console.log(`[ChatClubContent] 🔄 Render #${renderCountRef.current} for club ${club?.name} (${effectiveClubId})`);
   console.log(`[ChatClubContent] 📊 Messages count: ${messages?.length || 0}`);
+
+  // 🚨 NEW ADDITION: Listen for clubMessageForceUpdate event
+  React.useEffect(() => {
+    const forceUpdate = (e: CustomEvent) => {
+      console.log(`[ChatClubContent] 🔥 Force update triggered by event for club ${effectiveClubId}`);
+      setForceRenderKey(Date.now());
+    };
+    
+    window.addEventListener('clubMessageForceUpdate', forceUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('clubMessageForceUpdate', forceUpdate as EventListener);
+    };
+  }, [effectiveClubId]);
 
   const handleDeleteMessage = async (messageId: string) => {
     console.log('[ChatClubContent] 🗑️ Deleting message:', messageId);
@@ -116,10 +131,9 @@ const ChatClubContent = ({
     }
   };
 
-  // Create a stable key that changes when message content changes
-  const messagesKey = messages?.length > 0 
-    ? `${effectiveClubId}-${messages.length}-${messages[messages.length-1]?.id}-${debugInfo.renderCount}` 
-    : `${effectiveClubId}-empty-${debugInfo.renderCount}`;
+  // 🚨 IMPROVED: Create a stable key that changes when message content changes or when force update is triggered
+  const lastMessageId = messages?.length > 0 ? messages[messages.length-1]?.id : 'no-messages';
+  const messagesKey = `${effectiveClubId}-${messages?.length || 0}-${lastMessageId}-${forceRenderKey}-${debugInfo.renderCount}`;
 
   return (
     <div className="flex flex-col h-full">
