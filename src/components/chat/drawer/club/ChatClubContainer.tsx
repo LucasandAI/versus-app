@@ -82,10 +82,13 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
     }
   };
 
+  // Create a key for forced re-renders when unread status changes
+  const unreadKey = JSON.stringify([...unreadClubs].sort());
+
   // If no club is selected, show the clubs list
   if (!selectedClub) {
     return <div className="flex flex-col h-full overflow-hidden">
-        <ChatSidebarContent clubs={clubs} selectedClub={selectedClub} onSelectClub={onSelectClub} onSelectUser={handleSelectUser} activeTab="clubs" unreadClubs={unreadClubs} />
+        <ChatSidebarContent key={`sidebar-content-${unreadKey}`} clubs={clubs} selectedClub={selectedClub} onSelectClub={onSelectClub} onSelectUser={handleSelectUser} activeTab="clubs" unreadClubs={unreadClubs} />
       </div>;
   }
 
@@ -103,14 +106,7 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
       </div>
       
       <div className="flex-1">
-        <ChatClubContent 
-          club={selectedClub} 
-          onMatchClick={handleMatchClick} 
-          onSelectUser={handleSelectUser} 
-          onSendMessage={onSendMessage} 
-          onDeleteMessage={onDeleteMessage}
-          clubId={selectedClub.id}
-        />
+        <ChatClubContent club={selectedClub} messages={messages[selectedClub.id] || []} onMatchClick={handleMatchClick} onSelectUser={handleSelectUser} onSendMessage={onSendMessage} onDeleteMessage={onDeleteMessage} />
       </div>
     </div>;
 };

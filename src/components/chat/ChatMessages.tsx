@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { ChatMessage } from '@/types';
 import MessageList from './message/MessageList';
 import { useMessageUser } from './message/useMessageUser';
@@ -21,7 +21,6 @@ interface ChatMessagesProps {
   currentUserAvatar?: string;
   lastMessageRef?: React.RefObject<HTMLDivElement>;
   formatTime?: (isoString: string) => string;
-  clubId?: string;
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({
@@ -33,7 +32,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   currentUserAvatar: providedUserAvatar,
   lastMessageRef: providedLastMessageRef,
   formatTime: providedFormatTime,
-  clubId,
 }) => {
   const {
     currentUserId,
@@ -64,18 +62,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const finalLastMessageRef = providedLastMessageRef || defaultLastMessageRef;
   const finalFormatTime = providedFormatTime || defaultFormatTime;
   
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    console.log('[ChatMessages] Messages updated:', {
-      count: Array.isArray(messages) ? messages.length : 0,
-      isArray: Array.isArray(messages),
-      clubId
-    });
-    
-    scrollToBottom();
-  }, [messages, scrollToBottom, clubId]);
-  
-  if (!Array.isArray(messages) || messages.length === 0) {
+  if (!Array.isArray(messages)) {
     return (
       <div className="flex-1 p-4">
         <div className="h-full flex items-center justify-center text-gray-500 text-sm">

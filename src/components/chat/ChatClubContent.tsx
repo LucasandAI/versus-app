@@ -6,73 +6,37 @@ import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import { useNavigation } from '@/hooks/useNavigation';
 import { useChatActions } from '@/hooks/chat/useChatActions';
-import { useActiveClubMessages } from '@/hooks/chat/useActiveClubMessages';
 
 interface ChatClubContentProps {
   club: Club;
-  messages?: any[];
+  messages: any[];
   onMatchClick: () => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   onSendMessage: (message: string, clubId?: string) => void;
   onDeleteMessage?: (messageId: string) => void;
   setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
   clubId?: string;
-  setActiveClubId?: (clubId: string | null) => void;
 }
 
 const ChatClubContent = ({ 
   club,
+  messages,
   onMatchClick,
   onSelectUser,
   onSendMessage,
   onDeleteMessage,
   setClubMessages,
-  clubId,
-  setActiveClubId
+  clubId
 }: ChatClubContentProps) => {
   const { navigateToClubDetail } = useNavigation();
   const [isSending, setIsSending] = useState(false);
-  const { deleteMessage: deleteMessageAction } = useChatActions();
+  const { deleteMessage } = useChatActions();
   const effectiveClubId = clubId || club?.id;
-  
-  // Use the new hook to get and manage messages for the active club
-  const { 
-    messages, 
-    loading, 
-    isSending: hookIsSending,
-    setIsSending: setHookIsSending,
-    deleteMessage: hookDeleteMessage
-  } = useActiveClubMessages(effectiveClubId);
-  
-  // Log when the message array changes to help debug
-  useEffect(() => {
-    console.log('[ChatClubContent] Messages updated for club:', {
-      clubId: effectiveClubId,
-      messageCount: messages?.length || 0
-    });
-  }, [messages, effectiveClubId]);
   
   useEffect(() => {
     console.log('[ChatClubContent] Club changed, resetting state for:', effectiveClubId);
     setIsSending(false);
-    
-    // Set the active club ID when club changes
-    if (setActiveClubId && effectiveClubId) {
-      setActiveClubId(effectiveClubId);
-      
-      // Notify other components about club selection
-      window.dispatchEvent(new CustomEvent('clubSelected', {
-        detail: { clubId: effectiveClubId }
-      }));
-    }
-    
-    return () => {
-      // Clear active club ID when component unmounts
-      if (setActiveClubId) {
-        window.dispatchEvent(new CustomEvent('clubDeselected'));
-      }
-    };
-  }, [effectiveClubId, setActiveClubId]);
+  }, [effectiveClubId]);
 
   const handleDeleteMessage = async (messageId: string) => {
     console.log('[ChatClubContent] Deleting message:', messageId);
@@ -81,11 +45,8 @@ const ChatClubContent = ({
       await onDeleteMessage(messageId);
     } else if (setClubMessages) {
       // Fallback to direct deleteMessage if no handler provided
-      await deleteMessageAction(messageId, setClubMessages);
+      await deleteMessage(messageId, setClubMessages);
     }
-    
-    // Also delete from the local flat array
-    hookDeleteMessage(messageId);
   };
 
   const handleClubClick = () => {
@@ -99,8 +60,6 @@ const ChatClubContent = ({
   const handleSendMessage = async (message: string) => {
     console.log('[ChatClubContent] Sending message for club:', effectiveClubId);
     setIsSending(true);
-    setHookIsSending(true);
-    
     try {
       const messageToSend = message.trim();
       if (effectiveClubId) {
@@ -110,7 +69,6 @@ const ChatClubContent = ({
       console.error('[ChatClubContent] Error sending club message:', error);
     } finally {
       setIsSending(false);
-      setHookIsSending(false);
     }
   };
 
@@ -130,7 +88,6 @@ const ChatClubContent = ({
             clubMembers={club.members || []}
             onDeleteMessage={handleDeleteMessage}
             onSelectUser={onSelectUser}
-            clubId={effectiveClubId}
           />
         </div>
         
@@ -139,7 +96,7 @@ const ChatClubContent = ({
             onSendMessage={handleSendMessage} 
             conversationType="club"
             conversationId={effectiveClubId} 
-            isSending={isSending || hookIsSending}
+            isSending={isSending}
           />
         </div>
       </div>

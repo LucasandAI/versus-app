@@ -20,13 +20,13 @@ interface ChatDrawerContainerProps {
   directMessageUser: {
     userId: string;
     userName: string;
-    userAvatar: string;
+    userAvatar: string; // Made required
     conversationId: string;
   } | null;
   setDirectMessageUser: React.Dispatch<React.SetStateAction<{
     userId: string;
     userName: string;
-    userAvatar: string;
+    userAvatar: string; // Made required
     conversationId: string;
   } | null>>;
 }
@@ -45,12 +45,16 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   onSendMessage,
   onDeleteMessage,
   directMessageUser,
-  setDirectMessageUser,
+  setDirectMessageUser
 }) => {
+  // Create a key for forced re-renders when unread status changes
+  const unreadKey = JSON.stringify([...unreadClubs].sort());
+  
   return (
     <div className="flex-1 overflow-hidden">
       {activeTab === 'clubs' ? (
         <ChatClubContainer 
+          key={`club-container-${unreadKey}`}
           clubs={clubs}
           selectedClub={selectedLocalClub}
           onSelectClub={onSelectClub}

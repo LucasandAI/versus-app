@@ -25,7 +25,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   clubs,
   onNewMessage,
   clubMessages = {},
-  setClubMessages,
+  setClubMessages
 }) => {
   const [activeTab, setActiveTab] = useState<"clubs"|"dm">("clubs");
   const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(null);
@@ -40,10 +40,12 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const { unreadClubs, unreadConversations } = useUnreadMessages();
   const [localUnreadClubs, setLocalUnreadClubs] = useState<Set<string>>(new Set());
   const [localUnreadConversations, setLocalUnreadConversations] = useState<Set<string>>(new Set());
+  const [forceUpdateKey, setForceUpdateKey] = useState(Date.now());
   
   // Force re-render when unreadClubs changes
   useEffect(() => {
     setLocalUnreadClubs(new Set(unreadClubs));
+    setForceUpdateKey(Date.now());
   }, [unreadClubs]);
 
   // Force re-render when unreadConversations changes
@@ -55,15 +57,14 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   useEffect(() => {
     const handleUnreadMessagesUpdate = () => {
       console.log('[MainChatDrawer] Detected unreadMessagesUpdated event, forcing re-render');
-      setLocalUnreadClubs(new Set(unreadClubs));
-      setLocalUnreadConversations(new Set(unreadConversations));
+      setForceUpdateKey(Date.now());
     };
     
     window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdate);
     return () => {
       window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdate);
     };
-  }, [unreadClubs, unreadConversations]);
+  }, []);
   
   const { sendMessageToClub, deleteMessage } = useChatActions();
   const { currentUser } = useApp();
@@ -143,6 +144,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
           />
           
           <ChatDrawerContainer 
+            key={`drawer-container-${forceUpdateKey}`}
             activeTab={activeTab}
             clubs={clubs}
             selectedLocalClub={selectedLocalClub}
