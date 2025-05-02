@@ -4,6 +4,7 @@ import { useApp } from '@/context/AppContext';
 import { useFetchUserClubs } from '@/components/profile/hooks/userProfile/useFetchUserClubs';
 import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
+import { refreshNotifications } from '@/lib/notificationUtils';
 
 export const useInitialAppLoad = () => {
   const [isAppReady, setIsAppReady] = useState(false);
@@ -31,6 +32,10 @@ export const useInitialAppLoad = () => {
         // Step 3: Fetch unread message counts
         console.log('[useInitialAppLoad] Fetching unread message counts');
         await fetchUnreadCounts();
+        
+        // Step 4: Fetch notifications (NEW)
+        console.log('[useInitialAppLoad] Fetching notifications');
+        await refreshNotifications();
         
         // Mark as completed
         initialDataFetchedRef.current = true;

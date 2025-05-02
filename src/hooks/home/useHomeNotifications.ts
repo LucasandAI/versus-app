@@ -1,14 +1,17 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useApp } from '@/context/AppContext';
 import { Notification } from '@/types';
 import { handleNotification, markAllNotificationsAsRead } from '@/lib/notificationUtils';
+import { useInitialAppLoad } from '@/hooks/useInitialAppLoad';
 
 export const useHomeNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadMessages, setUnreadMessages] = useState<Record<string, number>>({});
   const { currentUser, refreshCurrentUser } = useApp();
+  const isAppReady = useInitialAppLoad();  // NEW: Get app ready state
 
   // Initialize notifications from localStorage if available
   useEffect(() => {
@@ -42,10 +45,11 @@ export const useHomeNotifications = () => {
     };
   }, [refreshCurrentUser]);
   
-  // Set up real-time listener for notifications table
+  // Set up real-time listener for notifications table - NOW RESPECTS APP READY STATE
   useEffect(() => {
-    if (!currentUser?.id) {
-      console.log('[useHomeNotifications] No current user, skipping real-time subscription');
+    // Don't set up subscription until app is ready and user is authenticated
+    if (!isAppReady || !currentUser?.id) {
+      console.log('[useHomeNotifications] App not ready or no current user, skipping real-time subscription');
       return;
     }
     
@@ -136,7 +140,7 @@ export const useHomeNotifications = () => {
       console.log('[useHomeNotifications] Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, isAppReady]); // Added isAppReady dependency
 
   // Helper function to format notification from Supabase payload
   const formatNotificationFromPayload = (data: any): Notification | null => {
@@ -265,8 +269,85 @@ export const useHomeNotifications = () => {
     unreadMessages,
     setUnreadMessages,
     updateUnreadCount,
-    handleMarkAsRead,
-    handleDeclineInvite,
-    handleClearAllNotifications
+    handleMarkAsRead: useCallback(async (id: string) => {
+      try {
+        console.log('[useHomeNotifications] Marking notification as read:', id);
+        if (!currentUser?.id) {
+          console.log('[useHomeNotifications] No current user, skipping');
+          return;
+        }
+
+        // Update local state optimistically
+        setNotifications(prev => 
+          prev.map(notification => 
+            notification.id === id ? { ...notification, read: true } : notification
+          )
+        );
+        
+        // Update in database and localStorage
+        const updatedNotifications = await handleNotification(id, 'read');
+        if (!updatedNotifications) {
+          // Revert optimistic update on failure
+          console.error('[useHomeNotifications] Failed to mark notification as read');
+          toast.error("Failed to mark notification as read");
+        }
+      } catch (error) {
+        console.error("[useHomeNotifications] Error marking notification as read:", error);
+        toast.error("Failed to mark notification as read");
+      }
+    }, [notifications, currentUser?.id]),
+    handleDeclineInvite: useCallback(async (id: string) => {
+      try {
+        console.log('[useHomeNotifications] Decline notification:', id);
+        if (!currentUser?.id) {
+          console.log('[useHomeNotifications] No current user, skipping');
+          return;
+        }
+        
+        // For non-join-request notifications, just delete the notification
+        const notification = notifications.find(n => n.id === id);
+        if (!notification) {
+          throw new Error("Invalid notification data");
+        }
+        
+        if (notification.type !== 'join_request') {
+          // Delete the notification
+          await handleNotification(id, 'delete');
+          
+          // Update local state
+          setNotifications(prev => prev.filter(notification => notification.id !== id));
+          
+          toast.success("Notification removed");
+        } else {
+          // For join requests, the actual functionality is now in NotificationItem component
+          // We just remove it from UI here if needed
+          setNotifications(prev => prev.filter(notification => notification.id !== id));
+        }
+      } catch (error) {
+        console.error("[useHomeNotifications] Error declining notification:", error);
+        toast.error("Failed to process notification");
+      }
+    }, [notifications, currentUser?.id]),
+    handleClearAllNotifications: useCallback(async () => {
+      try {
+        console.log('[useHomeNotifications] Clearing all notifications');
+        if (!currentUser?.id) {
+          console.log('[useHomeNotifications] No current user, skipping');
+          return;
+        }
+        
+        // Mark all notifications as read in database and localStorage
+        const updatedNotifications = await markAllNotificationsAsRead();
+        
+        // Update local state
+        if (updatedNotifications) {
+          setNotifications(updatedNotifications);
+          toast.success("All notifications cleared");
+        }
+      } catch (error) {
+        console.error("[useHomeNotifications] Error clearing notifications:", error);
+        toast.error("Failed to clear notifications");
+      }
+    }, [currentUser?.id])
   };
 };

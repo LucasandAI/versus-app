@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, Trash2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { NotificationList } from '../notifications/NotificationList';
@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
+import { useApp } from '@/context/AppContext';
+import { useInitialAppLoad } from '@/hooks/useInitialAppLoad';
 
 interface NotificationPopoverProps {
   notifications: Notification[];
@@ -25,16 +27,18 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   onUserClick,
   onDeclineInvite
 }) => {
+  const { isSessionReady } = useApp();
+  const isAppReady = useInitialAppLoad();
   const [open, setOpen] = useState(false);
   const [localNotifications, setLocalNotifications] = useState<Notification[]>(notifications);
 
   // Update local state when props change
-  React.useEffect(() => {
+  useEffect(() => {
     setLocalNotifications(notifications);
   }, [notifications]);
 
   // Listen for notification updates from other parts of the app
-  React.useEffect(() => {
+  useEffect(() => {
     const handleNotificationsUpdated = () => {
       // This will be handled by the parent component which will refetch notifications
       // and pass them down as props, triggering the useEffect above
@@ -48,17 +52,16 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
 
   // Count notifications that haven't been read yet
   const unreadCount = localNotifications.filter(n => !n.read).length;
-  console.log("[NotificationPopover] Rendering with notifications:", localNotifications.length, "Unread count:", unreadCount, "Notifications content:", localNotifications);
+  console.log("[NotificationPopover] Rendering with notifications:", localNotifications.length, "Unread count:", unreadCount);
 
   // When the popover opens, mark all notifications as read
   const handleOpenChange = async (isOpen: boolean) => {
     setOpen(isOpen);
 
-    // Mark all as read when opening the popover
-    if (isOpen && unreadCount > 0) {
+    // Only try to mark notifications as read when app is ready
+    if (isOpen && unreadCount > 0 && isAppReady && isSessionReady) {
       console.log("[NotificationPopover] Marking all notifications as read");
       await markAllNotificationsAsRead();
-      // We don't need to update state here as the event listener will handle it
     }
   };
 

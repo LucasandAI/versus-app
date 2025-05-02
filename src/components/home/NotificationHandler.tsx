@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useChatNotifications } from '@/hooks/useChatNotifications';
 import { refreshNotifications } from '@/lib/notificationUtils';
+import { useApp } from '@/context/AppContext';
 
 interface NotificationHandlerProps {
   setChatNotifications: (count: number) => void;
@@ -13,35 +14,23 @@ const NotificationHandler: React.FC<NotificationHandlerProps> = ({
   setChatNotifications,
   setNotifications,
 }) => {
-  // Initialize notifications on mount - this will be our SINGLE source of truth
+  const { isSessionReady } = useApp();
+  
+  // Set up event listener to refresh notifications on focus
   useEffect(() => {
-    console.log("[NotificationHandler] Initializing notifications");
+    if (!isSessionReady) return;
     
-    // Force refresh notifications on component mount to ensure we have the latest
-    const initializeNotifications = async () => {
-      console.log("[NotificationHandler] Fetching initial notifications");
-      
-      try {
-        const refreshedNotifications = await refreshNotifications();
-        console.log("[NotificationHandler] Notifications fetched:", refreshedNotifications.length, refreshedNotifications);
-        
-        if (refreshedNotifications && refreshedNotifications.length > 0) {
-          console.log("[NotificationHandler] Setting initial notifications:", refreshedNotifications.length);
-          setNotifications(refreshedNotifications);
-        } else {
-          console.log("[NotificationHandler] No notifications to set or empty array returned");
-        }
-      } catch (error) {
-        console.error("[NotificationHandler] Error fetching notifications:", error);
-      }
-    };
+    console.log("[NotificationHandler] Setting up window focus handler");
     
-    initializeNotifications();
-    
-    // Also set up an event listener to refresh notifications on focus
     const handleWindowFocus = () => {
       console.log("[NotificationHandler] Window focused, refreshing notifications");
-      initializeNotifications();
+      refreshNotifications().then(notifications => {
+        if (notifications && notifications.length > 0) {
+          setNotifications(notifications);
+        }
+      }).catch(error => {
+        console.error("[NotificationHandler] Error refreshing notifications:", error);
+      });
     };
     
     window.addEventListener('focus', handleWindowFocus);
@@ -49,7 +38,7 @@ const NotificationHandler: React.FC<NotificationHandlerProps> = ({
     return () => {
       window.removeEventListener('focus', handleWindowFocus);
     };
-  }, [setNotifications]);
+  }, [isSessionReady, setNotifications]);
 
   // Set up the hooks for notifications
   useNotifications({ setNotifications });
