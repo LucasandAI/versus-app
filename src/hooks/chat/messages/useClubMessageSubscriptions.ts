@@ -86,13 +86,27 @@ export const useClubMessageSubscriptions = (
       
     channelsRef.current.push(deletionChannel);
     
+    // Add a global debug subscription to confirm INSERT events
+    const debugGlobalChannel = supabase
+      .channel('debug_all_club_messages')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'club_chat_messages'
+      }, (payload) => {
+        console.log('[GLOBAL DEBUG] New message inserted:', payload);
+      })
+      .subscribe();
+    
+    channelsRef.current.push(debugGlobalChannel);
+    
     // Create individual channels for each club (for INSERT events)
     userClubs.forEach(club => {
       const clubId = club.id;
       activeSubscriptionsRef.current[clubId] = true;
       
-      // Create unique channel for this club
-      const channel = createClubChannel(club);
+      // Create unique channel for this club - SIMPLIFIED CHANNEL NAME
+      const channel = supabase.channel(`club_messages:${clubId}`);
       
       // Subscribe to the channel
       channel.subscribe((status) => {
@@ -106,7 +120,7 @@ export const useClubMessageSubscriptions = (
         table: 'club_chat_messages',
         filter: `club_id=eq.${clubId}`
       }, (payload) => {
-        console.log(`[useClubMessageSubscriptions] New message for club ${clubId}:`, payload.new?.id);
+        console.log(`[useClubMessageSubscriptions] 🔥 New message received for club ${clubId}:`, payload.new?.id);
         
         // When a new message is received, fetch the sender details
         const fetchSenderDetails = async () => {
