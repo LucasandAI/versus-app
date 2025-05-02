@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -73,6 +72,7 @@ const DMConversation: React.FC<DMConversationProps> = ({
       sender: {
         id: currentUser.id,
         name: 'You',
+        avatar: currentUser.avatar
       },
       timestamp: new Date().toISOString(),
       optimistic: true

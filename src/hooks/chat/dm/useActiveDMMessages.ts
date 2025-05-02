@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
+import { useUserData } from './useUserData';
 
 /**
  * Hook for managing active DM messages that syncs with global message state
@@ -14,7 +15,15 @@ export const useActiveDMMessages = (
 ) => {
   // Local state for messages in this conversation
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const { userCache, fetchUserData } = useUserData();
   
+  // Fetch other user's data if needed
+  useEffect(() => {
+    if (otherUserId && !userCache[otherUserId]) {
+      fetchUserData(otherUserId);
+    }
+  }, [otherUserId, userCache, fetchUserData]);
+
   // Listen for DM message events
   useEffect(() => {
     const handleDMMessageReceived = (e: CustomEvent) => {
@@ -75,15 +84,21 @@ export const useActiveDMMessages = (
 
         if (data && data.length > 0) {
           // Transform database records to ChatMessage format
-          const formattedMessages: ChatMessage[] = data.map(msg => ({
-            id: msg.id,
-            text: msg.text,
-            sender: {
-              id: msg.sender_id,
-              name: msg.sender_id === currentUserId ? 'You' : 'User',
-            },
-            timestamp: msg.timestamp
-          }));
+          const formattedMessages: ChatMessage[] = data.map(msg => {
+            const isCurrentUser = msg.sender_id === currentUserId;
+            const user = isCurrentUser ? null : userCache[msg.sender_id];
+            
+            return {
+              id: msg.id,
+              text: msg.text,
+              sender: {
+                id: msg.sender_id,
+                name: isCurrentUser ? 'You' : user?.name || 'User',
+                avatar: isCurrentUser ? undefined : user?.avatar || '/placeholder.svg'
+              },
+              timestamp: msg.timestamp
+            };
+          });
           
           setMessages(formattedMessages);
         }
@@ -93,7 +108,7 @@ export const useActiveDMMessages = (
     };
 
     fetchMessages();
-  }, [conversationId, currentUserId]);
+  }, [conversationId, currentUserId, userCache]);
 
   // Add a new message optimistically (for local UI updates)
   const addOptimisticMessage = (message: ChatMessage) => {

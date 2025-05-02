@@ -3,33 +3,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
-
-// Helper function to find a matching optimistic message
-const findMatchingOptimisticMessage = (
-  messages: ChatMessage[], 
-  confirmedMessage: ChatMessage
-): ChatMessage | undefined => {
-  // Only look for messages marked as optimistic
-  const optimisticMessages = messages.filter(msg => msg.optimistic === true);
-  
-  return optimisticMessages.find(msg => {
-    // Match by text content
-    const textMatch = msg.text === confirmedMessage.text;
-    
-    // Match by sender ID
-    const senderMatch = String(msg.sender.id) === String(confirmedMessage.sender.id);
-    
-    // Calculate time difference in seconds
-    const msgTime = new Date(msg.timestamp).getTime();
-    const confirmedTime = new Date(confirmedMessage.timestamp).getTime();
-    const timeDifference = Math.abs(msgTime - confirmedTime) / 1000;
-    
-    // Allow for a 5 second window
-    const timeMatch = timeDifference <= 5;
-    
-    return textMatch && senderMatch && timeMatch;
-  });
-};
+import { useUserData } from './useUserData';
 
 export const useDMSubscription = (
   conversationId: string | undefined,
@@ -40,6 +14,7 @@ export const useDMSubscription = (
   const subscriptionError = useRef(false);
   const isMounted = useRef(true);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const { userCache, fetchUserData } = useUserData();
   
   // Clean up function
   const cleanupSubscription = useCallback(() => {
@@ -58,6 +33,13 @@ export const useDMSubscription = (
       cleanupSubscription();
     };
   }, [cleanupSubscription]);
+
+  // Fetch other user's data if needed
+  useEffect(() => {
+    if (otherUserId && !userCache[otherUserId]) {
+      fetchUserData(otherUserId);
+    }
+  }, [otherUserId, userCache, fetchUserData]);
 
   // Setup subscription when conversation details are ready
   useEffect(() => {
@@ -85,6 +67,7 @@ export const useDMSubscription = (
           console.log('[useDMSubscription] New direct message received:', payload);
           
           const newMessage = payload.new;
+          const user = userCache[otherUserId];
           
           // Format the message for the UI
           const chatMessage: ChatMessage = {
@@ -92,32 +75,16 @@ export const useDMSubscription = (
             text: newMessage.text,
             sender: {
               id: newMessage.sender_id,
-              name: newMessage.sender_id === currentUserId ? 'You' : 'User',
+              name: newMessage.sender_id === currentUserId ? 'You' : user?.name || 'User',
+              avatar: newMessage.sender_id === currentUserId ? undefined : user?.avatar || '/placeholder.svg'
             },
             timestamp: newMessage.timestamp
           };
           
-          // Look for a matching optimistic message
-          setMessages(prevMessages => {
-            const matchingOptimisticMessage = findMatchingOptimisticMessage(prevMessages, chatMessage);
-            
-            if (matchingOptimisticMessage) {
-              console.log('[useDMSubscription] Found matching optimistic message, replacing:', matchingOptimisticMessage.id);
-              // Replace the optimistic message with the confirmed one
-              return prevMessages.map(msg => 
-                msg.id === matchingOptimisticMessage.id ? chatMessage : msg
-              );
-            } else {
-              console.log('[useDMSubscription] No matching optimistic message found, adding new message');
-              
-              // Dispatch an event for the new message to notify other components
-              window.dispatchEvent(new CustomEvent('dmMessageReceived', { 
-                detail: { conversationId, message: chatMessage } 
-              }));
-              
-              return [...prevMessages, chatMessage];
-            }
-          });
+          // Dispatch a custom event instead of directly updating state
+          window.dispatchEvent(new CustomEvent('dmMessageReceived', { 
+            detail: { conversationId, message: chatMessage } 
+          }));
         })
         .subscribe((status) => {
           console.log(`DM subscription status for ${conversationId}:`, status);
@@ -140,5 +107,5 @@ export const useDMSubscription = (
     }
     
     return cleanupSubscription;
-  }, [conversationId, currentUserId, otherUserId, setMessages, cleanupSubscription]);
+  }, [conversationId, currentUserId, otherUserId, userCache, cleanupSubscription, fetchUserData]);
 };
