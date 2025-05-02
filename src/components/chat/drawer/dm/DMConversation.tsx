@@ -39,16 +39,6 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   const [isSending, setIsSending] = React.useState(false);
   const { formatTime } = useMessageFormatting();
   
-  // Create stable refs to prevent component remount
-  const userRef = useRef(user);
-  const conversationIdRef = useRef(conversationId);
-  
-  // Update refs when props change
-  useEffect(() => {
-    userRef.current = user;
-    conversationIdRef.current = conversationId;
-  }, [user, conversationId]);
-  
   // Use our hook for active messages
   const { messages, setMessages, addOptimisticMessage } = useActiveDMMessages(
     conversationId, 
@@ -64,13 +54,6 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   
   // Custom hooks for conversation management
   const { createConversation } = useConversationManagement(currentUser?.id, user.id);
-  
-  // Memoize user object to prevent re-renders
-  const memoizedUser = useMemo(() => ({
-    id: user.id,
-    name: user.name,
-    avatar: user.avatar || '/placeholder.svg'
-  }), [user.id, user.name, user.avatar]);
   
   // Mark conversation as read when opened
   useEffect(() => {
@@ -108,7 +91,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     });
     
     try {
-      let finalConversationId = conversationIdRef.current;
+      let finalConversationId = conversationId;
       
       // Create conversation if needed
       if (finalConversationId === 'new') {
@@ -126,7 +109,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
         .insert({
           text,
           sender_id: currentUser.id,
-          receiver_id: userRef.current.id,
+          receiver_id: user.id,
           conversation_id: finalConversationId
         })
         .select('id')
@@ -148,53 +131,49 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     } finally {
       setIsSending(false);
     }
-  }, [currentUser, addOptimisticMessage, createConversation, scrollToBottom, setMessages]);
+  }, [currentUser, addOptimisticMessage, createConversation, conversationId, scrollToBottom, setMessages, user.id]);
   
-  // Memoize the header component
-  const headerComponent = useMemo(() => (
-    <div className="border-b p-3 flex items-center">
-      <button 
-        onClick={onBack}
-        className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-      >
-        <ArrowLeft size={20} />
-      </button>
-      <div className="flex-1 flex justify-center">
-        <div 
-          className="flex items-center gap-3 cursor-pointer hover:opacity-80" 
-          onClick={() => navigateToUserProfile(memoizedUser.id, memoizedUser.name, memoizedUser.avatar)}
-        >
-          <DMHeader userId={memoizedUser.id} userName={memoizedUser.name} userAvatar={memoizedUser.avatar} />
-        </div>
-      </div>
-      {/* This empty div helps maintain balance in the header */}
-      <div className="w-9"></div>
-    </div>
-  ), [memoizedUser, onBack, navigateToUserProfile]);
-
-  // Memoized chat messages component to avoid unnecessary re-renders
-  const chatMessagesComponent = useMemo(() => (
-    <ChatMessages 
-      messages={messages}
-      clubMembers={currentUser ? [currentUser] : []}
-      onSelectUser={(userId, userName, userAvatar) => 
-        navigateToUserProfile(userId, userName, userAvatar)
-      }
-      currentUserAvatar={currentUser?.avatar}
-      lastMessageRef={lastMessageRef}
-      formatTime={formatTime}
-      scrollRef={scrollRef}
-    />
-  ), [messages, currentUser, navigateToUserProfile, lastMessageRef, formatTime, scrollRef]);
+  // This ensures we don't recreate the club members array on each render
+  const clubMembers = useMemo(() => 
+    currentUser ? [currentUser] : [], 
+    [currentUser]
+  );
 
   return (
     <div className="flex flex-col h-full w-full">
       {/* Header with back button and centered user info */}
-      {headerComponent}
+      <div className="border-b p-3 flex items-center">
+        <button 
+          onClick={onBack}
+          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <div className="flex-1 flex justify-center">
+          <div 
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80" 
+            onClick={() => navigateToUserProfile(user.id, user.name, user.avatar)}
+          >
+            <DMHeader userId={user.id} userName={user.name} userAvatar={user.avatar} />
+          </div>
+        </div>
+        {/* This empty div helps maintain balance in the header */}
+        <div className="w-9"></div>
+      </div>
       
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         <div className="flex-1 min-h-0">
-          {chatMessagesComponent}
+          <ChatMessages 
+            messages={messages}
+            clubMembers={clubMembers}
+            onSelectUser={(userId, userName, userAvatar) => 
+              navigateToUserProfile(userId, userName, userAvatar)
+            }
+            currentUserAvatar={currentUser?.avatar}
+            lastMessageRef={lastMessageRef}
+            formatTime={formatTime}
+            scrollRef={scrollRef}
+          />
         </div>
         
         <DMMessageInput

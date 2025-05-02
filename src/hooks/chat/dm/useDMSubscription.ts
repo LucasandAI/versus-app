@@ -62,13 +62,16 @@ export const useDMSubscription = (
     try {
       console.log(`[useDMSubscription] Setting up subscription for conversation ${conversationId}`);
       
+      // Store the current conversation ID in a stable reference
+      const stableConversationId = conversationId;
+      
       const channel = supabase
-        .channel(`direct_messages:${conversationId}`)
+        .channel(`direct_messages:${stableConversationId}`)
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
           table: 'direct_messages',
-          filter: `conversation_id=eq.${conversationId}`
+          filter: `conversation_id=eq.${stableConversationId}`
         }, async (payload) => {
           if (!isMounted.current) return;
           
@@ -77,12 +80,14 @@ export const useDMSubscription = (
           const newMessage = payload.new;
           
           // Skip processing if we've seen this message before
-          if (processedMessages.current.has(newMessage.id)) {
+          const messageId = newMessage.id?.toString();
+          if (!messageId || processedMessages.current.has(messageId)) {
+            console.log('[useDMSubscription] Skipping duplicate message:', messageId);
             return;
           }
           
           // Mark as processed
-          processedMessages.current.add(newMessage.id);
+          processedMessages.current.add(messageId);
           
           // Ensure we have the user data for proper display
           if (newMessage.sender_id !== currentUserId && !userCache[newMessage.sender_id]) {
@@ -103,13 +108,16 @@ export const useDMSubscription = (
             timestamp: newMessage.timestamp
           };
           
-          // Dispatch a custom event instead of directly updating state
+          // Dispatch a custom event with the stable conversation ID
           window.dispatchEvent(new CustomEvent('dmMessageReceived', { 
-            detail: { conversationId, message: chatMessage } 
+            detail: { 
+              conversationId: stableConversationId, 
+              message: chatMessage 
+            } 
           }));
         })
         .subscribe((status) => {
-          console.log(`DM subscription status for ${conversationId}:`, status);
+          console.log(`DM subscription status for ${stableConversationId}:`, status);
         });
       
       channelRef.current = channel;

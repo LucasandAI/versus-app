@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
@@ -16,14 +15,22 @@ export const useActiveDMMessages = (
   // Local state for messages in this conversation
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const { userCache, fetchUserData } = useUserData();
-  const processedMsgIds = useRef(new Set<string>()).current;
+  
+  // Use stable refs to prevent capturing stale values in closures
+  const processedMsgIds = useRef(new Set<string>());
   const messageUpdateQueue = useRef<ChatMessage[]>([]);
   const isProcessingUpdates = useRef(false);
   const stableConversationId = useRef(conversationId);
+  const optimisticMessageIds = useRef(new Set<string>());
   
   // Update the stable ref when conversationId changes
   useEffect(() => {
     stableConversationId.current = conversationId;
+    
+    // Clear tracked message state when conversation changes
+    processedMsgIds.current.clear();
+    optimisticMessageIds.current.clear();
+    messageUpdateQueue.current = [];
   }, [conversationId]);
   
   // Fetch other user's data if needed
@@ -44,20 +51,47 @@ export const useActiveDMMessages = (
     messageUpdateQueue.current = [];
     
     setMessages(prev => {
+      // Create a map of existing messages for efficient lookup
       const prevMessageMap = new Map(prev.map(msg => [msg.id, msg]));
       let hasNewMessages = false;
       
       // Process each message
       messagesToAdd.forEach(msg => {
+        const msgId = msg.id?.toString();
+        if (!msgId) return;
+        
         // Skip if we've already processed this message or it already exists
-        if (processedMsgIds.has(msg.id) || prevMessageMap.has(msg.id)) {
+        if (processedMsgIds.current.has(msgId) || prevMessageMap.has(msgId)) {
           return;
         }
         
-        // Mark as processed
-        processedMsgIds.add(msg.id);
-        prevMessageMap.set(msg.id, msg);
-        hasNewMessages = true;
+        // Check if this is a real message matching an optimistic one
+        const isOptimisticReplacement = 
+          !msg.optimistic && 
+          Array.from(optimisticMessageIds.current).some(optId => {
+            // If this is a real message that replaces an optimistic one, remove optimistic
+            const matchesOptimistic = prev.find(m => 
+              m.id === optId && 
+              m.text === msg.text && 
+              m.sender.id === msg.sender.id
+            );
+            
+            if (matchesOptimistic) {
+              // Remove the optimistic marker
+              optimisticMessageIds.current.delete(optId);
+              // Also remove from prevMessageMap so we don't keep both versions
+              prevMessageMap.delete(optId);
+              return true;
+            }
+            return false;
+          });
+        
+        if (!isOptimisticReplacement) {
+          // Mark as processed
+          processedMsgIds.current.add(msgId);
+          prevMessageMap.set(msgId, msg);
+          hasNewMessages = true;
+        }
       });
       
       if (!hasNewMessages) {
@@ -80,40 +114,58 @@ export const useActiveDMMessages = (
         processMessageQueue();
       }
     }, 50);
-  }, [processedMsgIds]);
+  }, []);
 
   // Listen for DM message events with optimized handler
   useEffect(() => {
     const handleDMMessageReceived = (e: CustomEvent) => {
-      if (e.detail.conversationId === stableConversationId.current && e.detail.message) {
-        const newMessage = e.detail.message;
-        
-        // Skip if we've already processed this message
-        if (processedMsgIds.has(newMessage.id)) return;
-        
-        // Queue message update
-        messageUpdateQueue.current.push(newMessage);
-        
-        // Schedule processing
-        if (!isProcessingUpdates.current) {
-          requestAnimationFrame(processMessageQueue);
-        }
+      // Only process messages for current conversation
+      if (e.detail?.conversationId !== stableConversationId.current || !e.detail?.message) {
+        return;
+      }
+      
+      const newMessage = e.detail.message;
+      const msgId = newMessage.id?.toString();
+      if (!msgId) return;
+      
+      // Skip if we've already processed this message
+      if (processedMsgIds.current.has(msgId)) {
+        console.log('[useActiveDMMessages] Skipping already processed message:', msgId);
+        return;
+      }
+      
+      console.log('[useActiveDMMessages] Received new message event:', msgId);
+      
+      // Queue message update
+      messageUpdateQueue.current.push(newMessage);
+      
+      // Schedule processing
+      if (!isProcessingUpdates.current) {
+        requestAnimationFrame(processMessageQueue);
       }
     };
 
     const handleDMMessageDeleted = (e: CustomEvent) => {
-      if (e.detail.conversationId === stableConversationId.current) {
-        const msgId = e.detail.messageId;
-        
-        // Also remove from processed set
-        if (processedMsgIds.has(msgId)) {
-          processedMsgIds.delete(msgId);
-        }
-        
-        setMessages(prev => 
-          prev.filter(msg => msg.id !== msgId)
-        );
+      if (e.detail?.conversationId !== stableConversationId.current) {
+        return;
       }
+      
+      const msgId = e.detail.messageId?.toString();
+      if (!msgId) return;
+      
+      // Also remove from processed set
+      if (processedMsgIds.current.has(msgId)) {
+        processedMsgIds.current.delete(msgId);
+      }
+      
+      // Remove from optimistic IDs if it exists
+      if (optimisticMessageIds.current.has(msgId)) {
+        optimisticMessageIds.current.delete(msgId);
+      }
+      
+      setMessages(prev => 
+        prev.filter(msg => msg.id !== msgId)
+      );
     };
 
     // Add event listeners
@@ -124,18 +176,9 @@ export const useActiveDMMessages = (
       window.removeEventListener('dmMessageReceived', handleDMMessageReceived as EventListener);
       window.removeEventListener('dmMessageDeleted', handleDMMessageDeleted as EventListener);
     };
-  }, [processMessageQueue, processedMsgIds, stableConversationId]);
+  }, [processMessageQueue]);
 
-  // Clear processed message IDs when conversation changes
-  useEffect(() => {
-    return () => {
-      // Clear the processed message set when unmounting or when conversation changes
-      processedMsgIds.clear();
-      messageUpdateQueue.current = [];
-    };
-  }, [conversationId, processedMsgIds]);
-
-  // Load initial messages for the conversation - use stable callback to prevent unnecessary refetches
+  // Load initial messages for the conversation
   const fetchMessages = useCallback(async () => {
     // Skip for new conversations
     if (!conversationId || conversationId === 'new' || !currentUserId) {
@@ -163,8 +206,11 @@ export const useActiveDMMessages = (
           const isCurrentUser = msg.sender_id === currentUserId;
           const user = isCurrentUser ? null : userCache[msg.sender_id];
           
-          // Add to processed set to prevent duplicates
-          processedMsgIds.add(msg.id);
+          const msgId = msg.id?.toString();
+          if (msgId) {
+            // Add to processed set to prevent duplicates
+            processedMsgIds.current.add(msgId);
+          }
           
           return {
             id: msg.id,
@@ -178,13 +224,12 @@ export const useActiveDMMessages = (
           };
         });
         
-        // Use functional update to prevent race conditions
         setMessages(formattedMessages);
       }
     } catch (error) {
       console.error('[useActiveDMMessages] Error fetching DM messages:', error);
     }
-  }, [conversationId, currentUserId, userCache, processedMsgIds]);
+  }, [conversationId, currentUserId, userCache]);
   
   // Only fetch messages when the conversation changes
   useEffect(() => {
@@ -194,17 +239,23 @@ export const useActiveDMMessages = (
   // Add a new message optimistically (for local UI updates)
   const addOptimisticMessage = useCallback((message: ChatMessage) => {
     // Skip if already processed
-    if (processedMsgIds.has(message.id)) return;
+    const msgId = message.id?.toString();
+    if (!msgId || processedMsgIds.current.has(msgId)) return;
     
-    // Add to processed set
-    processedMsgIds.add(message.id);
+    // Track this as an optimistic message
+    optimisticMessageIds.current.add(msgId);
     
-    // Add to messages with functional update to prevent race conditions
+    // Mark as processed
+    processedMsgIds.current.add(msgId);
+    
+    // Add to messages state
     setMessages(prev => [...prev, {
       ...message,
-      optimistic: true // Mark as optimistic
+      optimistic: true
     }]);
-  }, [processedMsgIds]);
+    
+    console.log('[useActiveDMMessages] Added optimistic message:', msgId);
+  }, []);
 
   // Return stable object reference
   return useMemo(() => ({
