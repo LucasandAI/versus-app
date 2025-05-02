@@ -6,47 +6,51 @@ import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import { useNavigation } from '@/hooks/useNavigation';
 import { useChatActions } from '@/hooks/chat/useChatActions';
+import { useActiveClubMessages } from '@/hooks/chat/messages/useActiveClubMessages';
+import { useApp } from '@/context/AppContext';
 
 interface ChatClubContentProps {
   club: Club;
-  messages: any[];
   onMatchClick: () => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
-  onSendMessage: (message: string, clubId?: string) => void;
-  onDeleteMessage?: (messageId: string) => void;
-  setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
   clubId?: string;
 }
 
 const ChatClubContent = ({ 
   club,
-  messages,
   onMatchClick,
   onSelectUser,
-  onSendMessage,
-  onDeleteMessage,
-  setClubMessages,
   clubId
 }: ChatClubContentProps) => {
   const { navigateToClubDetail } = useNavigation();
-  const [isSending, setIsSending] = useState(false);
-  const { deleteMessage } = useChatActions();
+  const { currentUser } = useApp();
+  const { deleteMessage: deleteClubMessage } = useChatActions();
   const effectiveClubId = clubId || club?.id;
+  
+  // Use the new hook for active club messages
+  const { 
+    messages, 
+    isSending, 
+    setIsSending, 
+    addMessage,
+    deleteMessage 
+  } = useActiveClubMessages(effectiveClubId);
+  
+  const { sendClubMessage } = useChatActions();
   
   useEffect(() => {
     console.log('[ChatClubContent] Club changed, resetting state for:', effectiveClubId);
     setIsSending(false);
-  }, [effectiveClubId]);
+  }, [effectiveClubId, setIsSending]);
 
   const handleDeleteMessage = async (messageId: string) => {
     console.log('[ChatClubContent] Deleting message:', messageId);
     
-    if (onDeleteMessage) {
-      await onDeleteMessage(messageId);
-    } else if (setClubMessages) {
-      // Fallback to direct deleteMessage if no handler provided
-      await deleteMessage(messageId, setClubMessages);
-    }
+    // Local optimistic update
+    deleteMessage(messageId);
+    
+    // Server update
+    await deleteClubMessage(messageId);
   };
 
   const handleClubClick = () => {
@@ -59,12 +63,32 @@ const ChatClubContent = ({
 
   const handleSendMessage = async (message: string) => {
     console.log('[ChatClubContent] Sending message for club:', effectiveClubId);
+    
+    const messageToSend = message.trim();
+    if (!messageToSend || !effectiveClubId || !currentUser) return;
+    
     setIsSending(true);
     try {
-      const messageToSend = message.trim();
-      if (effectiveClubId) {
-        await onSendMessage(messageToSend, effectiveClubId);
-      }
+      // Create optimistic message
+      const optimisticMessage = {
+        id: `temp-${Date.now()}`,
+        message: messageToSend,
+        club_id: effectiveClubId,
+        sender_id: currentUser.id,
+        timestamp: new Date().toISOString(),
+        sender: {
+          id: currentUser.id,
+          name: currentUser.name,
+          avatar: currentUser.avatar
+        },
+        optimistic: true
+      };
+      
+      // Add optimistic message locally
+      addMessage(optimisticMessage);
+      
+      // Send to server
+      await sendClubMessage(effectiveClubId, messageToSend);
     } catch (error) {
       console.error('[ChatClubContent] Error sending club message:', error);
     } finally {

@@ -5,7 +5,6 @@ import ChatDrawerContainer from './ChatDrawerContainer';
 import DrawerHeader from './DrawerHeader';
 import { ChatProvider } from '@/context/ChatContext';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
-import { useChatActions } from '@/hooks/chat/useChatActions';
 import { useApp } from '@/context/AppContext';
 import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
 import { useUnreadMessages } from '@/context/unread-messages';
@@ -15,17 +14,13 @@ interface MainChatDrawerProps {
   onOpenChange: (open: boolean) => void;
   clubs: Club[];
   onNewMessage?: (count: number) => void;
-  clubMessages?: Record<string, any[]>;
-  setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
 }
 
 const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   open,
   onOpenChange,
   clubs,
-  onNewMessage,
-  clubMessages = {},
-  setClubMessages
+  onNewMessage
 }) => {
   const [activeTab, setActiveTab] = useState<"clubs"|"dm">("clubs");
   const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(null);
@@ -66,7 +61,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     };
   }, []);
   
-  const { sendMessageToClub, deleteMessage } = useChatActions();
   const { currentUser } = useApp();
   
   // Access conversations from context
@@ -114,20 +108,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const handleSelectClub = (club: Club) => {
     setSelectedLocalClub(club);
   };
-
-  const handleSendMessage = async (message: string, clubId?: string) => {
-    if (message && clubId && setClubMessages) {
-      console.log('[MainChatDrawer] Sending message to club:', clubId);
-      return await sendMessageToClub(clubId, message, setClubMessages);
-    }
-  };
-  
-  const handleDeleteMessage = async (messageId: string) => {
-    if (messageId && setClubMessages) {
-      console.log('[MainChatDrawer] Deleting message:', messageId);
-      return await deleteMessage(messageId, setClubMessages);
-    }
-  };
   
   const handleTabChange = (tab: "clubs" | "dm") => {
     setActiveTab(tab);
@@ -149,14 +129,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             clubs={clubs}
             selectedLocalClub={selectedLocalClub}
             onSelectClub={handleSelectClub}
-            messages={clubMessages}
-            deleteChat={() => {}}
-            unreadMessages={{}}
             unreadClubs={localUnreadClubs}
             unreadConversations={localUnreadConversations}
-            handleNewMessage={() => {}}
-            onSendMessage={handleSendMessage}
-            onDeleteMessage={handleDeleteMessage}
             directMessageUser={directMessageUser}
             setDirectMessageUser={setDirectMessageUser}
           />

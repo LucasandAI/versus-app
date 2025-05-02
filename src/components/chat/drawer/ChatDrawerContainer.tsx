@@ -1,32 +1,25 @@
-
 import React from 'react';
 import { Club } from '@/types';
 import ChatClubContainer from './club/ChatClubContainer';
 import DMContainer from './dm/DMContainer';
 
 interface ChatDrawerContainerProps {
-  activeTab: "clubs" | "dm";
+  activeTab: 'clubs' | 'dm';
   clubs: Club[];
   selectedLocalClub: Club | null;
   onSelectClub: (club: Club) => void;
-  messages?: Record<string, any[]>;
-  deleteChat: (chatId: string) => void;
-  unreadMessages: Record<string, number>;
-  unreadClubs?: Set<string>;
-  unreadConversations?: Set<string>;
-  handleNewMessage: (clubId: string, message: any, isOpen: boolean) => void;
-  onSendMessage: (message: string, clubId?: string) => void;
-  onDeleteMessage?: (messageId: string) => void;
+  unreadClubs: Set<string>;
+  unreadConversations: Set<string>;
   directMessageUser: {
     userId: string;
     userName: string;
-    userAvatar: string; // Made required
+    userAvatar: string;
     conversationId: string;
   } | null;
   setDirectMessageUser: React.Dispatch<React.SetStateAction<{
     userId: string;
     userName: string;
-    userAvatar: string; // Made required
+    userAvatar: string;
     conversationId: string;
   } | null>>;
 }
@@ -36,41 +29,41 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   clubs,
   selectedLocalClub,
   onSelectClub,
-  messages = {},
-  deleteChat,
-  unreadMessages,
-  unreadClubs = new Set(),
-  unreadConversations = new Set(),
-  handleNewMessage,
-  onSendMessage,
-  onDeleteMessage,
+  unreadClubs,
+  unreadConversations,
   directMessageUser,
   setDirectMessageUser
 }) => {
-  // Create a key for forced re-renders when unread status changes
-  const unreadKey = JSON.stringify([...unreadClubs].sort());
-  
+  const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
+    // Implementation remains the same
+    console.log('[ChatDrawerContainer] selectUser:', { userId, userName });
+    setDirectMessageUser({
+      userId,
+      userName,
+      userAvatar: userAvatar || '/placeholder.svg',
+      conversationId: 'new'
+    });
+  };
+
+  // Show clubs tab content
+  if (activeTab === 'clubs') {
+    return (
+      <ChatClubContainer
+        clubs={clubs}
+        selectedClub={selectedLocalClub}
+        onSelectClub={onSelectClub}
+        unreadClubs={unreadClubs}
+      />
+    );
+  }
+
+  // Show direct messages tab content
   return (
-    <div className="flex-1 overflow-hidden">
-      {activeTab === 'clubs' ? (
-        <ChatClubContainer 
-          key={`club-container-${unreadKey}`}
-          clubs={clubs}
-          selectedClub={selectedLocalClub}
-          onSelectClub={onSelectClub}
-          messages={messages}
-          unreadClubs={unreadClubs}
-          onSendMessage={onSendMessage}
-          onDeleteMessage={onDeleteMessage}
-        />
-      ) : (
-        <DMContainer
-          directMessageUser={directMessageUser}
-          setDirectMessageUser={setDirectMessageUser}
-          unreadConversations={unreadConversations}
-        />
-      )}
-    </div>
+    <DMContainer
+      directMessageUser={directMessageUser}
+      setDirectMessageUser={setDirectMessageUser}
+      unreadConversations={unreadConversations}
+    />
   );
 };
 

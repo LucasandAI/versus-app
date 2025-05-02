@@ -12,20 +12,14 @@ interface ChatClubContainerProps {
   clubs: Club[];
   selectedClub: Club | null;
   onSelectClub: (club: Club) => void;
-  messages?: Record<string, any[]>;
   unreadClubs?: Set<string>;
-  onSendMessage: (message: string, clubId?: string) => void;
-  onDeleteMessage?: (messageId: string) => void;
 }
 
 const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   clubs,
   selectedClub,
   onSelectClub,
-  messages = {},
-  unreadClubs = new Set(),
-  onSendMessage,
-  onDeleteMessage
+  unreadClubs = new Set()
 }) => {
   const {
     navigateToClubDetail
@@ -106,7 +100,12 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
       </div>
       
       <div className="flex-1">
-        <ChatClubContent club={selectedClub} messages={messages[selectedClub.id] || []} onMatchClick={handleMatchClick} onSelectUser={handleSelectUser} onSendMessage={onSendMessage} onDeleteMessage={onDeleteMessage} />
+        <ChatClubContent 
+          club={selectedClub} 
+          onMatchClick={handleMatchClick} 
+          onSelectUser={handleSelectUser} 
+          clubId={selectedClub.id}
+        />
       </div>
     </div>;
 };
