@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -42,6 +41,121 @@ export const useHomeNotifications = () => {
       window.removeEventListener('userDataUpdated', handleUserDataUpdate);
     };
   }, [refreshCurrentUser]);
+  
+  // Set up real-time listener for notifications table
+  useEffect(() => {
+    if (!currentUser?.id) {
+      console.log('[useHomeNotifications] No current user, skipping real-time subscription');
+      return;
+    }
+    
+    console.log('[useHomeNotifications] Setting up real-time subscription for notifications');
+    
+    const channel = supabase
+      .channel('notifications-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${currentUser.id}`
+        },
+        (payload) => {
+          console.log('[useHomeNotifications] Notification change detected:', payload);
+          
+          // Handle INSERT events
+          if (payload.eventType === 'INSERT') {
+            const newNotification = formatNotificationFromPayload(payload.new);
+            if (newNotification) {
+              console.log('[useHomeNotifications] Adding new notification:', newNotification);
+              
+              // Update state (prepend to keep newest first)
+              setNotifications(prev => {
+                // Check if this notification already exists (avoid duplicates)
+                const exists = prev.some(n => n.id === newNotification.id);
+                if (exists) return prev;
+                
+                const updated = [newNotification, ...prev];
+                
+                // Update localStorage
+                localStorage.setItem('notifications', JSON.stringify(updated));
+                
+                return updated;
+              });
+              
+              // Show toast for new notification
+              toast.info(newNotification.title || 'New notification', {
+                description: newNotification.message || ''
+              });
+            }
+          }
+          
+          // Handle DELETE events
+          if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old?.id;
+            if (deletedId) {
+              console.log('[useHomeNotifications] Removing deleted notification:', deletedId);
+              
+              setNotifications(prev => {
+                const updated = prev.filter(n => n.id !== deletedId);
+                
+                // Update localStorage
+                localStorage.setItem('notifications', JSON.stringify(updated));
+                
+                return updated;
+              });
+            }
+          }
+          
+          // Handle UPDATE events (e.g., marking as read)
+          if (payload.eventType === 'UPDATE') {
+            const updatedNotification = formatNotificationFromPayload(payload.new);
+            if (updatedNotification) {
+              console.log('[useHomeNotifications] Updating notification:', updatedNotification);
+              
+              setNotifications(prev => {
+                const updated = prev.map(n => 
+                  n.id === updatedNotification.id ? updatedNotification : n
+                );
+                
+                // Update localStorage
+                localStorage.setItem('notifications', JSON.stringify(updated));
+                
+                return updated;
+              });
+            }
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('[useHomeNotifications] Real-time subscription status:', status);
+      });
+      
+    return () => {
+      console.log('[useHomeNotifications] Cleaning up real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser?.id]);
+
+  // Helper function to format notification from Supabase payload
+  const formatNotificationFromPayload = (data: any): Notification | null => {
+    if (!data) return null;
+    
+    return {
+      id: data.id,
+      type: data.type,
+      userId: data.user_id,
+      clubId: data.club_id,
+      clubName: data.data?.clubName || 'Unknown Club',
+      clubLogo: data.data?.clubLogo || null,
+      title: data.title || '',
+      message: data.message || '',
+      timestamp: data.created_at,
+      read: data.read || false,
+      data: data.data || {}
+    };
+  };
 
   const handleMarkAsRead = useCallback(async (id: string) => {
     try {

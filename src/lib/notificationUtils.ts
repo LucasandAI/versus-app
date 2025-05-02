@@ -8,12 +8,20 @@ export const handleNotification = async (id: string, action: 'read' | 'delete') 
   try {
     console.log(`[handleNotification] Action ${action} on notification ${id}`);
     
+    // Get current user to verify permissions
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.error('[handleNotification] Error getting current user:', userError);
+      return null;
+    }
+    
     if (action === 'read') {
       // Mark notification as read in Supabase
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id);  // Add user_id check for security
         
       if (error) {
         console.error('[handleNotification] Error updating notification:', error);
@@ -24,7 +32,8 @@ export const handleNotification = async (id: string, action: 'read' | 'delete') 
       const { error } = await supabase
         .from('notifications')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id);  // Add user_id check for security
         
       if (error) {
         console.error('[handleNotification] Error deleting notification:', error);
@@ -55,6 +64,8 @@ export const handleNotification = async (id: string, action: 'read' | 'delete') 
       
       localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
       
+      // Dispatch event to notify components of the update
+      // This is now less critical with real-time updates but still useful for non-real-time scenarios
       const event = new CustomEvent('notificationsUpdated');
       window.dispatchEvent(event);
       
