@@ -151,7 +151,7 @@ export const denyJoinRequestFromNotification = async (
 const deleteRelatedNotification = async (
   userId: string,
   clubId: string,
-  type: string
+  type: 'join_request' | 'invite' | 'request_accepted'
 ): Promise<void> => {
   try {
     // Delete the notification for this specific request

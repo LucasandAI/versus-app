@@ -8,7 +8,6 @@ interface NotificationListProps {
   notifications: Notification[];
   onMarkAsRead?: (id: string) => void;
   onUserClick: (userId: string, userName: string) => void;
-  onJoinClub?: (clubId: string, clubName: string, requesterId: string) => void;
   onDeclineInvite?: (id: string) => void;
   onClearAll: () => void;
   formatTime: (timestamp: string) => string;
@@ -18,7 +17,6 @@ export const NotificationList: React.FC<NotificationListProps> = ({
   notifications,
   onMarkAsRead,
   onUserClick,
-  onJoinClub,
   onDeclineInvite,
   onClearAll,
   formatTime,
@@ -66,7 +64,6 @@ export const NotificationList: React.FC<NotificationListProps> = ({
             notification={notification}
             onMarkAsRead={onMarkAsRead}
             onUserClick={onUserClick}
-            onJoinClub={onJoinClub}
             onDeclineInvite={onDeclineInvite}
             formatTime={formatTime}
           />

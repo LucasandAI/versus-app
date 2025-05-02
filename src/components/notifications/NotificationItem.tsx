@@ -42,7 +42,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   // Handle user name clicks
   const handleUserClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const userId = notification.user_id || notification.userId;
+    const userId = notification.userId || notification.data?.userId;
     const userName = notification.data?.requesterName || notification.userName;
     
     if (userId && userName) {
@@ -58,8 +58,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   const handleJoinClub = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (notification.type === 'join_request') {
-      const userId = notification.user_id;
-      const clubId = notification.club_id;
+      const userId = notification.userId || notification.data?.userId;
+      const clubId = notification.clubId;
       
       console.log("[NotificationItem] Accepting join request:", {
         userId,
@@ -68,7 +68,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
       });
       
       if (!userId || !clubId) {
-        console.error("[NotificationItem] Missing user_id or club_id for accept action");
+        console.error("[NotificationItem] Missing userId or clubId for accept action");
         return;
       }
       
@@ -91,8 +91,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     e.stopPropagation();
     
     if (notification.type === 'join_request') {
-      const userId = notification.user_id;
-      const clubId = notification.club_id;
+      const userId = notification.userId || notification.data?.userId;
+      const clubId = notification.clubId;
       
       console.log("[NotificationItem] Declining join request:", {
         userId,
@@ -101,7 +101,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
       });
       
       if (!userId || !clubId) {
-        console.error("[NotificationItem] Missing user_id or club_id for decline action");
+        console.error("[NotificationItem] Missing userId or clubId for decline action");
         return;
       }
       
