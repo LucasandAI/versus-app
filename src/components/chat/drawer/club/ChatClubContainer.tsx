@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Club } from '@/types';
 import ChatSidebarContent from '../ChatSidebarContent';
 import ChatClubContent from '../../../chat/ChatClubContent';
@@ -35,6 +35,9 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   const {
     markClubMessagesAsRead
   } = useUnreadMessages();
+  
+  // Force re-render on message updates
+  const [forceUpdateCounter, setForceUpdateCounter] = useState(0);
 
   // Add a ref to track renders for debugging
   const renderCountRef = useRef(0);
@@ -43,7 +46,7 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   // Debug effect to track renders
   useEffect(() => {
     renderCountRef.current += 1;
-    console.log(`[ChatClubContainer] Render #${renderCountRef.current}`, {
+    console.log(`[ChatClubContainer] 🔄 Render #${renderCountRef.current}`, {
       selectedClub: selectedClub?.id,
       prevSelectedClub: previousSelectedClubRef.current,
       hasMessages: selectedClub ? (messages[selectedClub.id]?.length || 0) : 0
@@ -53,13 +56,27 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
       previousSelectedClubRef.current = selectedClub?.id || null;
     }
   });
+  
+  // Listen for force update events
+  useEffect(() => {
+    const handleForceUpdate = () => {
+      console.log('[ChatClubContainer] 🔄 Forcing update via event');
+      setForceUpdateCounter(prev => prev + 1);
+    };
+    
+    window.addEventListener('forceUpdateClubContainer', handleForceUpdate);
+    
+    return () => {
+      window.removeEventListener('forceUpdateClubContainer', handleForceUpdate);
+    };
+  }, []);
 
   // Mark messages as read when a club is selected
   useEffect(() => {
     if (selectedClub) {
-      console.log(`[ChatClubContainer] Selected club: ${selectedClub.id} (type: ${typeof selectedClub.id})`);
-      console.log(`[ChatClubContainer] Marking club ${selectedClub.id} messages as read`);
-      console.log(`[ChatClubContainer] Current unreadClubs:`, Array.from(unreadClubs));
+      console.log(`[ChatClubContainer] 📋 Selected club: ${selectedClub.id} (type: ${typeof selectedClub.id})`);
+      console.log(`[ChatClubContainer] ✅ Marking club ${selectedClub.id} messages as read`);
+      console.log(`[ChatClubContainer] 🔔 Current unreadClubs:`, Array.from(unreadClubs));
 
       // Mark as read when selected
       markClubMessagesAsRead(selectedClub.id);
@@ -102,13 +119,24 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
     }
   };
 
-  // Create a key for forced re-renders when unread status changes
+  // Create a key for forced re-renders when unread status changes or messages update
   const unreadKey = JSON.stringify([...unreadClubs].sort());
+  const messagesUpdateKey = selectedClub ? 
+    `${selectedClub.id}-${messages[selectedClub.id]?.length || 0}-${forceUpdateCounter}` : 
+    `no-club-${forceUpdateCounter}`;
 
   // If no club is selected, show the clubs list
   if (!selectedClub) {
     return <div className="flex flex-col h-full overflow-hidden">
-        <ChatSidebarContent key={`sidebar-content-${unreadKey}`} clubs={clubs} selectedClub={selectedClub} onSelectClub={onSelectClub} onSelectUser={handleSelectUser} activeTab="clubs" unreadClubs={unreadClubs} />
+        <ChatSidebarContent 
+          key={`sidebar-content-${unreadKey}`} 
+          clubs={clubs} 
+          selectedClub={selectedClub} 
+          onSelectClub={onSelectClub} 
+          onSelectUser={handleSelectUser} 
+          activeTab="clubs" 
+          unreadClubs={unreadClubs} 
+        />
       </div>;
   }
 
@@ -116,7 +144,8 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   const clubMessages = messages[selectedClub.id] || [];
   
   // Add a debug line to confirm the messages are correctly passed
-  console.log(`[ChatClubContainer] Rendering selected club ${selectedClub.name} with ${clubMessages.length} messages`);
+  console.log(`[ChatClubContainer] 📋 Rendering selected club ${selectedClub.name} with ${clubMessages.length} messages`);
+  console.log(`[ChatClubContainer] 🔑 Using key: ${messagesUpdateKey}`);
 
   // If a club is selected, show the full-width chat
   return <div className="flex flex-col h-full">
@@ -133,7 +162,7 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
       
       <div className="flex-1">
         <ChatClubContent 
-          key={`club-content-${selectedClub.id}-${clubMessages.length}`}
+          key={`club-content-${messagesUpdateKey}`}
           club={selectedClub} 
           messages={clubMessages} 
           onMatchClick={handleMatchClick} 

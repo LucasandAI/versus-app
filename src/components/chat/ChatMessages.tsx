@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ChatMessage } from '@/types';
 import MessageList from './message/MessageList';
 import { useMessageUser } from './message/useMessageUser';
@@ -36,6 +36,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const renderCountRef = useRef(0);
   const previousMessagesLengthRef = useRef<number>(0);
   const messagesStableIdRef = useRef<string>("");
+  const [forceUpdateKey, setForceUpdateKey] = useState(Date.now());
   
   const {
     currentUserId,
@@ -81,7 +82,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     const currentMessagesId = generateMessagesId();
     const isReallyNewMessages = currentMessagesId !== messagesStableIdRef.current;
     
-    console.log(`[ChatMessages] Render #${renderCountRef.current}`, {
+    console.log(`[ChatMessages] 🔄 Render #${renderCountRef.current}`, {
       messageCount: Array.isArray(messages) ? messages.length : 'No messages array',
       previousCount: previousMessagesLengthRef.current,
       newMessages: hasNewMessages,
@@ -93,6 +94,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     // Update our tracking references
     if (isReallyNewMessages) {
       messagesStableIdRef.current = currentMessagesId;
+      // Force update when messages really change
+      setForceUpdateKey(Date.now());
     }
     
     if (Array.isArray(messages)) {
@@ -101,7 +104,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
       if (messages.length > 0 && hasNewMessages) {
         // Log info about last message
         const lastMsg = messages[messages.length - 1];
-        console.log('[ChatMessages] Last message:', {
+        console.log('[ChatMessages] ✨ Last message:', {
           id: lastMsg.id,
           sender: lastMsg.sender?.name || lastMsg.sender_id,
           message: lastMsg.message?.substring(0, 30) + (lastMsg.message?.length > 30 ? '...' : '')
@@ -127,6 +130,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
 
   // Determine if this is a club chat by checking if there are club members
   const isClubChat = clubMembers.length > 0;
+  
+  // Create a unique key that changes when messages update
+  const messageListKey = `messages-${normalizedMessages.length}-${forceUpdateKey}`;
 
   return (
     <div 
@@ -137,13 +143,15 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     >
       {/* Enhanced debug information */}
       <div className="bg-blue-50 px-2 py-1 text-xs">
-        Messages: {normalizedMessages.length} | Renders: {renderCountRef.current}
+        💬 Messages: {normalizedMessages.length} | 🔄 Renders: {renderCountRef.current}
         {normalizedMessages.length > 0 && (
-          <span> | ID: {messagesStableIdRef.current.substring(0, 8)}...</span>
+          <span> | 🆔 ID: {messagesStableIdRef.current.substring(0, 8)}...</span>
         )}
+        | 🔑 Key: {messageListKey.substring(0, 15)}...
       </div>
       
       <MessageList 
+        key={messageListKey}
         messages={normalizedMessages} 
         clubMembers={clubMembers} 
         isSupport={isSupport} 
