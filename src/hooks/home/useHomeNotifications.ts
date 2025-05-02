@@ -71,11 +71,6 @@ export const useHomeNotifications = () => {
     }
   }, [notifications, currentUser?.id]);
 
-  // These functions are simplified - actual implementation is now in joinRequestActions.ts
-  const handleJoinClub = useCallback(() => {
-    console.log('[useHomeNotifications] Join club function called, but actual implementation has been moved to NotificationItem component');
-  }, []);
-
   const handleDeclineInvite = useCallback(async (id: string) => {
     try {
       console.log('[useHomeNotifications] Decline notification:', id);
@@ -157,7 +152,6 @@ export const useHomeNotifications = () => {
     setUnreadMessages,
     updateUnreadCount,
     handleMarkAsRead,
-    handleJoinClub,
     handleDeclineInvite,
     handleClearAllNotifications
   };

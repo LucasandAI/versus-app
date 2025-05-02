@@ -26,7 +26,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   // Handle club name clicks
   const handleClubClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const clubId = notification.clubId;
+    const clubId = notification.clubId || notification.data?.clubId;
     const clubName = notification.data?.clubName || notification.clubName;
     
     if (clubId && clubName) {
@@ -42,7 +42,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   // Handle user name clicks
   const handleUserClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const userId = notification.userId || notification.data?.userId;
+    const userId = notification.data?.userId || notification.userId;
     const userName = notification.data?.requesterName || notification.userName;
     
     if (userId && userName) {
@@ -58,23 +58,25 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   const handleJoinClub = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (notification.type === 'join_request') {
-      const userId = notification.userId || notification.data?.userId;
-      const clubId = notification.clubId;
+      // Get the requester ID correctly from notification data
+      const requesterId = notification.data?.userId;
+      const clubId = notification.clubId || notification.data?.clubId;
       
       console.log("[NotificationItem] Accepting join request:", {
-        userId,
+        requesterId,
         clubId, 
-        notificationId: notification.id
+        notificationId: notification.id,
+        notificationData: notification.data
       });
       
-      if (!userId || !clubId) {
-        console.error("[NotificationItem] Missing userId or clubId for accept action");
+      if (!requesterId || !clubId) {
+        console.error("[NotificationItem] Missing requesterId or clubId for accept action");
         return;
       }
       
       try {
-        // Use new utility function directly from DB state
-        const success = await acceptJoinRequestFromNotification(userId, clubId);
+        // Use utility function directly from DB state
+        const success = await acceptJoinRequestFromNotification(requesterId, clubId);
         console.log("[NotificationItem] Accept result:", success);
         
         if (success && onMarkAsRead) {
@@ -91,23 +93,25 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     e.stopPropagation();
     
     if (notification.type === 'join_request') {
-      const userId = notification.userId || notification.data?.userId;
-      const clubId = notification.clubId;
+      // Get the requester ID correctly from notification data
+      const requesterId = notification.data?.userId;
+      const clubId = notification.clubId || notification.data?.clubId;
       
       console.log("[NotificationItem] Declining join request:", {
-        userId,
+        requesterId,
         clubId,
-        notificationId: notification.id
+        notificationId: notification.id,
+        notificationData: notification.data
       });
       
-      if (!userId || !clubId) {
-        console.error("[NotificationItem] Missing userId or clubId for decline action");
+      if (!requesterId || !clubId) {
+        console.error("[NotificationItem] Missing requesterId or clubId for decline action");
         return;
       }
       
       try {
-        // Use new utility function directly from DB state
-        const success = await denyJoinRequestFromNotification(userId, clubId);
+        // Use utility function directly from DB state
+        const success = await denyJoinRequestFromNotification(requesterId, clubId);
         console.log("[NotificationItem] Decline result:", success);
         
         if (success && onMarkAsRead) {

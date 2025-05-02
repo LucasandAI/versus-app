@@ -10,17 +10,17 @@ import { toast } from 'sonner';
  * 4. Deleting the notification
  */
 export const acceptJoinRequestFromNotification = async (
-  userId: string,
+  requesterId: string,
   clubId: string
 ): Promise<boolean> => {
   try {
-    console.log('[joinRequestActions] Processing accept request:', { userId, clubId });
+    console.log('[joinRequestActions] Processing accept request:', { requesterId, clubId });
     
     // First, verify the request exists and is pending
     const { data: requestData, error: requestError } = await supabase
       .from('club_requests')
       .select('id')
-      .eq('user_id', userId)
+      .eq('user_id', requesterId)  // Using requesterId (the person who requested to join)
       .eq('club_id', clubId)
       .eq('status', 'pending')
       .single();
@@ -52,7 +52,7 @@ export const acceptJoinRequestFromNotification = async (
     const { error: joinError } = await supabase
       .from('club_members')
       .insert({
-        user_id: userId,
+        user_id: requesterId,
         club_id: clubId,
         is_admin: false
       });
@@ -66,7 +66,7 @@ export const acceptJoinRequestFromNotification = async (
     const { error: updateError } = await supabase
       .from('club_requests')
       .update({ status: 'accepted' })
-      .eq('user_id', userId)
+      .eq('user_id', requesterId)
       .eq('club_id', clubId);
       
     if (updateError) {
@@ -74,9 +74,11 @@ export const acceptJoinRequestFromNotification = async (
       throw updateError;
     }
     
-    // Delete the notification
-    // This is now handled by DB triggers, but we'll delete it anyway to be sure
-    await deleteRelatedNotification(userId, clubId, 'join_request');
+    // Delete notifications related to this join request
+    await deleteRelatedNotification(requesterId, clubId, 'join_request');
+    
+    // Show success toast
+    toast.success("User has been added to the club");
     
     // Refresh UI state
     window.dispatchEvent(new CustomEvent('userDataUpdated'));
@@ -97,17 +99,17 @@ export const acceptJoinRequestFromNotification = async (
  * 3. Deleting the notification
  */
 export const denyJoinRequestFromNotification = async (
-  userId: string,
+  requesterId: string,
   clubId: string
 ): Promise<boolean> => {
   try {
-    console.log('[joinRequestActions] Processing deny request:', { userId, clubId });
+    console.log('[joinRequestActions] Processing deny request:', { requesterId, clubId });
     
     // First, verify the request exists and is pending
     const { data: requestData, error: requestError } = await supabase
       .from('club_requests')
       .select('id')
-      .eq('user_id', userId)
+      .eq('user_id', requesterId)  // Using requesterId (the person who requested to join)
       .eq('club_id', clubId)
       .eq('status', 'pending')
       .single();
@@ -122,7 +124,7 @@ export const denyJoinRequestFromNotification = async (
     const { error: deleteError } = await supabase
       .from('club_requests')
       .delete()
-      .eq('user_id', userId)
+      .eq('user_id', requesterId)
       .eq('club_id', clubId);
       
     if (deleteError) {
@@ -131,7 +133,10 @@ export const denyJoinRequestFromNotification = async (
     }
     
     // Delete the notification
-    await deleteRelatedNotification(userId, clubId, 'join_request');
+    await deleteRelatedNotification(requesterId, clubId, 'join_request');
+    
+    // Show success toast
+    toast.success("Join request denied");
     
     // Refresh UI state
     window.dispatchEvent(new CustomEvent('userDataUpdated'));
@@ -147,23 +152,69 @@ export const denyJoinRequestFromNotification = async (
 
 /**
  * Helper function to delete notifications related to a join request
+ * This works for both admin notifications and user notifications
  */
 const deleteRelatedNotification = async (
-  userId: string,
+  requesterId: string,
   clubId: string,
   type: 'join_request' | 'invite' | 'request_accepted'
 ): Promise<void> => {
   try {
-    // Delete the notification for this specific request
+    console.log('[joinRequestActions] Looking for notifications to delete:', { 
+      requesterId, clubId, type 
+    });
+    
+    // First, get notifications related to this request
+    const { data: notifications, error: fetchError } = await supabase
+      .from('notifications')
+      .select('id, user_id, data')
+      .eq('club_id', clubId)
+      .eq('type', type);
+    
+    if (fetchError) {
+      console.error('[joinRequestActions] Error fetching notifications:', fetchError);
+      return;
+    }
+    
+    if (!notifications || notifications.length === 0) {
+      console.log('[joinRequestActions] No notifications found');
+      return;
+    }
+    
+    console.log('[joinRequestActions] Found notifications:', notifications);
+    
+    // Filter notifications that match our requester ID (either in the data field or by user_id)
+    const matchingNotifications = notifications.filter(notification => {
+      // For join requests sent to admins, the data contains the requester's ID
+      if (notification.data && typeof notification.data === 'object') {
+        const data = notification.data as Record<string, any>;
+        if (data.userId === requesterId) {
+          return true;
+        }
+      }
+      
+      // For other notification types where the requester is the notification recipient
+      return notification.user_id === requesterId;
+    });
+    
+    if (matchingNotifications.length === 0) {
+      console.log('[joinRequestActions] No matching notifications found');
+      return;
+    }
+    
+    // Delete the matched notifications
+    const notificationIds = matchingNotifications.map(n => n.id);
+    console.log('[joinRequestActions] Deleting notifications with IDs:', notificationIds);
+    
     const { error } = await supabase
       .from('notifications')
       .delete()
-      .eq('club_id', clubId)
-      .eq('type', type)
-      .eq('user_id', userId);
+      .in('id', notificationIds);
       
     if (error) {
-      console.error('[joinRequestActions] Error deleting notification:', error);
+      console.error('[joinRequestActions] Error deleting notifications:', error);
+    } else {
+      console.log('[joinRequestActions] Successfully deleted notifications');
     }
   } catch (error) {
     console.error('[joinRequestActions] Error in deleteRelatedNotification:', error);
