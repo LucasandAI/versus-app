@@ -141,7 +141,7 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
           {unreadCount > 0 && (
             <Badge 
               variant="dot" 
-              className="absolute top-0 right-0"
+              className="absolute -top-1 right-0"
             >
               {unreadCount > 9 ? '9+' : unreadCount}
             </Badge>
