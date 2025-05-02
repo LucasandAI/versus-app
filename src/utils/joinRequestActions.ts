@@ -80,9 +80,15 @@ export const acceptJoinRequestFromNotification = async (
     // Show success toast
     toast.success("User has been added to the club");
     
-    // Refresh UI state
+    // Dispatch events for real-time UI updates
+    window.dispatchEvent(new CustomEvent('joinRequestProcessed', { 
+      detail: { userId: requesterId, clubId: clubId, action: 'accept' }
+    }));
     window.dispatchEvent(new CustomEvent('userDataUpdated'));
     window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+    window.dispatchEvent(new CustomEvent('clubMembersUpdated', {
+      detail: { clubId: clubId, addedUserId: requesterId }
+    }));
     
     return true;
   } catch (error) {
@@ -138,7 +144,10 @@ export const denyJoinRequestFromNotification = async (
     // Show success toast
     toast.success("Join request denied");
     
-    // Refresh UI state
+    // Dispatch events for real-time UI updates
+    window.dispatchEvent(new CustomEvent('joinRequestProcessed', { 
+      detail: { userId: requesterId, clubId: clubId, action: 'deny' }
+    }));
     window.dispatchEvent(new CustomEvent('userDataUpdated'));
     window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     
