@@ -15,7 +15,6 @@ interface NotificationPopoverProps {
   onMarkAsRead: (id: string) => void;
   onClearAll: () => void;
   onUserClick: (userId: string, userName: string) => void;
-  onJoinClub?: (clubId: string, clubName: string, requesterId: string) => void;
   onDeclineInvite?: (notificationId: string) => void;
 }
 
@@ -24,7 +23,6 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   onMarkAsRead,
   onClearAll,
   onUserClick,
-  onJoinClub,
   onDeclineInvite
 }) => {
   const [open, setOpen] = useState(false);
@@ -86,7 +84,6 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
           notifications={notifications}
           onMarkAsRead={onMarkAsRead}
           onUserClick={onUserClick}
-          onJoinClub={onJoinClub}
           onDeclineInvite={onDeclineInvite}
           onClearAll={onClearAll}
           formatTime={formatTime}
