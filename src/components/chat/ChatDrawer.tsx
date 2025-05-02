@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Club } from '@/types';
 import MainChatDrawer from './drawer/MainChatDrawer';
@@ -11,6 +10,9 @@ interface ChatDrawerProps {
   clubMessages?: Record<string, any[]>;
   setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>; 
   onSendMessage?: (message: string, clubId?: string) => Promise<void> | void;
+  activeClubId?: string | null;
+  setActiveClubId?: (clubId: string | null) => void;
+  activeClubMessages?: any[];
 }
 
 const ChatDrawer: React.FC<ChatDrawerProps> = (props) => {

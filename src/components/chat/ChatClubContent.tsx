@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import ChatHeader from './ChatHeader';
@@ -10,7 +9,7 @@ import { useChatActions } from '@/hooks/chat/useChatActions';
 interface ChatClubContentProps {
   club: Club;
   messages: any[];
-  activeMessages?: any[]; // Added activeMessages prop
+  activeMessages?: any[]; // This prop should be passed from ChatDrawerContainer -> ChatClubContent
   onMatchClick: () => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   onSendMessage: (message: string, clubId?: string) => void;
@@ -23,7 +22,7 @@ interface ChatClubContentProps {
 const ChatClubContent = ({ 
   club,
   messages,
-  activeMessages, // Use this prop if available
+  activeMessages, // This prop should be passed from ChatDrawerContainer -> ChatClubContent
   onMatchClick,
   onSelectUser,
   onSendMessage,

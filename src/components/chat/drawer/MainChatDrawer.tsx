@@ -17,6 +17,10 @@ interface MainChatDrawerProps {
   onNewMessage?: (count: number) => void;
   clubMessages?: Record<string, any[]>;
   setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
+  // Add the new props here as well
+  activeClubId?: string | null;
+  setActiveClubId?: (clubId: string | null) => void;
+  activeClubMessages?: any[];
 }
 
 const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
@@ -25,7 +29,11 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   clubs,
   onNewMessage,
   clubMessages = {},
-  setClubMessages
+  setClubMessages,
+  // Destructure the new props
+  activeClubId,
+  setActiveClubId,
+  activeClubMessages
 }) => {
   const [activeTab, setActiveTab] = useState<"clubs"|"dm">("clubs");
   const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(null);
@@ -159,6 +167,10 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             onDeleteMessage={handleDeleteMessage}
             directMessageUser={directMessageUser}
             setDirectMessageUser={setDirectMessageUser}
+            // Pass the new props to ChatDrawerContainer
+            activeClubId={activeClubId}
+            setActiveClubId={setActiveClubId}
+            activeClubMessages={activeClubMessages}
           />
         </DrawerContent>
       </Drawer>
