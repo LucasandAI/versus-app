@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Bell, BellDot, Trash2 } from 'lucide-react';
+import { Bell, Trash2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { NotificationList } from '../notifications/NotificationList';
 import { Notification } from '@/types';
@@ -137,11 +137,11 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button className="relative text-primary hover:bg-gray-100 rounded-full p-2">
-          {unreadCount > 0 ? <BellDot className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
+          <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <Badge 
               variant="dot" 
-              className="absolute -top-0.5 -right-0.5"
+              className="absolute top-0 right-0"
             >
               {unreadCount > 9 ? '9+' : unreadCount}
             </Badge>
