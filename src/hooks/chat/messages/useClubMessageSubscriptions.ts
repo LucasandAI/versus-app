@@ -3,7 +3,6 @@ import { useEffect, useRef, useCallback } from 'react';
 import { Club } from '@/types';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { createClubChannel, cleanupChannels } from './utils/subscriptionUtils';
-import { processNewMessage } from './utils/messageHandlerUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import { useUnreadMessages } from '@/context/UnreadMessagesContext';
@@ -157,17 +156,18 @@ export const useClubMessageSubscriptions = (
             (!selectedClubRef.current || selectedClubRef.current !== clubId)) {
           console.log(`[useClubMessageSubscriptions] Received message from another user for club ${clubId}`);
           
-          // Mark the club as unread
+          // Mark the club as unread - CRITICAL for the UI update
           markClubAsUnread(clubId);
           
-          // Force refresh to update UI
+          // Force refresh to update UI immediately
           setTimeout(() => {
             forceRefresh();
-          }, 50);
-          
-          window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
-            detail: { clubId } 
-          }));
+            
+            // Dispatch custom event for other components to react
+            window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
+              detail: { clubId } 
+            }));
+          }, 10);
         }
       });
 
