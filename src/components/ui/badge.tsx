@@ -17,7 +17,7 @@ const badgeVariants = cva(
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
         unread: "!border-transparent !bg-red-500 !text-white min-w-5 h-5 flex items-center justify-center !z-10",
-        dot: "!w-2 !h-2 !p-0 !border-0 !bg-red-500 !rounded-full !block !z-10 !opacity-100 !visible"
+        dot: "!w-4 !h-4 !p-0 !border-0 !bg-red-500 !rounded-full !flex !items-center !justify-center !text-[10px] !text-white !z-10 !min-w-0"
       },
     },
     defaultVariants: {
@@ -31,24 +31,9 @@ export interface BadgeProps
     VariantProps<typeof badgeVariants> {}
 
 function Badge({ className, variant, ...props }: BadgeProps) {
-  // Enhanced inline styles for dot variant to ensure visibility
-  const inlineStyles: React.CSSProperties = variant === "dot" ? {
-    display: "block",
-    opacity: 1,
-    visibility: "visible" as const,
-    backgroundColor: "rgb(239, 68, 68)",
-    width: "8px",
-    height: "8px",
-    minWidth: "8px",
-    minHeight: "8px",
-    borderRadius: "50%",
-    zIndex: 10
-  } : {};
-
   return (
     <div 
       className={cn(badgeVariants({ variant }), className)}
-      style={inlineStyles}
       {...props} 
     />
   )
