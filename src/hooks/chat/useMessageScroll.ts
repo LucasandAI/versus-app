@@ -7,16 +7,21 @@ export const useMessageScroll = (messages: any[]) => {
   const previousMessageCount = useRef<number>(0);
   const isUserScrolling = useRef<boolean>(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollLockRef = useRef<boolean>(false);
   
-  // Optimize scrolling by using a callback
+  // Optimize scrolling by using a callback with requestAnimationFrame
   const scrollToBottom = useCallback((smooth = true) => {
+    // Prevent multiple scroll attempts in a short time
+    if (scrollLockRef.current) return;
+    scrollLockRef.current = true;
+    
     // Clear any existing scroll timeout
     if (scrollTimeoutRef.current) {
       clearTimeout(scrollTimeoutRef.current);
     }
     
-    // Use a small delay to ensure DOM is ready
-    scrollTimeoutRef.current = setTimeout(() => {
+    // Use requestAnimationFrame to ensure DOM updates are complete
+    requestAnimationFrame(() => {
       if (lastMessageRef.current) {
         lastMessageRef.current.scrollIntoView({
           behavior: smooth ? 'smooth' : 'auto',
@@ -26,30 +31,46 @@ export const useMessageScroll = (messages: any[]) => {
       } else if (scrollRef.current) {
         scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
       }
-      scrollTimeoutRef.current = null;
-    }, 10);
+      
+      // Release scroll lock after animation completes
+      setTimeout(() => {
+        scrollLockRef.current = false;
+      }, smooth ? 300 : 50);
+    });
+    
+    scrollTimeoutRef.current = null;
   }, []);
 
-  // Track user scrolling
+  // Track user scrolling with debounced handler
   useEffect(() => {
+    let scrollTimer: NodeJS.Timeout | null = null;
+    
     const handleScroll = () => {
+      if (scrollTimer) clearTimeout(scrollTimer);
+      
       if (!scrollRef.current) return;
       
       const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
       const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
       
       isUserScrolling.current = !isAtBottom;
+      
+      // Debounce scroll state changes
+      scrollTimer = setTimeout(() => {
+        isUserScrolling.current = !isAtBottom;
+      }, 100);
     };
 
     const currentScrollRef = scrollRef.current;
     if (currentScrollRef) {
-      currentScrollRef.addEventListener('scroll', handleScroll);
+      currentScrollRef.addEventListener('scroll', handleScroll, { passive: true });
     }
 
     return () => {
       if (currentScrollRef) {
         currentScrollRef.removeEventListener('scroll', handleScroll);
       }
+      if (scrollTimer) clearTimeout(scrollTimer);
     };
   }, []);
 
@@ -64,8 +85,11 @@ export const useMessageScroll = (messages: any[]) => {
       previousMessageCount.current === 0 || 
       (messages.length > previousMessageCount.current && !isUserScrolling.current);
       
-    if (shouldScroll) {
-      scrollToBottom(previousMessageCount.current > 0);
+    if (shouldScroll && !scrollLockRef.current) {
+      // Small delay to ensure DOM has updated with new messages
+      requestAnimationFrame(() => {
+        scrollToBottom(previousMessageCount.current > 0);
+      });
     }
     
     previousMessageCount.current = messages.length;

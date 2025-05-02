@@ -1,5 +1,5 @@
 
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { ChatMessage } from '@/types';
 import MessageList from './message/MessageList';
 import { useMessageUser } from './message/useMessageUser';
@@ -69,6 +69,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   const finalFormatTime = providedFormatTime || defaultFormatTime;
   const finalScrollRef = providedScrollRef || defaultScrollRef;
   
+  // Handle case when messages is not an array
   if (!Array.isArray(messages)) {
     return (
       <div className="flex-1 p-4">
@@ -79,10 +80,17 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
     );
   }
 
+  // Only normalize messages once per unique message set
+  // Using stringified IDs as dependency to avoid deep comparisons
+  const messageIds = useMemo(() => 
+    messages.map(msg => msg.id).join(','),
+    [messages]
+  );
+  
   // Memoize normalized messages to prevent unnecessary processing
-  const normalizedMessages = React.useMemo(() => 
+  const normalizedMessages = useMemo(() => 
     messages.map(message => normalizeMessage(message)),
-    [messages, normalizeMessage]
+    [messages, normalizeMessage, messageIds]
   );
 
   // Determine if this is a club chat by checking if there are club members

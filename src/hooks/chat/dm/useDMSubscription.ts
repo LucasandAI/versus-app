@@ -14,6 +14,7 @@ export const useDMSubscription = (
   const subscriptionError = useRef(false);
   const isMounted = useRef(true);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const processedMessages = useRef<Set<string>>(new Set());
   const { userCache, fetchUserData } = useUserData();
   
   // Clean up function
@@ -31,6 +32,8 @@ export const useDMSubscription = (
     return () => {
       isMounted.current = false;
       cleanupSubscription();
+      // Clear processed messages cache on unmount
+      processedMessages.current.clear();
     };
   }, [cleanupSubscription]);
 
@@ -40,6 +43,11 @@ export const useDMSubscription = (
       fetchUserData(otherUserId);
     }
   }, [otherUserId, userCache, fetchUserData]);
+
+  // Clear processed message cache when conversation changes
+  useEffect(() => {
+    processedMessages.current.clear();
+  }, [conversationId]);
 
   // Setup subscription when conversation details are ready
   useEffect(() => {
@@ -67,6 +75,14 @@ export const useDMSubscription = (
           console.log('[useDMSubscription] New direct message received:', payload);
           
           const newMessage = payload.new;
+          
+          // Skip processing if we've seen this message before
+          if (processedMessages.current.has(newMessage.id)) {
+            return;
+          }
+          
+          // Mark as processed
+          processedMessages.current.add(newMessage.id);
           
           // Ensure we have the user data for proper display
           if (newMessage.sender_id !== currentUserId && !userCache[newMessage.sender_id]) {

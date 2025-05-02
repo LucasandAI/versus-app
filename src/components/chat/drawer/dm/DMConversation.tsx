@@ -1,5 +1,5 @@
 
-import React, { useRef, useEffect, useCallback, memo } from 'react';
+import React, { useRef, useEffect, useCallback, memo, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -48,17 +48,17 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     currentUser?.id
   );
   
-  // Use subscription hook
+  // Use subscription hook - no state updates, only event dispatching
   useDMSubscription(conversationId, user.id, currentUser?.id, setMessages);
   
-  // Use scroll management hook
+  // Use scroll management hook with optimized scrolling
   const { scrollRef, lastMessageRef, scrollToBottom } = useMessageScroll(messages);
   
   // Custom hooks for conversation management
   const { createConversation } = useConversationManagement(currentUser?.id, user.id);
   
   // Memoize user object to prevent re-renders
-  const memoizedUser = React.useMemo(() => ({
+  const memoizedUser = useMemo(() => ({
     id: user.id,
     name: user.name,
     avatar: user.avatar || '/placeholder.svg'
@@ -71,14 +71,16 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     }
   }, [conversationId, markConversationAsRead]);
 
+  // Stable send message handler
   const handleSendMessage = useCallback(async (text: string) => {
     if (!text.trim() || !currentUser?.id) return;
     
     setIsSending(true);
     
-    // Create optimistic message
+    // Create optimistic message with stable ID format
+    const optimisticId = `optimistic-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const optimisticMessage = {
-      id: `optimistic-${Date.now()}`,
+      id: optimisticId,
       text,
       sender: {
         id: currentUser.id,
@@ -92,8 +94,10 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     // Add optimistic message to UI
     addOptimisticMessage(optimisticMessage);
     
-    // Scroll to bottom
-    scrollToBottom();
+    // Scroll to bottom - wrapped in requestAnimationFrame to avoid layout thrashing
+    requestAnimationFrame(() => {
+      scrollToBottom();
+    });
     
     try {
       let finalConversationId = conversationId;
@@ -126,7 +130,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       console.error('[DMConversation] Error sending message:', error);
       
       // Remove optimistic message on error
-      setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
+      setMessages(prev => prev.filter(m => m.id !== optimisticId));
       
       toast({
         title: "Failed to send message",
@@ -137,42 +141,52 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       setIsSending(false);
     }
   }, [conversationId, currentUser, user.id, addOptimisticMessage, createConversation, scrollToBottom, setMessages]);
+  
+  // Memoize the header component
+  const headerComponent = useMemo(() => (
+    <div className="border-b p-3 flex items-center">
+      <button 
+        onClick={onBack}
+        className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+      >
+        <ArrowLeft size={20} />
+      </button>
+      <div className="flex-1 flex justify-center">
+        <div 
+          className="flex items-center gap-3 cursor-pointer hover:opacity-80" 
+          onClick={() => navigateToUserProfile(user.id, user.name, user.avatar)}
+        >
+          <DMHeader userId={user.id} userName={user.name} userAvatar={user.avatar} />
+        </div>
+      </div>
+      {/* This empty div helps maintain balance in the header */}
+      <div className="w-9"></div>
+    </div>
+  ), [user.id, user.name, user.avatar, onBack, navigateToUserProfile]);
+
+  // Memoized chat messages component to avoid unnecessary re-renders
+  const chatMessagesComponent = useMemo(() => (
+    <ChatMessages 
+      messages={messages}
+      clubMembers={currentUser ? [currentUser] : []}
+      onSelectUser={(userId, userName, userAvatar) => 
+        navigateToUserProfile(userId, userName, userAvatar)
+      }
+      currentUserAvatar={currentUser?.avatar}
+      lastMessageRef={lastMessageRef}
+      formatTime={formatTime}
+      scrollRef={scrollRef}
+    />
+  ), [messages, currentUser, navigateToUserProfile, lastMessageRef, formatTime, scrollRef]);
 
   return (
     <div className="flex flex-col h-full w-full">
       {/* Header with back button and centered user info */}
-      <div className="border-b p-3 flex items-center">
-        <button 
-          onClick={onBack}
-          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <div className="flex-1 flex justify-center">
-          <div 
-            className="flex items-center gap-3 cursor-pointer hover:opacity-80" 
-            onClick={() => navigateToUserProfile(user.id, user.name, user.avatar)}
-          >
-            <DMHeader userId={user.id} userName={user.name} userAvatar={user.avatar} />
-          </div>
-        </div>
-        {/* This empty div helps maintain balance in the header */}
-        <div className="w-9"></div>
-      </div>
+      {headerComponent}
       
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         <div className="flex-1 min-h-0">
-          <ChatMessages 
-            messages={messages}
-            clubMembers={currentUser ? [currentUser] : []}
-            onSelectUser={(userId, userName, userAvatar) => 
-              navigateToUserProfile(userId, userName, userAvatar)
-            }
-            currentUserAvatar={currentUser?.avatar}
-            lastMessageRef={lastMessageRef}
-            formatTime={formatTime}
-            scrollRef={scrollRef}
-          />
+          {chatMessagesComponent}
         </div>
         
         <DMMessageInput

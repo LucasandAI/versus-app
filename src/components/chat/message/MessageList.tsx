@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { ChatMessage } from '@/types';
 import MessageItem from './MessageItem';
 
@@ -19,7 +19,8 @@ interface MessageListProps {
   lastMessageRef: React.RefObject<HTMLDivElement>;
 }
 
-const MessageList: React.FC<MessageListProps> = ({
+// Memoize the component to prevent unnecessary re-renders
+const MessageList: React.FC<MessageListProps> = memo(({
   messages,
   clubMembers,
   isSupport = false,
@@ -66,6 +67,8 @@ const MessageList: React.FC<MessageListProps> = ({
       <div className="h-4"></div>
     </div>
   );
-};
+});
+
+MessageList.displayName = 'MessageList';
 
 export default MessageList;
