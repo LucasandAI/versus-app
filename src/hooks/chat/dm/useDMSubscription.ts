@@ -4,17 +4,22 @@ import { ChatMessage } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
 import { useUserData } from './useUserData';
 
+// Add otherUserData parameter to receive the full user object
 export const useDMSubscription = (
   conversationId: string | undefined,
   otherUserId: string | undefined,
   currentUserId: string | undefined,
-  setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>
+  setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
+  otherUserData?: { id: string; name: string; avatar?: string } // New parameter for the full user object
 ) => {
   const subscriptionError = useRef(false);
   const isMounted = useRef(true);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const processedMessages = useRef<Set<string>>(new Set());
   const { userCache, fetchUserData } = useUserData();
+  
+  // Store the user data in a ref to ensure it's stable across renders
+  const otherUserDataRef = useRef(otherUserData);
   
   // Keep stable references to the conversation/user IDs
   const stableConversationId = useRef(conversationId);
@@ -24,7 +29,8 @@ export const useDMSubscription = (
   useEffect(() => {
     stableConversationId.current = conversationId;
     stableOtherUserId.current = otherUserId;
-  }, [conversationId, otherUserId]);
+    otherUserDataRef.current = otherUserData;
+  }, [conversationId, otherUserId, otherUserData]);
   
   // Clean up function
   const cleanupSubscription = useCallback(() => {
@@ -46,17 +52,19 @@ export const useDMSubscription = (
     };
   }, [cleanupSubscription]);
 
-  // Fetch other user's data when component mounts or otherUserId changes
+  // Fetch other user's data only if not provided in props
   useEffect(() => {
-    if (otherUserId) {
-      console.log(`[useDMSubscription] Ensuring user data for ${otherUserId} is available`);
+    if (otherUserId && !otherUserData) {
+      console.log(`[useDMSubscription] No user data provided for ${otherUserId}, fetching from cache or API`);
       fetchUserData(otherUserId).then(userData => {
         console.log(`[useDMSubscription] User data available:`, userData);
       }).catch(err => {
         console.error(`[useDMSubscription] Error fetching user data:`, err);
       });
+    } else if (otherUserData) {
+      console.log(`[useDMSubscription] Using provided user data for ${otherUserId}:`, otherUserData);
     }
-  }, [otherUserId, fetchUserData]);
+  }, [otherUserId, fetchUserData, otherUserData]);
 
   // Clear processed message cache when conversation changes
   useEffect(() => {
@@ -111,33 +119,39 @@ export const useDMSubscription = (
           const isFromOtherUser = senderId === stable_otherUserId;
           
           // Format message data based on sender
-          let senderName = 'User';
-          let senderAvatar: string | undefined = '/placeholder.svg';
+          let senderName = 'You';
+          let senderAvatar: string | undefined = undefined;
           
-          if (!isFromOtherUser) {
-            // It's from the current user, just use 'You'
-            senderName = 'You';
-            senderAvatar = undefined;
-          } else {
-            // It's from the other user, fetch their data if needed
-            // First check our cache
-            const cachedUserData = userCache[senderId];
-            
-            if (cachedUserData) {
-              console.log(`[useDMSubscription] Using cached user data for ${senderId}:`, cachedUserData);
-              senderName = cachedUserData.name;
-              senderAvatar = cachedUserData.avatar;
+          if (isFromOtherUser) {
+            // It's from the other user, use the data provided in props directly
+            if (otherUserDataRef.current) {
+              // Use the data provided directly in props
+              senderName = otherUserDataRef.current.name;
+              senderAvatar = otherUserDataRef.current.avatar;
+              console.log(`[useDMSubscription] Using provided user data for message from ${senderId}:`, {
+                name: senderName,
+                avatar: senderAvatar
+              });
             } else {
-              // If not in cache, fetch it directly
-              console.log(`[useDMSubscription] Fetching user data for sender ${senderId}`);
-              const userData = await fetchUserData(senderId);
+              // Fall back to cache as a secondary option (this should rarely happen)
+              const cachedUserData = userCache[senderId];
               
-              if (userData) {
-                senderName = userData.name;
-                senderAvatar = userData.avatar;
-                console.log(`[useDMSubscription] Fetched user data for ${senderId}:`, userData);
+              if (cachedUserData) {
+                console.log(`[useDMSubscription] Using cached user data for ${senderId}:`, cachedUserData);
+                senderName = cachedUserData.name;
+                senderAvatar = cachedUserData.avatar;
               } else {
-                console.warn(`[useDMSubscription] Failed to get user data for ${senderId}`);
+                // Last resort - fetch it directly
+                console.log(`[useDMSubscription] No user data available for ${senderId}, fetching`);
+                const userData = await fetchUserData(senderId);
+                
+                if (userData) {
+                  senderName = userData.name;
+                  senderAvatar = userData.avatar;
+                  console.log(`[useDMSubscription] Fetched user data for ${senderId}:`, userData);
+                } else {
+                  console.warn(`[useDMSubscription] Failed to get user data for ${senderId}`);
+                }
               }
             }
           }

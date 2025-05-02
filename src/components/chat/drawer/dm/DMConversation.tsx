@@ -72,8 +72,19 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     currentUser?.id
   );
   
-  // Use subscription hook - no state updates, only event dispatching
-  useDMSubscription(conversationId, user.id, currentUser?.id, setMessages);
+  // Use subscription hook with the full user object to prevent flickering
+  useDMSubscription(
+    conversationId, 
+    user.id, 
+    currentUser?.id, 
+    setMessages,
+    // Pass the full user object to prevent flickering on new messages
+    {
+      id: user.id,
+      name: user.name,
+      avatar: user.avatar
+    }
+  );
   
   // Use scroll management hook with optimized scrolling
   const { scrollRef, lastMessageRef, scrollToBottom } = useMessageScroll(messages);
