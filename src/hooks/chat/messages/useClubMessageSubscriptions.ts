@@ -141,12 +141,16 @@ export const useClubMessageSubscriptions = (
             // Check if message already exists to prevent duplicates
             const messageExists = clubMsgs.some(msg => msg.id === messageWithSender.id);
             if (messageExists) return prev;
+
+            // Create a new array with the message appended and sorted by timestamp
+            const updatedMessages = [...clubMsgs, messageWithSender].sort(
+              (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+            );
             
+            // Force a re-render by creating a new object reference
             return {
               ...prev,
-              [clubId]: [...clubMsgs, messageWithSender].sort(
-                (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-              )
+              [clubId]: updatedMessages
             };
           });
         });

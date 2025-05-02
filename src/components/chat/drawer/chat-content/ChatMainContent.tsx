@@ -29,6 +29,16 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
     });
   }, [selectedClub]);
 
+  // Effect to log when messages update
+  useEffect(() => {
+    if (selectedClub && messages[selectedClub.id]) {
+      console.log('[ChatMainContent] Messages updated for club:', {
+        clubId: selectedClub.id,
+        messageCount: messages[selectedClub.id]?.length || 0
+      });
+    }
+  }, [messages, selectedClub]);
+
   // If we have a selected club, render the club content
   if (selectedClub) {
     const clubMessages = messages[selectedClub.id] || [];
@@ -41,7 +51,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
     return (
       <div className="flex-1 h-full flex flex-col">
         <ChatClubContent 
-          key={selectedClub.id} // Force re-render when club changes
+          key={`club-content-${selectedClub.id}`} // Remove timestamp to avoid unnecessary remounts
           club={selectedClub}
           messages={clubMessages}
           onMatchClick={() => onMatchClick(selectedClub)}

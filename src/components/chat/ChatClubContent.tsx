@@ -33,6 +33,15 @@ const ChatClubContent = ({
   const { deleteMessage } = useChatActions();
   const effectiveClubId = clubId || club?.id;
   
+  // Log when the message array changes to help debug
+  useEffect(() => {
+    console.log('[ChatClubContent] Messages updated for club:', {
+      clubId: effectiveClubId,
+      messageCount: messages?.length || 0,
+      messageIds: messages?.slice(0, 3).map(m => m.id).join(', ')
+    });
+  }, [messages, effectiveClubId]);
+  
   useEffect(() => {
     console.log('[ChatClubContent] Club changed, resetting state for:', effectiveClubId);
     setIsSending(false);

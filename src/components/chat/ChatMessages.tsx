@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ChatMessage } from '@/types';
 import MessageList from './message/MessageList';
 import { useMessageUser } from './message/useMessageUser';
@@ -61,6 +61,17 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const finalUserAvatar = providedUserAvatar || defaultUserAvatar;
   const finalLastMessageRef = providedLastMessageRef || defaultLastMessageRef;
   const finalFormatTime = providedFormatTime || defaultFormatTime;
+  
+  // Log when messages array changes
+  useEffect(() => {
+    console.log('[ChatMessages] Messages updated:', {
+      count: Array.isArray(messages) ? messages.length : 0,
+      isArray: Array.isArray(messages)
+    });
+    
+    // Scroll to bottom when messages change
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
   
   if (!Array.isArray(messages)) {
     return (

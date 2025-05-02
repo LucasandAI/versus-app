@@ -57,6 +57,7 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
             );
           });
           
+          console.log('[useClubMessages] Initial messages fetched:', Object.keys(messagesMap).length);
           setClubMessages(messagesMap);
         }
       } catch (error) {
@@ -70,8 +71,19 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
   // Set up real-time subscription for messages
   useClubMessageSubscriptions(userClubs, isOpen, activeSubscriptionsRef, setClubMessages);
   
+  const safeSetClubMessages = (updater: React.SetStateAction<Record<string, any[]>>) => {
+    setClubMessages((prevState) => {
+      const nextState = typeof updater === 'function' ? updater(prevState) : updater;
+      console.log('[useClubMessages] Updating messages state:', {
+        prevClubIds: Object.keys(prevState).length,
+        nextClubIds: Object.keys(nextState).length
+      });
+      return nextState;
+    });
+  };
+  
   return {
     clubMessages,
-    setClubMessages
+    setClubMessages: safeSetClubMessages
   };
 };
