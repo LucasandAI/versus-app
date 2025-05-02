@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface UseUnreadSubscriptionsProps {
@@ -18,10 +18,63 @@ export const useUnreadSubscriptions = ({
   fetchUnreadCounts
 }: UseUnreadSubscriptionsProps) => {
   
+  // Use refs to store handler functions to avoid closures with stale data
+  const handlersRef = useRef({
+    markConversationAsUnread,
+    markClubAsUnread,
+    fetchUnreadCounts
+  });
+
+  // Update refs when handlers change
+  useEffect(() => {
+    handlersRef.current = {
+      markConversationAsUnread,
+      markClubAsUnread,
+      fetchUnreadCounts
+    };
+  }, [markConversationAsUnread, markClubAsUnread, fetchUnreadCounts]);
+  
   useEffect(() => {
     if (!isSessionReady || !currentUserId) return;
     
     console.log('[useUnreadSubscriptions] Setting up realtime subscriptions for user:', currentUserId);
+    
+    // Use local micro-batching for unread updates to prevent cascading re-renders
+    let pendingUpdates = new Set<string>();
+    let pendingClubUpdates = new Set<string>();
+    let updateTimeout: NodeJS.Timeout | null = null;
+    
+    // Batch-process updates with RAF to avoid flickering
+    const processUpdates = () => {
+      if (pendingUpdates.size > 0) {
+        pendingUpdates.forEach(conversationId => {
+          handlersRef.current.markConversationAsUnread(conversationId);
+        });
+        pendingUpdates.clear();
+      }
+      
+      if (pendingClubUpdates.size > 0) {
+        pendingClubUpdates.forEach(clubId => {
+          handlersRef.current.markClubAsUnread(clubId);
+        });
+        pendingClubUpdates.clear();
+      }
+      
+      // Only dispatch one event regardless of how many updates
+      if (pendingUpdates.size > 0 || pendingClubUpdates.size > 0) {
+        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+      }
+      
+      updateTimeout = null;
+    };
+    
+    // Queue an update with debouncing
+    const queueUpdate = () => {
+      if (updateTimeout) return;
+      updateTimeout = setTimeout(() => {
+        requestAnimationFrame(processUpdates);
+      }, 100);
+    };
     
     // Set up real-time subscriptions for new messages
     const dmChannel = supabase
@@ -33,13 +86,10 @@ export const useUnreadSubscriptions = ({
             table: 'direct_messages' 
           },
           (payload) => {
-            console.log('[useUnreadSubscriptions] New DM received:', payload);
             if (payload.new.receiver_id === currentUserId) {
-              console.log('[useUnreadSubscriptions] Marking conversation as unread:', payload.new.conversation_id);
-              markConversationAsUnread(payload.new.conversation_id);
-              
-              // Dispatch global event to notify other components
-              window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+              // Queue the update instead of processing immediately
+              pendingUpdates.add(payload.new.conversation_id);
+              queueUpdate();
             }
           })
       .subscribe();
@@ -53,23 +103,24 @@ export const useUnreadSubscriptions = ({
             table: 'club_chat_messages'
           },
           (payload) => {
-            console.log('[useUnreadSubscriptions] New club message received:', payload);
             if (payload.new.sender_id !== currentUserId) {
-              console.log(`[useUnreadSubscriptions] Marking club ${payload.new.club_id} as unread`);
-              markClubAsUnread(payload.new.club_id);
-              
-              // Dispatch global event to notify other components
-              window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+              // Queue the update instead of processing immediately
+              pendingClubUpdates.add(payload.new.club_id);
+              queueUpdate();
             }
           })
       .subscribe();
       
     // Initial fetch of unread counts
-    fetchUnreadCounts();
+    handlersRef.current.fetchUnreadCounts();
       
     return () => {
       supabase.removeChannel(dmChannel);
       supabase.removeChannel(clubChannel);
+      
+      if (updateTimeout) {
+        clearTimeout(updateTimeout);
+      }
     };
-  }, [currentUserId, isSessionReady, markConversationAsUnread, markClubAsUnread, fetchUnreadCounts]);
+  }, [currentUserId, isSessionReady]);
 };

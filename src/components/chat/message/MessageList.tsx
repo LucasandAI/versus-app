@@ -39,10 +39,10 @@ const MessageList: React.FC<MessageListProps> = memo(({
                            String(message.sender.id) === String(currentUserId);
       const isLastMessage = index === messages.length - 1;
       
-      // Remove key with message.id to prevent remounting on ID changes
+      // Use stable key with index to prevent remounting on ID changes
       return (
         <div 
-          key={`msg-${index}`} 
+          key={message.id || `msg-${index}`}
           ref={isLastMessage ? lastMessageRef : undefined}
           className={`mb-3 ${isLastMessage ? 'pb-5' : ''}`}
         >
@@ -75,6 +75,22 @@ const MessageList: React.FC<MessageListProps> = memo(({
       )}
     </div>
   );
+}, (prevProps, nextProps) => {
+  // Custom equality check to prevent unnecessary re-renders
+  if (prevProps.messages.length !== nextProps.messages.length) {
+    return false; // Re-render if message count changes
+  }
+  
+  // Compare last message ID to detect new messages
+  if (prevProps.messages.length > 0 && nextProps.messages.length > 0) {
+    const prevLastMsg = prevProps.messages[prevProps.messages.length - 1];
+    const nextLastMsg = nextProps.messages[nextProps.messages.length - 1];
+    if (prevLastMsg.id !== nextLastMsg.id) {
+      return false; // Re-render if last message changed
+    }
+  }
+  
+  return true; // Don't re-render otherwise
 });
 
 MessageList.displayName = 'MessageList';

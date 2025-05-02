@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import DMConversationList from './DMConversationList';
 import DMConversation from './DMConversation';
 import DMSearchPanel from './DMSearchPanel';
@@ -23,7 +23,8 @@ interface DMContainerProps {
   unreadConversations?: Set<string>;
 }
 
-const DMContainer: React.FC<DMContainerProps> = ({ 
+// Memo the component to prevent unnecessary re-renders
+const DMContainer: React.FC<DMContainerProps> = memo(({ 
   directMessageUser, 
   setDirectMessageUser,
   unreadConversations = new Set()
@@ -55,6 +56,29 @@ const DMContainer: React.FC<DMContainerProps> = ({
     }
   }, [directMessageUser, currentUser?.id, markDirectMessagesAsRead]);
 
+  // Memoized components
+  const conversationListComponent = React.useMemo(() => (
+    <DMConversationList
+      onSelectUser={(userId, userName, userAvatar, conversationId) => {
+        setDirectMessageUser({
+          userId,
+          userName,
+          userAvatar,
+          conversationId
+        });
+      }}
+      selectedUserId={directMessageUser?.userId}
+      unreadConversations={unreadConversations}
+    />
+  ), [directMessageUser?.userId, unreadConversations, setDirectMessageUser]);
+  
+  const searchPanelComponent = React.useMemo(() => (
+    <DMSearchPanel 
+      onSelect={handleSearchSelect} 
+      onBack={() => setShowSearch(false)} 
+    />
+  ), [handleSearchSelect]);
+
   // The user has selected a DM conversation
   if (directMessageUser) {
     return (
@@ -72,29 +96,13 @@ const DMContainer: React.FC<DMContainerProps> = ({
 
   // The user wants to search for someone
   if (showSearch) {
-    return (
-      <DMSearchPanel 
-        onSelect={handleSearchSelect} 
-        onBack={() => setShowSearch(false)} 
-      />
-    );
+    return searchPanelComponent;
   }
 
   // Show the conversation list (default view)
-  return (
-    <DMConversationList
-      onSelectUser={(userId, userName, userAvatar, conversationId) => {
-        setDirectMessageUser({
-          userId,
-          userName,
-          userAvatar,
-          conversationId
-        });
-      }}
-      selectedUserId={directMessageUser?.userId}
-      unreadConversations={unreadConversations}
-    />
-  );
-};
+  return conversationListComponent;
+});
+
+DMContainer.displayName = 'DMContainer';
 
 export default DMContainer;

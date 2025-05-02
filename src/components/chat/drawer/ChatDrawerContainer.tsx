@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Club } from '@/types';
 import ChatClubContainer from './club/ChatClubContainer';
 import DMContainer from './dm/DMContainer';
@@ -20,18 +20,19 @@ interface ChatDrawerContainerProps {
   directMessageUser: {
     userId: string;
     userName: string;
-    userAvatar: string; // Made required
+    userAvatar: string;
     conversationId: string;
   } | null;
   setDirectMessageUser: React.Dispatch<React.SetStateAction<{
     userId: string;
     userName: string;
-    userAvatar: string; // Made required
+    userAvatar: string;
     conversationId: string;
   } | null>>;
 }
 
-const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
+// Memo the container to prevent re-renders
+const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = memo(({
   activeTab,
   clubs,
   selectedLocalClub,
@@ -47,14 +48,13 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   directMessageUser,
   setDirectMessageUser
 }) => {
-  // Create a key for forced re-renders when unread status changes
-  const unreadKey = JSON.stringify([...unreadClubs].sort());
-  
+  // Cache key for accessibility
+  const activeCacheKey = activeTab === 'clubs' ? 'clubs' : 'dm';
+
   return (
     <div className="flex-1 overflow-hidden">
       {activeTab === 'clubs' ? (
         <ChatClubContainer 
-          key={`club-container-${unreadKey}`}
           clubs={clubs}
           selectedClub={selectedLocalClub}
           onSelectClub={onSelectClub}
@@ -72,6 +72,8 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
       )}
     </div>
   );
-};
+});
+
+ChatDrawerContainer.displayName = 'ChatDrawerContainer';
 
 export default ChatDrawerContainer;

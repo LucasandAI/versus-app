@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, memo } from 'react';
 import { Club } from '@/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnreadMessages } from '@/context/unread-messages';
@@ -11,7 +11,8 @@ interface DrawerHeaderProps {
   selectedClub: Club | null;
 }
 
-const DrawerHeader: React.FC<DrawerHeaderProps> = ({ 
+// Memoize the header to prevent re-renders when the drawer content updates
+const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({ 
   activeTab, 
   setActiveTab,
   selectedClub 
@@ -26,32 +27,43 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
     }
   }, [activeTab, selectedClub, markClubMessagesAsRead]);
   
+  // Use useMemo for stable rendering of unread indicators
+  const clubsUnreadBadge = React.useMemo(() => {
+    return unreadClubs.size > 0 ? (
+      <Badge 
+        variant="dot" 
+        className="!inline-block !visible" 
+      />
+    ) : null;
+  }, [unreadClubs.size]);
+
+  const dmUnreadBadge = React.useMemo(() => {
+    return unreadConversations.size > 0 ? (
+      <Badge 
+        variant="dot" 
+        className="!inline-block !visible" 
+      />
+    ) : null;
+  }, [unreadConversations.size]);
+  
   return (
     <div className="px-4 py-2 border-b">
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "clubs" | "dm")}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="clubs" className="inline-flex items-center justify-center gap-2">
             Club Chat
-            {unreadClubs.size > 0 && (
-              <Badge 
-                variant="dot" 
-                className="!inline-block !visible" 
-              />
-            )}
+            {clubsUnreadBadge}
           </TabsTrigger>
           <TabsTrigger value="dm" className="inline-flex items-center justify-center gap-2">
             Direct Messages
-            {unreadConversations.size > 0 && (
-              <Badge 
-                variant="dot" 
-                className="!inline-block !visible" 
-              />
-            )}
+            {dmUnreadBadge}
           </TabsTrigger>
         </TabsList>
       </Tabs>
     </div>
   );
-};
+});
+
+DrawerHeader.displayName = 'DrawerHeader';
 
 export default DrawerHeader;

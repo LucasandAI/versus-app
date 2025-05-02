@@ -32,12 +32,9 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   conversationId,
   onBack
 }) => {
-  // Remove console.log for production or wrap in isDev check
-  // console.log('[DMConversation] Rendering with conversationId:', conversationId);
-  
   const { currentUser } = useApp();
   const { navigateToUserProfile } = useNavigation();
-  const { conversations, fetchConversations } = useConversations([]);
+  const { conversations } = useConversations([]);
   const { markConversationAsRead } = useUnreadMessages();
   const [isSending, setIsSending] = React.useState(false);
   const { formatTime } = useMessageFormatting();
@@ -95,7 +92,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       text,
       sender: {
         id: currentUser.id,
-        name: 'You',
+        name: currentUser.name || 'You',
         avatar: currentUser.avatar
       },
       timestamp: new Date().toISOString(),
@@ -151,7 +148,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     } finally {
       setIsSending(false);
     }
-  }, [conversationIdRef, currentUser, userRef, addOptimisticMessage, createConversation, scrollToBottom, setMessages]);
+  }, [currentUser, addOptimisticMessage, createConversation, scrollToBottom, setMessages]);
   
   // Memoize the header component
   const headerComponent = useMemo(() => (

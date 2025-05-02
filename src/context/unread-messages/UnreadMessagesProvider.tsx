@@ -1,5 +1,5 @@
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useMemo, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import UnreadMessagesContext from './UnreadMessagesContext';
 import { useDirectMessageUnreadState } from './hooks/useDirectMessageUnreadState';
@@ -33,8 +33,38 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
     markClubMessagesAsRead
   } = useClubUnreadState(currentUser?.id);
   
-  // Combined total
-  const totalUnreadCount = dmUnreadCount + clubUnreadCount;
+  // Combined total - memoize to avoid re-renders
+  const totalUnreadCount = useMemo(() => 
+    dmUnreadCount + clubUnreadCount,
+    [dmUnreadCount, clubUnreadCount]
+  );
+  
+  // Store values in refs to avoid stale closures
+  const stateRef = useRef({
+    unreadConversations,
+    dmUnreadCount, 
+    unreadMessagesPerConversation,
+    unreadClubs,
+    clubUnreadCount,
+    unreadMessagesPerClub,
+    totalUnreadCount
+  });
+  
+  // Update ref when values change
+  useEffect(() => {
+    stateRef.current = {
+      unreadConversations,
+      dmUnreadCount,
+      unreadMessagesPerConversation,
+      unreadClubs, 
+      clubUnreadCount,
+      unreadMessagesPerClub,
+      totalUnreadCount
+    };
+  }, [
+    unreadConversations, dmUnreadCount, unreadMessagesPerConversation,
+    unreadClubs, clubUnreadCount, unreadMessagesPerClub, totalUnreadCount
+  ]);
   
   // Fetch unread counts
   const { fetchUnreadCounts } = useFetchUnreadCounts({
@@ -57,43 +87,47 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
     fetchUnreadCounts
   });
   
-  // Listen for global unread messages events
+  // Listen for global unread messages events with stable handler
   useEffect(() => {
     const handler = () => {
       console.log('[UnreadMessagesProvider] Handling unreadMessagesUpdated event');
+      // We don't need to do anything here - the individual hooks handle their own state
     };
     
     window.addEventListener('unreadMessagesUpdated', handler);
     return () => window.removeEventListener('unreadMessagesUpdated', handler);
   }, []);
   
-  // Debug: Add effect to log the contents of unreadClubs whenever it changes
-  useEffect(() => {
-    console.log('[UnreadMessagesProvider] unreadClubs updated:', Array.from(unreadClubs));
-  }, [unreadClubs]);
-  
-  // Force re-render method that components can call
+  // Force re-render method that components can call - memoized
   const forceRefresh = useCallback(() => {
     console.log('[UnreadMessagesProvider] Force refresh triggered');
-    // The state update will trigger a re-render
-    setUnreadClubs(new Set(unreadClubs));
-  }, [unreadClubs]);
+    // Use state from ref to avoid closure issues
+    setUnreadClubs(new Set(stateRef.current.unreadClubs));
+  }, [setUnreadClubs]);
+  
+  // Memoize context value to prevent unnecessary re-renders of consumers
+  const contextValue = useMemo(() => ({
+    unreadConversations,
+    dmUnreadCount,
+    unreadMessagesPerConversation,
+    unreadClubs,
+    clubUnreadCount,
+    unreadMessagesPerClub,
+    totalUnreadCount,
+    markConversationAsRead,
+    markClubMessagesAsRead,
+    markConversationAsUnread,
+    markClubAsUnread,
+    fetchUnreadCounts
+  }), [
+    unreadConversations, dmUnreadCount, unreadMessagesPerConversation,
+    unreadClubs, clubUnreadCount, unreadMessagesPerClub, totalUnreadCount,
+    markConversationAsRead, markClubMessagesAsRead, markConversationAsUnread, markClubAsUnread,
+    fetchUnreadCounts
+  ]);
   
   return (
-    <UnreadMessagesContext.Provider value={{
-      unreadConversations,
-      dmUnreadCount,
-      unreadMessagesPerConversation,
-      unreadClubs,
-      clubUnreadCount,
-      unreadMessagesPerClub,
-      totalUnreadCount,
-      markConversationAsRead,
-      markClubMessagesAsRead,
-      markConversationAsUnread,
-      markClubAsUnread,
-      fetchUnreadCounts
-    }}>
+    <UnreadMessagesContext.Provider value={contextValue}>
       {children}
     </UnreadMessagesContext.Provider>
   );

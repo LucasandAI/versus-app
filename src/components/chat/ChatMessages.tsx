@@ -1,5 +1,5 @@
 
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useRef } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageList from './message/MessageList';
 import { useMessageUser } from './message/useMessageUser';
@@ -24,7 +24,7 @@ interface ChatMessagesProps {
   scrollRef?: React.RefObject<HTMLDivElement>;
 }
 
-// Use memo to prevent unnecessary re-renders
+// Use memo to prevent unnecessary re-renders with consistent identity reference
 const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   messages,
   clubMembers,
@@ -36,8 +36,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   formatTime: providedFormatTime,
   scrollRef: providedScrollRef,
 }) => {
-  // Only log once per render, don't log inside useMemo or other hooks to avoid spam
-  console.log('[ChatMessages] Rendering with messages length:', Array.isArray(messages) ? messages.length : 0);
+  // Create stable references to prevent recreation
+  const prevMessageLengthRef = useRef<number>(0);
   
   const {
     currentUserId,
@@ -54,14 +54,15 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   } = useMessageFormatting();
   
   const {
+    normalizeMessage
+  } = useMessageNormalization(currentUserId, senderId => getMemberName(senderId, currentUserId, clubMembers));
+
+  // Custom scroll hook that uses stable refs
+  const {
     scrollRef: defaultScrollRef,
     lastMessageRef: defaultLastMessageRef,
     scrollToBottom
   } = useMessageScroll(messages);
-  
-  const {
-    normalizeMessage
-  } = useMessageNormalization(currentUserId, senderId => getMemberName(senderId, currentUserId, clubMembers));
 
   // Use provided values or defaults - store references to prevent recreation
   const finalUserAvatar = providedUserAvatar || defaultUserAvatar;
@@ -79,19 +80,22 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
       </div>
     );
   }
-
-  // Only normalize messages once per unique message set using a stable message ID set
-  // Using useMemo with messageIds as dependency
-  const messageIds = useMemo(() => 
-    messages.map(msg => msg.id).join(','),
-    [messages]
-  );
   
-  // Memoize normalized messages to prevent unnecessary processing
+  // Only normalize messages once per unique message set
+  // Using useMemo with messages reference as dependency
   const normalizedMessages = useMemo(() => 
     messages.map(message => normalizeMessage(message)),
-    [messages, normalizeMessage, messageIds]
+    [messages, normalizeMessage]
   );
+
+  // Track if messages changed and need scroll
+  if (prevMessageLengthRef.current !== messages.length) {
+    // Use requestAnimationFrame to scroll after render
+    if (messages.length > prevMessageLengthRef.current) {
+      requestAnimationFrame(scrollToBottom);
+    }
+    prevMessageLengthRef.current = messages.length;
+  }
 
   // Determine if this is a club chat by checking if there are club members
   const isClubChat = clubMembers.length > 0;

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Club } from '@/types';
 import ChatDrawerContainer from './ChatDrawerContainer';
 import DrawerHeader from './DrawerHeader';
@@ -27,6 +27,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   clubMessages = {},
   setClubMessages
 }) => {
+  // Use refs for mutable state to avoid re-renders
   const [activeTab, setActiveTab] = useState<"clubs"|"dm">("clubs");
   const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(null);
   const [directMessageUser, setDirectMessageUser] = useState<{
@@ -36,41 +37,47 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     conversationId: string;
   } | null>(null);
   
-  // Add a local copy of unreadClubs for direct passing and forced re-renders
+  // Store unread sets in refs to avoid re-renders, using memoized copies for rendering
   const { unreadClubs, unreadConversations } = useUnreadMessages();
-  const [localUnreadClubs, setLocalUnreadClubs] = useState<Set<string>>(new Set());
-  const [localUnreadConversations, setLocalUnreadConversations] = useState<Set<string>>(new Set());
-  const [forceUpdateKey, setForceUpdateKey] = useState(Date.now());
+  const unreadClubsRef = useRef<Set<string>>(new Set());
+  const unreadConversationsRef = useRef<Set<string>>(new Set());
   
-  // Force re-render when unreadClubs changes
+  // Update refs without causing re-renders
   useEffect(() => {
-    setLocalUnreadClubs(new Set(unreadClubs));
-    setForceUpdateKey(Date.now());
+    unreadClubsRef.current = new Set(unreadClubs);
   }, [unreadClubs]);
-
-  // Force re-render when unreadConversations changes
+  
   useEffect(() => {
-    setLocalUnreadConversations(new Set(unreadConversations));
+    unreadConversationsRef.current = new Set(unreadConversations);
   }, [unreadConversations]);
   
-  // Listen for global unread message events
-  useEffect(() => {
-    const handleUnreadMessagesUpdate = () => {
-      console.log('[MainChatDrawer] Detected unreadMessagesUpdated event, forcing re-render');
-      setForceUpdateKey(Date.now());
-    };
-    
-    window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdate);
-    return () => {
-      window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdate);
-    };
-  }, []);
-  
+  // Stable action handlers
   const { sendMessageToClub, deleteMessage } = useChatActions();
   const { currentUser } = useApp();
-  
-  // Access conversations from context
   const { fetchConversations } = useDirectConversationsContext();
+
+  // Memoized handler functions
+  const handleSelectClub = useCallback((club: Club) => {
+    setSelectedLocalClub(club);
+  }, []);
+
+  const handleSendMessage = useCallback(async (message: string, clubId?: string) => {
+    if (message && clubId && setClubMessages) {
+      console.log('[MainChatDrawer] Sending message to club:', clubId);
+      return await sendMessageToClub(clubId, message, setClubMessages);
+    }
+  }, [sendMessageToClub, setClubMessages]);
+  
+  const handleDeleteMessage = useCallback(async (messageId: string) => {
+    if (messageId && setClubMessages) {
+      console.log('[MainChatDrawer] Deleting message:', messageId);
+      return await deleteMessage(messageId, setClubMessages);
+    }
+  }, [deleteMessage, setClubMessages]);
+  
+  const handleTabChange = useCallback((tab: "clubs" | "dm") => {
+    setActiveTab(tab);
+  }, []);
 
   // Effect to fetch conversations when drawer opens
   useEffect(() => {
@@ -83,6 +90,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     }
   }, [open, currentUser?.id, activeTab, fetchConversations]);
   
+  // Handle direct message opening events
   useEffect(() => {
     const handleOpenDM = (event: CustomEvent<{
       userId: string;
@@ -91,11 +99,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       conversationId?: string;
     }>) => {
       setActiveTab("dm");
-      
-      // If conversationId is not provided, we'll need to fetch/create it
-      if (!event.detail.conversationId) {
-        console.log("[MainChatDrawer] Opening DM with user:", event.detail.userName);
-      }
       
       setDirectMessageUser({
         userId: event.detail.userId,
@@ -111,40 +114,21 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     };
   }, [fetchConversations]);
 
-  const handleSelectClub = (club: Club) => {
-    setSelectedLocalClub(club);
-  };
-
-  const handleSendMessage = async (message: string, clubId?: string) => {
-    if (message && clubId && setClubMessages) {
-      console.log('[MainChatDrawer] Sending message to club:', clubId);
-      return await sendMessageToClub(clubId, message, setClubMessages);
-    }
-  };
-  
-  const handleDeleteMessage = async (messageId: string) => {
-    if (messageId && setClubMessages) {
-      console.log('[MainChatDrawer] Deleting message:', messageId);
-      return await deleteMessage(messageId, setClubMessages);
-    }
-  };
-  
-  const handleTabChange = (tab: "clubs" | "dm") => {
-    setActiveTab(tab);
-  };
+  // IMPORTANT: Use React.memo for stable child rendering
+  const DrawerHeaderMemo = React.memo(DrawerHeader);
+  const ChatDrawerContainerMemo = React.memo(ChatDrawerContainer);
 
   return (
     <ChatProvider>
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="h-[80vh] rounded-t-xl p-0 flex flex-col">
-          <DrawerHeader 
+          <DrawerHeaderMemo 
             activeTab={activeTab} 
             setActiveTab={handleTabChange}
             selectedClub={selectedLocalClub}
           />
           
-          <ChatDrawerContainer 
-            key={`drawer-container-${forceUpdateKey}`}
+          <ChatDrawerContainerMemo 
             activeTab={activeTab}
             clubs={clubs}
             selectedLocalClub={selectedLocalClub}
@@ -152,8 +136,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             messages={clubMessages}
             deleteChat={() => {}}
             unreadMessages={{}}
-            unreadClubs={localUnreadClubs}
-            unreadConversations={localUnreadConversations}
+            unreadClubs={unreadClubsRef.current}
+            unreadConversations={unreadConversationsRef.current}
             handleNewMessage={() => {}}
             onSendMessage={handleSendMessage}
             onDeleteMessage={handleDeleteMessage}
@@ -166,4 +150,5 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   );
 };
 
-export default MainChatDrawer;
+// Use React.memo for the entire component
+export default React.memo(MainChatDrawer);

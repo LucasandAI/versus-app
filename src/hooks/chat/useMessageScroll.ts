@@ -25,18 +25,24 @@ export const useMessageScroll = (messages: any[]) => {
       if (scrollRef.current) {
         const { scrollHeight, clientHeight } = scrollRef.current;
         scrollRef.current.scrollTop = scrollHeight - clientHeight;
+        
+        // Important: Use behavior: 'auto' to prevent visual jarring
+        // scrollRef.current.scrollTo({
+        //   top: scrollHeight - clientHeight,
+        //   behavior: smooth ? 'smooth' : 'auto'
+        // });
       }
       
       // Release scroll lock after animation completes
       setTimeout(() => {
         scrollLockRef.current = false;
-      }, smooth ? 100 : 50);
+      }, 50);
     });
     
     scrollTimeoutRef.current = null;
   }, []);
 
-  // Track user scrolling with debounced handler
+  // Track user scrolling with debounced handler - use passive event listener
   useEffect(() => {
     let scrollTimer: NodeJS.Timeout | null = null;
     
@@ -80,11 +86,11 @@ export const useMessageScroll = (messages: any[]) => {
     const shouldScroll = 
       previousMessageCount.current === 0 || 
       (messages.length > previousMessageCount.current && !isUserScrolling.current);
-      
+    
     if (shouldScroll && !scrollLockRef.current) {
-      // Small delay to ensure DOM has updated with new messages
+      // Use requestAnimationFrame for smoother scrolling
       requestAnimationFrame(() => {
-        scrollToBottom(previousMessageCount.current > 0);
+        scrollToBottom(false); // Use false for auto behavior on message update
       });
     }
     
