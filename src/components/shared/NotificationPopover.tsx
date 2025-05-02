@@ -27,7 +27,7 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   onUserClick,
   onDeclineInvite
 }) => {
-  const { isSessionReady, currentUser } = useApp();
+  const { isSessionReady } = useApp();
   const isAppReady = useInitialAppLoad();
   const [open, setOpen] = useState(false);
   const [localNotifications, setLocalNotifications] = useState<Notification[]>(notifications);
@@ -40,11 +40,11 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   // Listen for notification updates from other parts of the app
   useEffect(() => {
     const handleNotificationsUpdated = () => {
+      // This will be handled by the parent component which will refetch notifications
+      // and pass them down as props, triggering the useEffect above
       console.log("[NotificationPopover] Received notificationsUpdated event");
     };
-    
     window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
-    
     return () => {
       window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
     };

@@ -1,18 +1,13 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Notification } from '@/types';
-import { getNotificationsFromStorage, refreshNotifications } from '@/lib/notificationUtils';
-import { supabase } from '@/integrations/supabase/client';
-import { useApp } from '@/context/AppContext';
+import { getNotificationsFromStorage } from '@/lib/notificationUtils';
 
 interface UseNotificationsProps {
   setNotifications: (notifications: Notification[]) => void;
 }
 
 export const useNotifications = ({ setNotifications }: UseNotificationsProps) => {
-  const { currentUser, isSessionReady } = useApp();
-  const [isSubscribed, setIsSubscribed] = useState(false);
-
   useEffect(() => {
     // Function to load notifications from localStorage
     const loadNotificationsFromStorage = () => {
@@ -42,51 +37,4 @@ export const useNotifications = ({ setNotifications }: UseNotificationsProps) =>
       window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
     };
   }, [setNotifications]);
-
-  // Set up real-time subscription for notifications
-  useEffect(() => {
-    if (!isSessionReady || !currentUser?.id || isSubscribed) return;
-
-    console.log("[useNotifications] Setting up real-time subscription for notifications");
-    
-    // Fetch initial notifications to ensure we're up to date
-    refreshNotifications().catch(error => {
-      console.error("[useNotifications] Error refreshing notifications:", error);
-    });
-    
-    const channel = supabase
-      .channel('notifications-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${currentUser.id}`
-        },
-        (payload) => {
-          console.log('[useNotifications] Notification change detected:', payload);
-          
-          // Refresh notifications from the database
-          refreshNotifications().then(() => {
-            // Dispatch event to update notifications in the UI
-            window.dispatchEvent(new CustomEvent('notificationsUpdated'));
-          }).catch(error => {
-            console.error("[useNotifications] Error refreshing notifications after change:", error);
-          });
-        }
-      )
-      .subscribe((status) => {
-        console.log('[useNotifications] Real-time subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          setIsSubscribed(true);
-        }
-      });
-      
-    return () => {
-      console.log('[useNotifications] Cleaning up real-time subscription');
-      supabase.removeChannel(channel);
-      setIsSubscribed(false);
-    };
-  }, [currentUser?.id, isSessionReady, isSubscribed, setNotifications]);
 };

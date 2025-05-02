@@ -92,8 +92,7 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       markClubMessagesAsRead,
       markConversationAsUnread,
       markClubAsUnread,
-      fetchUnreadCounts,
-      forceRefresh // Added the missing forceRefresh function here
+      fetchUnreadCounts
     }}>
       {children}
     </UnreadMessagesContext.Provider>
