@@ -19,7 +19,6 @@ const ChatDrawerContent: React.FC<ChatDrawerContentProps> = ({
   onMatchClick,
   onSelectUser,
   onSendMessage,
-  setClubMessages,
 }) => {
   console.log('[ChatDrawerContent] Rendering with:', { 
     hasSelectedClub: !!selectedClub, 
@@ -39,7 +38,6 @@ const ChatDrawerContent: React.FC<ChatDrawerContentProps> = ({
         onMatchClick={onMatchClick}
         onSelectUser={onSelectUser}
         onSendMessage={onSendMessage}
-        setClubMessages={setClubMessages}
       />
     </div>
   );

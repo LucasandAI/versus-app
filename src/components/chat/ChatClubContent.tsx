@@ -27,7 +27,7 @@ const ChatClubContent = ({
   const { deleteMessage: deleteClubMessage } = useChatActions();
   const effectiveClubId = clubId || club?.id;
   
-  // Use the new hook for active club messages
+  // Use the hook for active club messages
   const { 
     messages, 
     isSending, 
