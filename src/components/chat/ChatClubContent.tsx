@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Club } from '@/types';
 import ChatHeader from './ChatHeader';
@@ -35,28 +34,62 @@ const ChatClubContent = ({
   const messageCountRef = useRef(0);
   const renderCountRef = useRef(0);
   
-  // Track message updates
+  // Enhanced debug tracking
+  const lastMessageRef = useRef<string | null>(null);
+  const messageHistoryRef = useRef<string[]>([]);
+  
+  // Track message updates with detailed logging
   useEffect(() => {
     messageCountRef.current = messages?.length || 0;
     renderCountRef.current += 1;
+    
     console.log(`[ChatClubContent] Render #${renderCountRef.current} for club ${club?.name} (${effectiveClubId})`);
     console.log(`[ChatClubContent] Messages received: ${messageCountRef.current}`);
     
     if (messages?.length > 0) {
       // Log last message details
       const lastMessage = messages[messages.length - 1];
-      console.log(`[ChatClubContent] Last message:`, {
-        id: lastMessage.id,
-        sender: lastMessage.sender?.name || lastMessage.sender_id,
-        timestamp: lastMessage.timestamp,
-        text: lastMessage.message?.substring(0, 30) + (lastMessage.message?.length > 30 ? '...' : '')
-      });
+      const lastMessageId = lastMessage?.id || 'unknown';
+      
+      // Check if this is a new message we haven't logged yet
+      if (lastMessageId !== lastMessageRef.current) {
+        lastMessageRef.current = lastMessageId;
+        messageHistoryRef.current.push(lastMessageId);
+        
+        // Keep history limited to last 10 messages
+        if (messageHistoryRef.current.length > 10) {
+          messageHistoryRef.current.shift();
+        }
+        
+        console.log(`[ChatClubContent] New last message detected:`, {
+          id: lastMessage.id,
+          sender: lastMessage.sender?.name || lastMessage.sender_id,
+          timestamp: lastMessage.timestamp,
+          text: lastMessage.message?.substring(0, 30) + (lastMessage.message?.length > 30 ? '...' : '')
+        });
+        
+        console.log(`[ChatClubContent] Message history (last ${messageHistoryRef.current.length}):`, 
+          messageHistoryRef.current.join(', '));
+      }
     }
   }, [messages, effectiveClubId, club?.name]);
   
   useEffect(() => {
     console.log('[ChatClubContent] Club changed, resetting state for:', effectiveClubId);
     setIsSending(false);
+    messageHistoryRef.current = [];
+    lastMessageRef.current = null;
+    
+    // Dispatch event to track club selection
+    if (effectiveClubId) {
+      window.dispatchEvent(new CustomEvent('clubSelected', {
+        detail: { clubId: effectiveClubId }
+      }));
+    }
+    
+    return () => {
+      window.dispatchEvent(new CustomEvent('clubDeselected'));
+    };
   }, [effectiveClubId]);
 
   const handleDeleteMessage = async (messageId: string) => {
@@ -103,9 +136,12 @@ const ChatClubContent = ({
       />
       
       <div className="flex-1 flex flex-col relative overflow-hidden">
-        {/* Debug info */}
+        {/* Enhanced debug info */}
         <div className="bg-yellow-100 px-2 py-1 text-xs">
           Messages: {messageCountRef.current} | Renders: {renderCountRef.current}
+          {messages?.length > 0 && (
+            <span> | Latest: {messages[messages.length - 1]?.id?.substring(0, 6)}...</span>
+          )}
         </div>
         
         <div className="flex-1 min-h-0">

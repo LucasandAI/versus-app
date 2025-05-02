@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Club } from '@/types';
 import ChatSidebarContent from '../ChatSidebarContent';
 import ChatClubContent from '../../../chat/ChatClubContent';
@@ -16,6 +16,7 @@ interface ChatClubContainerProps {
   unreadClubs?: Set<string>;
   onSendMessage: (message: string, clubId?: string) => void;
   onDeleteMessage?: (messageId: string) => void;
+  setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
 }
 
 const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
@@ -25,7 +26,8 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   messages = {},
   unreadClubs = new Set(),
   onSendMessage,
-  onDeleteMessage
+  onDeleteMessage,
+  setClubMessages
 }) => {
   const {
     navigateToClubDetail
@@ -33,6 +35,24 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   const {
     markClubMessagesAsRead
   } = useUnreadMessages();
+
+  // Add a ref to track renders for debugging
+  const renderCountRef = useRef(0);
+  const previousSelectedClubRef = useRef<string | null>(null);
+  
+  // Debug effect to track renders
+  useEffect(() => {
+    renderCountRef.current += 1;
+    console.log(`[ChatClubContainer] Render #${renderCountRef.current}`, {
+      selectedClub: selectedClub?.id,
+      prevSelectedClub: previousSelectedClubRef.current,
+      hasMessages: selectedClub ? (messages[selectedClub.id]?.length || 0) : 0
+    });
+    
+    if (selectedClub?.id !== previousSelectedClubRef.current) {
+      previousSelectedClubRef.current = selectedClub?.id || null;
+    }
+  });
 
   // Mark messages as read when a club is selected
   useEffect(() => {
@@ -113,12 +133,15 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
       
       <div className="flex-1">
         <ChatClubContent 
+          key={`club-content-${selectedClub.id}-${clubMessages.length}`}
           club={selectedClub} 
           messages={clubMessages} 
           onMatchClick={handleMatchClick} 
           onSelectUser={handleSelectUser} 
           onSendMessage={onSendMessage} 
           onDeleteMessage={onDeleteMessage} 
+          setClubMessages={setClubMessages}
+          clubId={selectedClub.id}
         />
       </div>
     </div>;

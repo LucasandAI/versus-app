@@ -35,6 +35,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
 }) => {
   const renderCountRef = useRef(0);
   const previousMessagesLengthRef = useRef<number>(0);
+  const messagesStableIdRef = useRef<string>("");
   
   const {
     currentUserId,
@@ -65,16 +66,34 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const finalLastMessageRef = providedLastMessageRef || defaultLastMessageRef;
   const finalFormatTime = providedFormatTime || defaultFormatTime;
   
-  // Debug effect to track message updates
+  // Generate a stable ID for the current messages array to detect real changes
+  const generateMessagesId = () => {
+    if (!Array.isArray(messages) || messages.length === 0) return "";
+    // Use last message's ID and timestamp as a fingerprint
+    const lastMsg = messages[messages.length - 1];
+    return `${lastMsg?.id || "none"}-${lastMsg?.timestamp || "none"}-${messages.length}`;
+  };
+  
+  // Enhanced debug effect to track message updates with more detail
   useEffect(() => {
     renderCountRef.current += 1;
     const hasNewMessages = Array.isArray(messages) && messages.length > previousMessagesLengthRef.current;
+    const currentMessagesId = generateMessagesId();
+    const isReallyNewMessages = currentMessagesId !== messagesStableIdRef.current;
     
     console.log(`[ChatMessages] Render #${renderCountRef.current}`, {
       messageCount: Array.isArray(messages) ? messages.length : 'No messages array',
       previousCount: previousMessagesLengthRef.current,
-      newMessages: hasNewMessages
+      newMessages: hasNewMessages,
+      messagesChanged: isReallyNewMessages,
+      currentId: currentMessagesId,
+      previousId: messagesStableIdRef.current
     });
+    
+    // Update our tracking references
+    if (isReallyNewMessages) {
+      messagesStableIdRef.current = currentMessagesId;
+    }
     
     if (Array.isArray(messages)) {
       previousMessagesLengthRef.current = messages.length;
@@ -88,7 +107,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
           message: lastMsg.message?.substring(0, 30) + (lastMsg.message?.length > 30 ? '...' : '')
         });
         
-        // Auto-scroll on new messages
+        // Auto-scroll on new messages with a slight delay to ensure DOM is updated
         setTimeout(scrollToBottom, 100);
       }
     }
@@ -116,9 +135,12 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
         isClubChat ? 'h-[calc(73vh-8rem)]' : 'h-[calc(73vh-6rem)]'
       }`}
     >
-      {/* Debug information */}
+      {/* Enhanced debug information */}
       <div className="bg-blue-50 px-2 py-1 text-xs">
         Messages: {normalizedMessages.length} | Renders: {renderCountRef.current}
+        {normalizedMessages.length > 0 && (
+          <span> | ID: {messagesStableIdRef.current.substring(0, 8)}...</span>
+        )}
       </div>
       
       <MessageList 

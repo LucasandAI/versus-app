@@ -20,6 +20,18 @@ export const useClubMessageSubscriptions = (
   
   const selectedClubRef = useRef<string | null>(null);
   const messageCountRef = useRef<number>(0); // For debugging
+  const updateCountRef = useRef<number>(0); // For tracking state updates
+  
+  // Debug: Log current state periodically to detect sync issues
+  useEffect(() => {
+    if (isOpen && userClubs.length > 0) {
+      console.log('[useClubMessageSubscriptions] Current state:', {
+        selectedClub: selectedClubRef.current,
+        openClubs: userClubs.map(c => c.id),
+        subscriptionsActive: Object.keys(activeSubscriptionsRef.current || {})
+      });
+    }
+  }, [isOpen, userClubs, activeSubscriptionsRef]);
   
   useEffect(() => {
     // Skip if not authenticated, session not ready, drawer not open, or no clubs
@@ -64,6 +76,10 @@ export const useClubMessageSubscriptions = (
               const deletedMessageId = payload.old.id;
               const clubId = payload.old.club_id;
               
+              updateCountRef.current += 1;
+              const count = updateCountRef.current;
+              console.log(`[useClubMessageSubscriptions] (#${count}) Updating messages after deletion`);
+              
               setClubMessages(prev => {
                 if (!prev[clubId]) return prev;
                 
@@ -76,10 +92,16 @@ export const useClubMessageSubscriptions = (
                   return msgId !== deleteId;
                 });
                 
-                return {
+                // Important: Create a new object to ensure React detects the change
+                const updatedMessages = {
                   ...prev,
                   [clubId]: updatedClubMessages
                 };
+                
+                console.log(`[useClubMessageSubscriptions] (#${count}) State after deletion:`, 
+                  Object.keys(updatedMessages).map(id => `${id}: ${updatedMessages[id]?.length || 0} messages`));
+                
+                return updatedMessages;
               });
             }
           })
@@ -109,6 +131,9 @@ export const useClubMessageSubscriptions = (
       }, (payload) => {
         messageCountRef.current += 1;
         const count = messageCountRef.current;
+        updateCountRef.current += 1;
+        const updateCount = updateCountRef.current;
+        
         console.log(`[useClubMessageSubscriptions] (#${count}) New message for club ${clubId}:`, payload.new?.id);
         console.log(`[useClubMessageSubscriptions] (#${count}) Currently selected club:`, selectedClubRef.current);
         
@@ -143,6 +168,7 @@ export const useClubMessageSubscriptions = (
           console.log(`[useClubMessageSubscriptions] (#${count}) Message sender:`, messageWithSender.sender_id);
           console.log(`[useClubMessageSubscriptions] (#${count}) Current user:`, currentUser.id);
           
+          // IMPORTANT FIX: Create a new state update with a fresh reference that guarantees React re-renders
           setClubMessages(prev => {
             const clubMsgs = prev[clubId] || [];
             
@@ -156,6 +182,7 @@ export const useClubMessageSubscriptions = (
             
             console.log(`[useClubMessageSubscriptions] (#${count}) Adding message to club ${clubId}`);
             console.log(`[useClubMessageSubscriptions] (#${count}) Previous message count:`, clubMsgs.length);
+            console.log(`[useClubMessageSubscriptions] (#${count}) Update #${updateCount} triggered`);
             
             // Create a new array to ensure React detects the change
             const newMessages = [...clubMsgs, messageWithSender].sort(
@@ -164,13 +191,11 @@ export const useClubMessageSubscriptions = (
             
             console.log(`[useClubMessageSubscriptions] (#${count}) New message count:`, newMessages.length);
             
-            // Important: Create a new object reference to ensure React detects the change
-            const updatedMessages = {
+            // Create a completely new object reference to ensure React detects the change
+            return {
               ...prev,
               [clubId]: newMessages
             };
-            
-            return updatedMessages;
           });
         });
         
@@ -193,9 +218,9 @@ export const useClubMessageSubscriptions = (
       channelsRef.current = [];
       activeSubscriptionsRef.current = {};
     };
-  }, [userClubs, isOpen, setClubMessages, currentUser?.id, isSessionReady]);
+  }, [userClubs, isOpen, setClubMessages, currentUser?.id, isSessionReady, markClubMessagesAsRead]);
 
-  // Listen for club selection changes to track the currently viewed club
+  // Enhanced club selection tracking with additional debugging
   useEffect(() => {
     const handleClubSelected = (e: CustomEvent) => {
       const clubId = e.detail?.clubId;
@@ -207,6 +232,9 @@ export const useClubMessageSubscriptions = (
         if (currentUser?.id) {
           markClubMessagesAsRead(clubId);
         }
+        
+        // DEBUGGING: Force a state update to check if this resolves the issue
+        setClubMessages(prev => ({...prev}));
       }
     };
 
@@ -222,5 +250,5 @@ export const useClubMessageSubscriptions = (
       window.removeEventListener('clubSelected', handleClubSelected as EventListener);
       window.removeEventListener('clubDeselected', handleClubDeselected);
     };
-  }, [currentUser?.id, markClubMessagesAsRead]);
+  }, [currentUser?.id, markClubMessagesAsRead, setClubMessages]);
 };
