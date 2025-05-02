@@ -98,14 +98,16 @@ export const useDMSubscription = (
           const senderId = newMessage.sender_id;
           const isFromOtherUser = senderId === otherUserId;
           
+          let user = null;
+          
           if (isFromOtherUser && (!userCache[senderId] || !userCache[senderId].name)) {
             console.log(`[useDMSubscription] Fetching sender data for ${senderId}`);
-            await fetchUserData(senderId);
+            user = await fetchUserData(senderId);
+          } else if (isFromOtherUser) {
+            user = userCache[senderId];
           }
           
-          const senderData = isFromOtherUser ? userCache[senderId] : null;
-          
-          // Format the message for the UI
+          // Format the message for the UI with improved sender metadata
           const chatMessage: ChatMessage = {
             id: newMessage.id,
             text: newMessage.text,
@@ -113,10 +115,10 @@ export const useDMSubscription = (
               id: newMessage.sender_id,
               name: newMessage.sender_id === currentUserId 
                 ? 'You' 
-                : (senderData?.name || 'User'),
+                : (user?.name || 'User'),
               avatar: newMessage.sender_id === currentUserId 
                 ? undefined 
-                : (senderData?.avatar || '/placeholder.svg')
+                : (user?.avatar || '/placeholder.svg')
             },
             timestamp: newMessage.timestamp
           };
