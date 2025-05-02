@@ -17,10 +17,6 @@ interface MainChatDrawerProps {
   onNewMessage?: (count: number) => void;
   clubMessages?: Record<string, any[]>;
   setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
-  // Add the new props here as well
-  activeClubId?: string | null;
-  setActiveClubId?: (clubId: string | null) => void;
-  activeClubMessages?: any[];
 }
 
 const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
@@ -30,10 +26,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   onNewMessage,
   clubMessages = {},
   setClubMessages,
-  // Destructure the new props
-  activeClubId,
-  setActiveClubId,
-  activeClubMessages
 }) => {
   const [activeTab, setActiveTab] = useState<"clubs"|"dm">("clubs");
   const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(null);
@@ -48,12 +40,10 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const { unreadClubs, unreadConversations } = useUnreadMessages();
   const [localUnreadClubs, setLocalUnreadClubs] = useState<Set<string>>(new Set());
   const [localUnreadConversations, setLocalUnreadConversations] = useState<Set<string>>(new Set());
-  const [forceUpdateKey, setForceUpdateKey] = useState(Date.now());
   
   // Force re-render when unreadClubs changes
   useEffect(() => {
     setLocalUnreadClubs(new Set(unreadClubs));
-    setForceUpdateKey(Date.now());
   }, [unreadClubs]);
 
   // Force re-render when unreadConversations changes
@@ -65,31 +55,15 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   useEffect(() => {
     const handleUnreadMessagesUpdate = () => {
       console.log('[MainChatDrawer] Detected unreadMessagesUpdated event, forcing re-render');
-      setForceUpdateKey(Date.now());
+      setLocalUnreadClubs(new Set(unreadClubs));
+      setLocalUnreadConversations(new Set(unreadConversations));
     };
     
     window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdate);
     return () => {
       window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdate);
     };
-  }, []);
-  
-  // NEW EFFECT: Sync activeClubId with selectedLocalClub
-  useEffect(() => {
-    if (activeClubId && clubs && clubs.length > 0) {
-      console.log(`[MainChatDrawer] Syncing activeClubId: ${activeClubId} with selectedLocalClub`);
-      
-      // Find the matching club object
-      const matchingClub = clubs.find(club => club.id === activeClubId);
-      
-      if (matchingClub) {
-        console.log(`[MainChatDrawer] Found matching club: ${matchingClub.name}`);
-        setSelectedLocalClub(matchingClub);
-      } else {
-        console.log(`[MainChatDrawer] No matching club found for activeClubId: ${activeClubId}`);
-      }
-    }
-  }, [activeClubId, clubs]);
+  }, [unreadClubs, unreadConversations]);
   
   const { sendMessageToClub, deleteMessage } = useChatActions();
   const { currentUser } = useApp();
@@ -138,12 +112,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
 
   const handleSelectClub = (club: Club) => {
     setSelectedLocalClub(club);
-    
-    // Sync the selection with activeClubId
-    if (setActiveClubId && club) {
-      console.log(`[MainChatDrawer] Setting activeClubId to: ${club.id} from handleSelectClub`);
-      setActiveClubId(club.id);
-    }
   };
 
   const handleSendMessage = async (message: string, clubId?: string) => {
@@ -175,7 +143,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
           />
           
           <ChatDrawerContainer 
-            key={`drawer-container-${forceUpdateKey}`}
             activeTab={activeTab}
             clubs={clubs}
             selectedLocalClub={selectedLocalClub}
@@ -190,10 +157,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             onDeleteMessage={handleDeleteMessage}
             directMessageUser={directMessageUser}
             setDirectMessageUser={setDirectMessageUser}
-            // Pass the new props to ChatDrawerContainer
-            activeClubId={activeClubId}
-            setActiveClubId={setActiveClubId}
-            activeClubMessages={activeClubMessages}
           />
         </DrawerContent>
       </Drawer>

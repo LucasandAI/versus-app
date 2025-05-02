@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Club } from '@/types';
 import ChatClubContainer from './club/ChatClubContainer';
@@ -19,18 +20,15 @@ interface ChatDrawerContainerProps {
   directMessageUser: {
     userId: string;
     userName: string;
-    userAvatar: string; // Made required
+    userAvatar: string;
     conversationId: string;
   } | null;
   setDirectMessageUser: React.Dispatch<React.SetStateAction<{
     userId: string;
     userName: string;
-    userAvatar: string; // Made required
+    userAvatar: string;
     conversationId: string;
   } | null>>;
-  activeClubId?: string | null;
-  setActiveClubId?: (clubId: string | null) => void;
-  activeClubMessages?: any[];
 }
 
 const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
@@ -48,18 +46,11 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   onDeleteMessage,
   directMessageUser,
   setDirectMessageUser,
-  activeClubId,
-  setActiveClubId,
-  activeClubMessages
 }) => {
-  // Create a key for forced re-renders when unread status changes
-  const unreadKey = JSON.stringify([...unreadClubs].sort());
-  
   return (
     <div className="flex-1 overflow-hidden">
       {activeTab === 'clubs' ? (
         <ChatClubContainer 
-          key={`club-container-${unreadKey}`}
           clubs={clubs}
           selectedClub={selectedLocalClub}
           onSelectClub={onSelectClub}
@@ -67,7 +58,6 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
           unreadClubs={unreadClubs}
           onSendMessage={onSendMessage}
           onDeleteMessage={onDeleteMessage}
-          activeClubMessages={activeClubMessages}
         />
       ) : (
         <DMContainer

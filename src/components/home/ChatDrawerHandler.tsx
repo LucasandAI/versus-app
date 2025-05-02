@@ -1,8 +1,8 @@
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Club } from '@/types';
 import ChatDrawer from '../chat/ChatDrawer';
-import { useClubMessages } from '@/hooks/chat/useClubMessages';
+import { useClubMessageState } from '@/hooks/chat/messages/useClubMessageState';
 import { useApp } from '@/context/AppContext';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
 
@@ -18,20 +18,11 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
   const { isOpen, close } = useChatDrawerGlobal();
   const { currentUser } = useApp();
   
-  // Use our hook for real-time club messages
-  const { 
-    clubMessages, 
-    setClubMessages, 
-    activeClubId, 
-    setActiveClubId, 
-    activeClubMessages, 
-    setActiveClubMessages 
-  } = useClubMessages(userClubs, isOpen);
+  // Use simple state management hook for club message references
+  const { clubMessages, setClubMessages } = useClubMessageState();
 
   console.log('[ChatDrawerHandler] Rendering with clubMessages:', 
-    Object.keys(clubMessages).length,
-    'active club:', activeClubId,
-    'active messages:', activeClubMessages?.length || 0);
+    Object.keys(clubMessages).length);
 
   const handleSendMessage = async (message: string, clubId?: string) => {
     console.log('[ChatDrawerHandler] Send message requested:', { message, clubId });
@@ -44,17 +35,12 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
       onOpenChange={(open) => {
         if (!open) {
           close();
-          // Clear active club when drawer closes
-          setActiveClubId(null);
         }
       }} 
       clubs={userClubs}
       clubMessages={clubMessages}
       setClubMessages={setClubMessages}
       onSendMessage={handleSendMessage}
-      activeClubId={activeClubId}
-      setActiveClubId={setActiveClubId}
-      activeClubMessages={activeClubMessages}
     />
   );
 };

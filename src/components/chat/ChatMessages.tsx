@@ -21,7 +21,7 @@ interface ChatMessagesProps {
   currentUserAvatar?: string;
   lastMessageRef?: React.RefObject<HTMLDivElement>;
   formatTime?: (isoString: string) => string;
-  clubId?: string; // Added clubId prop
+  clubId?: string;
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({
@@ -33,7 +33,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   currentUserAvatar: providedUserAvatar,
   lastMessageRef: providedLastMessageRef,
   formatTime: providedFormatTime,
-  clubId, // Destructure the clubId prop
+  clubId,
 }) => {
   const {
     currentUserId,
@@ -64,7 +64,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const finalLastMessageRef = providedLastMessageRef || defaultLastMessageRef;
   const finalFormatTime = providedFormatTime || defaultFormatTime;
   
-  // Log when messages array changes
+  // Scroll to bottom when messages change
   useEffect(() => {
     console.log('[ChatMessages] Messages updated:', {
       count: Array.isArray(messages) ? messages.length : 0,
@@ -72,11 +72,10 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
       clubId
     });
     
-    // Scroll to bottom when messages change
     scrollToBottom();
   }, [messages, scrollToBottom, clubId]);
   
-  if (!Array.isArray(messages)) {
+  if (!Array.isArray(messages) || messages.length === 0) {
     return (
       <div className="flex-1 p-4">
         <div className="h-full flex items-center justify-center text-gray-500 text-sm">

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import ChatHeader from './ChatHeader';
@@ -5,11 +6,11 @@ import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import { useNavigation } from '@/hooks/useNavigation';
 import { useChatActions } from '@/hooks/chat/useChatActions';
+import { useActiveClubMessages } from '@/hooks/chat/useActiveClubMessages';
 
 interface ChatClubContentProps {
   club: Club;
-  messages: any[];
-  activeMessages?: any[]; // This prop should be passed from ChatDrawerContainer -> ChatClubContent
+  messages?: any[];
   onMatchClick: () => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   onSendMessage: (message: string, clubId?: string) => void;
@@ -21,8 +22,6 @@ interface ChatClubContentProps {
 
 const ChatClubContent = ({ 
   club,
-  messages,
-  activeMessages, // This prop should be passed from ChatDrawerContainer -> ChatClubContent
   onMatchClick,
   onSelectUser,
   onSendMessage,
@@ -33,20 +32,25 @@ const ChatClubContent = ({
 }: ChatClubContentProps) => {
   const { navigateToClubDetail } = useNavigation();
   const [isSending, setIsSending] = useState(false);
-  const { deleteMessage } = useChatActions();
+  const { deleteMessage: deleteMessageAction } = useChatActions();
   const effectiveClubId = clubId || club?.id;
   
-  // Use activeMessages if provided, otherwise fallback to messages
-  const displayMessages = activeMessages || messages;
+  // Use the new hook to get and manage messages for the active club
+  const { 
+    messages, 
+    loading, 
+    isSending: hookIsSending,
+    setIsSending: setHookIsSending,
+    deleteMessage: hookDeleteMessage
+  } = useActiveClubMessages(effectiveClubId);
   
   // Log when the message array changes to help debug
   useEffect(() => {
     console.log('[ChatClubContent] Messages updated for club:', {
       clubId: effectiveClubId,
-      messageCount: displayMessages?.length || 0,
-      activeMessages: !!activeMessages
+      messageCount: messages?.length || 0
     });
-  }, [displayMessages, effectiveClubId, activeMessages]);
+  }, [messages, effectiveClubId]);
   
   useEffect(() => {
     console.log('[ChatClubContent] Club changed, resetting state for:', effectiveClubId);
@@ -77,8 +81,11 @@ const ChatClubContent = ({
       await onDeleteMessage(messageId);
     } else if (setClubMessages) {
       // Fallback to direct deleteMessage if no handler provided
-      await deleteMessage(messageId, setClubMessages);
+      await deleteMessageAction(messageId, setClubMessages);
     }
+    
+    // Also delete from the local flat array
+    hookDeleteMessage(messageId);
   };
 
   const handleClubClick = () => {
@@ -92,6 +99,8 @@ const ChatClubContent = ({
   const handleSendMessage = async (message: string) => {
     console.log('[ChatClubContent] Sending message for club:', effectiveClubId);
     setIsSending(true);
+    setHookIsSending(true);
+    
     try {
       const messageToSend = message.trim();
       if (effectiveClubId) {
@@ -101,6 +110,7 @@ const ChatClubContent = ({
       console.error('[ChatClubContent] Error sending club message:', error);
     } finally {
       setIsSending(false);
+      setHookIsSending(false);
     }
   };
 
@@ -116,7 +126,7 @@ const ChatClubContent = ({
       <div className="flex-1 flex flex-col relative overflow-hidden">
         <div className="flex-1 min-h-0">
           <ChatMessages 
-            messages={displayMessages} 
+            messages={messages} 
             clubMembers={club.members || []}
             onDeleteMessage={handleDeleteMessage}
             onSelectUser={onSelectUser}
@@ -129,7 +139,7 @@ const ChatClubContent = ({
             onSendMessage={handleSendMessage} 
             conversationType="club"
             conversationId={effectiveClubId} 
-            isSending={isSending}
+            isSending={isSending || hookIsSending}
           />
         </div>
       </div>
