@@ -4,12 +4,31 @@ import { supabase } from '@/integrations/supabase/client';
 import type { UserCache } from './types';
 
 export const useUserData = () => {
-  const [userCache, setUserCache] = useState<UserCache>({});
+  // Use ref for a more stable cache across renders
+  const userCacheRef = useRef<UserCache>({});
+  const [userCache, setUserCache] = useState<UserCache>(userCacheRef.current);
   const [fetchingUsers, setFetchingUsers] = useState<Set<string>>(new Set());
   const pendingFetches = useRef<Record<string, Promise<any>>>({});
 
+  // Sync state with ref when state changes
+  useEffect(() => {
+    userCacheRef.current = userCache;
+  }, [userCache]);
+
   // Callback to fetch user data
   const fetchUserData = useCallback(async (userId: string) => {
+    // Skip if invalid userId
+    if (!userId) {
+      console.warn('[useUserData] Called fetchUserData with invalid userId');
+      return null;
+    }
+    
+    // Return cached data immediately if available
+    if (userCacheRef.current[userId]) {
+      console.log(`[useUserData] Using cached data for user ${userId}:`, userCacheRef.current[userId]);
+      return userCacheRef.current[userId];
+    }
+    
     // If we already have a pending fetch for this user, return that promise
     if (pendingFetches.current[userId]) {
       console.log(`[useUserData] Returning existing fetch promise for user ${userId}`);
@@ -55,6 +74,12 @@ export const useUserData = () => {
             
             console.log(`[useUserData] Successfully fetched data for user ${userId}:`, userWithDefaults);
             
+            // Update both the ref and state for immediate access
+            userCacheRef.current = {
+              ...userCacheRef.current,
+              [userId]: userWithDefaults
+            };
+            
             setUserCache(prev => ({
               ...prev,
               [userId]: userWithDefaults
@@ -65,9 +90,11 @@ export const useUserData = () => {
           }
           
           resolve(null);
+          return null;
         } catch (error) {
           console.error('[useUserData] Exception fetching user data:', error);
           resolve(null);
+          return null;
         }
       });
       
@@ -91,7 +118,7 @@ export const useUserData = () => {
         return updated;
       });
     }
-  }, [fetchingUsers]);
+  }, []);
 
   // Fetch any missing user data from stored conversations on mount
   useEffect(() => {
@@ -106,7 +133,7 @@ export const useUserData = () => {
         const userIds = conversations.map(c => c.userId).filter(Boolean);
         
         for (const userId of userIds) {
-          if (!userCache[userId] && !fetchingUsers.has(userId)) {
+          if (!userCacheRef.current[userId] && !fetchingUsers.has(userId)) {
             fetchUserData(userId);
           }
         }
@@ -116,7 +143,7 @@ export const useUserData = () => {
     };
     
     fetchStoredUsers();
-  }, [fetchUserData, userCache, fetchingUsers]);
+  }, [fetchUserData, fetchingUsers]);
 
   return { userCache, setUserCache, fetchUserData };
 };

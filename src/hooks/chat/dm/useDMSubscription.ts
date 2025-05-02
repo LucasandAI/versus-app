@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
@@ -17,14 +16,24 @@ export const useDMSubscription = (
   const processedMessages = useRef<Set<string>>(new Set());
   const { userCache, fetchUserData } = useUserData();
   
+  // Keep stable references to the conversation/user IDs
+  const stableConversationId = useRef(conversationId);
+  const stableOtherUserId = useRef(otherUserId);
+  
+  // Update stable refs when props change
+  useEffect(() => {
+    stableConversationId.current = conversationId;
+    stableOtherUserId.current = otherUserId;
+  }, [conversationId, otherUserId]);
+  
   // Clean up function
   const cleanupSubscription = useCallback(() => {
     if (channelRef.current) {
-      console.log(`[useDMSubscription] Cleaning up subscription for conversation ${conversationId}`);
+      console.log(`[useDMSubscription] Cleaning up subscription for conversation ${stableConversationId.current}`);
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
-  }, [conversationId]);
+  }, []);
 
   // Clean up resources on unmount
   useEffect(() => {
@@ -40,9 +49,9 @@ export const useDMSubscription = (
   // Fetch other user's data when component mounts or otherUserId changes
   useEffect(() => {
     if (otherUserId) {
-      console.log(`[useDMSubscription] Fetching user data for ${otherUserId}`);
+      console.log(`[useDMSubscription] Ensuring user data for ${otherUserId} is available`);
       fetchUserData(otherUserId).then(userData => {
-        console.log(`[useDMSubscription] Fetched user data:`, userData);
+        console.log(`[useDMSubscription] User data available:`, userData);
       }).catch(err => {
         console.error(`[useDMSubscription] Error fetching user data:`, err);
       });
@@ -51,7 +60,9 @@ export const useDMSubscription = (
 
   // Clear processed message cache when conversation changes
   useEffect(() => {
-    processedMessages.current.clear();
+    if (conversationId) {
+      processedMessages.current = new Set();
+    }
   }, [conversationId]);
 
   // Setup subscription when conversation details are ready
@@ -67,16 +78,17 @@ export const useDMSubscription = (
     try {
       console.log(`[useDMSubscription] Setting up subscription for conversation ${conversationId}`);
       
-      // Store the current conversation ID in a stable reference
-      const stableConversationId = conversationId;
+      // Use our stable reference
+      const conversation_id = conversationId;
+      const stable_otherUserId = otherUserId;
       
       const channel = supabase
-        .channel(`direct_messages:${stableConversationId}`)
+        .channel(`direct_messages:${conversation_id}`)
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
           table: 'direct_messages',
-          filter: `conversation_id=eq.${stableConversationId}`
+          filter: `conversation_id=eq.${conversation_id}`
         }, async (payload) => {
           if (!isMounted.current) return;
           
@@ -94,29 +106,39 @@ export const useDMSubscription = (
           // Mark as processed
           processedMessages.current.add(messageId);
           
-          // Ensure we have the user data for proper display
+          // Determine if this message is from the other user
           const senderId = newMessage.sender_id;
-          const isFromOtherUser = senderId === otherUserId;
+          const isFromOtherUser = senderId === stable_otherUserId;
           
-          // Get user data for the sender if it's not the current user
-          let userData = null;
+          // Format message data based on sender
+          let senderName = 'User';
+          let senderAvatar: string | undefined = '/placeholder.svg';
           
-          if (isFromOtherUser) {
-            // Always fetch fresh user data for the sender to ensure we have the latest
-            console.log(`[useDMSubscription] Fetching sender data for ${senderId}`);
-            userData = await fetchUserData(senderId);
-            console.log(`[useDMSubscription] Fetched user data for ${senderId}:`, userData);
+          if (!isFromOtherUser) {
+            // It's from the current user, just use 'You'
+            senderName = 'You';
+            senderAvatar = undefined;
+          } else {
+            // It's from the other user, fetch their data if needed
+            // First check our cache
+            const cachedUserData = userCache[senderId];
             
-            // If fetch failed but we have cached data, use that as fallback
-            if (!userData && userCache[senderId]) {
-              userData = userCache[senderId];
-              console.log(`[useDMSubscription] Using cached user data for ${senderId}:`, userData);
-            }
-            
-            // If we still don't have user data, use defaults but log a warning
-            if (!userData) {
-              console.warn(`[useDMSubscription] Failed to get user data for ${senderId}`);
-              userData = { name: 'User', avatar: '/placeholder.svg', bio: '' };
+            if (cachedUserData) {
+              console.log(`[useDMSubscription] Using cached user data for ${senderId}:`, cachedUserData);
+              senderName = cachedUserData.name;
+              senderAvatar = cachedUserData.avatar;
+            } else {
+              // If not in cache, fetch it directly
+              console.log(`[useDMSubscription] Fetching user data for sender ${senderId}`);
+              const userData = await fetchUserData(senderId);
+              
+              if (userData) {
+                senderName = userData.name;
+                senderAvatar = userData.avatar;
+                console.log(`[useDMSubscription] Fetched user data for ${senderId}:`, userData);
+              } else {
+                console.warn(`[useDMSubscription] Failed to get user data for ${senderId}`);
+              }
             }
           }
           
@@ -126,12 +148,8 @@ export const useDMSubscription = (
             text: newMessage.text,
             sender: {
               id: newMessage.sender_id,
-              name: newMessage.sender_id === currentUserId 
-                ? 'You' 
-                : (userData?.name || 'User'),
-              avatar: newMessage.sender_id === currentUserId 
-                ? undefined 
-                : (userData?.avatar || '/placeholder.svg')
+              name: senderName,
+              avatar: senderAvatar
             },
             timestamp: newMessage.timestamp
           };
@@ -142,16 +160,16 @@ export const useDMSubscription = (
             senderAvatar: chatMessage.sender.avatar
           });
           
-          // Dispatch a custom event with the stable conversation ID
+          // Use the stable reference to event dispatch
           window.dispatchEvent(new CustomEvent('dmMessageReceived', { 
             detail: { 
-              conversationId: stableConversationId, 
+              conversationId: conversation_id, 
               message: chatMessage 
             } 
           }));
         })
         .subscribe((status) => {
-          console.log(`DM subscription status for ${stableConversationId}:`, status);
+          console.log(`DM subscription status for ${conversation_id}:`, status);
         });
       
       channelRef.current = channel;

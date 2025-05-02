@@ -41,12 +41,24 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   const { formatTime } = useMessageFormatting();
   const { userCache, fetchUserData } = useUserData();
   
-  // Fetch user data if not already in cache
+  // Use refs to maintain stable references to props
+  const userRef = useRef(user);
+  const conversationIdRef = useRef(conversationId);
+  
+  // Update refs when props change
+  useEffect(() => {
+    userRef.current = user;
+    conversationIdRef.current = conversationId;
+  }, [user, conversationId]);
+  
+  // Fetch user data if not already in cache - only do this once
+  const initialFetchDoneRef = useRef(false);
   useEffect(() => {
     const fetchUserIfNeeded = async () => {
-      if (!userCache[user.id]) {
-        console.log(`[DMConversation] Fetching data for user ${user.id}`);
+      if (!initialFetchDoneRef.current && user.id && !userCache[user.id]) {
+        console.log(`[DMConversation] Fetching data for user ${user.id} on mount`);
         await fetchUserData(user.id);
+        initialFetchDoneRef.current = true;
       }
     };
     
@@ -105,13 +117,15 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     });
     
     try {
-      let finalConversationId = conversationId;
+      let finalConversationId = conversationIdRef.current;
       
       // Create conversation if needed
       if (finalConversationId === 'new') {
         const newConversationId = await createConversation();
         if (newConversationId) {
           finalConversationId = newConversationId;
+          // Update our ref but don't trigger a re-render
+          conversationIdRef.current = newConversationId;
         } else {
           throw new Error("Failed to create conversation");
         }
@@ -123,7 +137,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
         .insert({
           text,
           sender_id: currentUser.id,
-          receiver_id: user.id,
+          receiver_id: userRef.current.id,
           conversation_id: finalConversationId
         })
         .select('id')
@@ -145,15 +159,15 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     } finally {
       setIsSending(false);
     }
-  }, [currentUser, addOptimisticMessage, createConversation, conversationId, scrollToBottom, setMessages, user.id]);
+  }, [currentUser, addOptimisticMessage, createConversation, scrollToBottom, setMessages]);
   
-  // This ensures we don't recreate the club members array on each render
+  // Club members array for ChatMessages - memoized to prevent recreating
   const clubMembers = useMemo(() => 
     currentUser ? [currentUser] : [], 
     [currentUser]
   );
   
-  // Get the actual user data from cache if available
+  // Get the most up-to-date user data by combining props with cache
   const displayedUser = useMemo(() => {
     const cachedUser = userCache[user.id];
     
@@ -167,6 +181,9 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     
     return user;
   }, [user, userCache]);
+
+  // Log when the component renders to track unnecessary re-renders
+  console.log(`[DMConversation] Rendering for user ${user.id} (${user.name})`);
 
   return (
     <div className="flex flex-col h-full w-full">
@@ -183,7 +200,11 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
             className="flex items-center gap-3 cursor-pointer hover:opacity-80" 
             onClick={() => navigateToUserProfile(displayedUser.id, displayedUser.name, displayedUser.avatar)}
           >
-            <DMHeader userId={displayedUser.id} userName={displayedUser.name} userAvatar={displayedUser.avatar} />
+            <DMHeader 
+              userId={displayedUser.id} 
+              userName={displayedUser.name} 
+              userAvatar={displayedUser.avatar} 
+            />
           </div>
         </div>
         {/* This empty div helps maintain balance in the header */}

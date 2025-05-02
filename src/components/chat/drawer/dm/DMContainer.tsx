@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, memo } from 'react';
+import React, { useState, useEffect, memo, useMemo } from 'react';
 import DMConversationList from './DMConversationList';
 import DMConversation from './DMConversation';
 import DMSearchPanel from './DMSearchPanel';
@@ -34,8 +33,9 @@ const DMContainer: React.FC<DMContainerProps> = memo(({
   const { markDirectMessagesAsRead } = useMessageReadStatus();
   const { currentUser } = useApp();
 
-  // Create a handler for search results selection
-  const handleSearchSelect = async (userId: string, userName: string, userAvatar: string) => {
+  // Create a handler for search results selection - memoized to keep reference stable
+  const handleSearchSelect = useMemo(() => async (userId: string, userName: string, userAvatar: string) => {
+    console.log(`[DMContainer] User selected from search: ${userId}, ${userName}`);
     const conversation = await getOrCreateConversation(userId, userName, userAvatar);
     if (conversation) {
       setDirectMessageUser({
@@ -46,7 +46,7 @@ const DMContainer: React.FC<DMContainerProps> = memo(({
       });
       setShowSearch(false);
     }
-  };
+  }, [getOrCreateConversation, setDirectMessageUser]);
   
   // Mark conversation as read when selected
   useEffect(() => {
@@ -54,10 +54,10 @@ const DMContainer: React.FC<DMContainerProps> = memo(({
       console.log(`[DMContainer] Marking conversation ${directMessageUser.conversationId} as read`);
       markDirectMessagesAsRead(directMessageUser.conversationId, currentUser.id);
     }
-  }, [directMessageUser, currentUser?.id, markDirectMessagesAsRead]);
+  }, [directMessageUser?.conversationId, currentUser?.id, markDirectMessagesAsRead]);
 
-  // Memoized components
-  const conversationListComponent = React.useMemo(() => (
+  // Only create these components once and keep them in memory
+  const conversationListComponent = useMemo(() => (
     <DMConversationList
       onSelectUser={(userId, userName, userAvatar, conversationId) => {
         setDirectMessageUser({
@@ -72,7 +72,7 @@ const DMContainer: React.FC<DMContainerProps> = memo(({
     />
   ), [directMessageUser?.userId, unreadConversations, setDirectMessageUser]);
   
-  const searchPanelComponent = React.useMemo(() => (
+  const searchPanelComponent = useMemo(() => (
     <DMSearchPanel 
       onSelect={handleSearchSelect} 
       onBack={() => setShowSearch(false)} 

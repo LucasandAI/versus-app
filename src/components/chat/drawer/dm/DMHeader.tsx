@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, memo } from 'react';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { useUserData } from '@/hooks/chat/dm/useUserData';
 
@@ -9,19 +9,26 @@ interface DMHeaderProps {
   userAvatar?: string;
 }
 
-const DMHeader: React.FC<DMHeaderProps> = ({ userId, userName, userAvatar }) => {
+const DMHeader: React.FC<DMHeaderProps> = memo(({ userId, userName, userAvatar }) => {
   const { userCache, fetchUserData } = useUserData();
   const [displayName, setDisplayName] = useState(userName);
   const [displayAvatar, setDisplayAvatar] = useState(userAvatar);
+  const initialDataAppliedRef = useRef(false);
   
+  // First mount - set from props
+  useEffect(() => {
+    if (!initialDataAppliedRef.current) {
+      setDisplayName(userName || 'User');
+      setDisplayAvatar(userAvatar);
+      initialDataAppliedRef.current = true;
+    }
+  }, [userName, userAvatar]);
+  
+  // Then try to get from cache or fetch
   useEffect(() => {
     const fetchAndUpdateUserData = async () => {
-      // Update from props first
-      setDisplayName(userName);
-      setDisplayAvatar(userAvatar);
-      
       try {
-        // Try to get from cache if available
+        // Check cache first
         const cachedUser = userCache[userId];
         if (cachedUser?.name) {
           console.log(`[DMHeader] Using cached user data for ${userId}:`, cachedUser);
@@ -30,13 +37,13 @@ const DMHeader: React.FC<DMHeaderProps> = ({ userId, userName, userAvatar }) => 
           return;
         }
         
-        // Fetch if not in cache or incomplete
+        // Fetch only if not in cache
         console.log(`[DMHeader] Fetching user data for ${userId}`);
         const userData = await fetchUserData(userId);
-        console.log(`[DMHeader] Fetched user data for ${userId}:`, userData);
         
         if (userData) {
-          setDisplayName(userData.name);
+          console.log(`[DMHeader] Fetched user data for ${userId}:`, userData);
+          setDisplayName(userData.name || displayName);
           if (userData.avatar) setDisplayAvatar(userData.avatar);
         }
       } catch (error) {
@@ -44,19 +51,23 @@ const DMHeader: React.FC<DMHeaderProps> = ({ userId, userName, userAvatar }) => 
       }
     };
     
-    fetchAndUpdateUserData();
-  }, [userId, userName, userAvatar, userCache, fetchUserData]);
+    if (userId) {
+      fetchAndUpdateUserData();
+    }
+  }, [userId, userCache, fetchUserData]);
 
   return (
     <>
       <UserAvatar 
-        name={displayName} 
+        name={displayName || 'User'} 
         image={displayAvatar} 
         size="sm" 
       />
-      <h3 className="font-semibold">{displayName}</h3>
+      <h3 className="font-semibold">{displayName || 'User'}</h3>
     </>
   );
-};
+});
+
+DMHeader.displayName = 'DMHeader';
 
 export default DMHeader;
