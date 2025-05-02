@@ -64,21 +64,29 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   const handleJoinClub = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (notification.type === 'join_request') {
+      // Extract requesterId from notification.data
+      const requesterId = notification.data?.requesterId || notification.userId;
       const clubId = notification.data?.clubId || notification.clubId;
       const clubName = notification.data?.clubName || notification.clubName;
-      const requesterId = notification.data?.requesterId || notification.userId;
       
       console.log("[NotificationItem] Accept join request with data:", {
+        requesterId,
         clubId, 
         clubName, 
-        requesterId, 
         notificationData: notification.data
       });
+      
+      if (!requesterId) {
+        console.error("[NotificationItem] Missing requesterId for accept action");
+        return;
+      }
       
       if (clubId && clubName && requesterId) {
         try {
           // Use the shared utility function
           const success = await acceptJoinRequest(requesterId, clubId, clubName);
+          console.log("[NotificationItem] Accept result:", success);
+          
           if (success && onMarkAsRead) {
             // This notification will be deleted by the backend trigger, but we still need to update UI
             onMarkAsRead(notification.id);
@@ -94,20 +102,28 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     e.stopPropagation();
     
     if (notification.type === 'join_request') {
-      const clubId = notification.data?.clubId || notification.clubId;
+      // Extract requesterId from notification.data
       const requesterId = notification.data?.requesterId || notification.userId;
+      const clubId = notification.data?.clubId || notification.clubId;
       
       console.log("[NotificationItem] Declining join request:", {
-        notificationId: notification.id,
-        clubId,
         requesterId,
+        clubId,
+        notificationId: notification.id,
         notification
       });
+      
+      if (!requesterId) {
+        console.error("[NotificationItem] Missing requesterId for decline action");
+        return;
+      }
       
       if (clubId && requesterId) {
         try {
           // Use the shared utility function
           const success = await denyJoinRequest(requesterId, clubId);
+          console.log("[NotificationItem] Decline result:", success);
+          
           if (success && onMarkAsRead) {
             // This notification will be deleted by the backend trigger, but we still need to update UI
             onMarkAsRead(notification.id);

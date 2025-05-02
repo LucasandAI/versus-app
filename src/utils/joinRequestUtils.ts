@@ -68,8 +68,7 @@ export const acceptJoinRequest = async (
     
     // Trigger refresh of user data
     try {
-      // We can't use refreshCurrentUser directly since it's part of the context
-      // Instead, we dispatch an event for components to handle refresh
+      // We dispatch an event for components to handle refresh
       window.dispatchEvent(new CustomEvent('userDataUpdated'));
     } catch (refreshError) {
       console.error('[joinRequestUtils] Error refreshing user data:', refreshError);
@@ -112,6 +111,14 @@ export const denyJoinRequest = async (
     await deleteJoinRequestNotifications(requesterId, clubId);
     
     toast.success("Request denied");
+    
+    // Trigger refresh of user data
+    try {
+      window.dispatchEvent(new CustomEvent('userDataUpdated'));
+    } catch (refreshError) {
+      console.error('[joinRequestUtils] Error refreshing user data:', refreshError);
+    }
+    
     return true;
   } catch (error) {
     console.error("[joinRequestUtils] Error denying join request:", error);
@@ -192,6 +199,9 @@ export const deleteJoinRequestNotifications = async (
     }
     
     console.log(`[joinRequestUtils] Successfully deleted ${matchingNotifications.length} notifications`);
+    
+    // Dispatch an event to notify components to update their notification lists
+    window.dispatchEvent(new CustomEvent('notificationsUpdated'));
   } catch (error) {
     console.error('[joinRequestUtils] Error deleting notifications:', error);
   }
