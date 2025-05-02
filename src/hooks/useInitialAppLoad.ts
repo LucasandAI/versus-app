@@ -33,12 +33,9 @@ export const useInitialAppLoad = () => {
         console.log('[useInitialAppLoad] Fetching unread message counts');
         await fetchUnreadCounts();
         
-        // Step 4: Fetch notifications
+        // Step 4: Fetch notifications (NEW)
         console.log('[useInitialAppLoad] Fetching notifications');
         await refreshNotifications();
-        
-        // Dispatch event to notify components that initial data is loaded
-        window.dispatchEvent(new CustomEvent('initialDataLoaded'));
         
         // Mark as completed
         initialDataFetchedRef.current = true;

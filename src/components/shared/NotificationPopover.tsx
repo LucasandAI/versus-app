@@ -44,34 +44,9 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
       // and pass them down as props, triggering the useEffect above
       console.log("[NotificationPopover] Received notificationsUpdated event");
     };
-    
-    const handleJoinRequestProcessed = (event: CustomEvent) => {
-      console.log("[NotificationPopover] Received joinRequestProcessed event:", event.detail);
-      
-      // Update local notifications optimistically
-      // Filter out any join request notifications related to the processed request
-      if (event.detail && (event.detail.userId || event.detail.requesterId)) {
-        const userId = event.detail.userId || event.detail.requesterId;
-        setLocalNotifications(prev => 
-          prev.filter(notification => 
-            !(notification.type === 'join_request' && 
-              notification.data && 
-              (notification.data.userId === userId || 
-               notification.data.requesterId === userId)
-            )
-          )
-        );
-      }
-    };
-    
     window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
-    window.addEventListener('joinRequestProcessed', handleJoinRequestProcessed as EventListener);
-    window.addEventListener('clubRequestsUpdated', handleNotificationsUpdated);
-    
     return () => {
       window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
-      window.removeEventListener('joinRequestProcessed', handleJoinRequestProcessed as EventListener);
-      window.removeEventListener('clubRequestsUpdated', handleNotificationsUpdated);
     };
   }, []);
 
@@ -94,9 +69,6 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   const handleOptimisticDelete = (id: string) => {
     console.log("[NotificationPopover] Optimistically removing notification:", id);
     setLocalNotifications(prev => prev.filter(notification => notification.id !== id));
-    
-    // Dispatch event to notify other components
-    window.dispatchEvent(new CustomEvent('notificationsUpdated'));
   };
 
   // Handle clearing all notifications

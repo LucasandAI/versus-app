@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { JoinRequest, Club, ClubMember } from '@/types';
@@ -24,27 +23,12 @@ export const useJoinRequests = () => {
       }
     };
 
-    const handleClubRequestsUpdate = () => {
-      console.log('[useJoinRequests] Club requests update detected');
-      // If we have a club ID in state, refetch the requests
-      const clubId = requests[0]?.clubId;
-      if (clubId) {
-        fetchClubRequests(clubId).catch(err => {
-          console.error('[useJoinRequests] Error refetching club requests:', err);
-        });
-      }
-    };
-
     window.addEventListener('userDataUpdated', handleUserDataUpdate);
-    window.addEventListener('clubRequestsUpdated', handleClubRequestsUpdate);
-    window.addEventListener('joinRequestProcessed', handleClubRequestsUpdate);
     
     return () => {
       window.removeEventListener('userDataUpdated', handleUserDataUpdate);
-      window.removeEventListener('clubRequestsUpdated', handleClubRequestsUpdate);
-      window.removeEventListener('joinRequestProcessed', handleClubRequestsUpdate);
     };
-  }, [refreshCurrentUser, requests]);
+  }, [refreshCurrentUser]);
 
   const handleAcceptRequest = async (request: JoinRequest, club: Club) => {
     setProcessingRequests(prev => ({ ...prev, [request.id]: true }));
@@ -94,17 +78,6 @@ export const useJoinRequests = () => {
       // Update the club in the global context
       setSelectedClub(updatedClub);
 
-      // Dispatch events for real-time UI updates
-      window.dispatchEvent(new CustomEvent('joinRequestProcessed', { 
-        detail: { requestId: request.id, action: 'accept', userId: request.userId, clubId: request.clubId }
-      }));
-      
-      window.dispatchEvent(new CustomEvent('clubMembersUpdated', {
-        detail: { clubId: club.id, addedMember: newMember }
-      }));
-      
-      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
-      
       return updatedClub;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to accept request";
@@ -135,13 +108,6 @@ export const useJoinRequests = () => {
 
       // Optimistically update the UI
       setRequests(prevRequests => prevRequests.filter(r => r.id !== request.id));
-      
-      // Dispatch events for real-time UI updates
-      window.dispatchEvent(new CustomEvent('joinRequestProcessed', { 
-        detail: { requestId: request.id, action: 'deny', userId: request.userId, clubId: request.clubId }
-      }));
-      
-      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
       
       return true;
     } catch (error) {

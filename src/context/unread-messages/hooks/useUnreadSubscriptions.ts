@@ -5,7 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 interface UseUnreadSubscriptionsProps {
   currentUserId: string | undefined;
   isSessionReady: boolean;
-  isAppReady: boolean;
   markConversationAsUnread: (conversationId: string) => void;
   markClubAsUnread: (clubId: string) => void;
   fetchUnreadCounts: () => Promise<void>;
@@ -14,19 +13,13 @@ interface UseUnreadSubscriptionsProps {
 export const useUnreadSubscriptions = ({
   currentUserId,
   isSessionReady,
-  isAppReady,
   markConversationAsUnread,
   markClubAsUnread,
   fetchUnreadCounts
 }: UseUnreadSubscriptionsProps) => {
   
   useEffect(() => {
-    // Don't set up subscriptions until everything is ready
-    if (!isSessionReady || !currentUserId || !isAppReady) {
-      console.log('[useUnreadSubscriptions] Skipping setup, not ready yet:', 
-        { isSessionReady, currentUserId: !!currentUserId, isAppReady });
-      return;
-    }
+    if (!isSessionReady || !currentUserId) return;
     
     console.log('[useUnreadSubscriptions] Setting up realtime subscriptions for user:', currentUserId);
     
@@ -49,9 +42,7 @@ export const useUnreadSubscriptions = ({
               window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
             }
           })
-      .subscribe((status) => {
-        console.log('[useUnreadSubscriptions] DM subscription status:', status);
-      });
+      .subscribe();
     
     // Subscribe to new club messages
     const clubChannel = supabase.channel('global-club-unread-tracking')
@@ -71,17 +62,14 @@ export const useUnreadSubscriptions = ({
               window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
             }
           })
-      .subscribe((status) => {
-        console.log('[useUnreadSubscriptions] Club chat subscription status:', status);
-      });
+      .subscribe();
       
     // Initial fetch of unread counts
     fetchUnreadCounts();
       
     return () => {
-      console.log('[useUnreadSubscriptions] Cleaning up subscriptions');
       supabase.removeChannel(dmChannel);
       supabase.removeChannel(clubChannel);
     };
-  }, [currentUserId, isSessionReady, isAppReady, markConversationAsUnread, markClubAsUnread, fetchUnreadCounts]);
+  }, [currentUserId, isSessionReady, markConversationAsUnread, markClubAsUnread, fetchUnreadCounts]);
 };

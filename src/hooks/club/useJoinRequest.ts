@@ -56,11 +56,6 @@ export const useJoinRequest = (clubId: string) => {
         description: "Your request to join has been sent to the club admins"
       });
       
-      // Dispatch an event to notify that a join request was created
-      window.dispatchEvent(new CustomEvent('clubRequestsUpdated', {
-        detail: { userId, clubId }
-      }));
-      
       return true;
     } catch (error) {
       console.error('Error sending join request:', error);
@@ -141,10 +136,7 @@ export const useJoinRequest = (clubId: string) => {
         description: "Your join request has been canceled"
       });
       
-      // Dispatch events for real-time UI updates
-      window.dispatchEvent(new CustomEvent('clubRequestsUpdated', {
-        detail: { userId, clubId, action: 'cancel' }
-      }));
+      // Dispatch event to update notifications in the UI
       window.dispatchEvent(new CustomEvent('notificationsUpdated'));
       
       return true;
