@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Club } from '@/types';
 import ChatClubContainer from './club/ChatClubContainer';
 import DMContainer from './dm/DMContainer';
@@ -47,15 +47,6 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   directMessageUser,
   setDirectMessageUser,
 }) => {
-  // Log active club for debugging
-  useEffect(() => {
-    console.log('[ChatDrawerContainer] Selected club:', {
-      id: selectedLocalClub?.id,
-      name: selectedLocalClub?.name,
-      activeTab
-    });
-  }, [selectedLocalClub, activeTab]);
-  
   return (
     <div className="flex-1 overflow-hidden">
       {activeTab === 'clubs' ? (
@@ -67,7 +58,6 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
           unreadClubs={unreadClubs}
           onSendMessage={onSendMessage}
           onDeleteMessage={onDeleteMessage}
-          activeClubId={selectedLocalClub?.id ?? null}
         />
       ) : (
         <DMContainer

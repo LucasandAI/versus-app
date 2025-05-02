@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import ChatHeader from './ChatHeader';
 import ChatMessages from './ChatMessages';
@@ -34,9 +34,8 @@ const ChatClubContent = ({
   const [isSending, setIsSending] = useState(false);
   const { deleteMessage: deleteMessageAction } = useChatActions();
   const effectiveClubId = clubId || club?.id;
-  const renderCountRef = useRef(0);
   
-  // Use the hook to get and manage messages for the active club
+  // Use the new hook to get and manage messages for the active club
   const { 
     messages, 
     loading, 
@@ -45,18 +44,11 @@ const ChatClubContent = ({
     deleteMessage: hookDeleteMessage
   } = useActiveClubMessages(effectiveClubId);
   
-  // Increment render counter for debugging
-  useEffect(() => {
-    renderCountRef.current += 1;
-  });
-  
   // Log when the message array changes to help debug
   useEffect(() => {
     console.log('[ChatClubContent] Messages updated for club:', {
       clubId: effectiveClubId,
-      messageCount: messages?.length || 0,
-      renderCount: renderCountRef.current,
-      messagesReference: messages // Log the reference for comparison
+      messageCount: messages?.length || 0
     });
   }, [messages, effectiveClubId]);
   
@@ -133,9 +125,6 @@ const ChatClubContent = ({
       
       <div className="flex-1 flex flex-col relative overflow-hidden">
         <div className="flex-1 min-h-0">
-          <div className="text-xs px-2 py-1 bg-gray-100 text-gray-500">
-            Messages: {messages?.length || 0} | Render: {renderCountRef.current}
-          </div>
           <ChatMessages 
             messages={messages} 
             clubMembers={club.members || []}

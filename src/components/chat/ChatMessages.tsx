@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { ChatMessage } from '@/types';
 import MessageList from './message/MessageList';
 import { useMessageUser } from './message/useMessageUser';
@@ -59,14 +59,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     normalizeMessage
   } = useMessageNormalization(currentUserId, senderId => getMemberName(senderId, currentUserId, clubMembers));
 
-  // Track render count for debugging
-  const renderCount = useRef(0);
-  const prevMessagesLength = useRef(messages?.length || 0);
-  
-  useEffect(() => {
-    renderCount.current += 1;
-  });
-
   // Use provided values or defaults
   const finalUserAvatar = providedUserAvatar || defaultUserAvatar;
   const finalLastMessageRef = providedLastMessageRef || defaultLastMessageRef;
@@ -74,19 +66,11 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   
   // Scroll to bottom when messages change
   useEffect(() => {
-    const currentMessagesLength = Array.isArray(messages) ? messages.length : 0;
-    
     console.log('[ChatMessages] Messages updated:', {
-      count: currentMessagesLength,
-      prevCount: prevMessagesLength.current,
-      changed: currentMessagesLength !== prevMessagesLength.current,
+      count: Array.isArray(messages) ? messages.length : 0,
       isArray: Array.isArray(messages),
-      clubId,
-      renderCount: renderCount.current,
-      messagesRef: messages // Log the reference for comparison
+      clubId
     });
-    
-    prevMessagesLength.current = currentMessagesLength;
     
     scrollToBottom();
   }, [messages, scrollToBottom, clubId]);
@@ -94,9 +78,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   if (!Array.isArray(messages) || messages.length === 0) {
     return (
       <div className="flex-1 p-4">
-        <div className="h-full flex flex-col items-center justify-center text-gray-500 text-sm">
-          <div>No messages yet. Start the conversation!</div>
-          <div className="text-xs mt-2 text-gray-400">Render count: {renderCount.current}</div>
+        <div className="h-full flex items-center justify-center text-gray-500 text-sm">
+          No messages yet. Start the conversation!
         </div>
       </div>
     );

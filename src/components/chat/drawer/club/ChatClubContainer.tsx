@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Club } from '@/types';
 import ChatSidebarContent from '../ChatSidebarContent';
 import ChatClubContent from '../../../chat/ChatClubContent';
@@ -16,7 +16,6 @@ interface ChatClubContainerProps {
   unreadClubs?: Set<string>;
   onSendMessage: (message: string, clubId?: string) => void;
   onDeleteMessage?: (messageId: string) => void;
-  activeClubId?: string | null;
 }
 
 const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
@@ -26,8 +25,7 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   messages = {},
   unreadClubs = new Set(),
   onSendMessage,
-  onDeleteMessage,
-  activeClubId
+  onDeleteMessage
 }) => {
   const {
     navigateToClubDetail
@@ -35,9 +33,6 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   const {
     markClubMessagesAsRead
   } = useUnreadMessages();
-  
-  // Local state for recording active club ID
-  const [localActiveClubId, setLocalActiveClubId] = useState<string | null>(activeClubId || null);
 
   // Mark messages as read when a club is selected
   useEffect(() => {
@@ -45,9 +40,6 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
       console.log(`[ChatClubContainer] Selected club: ${selectedClub.id} (type: ${typeof selectedClub.id})`);
       console.log(`[ChatClubContainer] Marking club ${selectedClub.id} messages as read`);
       console.log(`[ChatClubContainer] Current unreadClubs:`, Array.from(unreadClubs));
-      
-      // Update local active club ID
-      setLocalActiveClubId(selectedClub.id);
 
       // Mark as read when selected
       markClubMessagesAsRead(selectedClub.id);
@@ -90,16 +82,6 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
     }
   };
 
-  // Log club messages for debugging
-  useEffect(() => {
-    if (selectedClub && messages) {
-      console.log(`[ChatClubContainer] Club messages for ${selectedClub.id}:`, {
-        hasMessages: selectedClub.id in messages,
-        messageCount: messages[selectedClub.id]?.length || 0
-      });
-    }
-  }, [selectedClub, messages]);
-
   // If no club is selected, show the clubs list
   if (!selectedClub) {
     return <div className="flex flex-col h-full overflow-hidden">
@@ -128,7 +110,6 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
           onSendMessage={onSendMessage} 
           onDeleteMessage={onDeleteMessage}
           clubId={selectedClub.id}
-          setActiveClubId={setLocalActiveClubId}
         />
       </div>
     </div>;
