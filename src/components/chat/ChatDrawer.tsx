@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Club } from '@/types';
 import MainChatDrawer from './drawer/MainChatDrawer';
 
@@ -11,6 +11,8 @@ interface ChatDrawerProps {
 }
 
 const ChatDrawer: React.FC<ChatDrawerProps> = (props) => {
+  const [refreshKey, setRefreshKey] = useState(Date.now());
+  
   // Debug: Check clubs IDs when they're passed to the drawer
   useEffect(() => {
     if (props.clubs?.length > 0) {
@@ -21,7 +23,20 @@ const ChatDrawer: React.FC<ChatDrawerProps> = (props) => {
     }
   }, [props.clubs]);
 
-  return <MainChatDrawer {...props} />;
+  // Listen for new club messages to force refresh
+  useEffect(() => {
+    const handleClubMessage = () => {
+      setRefreshKey(Date.now());
+    };
+    
+    window.addEventListener('clubMessageInserted', handleClubMessage as EventListener);
+    
+    return () => {
+      window.removeEventListener('clubMessageInserted', handleClubMessage as EventListener);
+    };
+  }, []);
+
+  return <MainChatDrawer key={`chat-drawer-${refreshKey}`} {...props} />;
 };
 
 export default ChatDrawer;

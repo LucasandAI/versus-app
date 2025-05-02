@@ -59,13 +59,29 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
   
   // Listen for global unread messages events
   useEffect(() => {
-    const handler = () => {
+    const handleUnreadMessagesUpdated = () => {
       console.log('[UnreadMessagesProvider] Handling unreadMessagesUpdated event');
+      fetchUnreadCounts();
     };
     
-    window.addEventListener('unreadMessagesUpdated', handler);
-    return () => window.removeEventListener('unreadMessagesUpdated', handler);
-  }, []);
+    window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
+    return () => window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
+  }, [fetchUnreadCounts]);
+  
+  // Listen for new club messages and mark them as unread
+  useEffect(() => {
+    const handleClubMessage = (event: CustomEvent) => {
+      const { clubId, senderId } = event.detail;
+      
+      if (senderId !== currentUser?.id) {
+        console.log('[UnreadMessagesProvider] Club message received, marking as unread:', clubId);
+        markClubAsUnread(clubId);
+      }
+    };
+    
+    window.addEventListener('clubMessageInserted', handleClubMessage as EventListener);
+    return () => window.removeEventListener('clubMessageInserted', handleClubMessage as EventListener);
+  }, [currentUser?.id, markClubAsUnread]);
   
   // Debug: Add effect to log the contents of unreadClubs whenever it changes
   useEffect(() => {
@@ -77,7 +93,7 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
     console.log('[UnreadMessagesProvider] Force refresh triggered');
     // The state update will trigger a re-render
     setUnreadClubs(new Set(unreadClubs));
-  }, [unreadClubs]);
+  }, [unreadClubs, setUnreadClubs]);
   
   return (
     <UnreadMessagesContext.Provider value={{

@@ -26,6 +26,7 @@ const ChatClubContent = ({
   const { currentUser } = useApp();
   const { deleteMessage: deleteClubMessage } = useChatActions();
   const effectiveClubId = clubId || club?.id;
+  const [forceUpdateKey, setForceUpdateKey] = useState(Date.now());
   
   // Use the hook for active club messages
   const { 
@@ -42,6 +43,22 @@ const ChatClubContent = ({
     console.log('[ChatClubContent] Club changed, resetting state for:', effectiveClubId);
     setIsSending(false);
   }, [effectiveClubId, setIsSending]);
+
+  // Listen for club message events
+  useEffect(() => {
+    const handleClubMessage = (event: CustomEvent) => {
+      if (event.detail.clubId === effectiveClubId) {
+        console.log('[ChatClubContent] Received clubMessageInserted event for this club:', event.detail);
+        setForceUpdateKey(Date.now());
+      }
+    };
+    
+    window.addEventListener('clubMessageInserted', handleClubMessage as EventListener);
+    
+    return () => {
+      window.removeEventListener('clubMessageInserted', handleClubMessage as EventListener);
+    };
+  }, [effectiveClubId]);
 
   const handleDeleteMessage = async (messageId: string) => {
     console.log('[ChatClubContent] Deleting message:', messageId);
@@ -96,6 +113,9 @@ const ChatClubContent = ({
     }
   };
 
+  // Generate a key to force ChatMessages re-render when messages change
+  const messagesKey = `${effectiveClubId}-${messages.length}-${forceUpdateKey}`;
+
   return (
     <div className="flex flex-col h-full">
       <ChatHeader 
@@ -108,6 +128,7 @@ const ChatClubContent = ({
       <div className="flex-1 flex flex-col relative overflow-hidden">
         <div className="flex-1 min-h-0">
           <ChatMessages 
+            key={messagesKey}
             messages={messages} 
             clubMembers={club.members || []}
             onDeleteMessage={handleDeleteMessage}

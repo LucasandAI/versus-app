@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import UserAvatar from '../../shared/UserAvatar';
 import ClubMembersPopover from './ClubMembersPopover';
@@ -34,6 +34,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
   const { navigateToClubDetail } = useNavigation();
   const { lastMessages, sortedClubs } = useClubLastMessages(clubs);
   const { unreadClubs: contextUnreadClubs, markClubMessagesAsRead } = useUnreadMessages();
+  const [forceUpdateKey, setForceUpdateKey] = useState(Date.now());
   
   // Use either the passed props (preferred) or fall back to context
   const unreadClubs = propUnreadClubs || contextUnreadClubs;
@@ -43,6 +44,21 @@ const ClubsList: React.FC<ClubsListProps> = ({
     console.log('[ClubsList] unreadClubs set updated:', Array.from(unreadClubs));
     console.log('[ClubsList] Using prop unread clubs?', !!propUnreadClubs);
   }, [unreadClubs, propUnreadClubs]);
+  
+  // Listen for club message events
+  useEffect(() => {
+    const handleClubMessage = (event: CustomEvent) => {
+      console.log('[ClubsList] Received clubMessageInserted event:', event.detail);
+      // Force refresh the component
+      setForceUpdateKey(Date.now());
+    };
+    
+    window.addEventListener('clubMessageInserted', handleClubMessage as EventListener);
+    
+    return () => {
+      window.removeEventListener('clubMessageInserted', handleClubMessage as EventListener);
+    };
+  }, []);
   
   const handleClubClick = (club: Club, e: React.MouseEvent) => {
     e.preventDefault();
@@ -55,9 +71,9 @@ const ClubsList: React.FC<ClubsListProps> = ({
     return text?.length > 50 ? `${text.substring(0, 50)}...` : text;
   };
 
-  // Create a key that will change whenever unread status changes
-  const unreadKey = Array.from(unreadClubs).join(',');
-
+  // Create a key that will change whenever unread status changes or force update
+  const unreadKey = `${Array.from(unreadClubs).join(',')}-${forceUpdateKey}`;
+  
   return (
     <div className="p-3">
       <h1 className="text-4xl font-bold mb-4">Clubs</h1>

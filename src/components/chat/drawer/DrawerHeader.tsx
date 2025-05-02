@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Club } from '@/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnreadMessages } from '@/context/unread-messages';
@@ -17,6 +17,7 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
   selectedClub 
 }) => {
   const { unreadConversations, unreadClubs, markClubMessagesAsRead } = useUnreadMessages();
+  const [forceUpdateKey, setForceUpdateKey] = useState(Date.now());
 
   // Mark club messages as read when a club is selected and the clubs tab is active
   useEffect(() => {
@@ -26,6 +27,23 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
     }
   }, [activeTab, selectedClub, markClubMessagesAsRead]);
   
+  // Listen for club message events to update badge state
+  useEffect(() => {
+    const handleClubMessage = () => {
+      console.log('[DrawerHeader] Received clubMessageInserted event, refreshing state');
+      setForceUpdateKey(Date.now());
+    };
+    
+    window.addEventListener('clubMessageInserted', handleClubMessage as EventListener);
+    
+    return () => {
+      window.removeEventListener('clubMessageInserted', handleClubMessage as EventListener);
+    };
+  }, []);
+  
+  // Create a key that changes whenever unread status updates
+  const unreadBadgeKey = `${unreadClubs.size}-${unreadConversations.size}-${forceUpdateKey}`;
+  
   return (
     <div className="px-4 py-2 border-b">
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "clubs" | "dm")}>
@@ -34,6 +52,7 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
             Club Chat
             {unreadClubs.size > 0 && (
               <Badge 
+                key={`club-badge-${unreadBadgeKey}`}
                 variant="dot" 
                 className="!inline-block !visible" 
               />
@@ -43,6 +62,7 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({
             Direct Messages
             {unreadConversations.size > 0 && (
               <Badge 
+                key={`dm-badge-${unreadBadgeKey}`}
                 variant="dot" 
                 className="!inline-block !visible" 
               />

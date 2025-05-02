@@ -11,7 +11,7 @@ export const useActiveClubMessages = (clubId: string) => {
   const { currentUser, isSessionReady } = useApp();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const isMounted = useRef(true);
-  const { markClubMessagesAsRead } = useUnreadMessages();
+  const { markClubMessagesAsRead, markClubAsUnread } = useUnreadMessages();
   
   // Clean up on unmount
   useEffect(() => {
@@ -142,7 +142,24 @@ export const useActiveClubMessages = (clubId: string) => {
             }
             
             // Add as new message with new array reference
-            return [...prev, messageWithSender];
+            const updatedMessages = [...prev, messageWithSender];
+            
+            // Dispatch event to notify other components
+            if (messageWithSender.sender_id !== currentUser.id) {
+              // Only mark messages as unread if they're from other users
+              markClubAsUnread(clubId);
+            }
+            
+            // Dispatch custom event with clubId for components to react
+            window.dispatchEvent(new CustomEvent('clubMessageInserted', {
+              detail: { 
+                clubId,
+                messageId: messageWithSender.id,
+                senderId: messageWithSender.sender_id 
+              }
+            }));
+            
+            return updatedMessages;
           });
         }
       })
@@ -161,6 +178,14 @@ export const useActiveClubMessages = (clubId: string) => {
           setMessages(prev => 
             prev.filter(msg => msg.id !== deletedMessage.id)
           );
+          
+          // Dispatch event for deleted messages too
+          window.dispatchEvent(new CustomEvent('clubMessageDeleted', {
+            detail: { 
+              clubId,
+              messageId: deletedMessage.id 
+            }
+          }));
         }
       })
       .subscribe();
@@ -172,7 +197,7 @@ export const useActiveClubMessages = (clubId: string) => {
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
-  }, [clubId, currentUser?.id, isSessionReady]);
+  }, [clubId, currentUser?.id, isSessionReady, markClubAsUnread]);
 
   // Helper for adding optimistic messages
   const addMessage = (message: any): void => {
@@ -184,7 +209,20 @@ export const useActiveClubMessages = (clubId: string) => {
       if (exists) return prev;
       
       // Add message with a fresh array
-      return [...prev, message];
+      const updatedMessages = [...prev, message];
+      
+      // Don't dispatch event for optimistic messages (we'll dispatch when the real one arrives)
+      if (!message.optimistic) {
+        window.dispatchEvent(new CustomEvent('clubMessageInserted', {
+          detail: { 
+            clubId,
+            messageId: message.id,
+            senderId: message.sender_id 
+          }
+        }));
+      }
+      
+      return updatedMessages;
     });
   };
 
@@ -194,6 +232,14 @@ export const useActiveClubMessages = (clubId: string) => {
     
     // Optimistic update
     setMessages(prev => prev.filter(msg => msg.id !== messageId));
+    
+    // Dispatch delete event
+    window.dispatchEvent(new CustomEvent('clubMessageDeleted', {
+      detail: { 
+        clubId,
+        messageId 
+      }
+    }));
   };
 
   return {
