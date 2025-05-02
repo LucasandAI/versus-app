@@ -17,7 +17,7 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
   const { unreadMessages, updateUnreadCount } = useUnreadNotifications(open, onNewMessage);
   const { messages, setMessages, handleNewMessage } = useMessages(saveMessages, updateUnreadCount);
   
-  const { sendClubMessage } = useChatActions();
+  const { sendMessageToClub } = useChatActions();
   const { deleteChat } = useChatDeletion();
 
   // Load data from localStorage on mount
@@ -36,7 +36,7 @@ export const useChat = (open: boolean, onNewMessage?: (count: number) => void) =
     refreshKey,
     refreshChats,
     handleNewMessage,
-    sendClubMessage,
+    sendMessageToClub,
     setUnreadMessages: updateUnreadCount,
     deleteChat
   };

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Club } from '@/types';
 import ChatSidebar from '../ChatSidebar';
 
@@ -24,10 +24,8 @@ const ChatSidebarContent: React.FC<ChatSidebarContentProps> = ({
   onSelectUser,
   activeTab
 }) => {
-  const [refreshToggle, setRefreshToggle] = useState(false);
-  
   // Create a key for forced re-renders
-  const unreadKey = `${Array.from(unreadClubs).sort().join(',')}-${refreshToggle}`;
+  const unreadKey = JSON.stringify([...unreadClubs].sort());
   
   return (
     <div className="h-full flex flex-col overflow-hidden">

@@ -15,9 +15,11 @@ interface ChatMainContentProps {
 
 const ChatMainContent: React.FC<ChatMainContentProps> = ({
   selectedClub,
+  messages,
   onMatchClick,
   onSelectUser,
   onSendMessage,
+  setClubMessages,
 }) => {
   // Enhanced debugging for component renders and selections
   useEffect(() => {
@@ -29,13 +31,29 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
 
   // If we have a selected club, render the club content
   if (selectedClub) {
+    const clubMessages = messages[selectedClub.id] || [];
+    console.log('[ChatMainContent] Rendering club messages:', { 
+      clubId: selectedClub.id, 
+      messageCount: clubMessages.length,
+      messageIds: clubMessages.map(m => m.id).join(', ')
+    });
+    
     return (
       <div className="flex-1 h-full flex flex-col">
         <ChatClubContent 
           key={selectedClub.id} // Force re-render when club changes
           club={selectedClub}
+          messages={clubMessages}
           onMatchClick={() => onMatchClick(selectedClub)}
           onSelectUser={onSelectUser}
+          onSendMessage={(message) => {
+            console.log('[ChatMainContent] Sending club message to:', { 
+              clubId: selectedClub.id, 
+              messageLength: message.length 
+            });
+            onSendMessage(message, selectedClub.id);
+          }}
+          setClubMessages={setClubMessages}
           clubId={selectedClub.id} // Pass clubId for proper context in ChatInput
         />
       </div>

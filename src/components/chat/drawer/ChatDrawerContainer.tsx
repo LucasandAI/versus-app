@@ -1,25 +1,32 @@
+
 import React from 'react';
 import { Club } from '@/types';
 import ChatClubContainer from './club/ChatClubContainer';
 import DMContainer from './dm/DMContainer';
 
 interface ChatDrawerContainerProps {
-  activeTab: 'clubs' | 'dm';
+  activeTab: "clubs" | "dm";
   clubs: Club[];
   selectedLocalClub: Club | null;
   onSelectClub: (club: Club) => void;
-  unreadClubs: Set<string>;
-  unreadConversations: Set<string>;
+  messages?: Record<string, any[]>;
+  deleteChat: (chatId: string) => void;
+  unreadMessages: Record<string, number>;
+  unreadClubs?: Set<string>;
+  unreadConversations?: Set<string>;
+  handleNewMessage: (clubId: string, message: any, isOpen: boolean) => void;
+  onSendMessage: (message: string, clubId?: string) => void;
+  onDeleteMessage?: (messageId: string) => void;
   directMessageUser: {
     userId: string;
     userName: string;
-    userAvatar: string;
+    userAvatar: string; // Made required
     conversationId: string;
   } | null;
   setDirectMessageUser: React.Dispatch<React.SetStateAction<{
     userId: string;
     userName: string;
-    userAvatar: string;
+    userAvatar: string; // Made required
     conversationId: string;
   } | null>>;
 }
@@ -29,41 +36,41 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   clubs,
   selectedLocalClub,
   onSelectClub,
-  unreadClubs,
-  unreadConversations,
+  messages = {},
+  deleteChat,
+  unreadMessages,
+  unreadClubs = new Set(),
+  unreadConversations = new Set(),
+  handleNewMessage,
+  onSendMessage,
+  onDeleteMessage,
   directMessageUser,
   setDirectMessageUser
 }) => {
-  const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
-    // Implementation remains the same
-    console.log('[ChatDrawerContainer] selectUser:', { userId, userName });
-    setDirectMessageUser({
-      userId,
-      userName,
-      userAvatar: userAvatar || '/placeholder.svg',
-      conversationId: 'new'
-    });
-  };
-
-  // Show clubs tab content
-  if (activeTab === 'clubs') {
-    return (
-      <ChatClubContainer
-        clubs={clubs}
-        selectedClub={selectedLocalClub}
-        onSelectClub={onSelectClub}
-        unreadClubs={unreadClubs}
-      />
-    );
-  }
-
-  // Show direct messages tab content
+  // Create a key for forced re-renders when unread status changes
+  const unreadKey = JSON.stringify([...unreadClubs].sort());
+  
   return (
-    <DMContainer
-      directMessageUser={directMessageUser}
-      setDirectMessageUser={setDirectMessageUser}
-      unreadConversations={unreadConversations}
-    />
+    <div className="flex-1 overflow-hidden">
+      {activeTab === 'clubs' ? (
+        <ChatClubContainer 
+          key={`club-container-${unreadKey}`}
+          clubs={clubs}
+          selectedClub={selectedLocalClub}
+          onSelectClub={onSelectClub}
+          messages={messages}
+          unreadClubs={unreadClubs}
+          onSendMessage={onSendMessage}
+          onDeleteMessage={onDeleteMessage}
+        />
+      ) : (
+        <DMContainer
+          directMessageUser={directMessageUser}
+          setDirectMessageUser={setDirectMessageUser}
+          unreadConversations={unreadConversations}
+        />
+      )}
+    </div>
   );
 };
 

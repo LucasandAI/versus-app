@@ -6,68 +6,47 @@ import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import { useNavigation } from '@/hooks/useNavigation';
 import { useChatActions } from '@/hooks/chat/useChatActions';
-import { useActiveClubMessages } from '@/hooks/chat/messages/useActiveClubMessages';
-import { useApp } from '@/context/AppContext';
 
 interface ChatClubContentProps {
   club: Club;
+  messages: any[];
   onMatchClick: () => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
+  onSendMessage: (message: string, clubId?: string) => void;
+  onDeleteMessage?: (messageId: string) => void;
+  setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
   clubId?: string;
 }
 
 const ChatClubContent = ({ 
   club,
+  messages,
   onMatchClick,
   onSelectUser,
+  onSendMessage,
+  onDeleteMessage,
+  setClubMessages,
   clubId
 }: ChatClubContentProps) => {
   const { navigateToClubDetail } = useNavigation();
-  const { currentUser } = useApp();
-  const { deleteMessage: deleteClubMessage } = useChatActions();
+  const [isSending, setIsSending] = useState(false);
+  const { deleteMessage } = useChatActions();
   const effectiveClubId = clubId || club?.id;
-  const [refreshToggle, setRefreshToggle] = useState(false);
-  
-  // Use the hook for active club messages
-  const { 
-    messages, 
-    isSending, 
-    setIsSending, 
-    addMessage,
-    deleteMessage 
-  } = useActiveClubMessages(effectiveClubId);
-  
-  const { sendClubMessage } = useChatActions();
   
   useEffect(() => {
     console.log('[ChatClubContent] Club changed, resetting state for:', effectiveClubId);
     setIsSending(false);
-  }, [effectiveClubId, setIsSending]);
-
-  // Listen for club message events
-  useEffect(() => {
-    const handleClubMessage = (event: CustomEvent) => {
-      if (event.detail.clubId === effectiveClubId) {
-        console.log('[ChatClubContent] Received clubMessageInserted event for this club:', event.detail);
-        setRefreshToggle(prev => !prev);
-      }
-    };
-    
-    window.addEventListener('clubMessageInserted', handleClubMessage as EventListener);
-    
-    return () => {
-      window.removeEventListener('clubMessageInserted', handleClubMessage as EventListener);
-    };
   }, [effectiveClubId]);
 
   const handleDeleteMessage = async (messageId: string) => {
     console.log('[ChatClubContent] Deleting message:', messageId);
     
-    // Local optimistic update
-    deleteMessage(messageId);
-    
-    // Server update
-    await deleteClubMessage(messageId);
+    if (onDeleteMessage) {
+      await onDeleteMessage(messageId);
+    } else if (setClubMessages) {
+      // Fallback to direct deleteMessage if no handler provided
+      await deleteMessage(messageId, setClubMessages);
+    }
   };
 
   const handleClubClick = () => {
@@ -80,41 +59,18 @@ const ChatClubContent = ({
 
   const handleSendMessage = async (message: string) => {
     console.log('[ChatClubContent] Sending message for club:', effectiveClubId);
-    
-    const messageToSend = message.trim();
-    if (!messageToSend || !effectiveClubId || !currentUser) return;
-    
     setIsSending(true);
     try {
-      // Create optimistic message
-      const optimisticMessage = {
-        id: `temp-${Date.now()}`,
-        message: messageToSend,
-        club_id: effectiveClubId,
-        sender_id: currentUser.id,
-        timestamp: new Date().toISOString(),
-        sender: {
-          id: currentUser.id,
-          name: currentUser.name,
-          avatar: currentUser.avatar
-        },
-        optimistic: true
-      };
-      
-      // Add optimistic message locally
-      addMessage(optimisticMessage);
-      
-      // Send to server
-      await sendClubMessage(effectiveClubId, messageToSend);
+      const messageToSend = message.trim();
+      if (effectiveClubId) {
+        await onSendMessage(messageToSend, effectiveClubId);
+      }
     } catch (error) {
       console.error('[ChatClubContent] Error sending club message:', error);
     } finally {
       setIsSending(false);
     }
   };
-
-  // Generate a key to force ChatMessages re-render when messages change
-  const messagesKey = `${effectiveClubId}-${messages.length}-${refreshToggle}`;
 
   return (
     <div className="flex flex-col h-full">
@@ -128,7 +84,6 @@ const ChatClubContent = ({
       <div className="flex-1 flex flex-col relative overflow-hidden">
         <div className="flex-1 min-h-0">
           <ChatMessages 
-            key={messagesKey}
             messages={messages} 
             clubMembers={club.members || []}
             onDeleteMessage={handleDeleteMessage}
