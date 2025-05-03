@@ -49,7 +49,18 @@ export const acceptClubInvite = async (
       console.error('[acceptClubInvite] Error updating invite status:', inviteError);
     }
     
-    // 3. Delete the notification
+    // 3. Delete the invite after it's been accepted
+    const { error: deleteInviteError } = await supabase
+      .from('club_invites')
+      .delete()
+      .eq('club_id', clubId)
+      .eq('user_id', userId);
+      
+    if (deleteInviteError) {
+      console.error('[acceptClubInvite] Error deleting invite:', deleteInviteError);
+    }
+    
+    // 4. Delete the notification
     const { error: notificationError } = await supabase
       .from('notifications')
       .delete()
@@ -98,7 +109,18 @@ export const denyClubInvite = async (
       console.error('[denyClubInvite] Error updating invite status:', inviteError);
     }
     
-    // 2. Delete the notification
+    // 2. Delete the invite after it's been rejected
+    const { error: deleteInviteError } = await supabase
+      .from('club_invites')
+      .delete()
+      .eq('club_id', clubId)
+      .eq('user_id', userId);
+      
+    if (deleteInviteError) {
+      console.error('[denyClubInvite] Error deleting invite:', deleteInviteError);
+    }
+    
+    // 3. Delete the notification
     const { error: notificationError } = await supabase
       .from('notifications')
       .delete()
