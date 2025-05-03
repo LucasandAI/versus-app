@@ -1,5 +1,5 @@
 
-import React, { useRef, useEffect, useCallback, memo, useMemo } from 'react';
+import React, { useRef, useEffect, useCallback, memo, useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -38,6 +38,9 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   const { markConversationAsRead } = useUnreadMessages();
   const [isSending, setIsSending] = React.useState(false);
   const { formatTime } = useMessageFormatting();
+  
+  // Add state for delayed rendering to prevent flicker
+  const [renderMessages, setRenderMessages] = useState(false);
   
   // Validate user data completeness at the component level
   const hasCompleteUserData = Boolean(user && user.id && user.name && user.avatar);
@@ -113,6 +116,31 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       m.sender.name !== 'Unknown'
     );
   }, [messages]);
+  
+  // Add rendering delay to prevent flicker
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    
+    if (hasCompleteUserData && hasCompleteMessageMetadata) {
+      // Set a timeout to allow data to stabilize before rendering
+      timeoutId = setTimeout(() => {
+        setRenderMessages(true);
+      }, 200); // 200ms delay
+    } else {
+      // Reset rendering state if user data or message metadata is incomplete
+      setRenderMessages(false);
+    }
+    
+    // Clean up timeout when component unmounts or dependencies change
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [hasCompleteUserData, hasCompleteMessageMetadata, conversationId]);
+  
+  // Reset rendering state when conversation changes
+  useEffect(() => {
+    setRenderMessages(false);
+  }, [conversationId]);
   
   // Use scroll management hook with optimized scrolling
   const { scrollRef, lastMessageRef, scrollToBottom } = useMessageScroll(messages);
@@ -232,8 +260,9 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         <div className="flex-1 min-h-0">
-          {/* Apply anti-flicker guard - only render ChatMessages when metadata is complete */}
-          {hasCompleteMessageMetadata ? (
+          {/* Apply both anti-flicker guards with render delay - only render ChatMessages when 
+              both metadata is complete AND the render delay has elapsed */}
+          {renderMessages ? (
             <ChatMessages 
               messages={messages}
               clubMembers={clubMembers}
