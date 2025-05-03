@@ -18,7 +18,7 @@ export const useActiveDMMessages = (
 ) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const { currentUser } = useApp();
-  const { addOptimisticMessage, scrollToBottom } = useMessageOptimism();
+  const { addOptimisticMessage: addGlobalOptimisticMessage, scrollToBottom } = useMessageOptimism();
   const { markDirectMessagesAsRead } = useMessageReadStatus();
   const processedMsgIds = useRef(new Set<string>());
   const otherUserDataRef = useRef(otherUserData);
@@ -225,7 +225,7 @@ export const useActiveDMMessages = (
   }, [fetchMessages]);
 
   // Add a new message optimistically (for local UI updates)
-  const addOptimisticMessage = useCallback((message: ChatMessage) => {
+  const addLocalOptimisticMessage = useCallback((message: ChatMessage) => {
     // Skip if already processed
     const msgId = message.id?.toString();
     if (!msgId || processedMsgIds.current.has(msgId)) return;
@@ -249,6 +249,6 @@ export const useActiveDMMessages = (
   return useMemo(() => ({
     messages,
     setMessages,
-    addOptimisticMessage
-  }), [messages, addOptimisticMessage]);
+    addOptimisticMessage: addLocalOptimisticMessage
+  }), [messages, addLocalOptimisticMessage]);
 };
