@@ -1,113 +1,76 @@
 
-import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Club } from '@/types';
-import { supabase } from '@/integrations/supabase/client';
 
-// Type for new message payload
-interface MessagePayload {
-  new?: {
-    id?: string;
-    club_id?: string;
-    sender_id?: string;
-    message?: string;
-    timestamp?: string;
-    [key: string]: any;
-  };
-  [key: string]: any;
-}
-
-// Type for delete message payload
-interface DeletePayload {
-  old?: {
-    id?: string;
-    club_id?: string;
-    [key: string]: any;
-  };
-  [key: string]: any;
-}
-
-export const handleNewMessagePayload = async (
-  payload: RealtimePostgresChangesPayload<{
-    [key: string]: any;
-  }>,
-  userClubs: Club[],
+export const handleNewMessagePayload = (
+  payload: any, 
+  userClubs: Club[], 
   setClubMessages: React.Dispatch<React.SetStateAction<Record<string, any[]>>>,
   currentUser: any,
-  selectedClubRef: string | null
+  selectedClubId: string | null
 ) => {
-  const typedPayload = payload as unknown as MessagePayload;
-  
-  console.log('[subscriptionHandlers] Received message payload:', typedPayload);
-  
-  if (!typedPayload.new || !typedPayload.new.club_id) {
-    console.log('[subscriptionHandlers] Invalid payload, missing club_id:', typedPayload);
+  if (!payload.new || !payload.new.club_id) {
+    console.error('[handleNewMessagePayload] Invalid payload:', payload);
     return;
   }
   
-  // Get the club ID from the message
-  const messageClubId = typedPayload.new.club_id;
+  // Check if the message is for a club the user belongs to
+  const clubId = payload.new.club_id;
+  const userClubIds = userClubs.map(club => club.id);
   
-  // Check if this message belongs to one of the user's clubs
-  const isRelevantClub = userClubs.some(club => club.id === messageClubId);
-  if (!isRelevantClub) {
-    console.log(`[subscriptionHandlers] Message for club ${messageClubId} not relevant to user`);
+  if (!userClubIds.includes(clubId)) {
+    console.log(`[handleNewMessagePayload] Message for club ${clubId} not relevant to user's clubs`);
     return;
   }
   
-  console.log(`[subscriptionHandlers] 🔥 New message received for club ${messageClubId}:`, typedPayload.new?.id);
-  
-  const messageWithSender = await fetchSenderDetails(typedPayload.new);
-  
-  if (messageWithSender) {
-    const clubId = messageWithSender.club_id;
+  console.log(`[handleNewMessagePayload] New message for club ${clubId}`);
+
+  // Update local messages state
+  setClubMessages(prev => {
+    const clubMessages = prev[clubId] || [];
     
-    setClubMessages(prev => {
-      const clubMsgs = prev[clubId] || [];
-      
-      // Check if message already exists to prevent duplicates
-      const messageExists = clubMsgs.some(msg => msg.id === messageWithSender.id);
-      if (messageExists) return prev;
-      
-      // Sort messages by timestamp
-      const updatedMessages = [...clubMsgs, messageWithSender].sort(
-        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      );
-      
-      // Create and dispatch a global event with the new message details
-      window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
-        detail: { clubId, message: messageWithSender } 
-      }));
-      
-      return {
-        ...prev,
-        [clubId]: updatedMessages
-      };
-    });
+    // Check if message already exists in the array
+    const messageExists = clubMessages.some(msg => 
+      String(msg.id) === String(payload.new.id)
+    );
     
-    // If the message is from another user and NOT the currently viewed club,
-    // we need to update the unread count for this club
-    if (typedPayload.new.sender_id !== currentUser?.id && 
-        (!selectedClubRef || selectedClubRef !== messageClubId)) {
-      window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
-        detail: { clubId: messageClubId } 
-      }));
+    if (messageExists) {
+      return prev;
     }
+    
+    // Add the new message
+    return {
+      ...prev,
+      [clubId]: [...clubMessages, payload.new]
+    };
+  });
+
+  // If the message is not from the current user, dispatch events for unread indicators
+  if (payload.new.sender_id !== currentUser?.id) {
+    console.log(`[handleNewMessagePayload] Message from another user, sending unread event`);
+    
+    // Dispatch an unread message event if the club is not currently selected
+    if (selectedClubId !== clubId) {
+      // Use a custom event to trigger unread count updates
+      const event = new CustomEvent('clubMessageUnread', { 
+        detail: { clubId } 
+      });
+      window.dispatchEvent(event);
+    }
+    
+    // Always dispatch the general message received event
+    window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
+      detail: { clubId, message: payload.new } 
+    }));
   }
 };
 
 export const handleMessageDeletion = (
-  payload: RealtimePostgresChangesPayload<{
-    [key: string]: any;
-  }>,
+  payload: any,
   setClubMessages: React.Dispatch<React.SetStateAction<Record<string, any[]>>>
 ) => {
-  const typedPayload = payload as unknown as DeletePayload;
-  
-  console.log('[subscriptionHandlers] Message deletion event received:', typedPayload);
-  
-  if (typedPayload.old && typedPayload.old.id && typedPayload.old.club_id) {
-    const deletedMessageId = typedPayload.old.id;
-    const clubId = typedPayload.old.club_id;
+  if (payload.old && payload.old.id && payload.old.club_id) {
+    const deletedMessageId = payload.old.id;
+    const clubId = payload.old.club_id;
     
     setClubMessages(prev => {
       if (!prev[clubId]) return prev;
@@ -126,35 +89,5 @@ export const handleMessageDeletion = (
         [clubId]: updatedClubMessages
       };
     });
-    
-    // Dispatch an event for the message deletion
-    window.dispatchEvent(new CustomEvent('clubMessageDeleted', { 
-      detail: { clubId, messageId: deletedMessageId } 
-    }));
-  }
-};
-
-// Fetch user details for a message sender
-export const fetchSenderDetails = async (message: any) => {
-  if (!message?.sender_id) return message;
-  
-  try {
-    const { data: senderData } = await supabase
-      .from('users')
-      .select('id, name, avatar')
-      .eq('id', message.sender_id)
-      .single();
-      
-    if (senderData) {
-      return {
-        ...message,
-        sender: senderData
-      };
-    }
-    
-    return message;
-  } catch (error) {
-    console.error('[subscriptionHandlers] Error fetching sender details:', error);
-    return message;
   }
 };

@@ -1,139 +1,112 @@
 
-import React, { useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { Club } from '@/types';
-import UserAvatar from '../../shared/UserAvatar';
-import ClubMembersPopover from './ClubMembersPopover';
-import { useNavigation } from '@/hooks/useNavigation';
-import { formatDistanceToNow } from 'date-fns';
-import { useClubLastMessages } from '@/hooks/chat/messages/useClubLastMessages';
-import { useUnreadMessages } from '@/context/unread-messages';
+import { User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useClubLastMessages } from '@/hooks/chat/messages/useClubLastMessages';
+import ClubMembersPopover from './ClubMembersPopover';
+import { formatTimeAgo } from '@/lib/format';
+import { cn } from '@/lib/utils';
+import UserAvatar from '@/components/shared/UserAvatar';
 
 interface ClubsListProps {
   clubs: Club[];
   selectedClub: Club | null;
   onSelectClub: (club: Club) => void;
-  unreadCounts: Record<string, number>;
+  unreadCounts?: Record<string, number>;
   unreadClubs?: Set<string>;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
-  setChatToDelete: (data: {
-    id: string;
-    name: string;
-    isTicket: boolean;
-  } | null) => void;
+  setChatToDelete?: (chat: {id: string, name: string}) => void;
 }
 
 const ClubsList: React.FC<ClubsListProps> = ({
   clubs,
   selectedClub,
   onSelectClub,
+  unreadClubs = new Set(),
   onSelectUser,
-  unreadClubs: propUnreadClubs,
-  setChatToDelete,
+  setChatToDelete
 }) => {
-  const { navigateToClubDetail } = useNavigation();
+  // Use the club last messages hook for real-time updates
   const { lastMessages, sortedClubs } = useClubLastMessages(clubs);
-  const { unreadClubs: contextUnreadClubs, markClubMessagesAsRead } = useUnreadMessages();
-  
-  // Use either the passed props (preferred) or fall back to context
-  const unreadClubs = propUnreadClubs || contextUnreadClubs;
-  
-  // Add a debug effect to log unread clubs when they change
-  useEffect(() => {
-    console.log('[ClubsList] unreadClubs set updated:', Array.from(unreadClubs));
-    console.log('[ClubsList] Using prop unread clubs?', !!propUnreadClubs);
-  }, [unreadClubs, propUnreadClubs]);
-  
-  const handleClubClick = (club: Club, e: React.MouseEvent) => {
-    e.preventDefault();
-    onSelectClub(club);
-    markClubMessagesAsRead(club.id);
-    console.log('[ClubsList] Club selected for chat:', club.id);
-  };
 
-  const truncateMessage = (text: string) => {
-    return text?.length > 50 ? `${text.substring(0, 50)}...` : text;
-  };
-
-  // Create a key that will change whenever unread status changes
-  const unreadKey = Array.from(unreadClubs).join(',');
-
+  // Render the clubs list with unread indicators and last message information
   return (
-    <div className="p-3">
-      <h1 className="text-4xl font-bold mb-4">Clubs</h1>
-      
-      <div className="divide-y">
-        {sortedClubs.map(club => {
-          // Get club ID as string to ensure consistent comparison
-          const clubId = String(club.id);
-          const isUnread = unreadClubs.has(clubId);
-          
-          console.log(`[ClubsList] Rendering club ${club.name} (${clubId}), isUnread:`, isUnread);
-          
-          const lastMessage = lastMessages[club.id];
-          const formattedTime = lastMessage?.timestamp 
-            ? formatDistanceToNow(new Date(lastMessage.timestamp), { addSuffix: false })
-            : '';
-            
-          return (
-            <div 
-              key={`${club.id}-${isUnread ? 'unread' : 'read'}-${unreadKey}`}
-              className={`flex items-start px-4 py-3 cursor-pointer hover:bg-gray-50 relative group
-                ${selectedClub?.id === club.id ? 'bg-primary/10 text-primary' : ''}
-                ${isUnread ? 'font-medium' : ''}`}
-              onClick={(e) => handleClubClick(club, e)}
-            >
-              <UserAvatar 
-                name={club.name} 
-                image={club.logo || ''} 
-                size="lg"
-                className="flex-shrink-0 mr-3"
-              />
-
-              <div className="flex-1 min-w-0 overflow-hidden">
-                <div className="flex items-center justify-between mb-1">
-                  <h2 className={`text-lg truncate max-w-[60%] ${isUnread ? 'font-bold' : 'font-medium'}`}>
+    <div className="space-y-0.5 px-1">
+      {sortedClubs.map(club => {
+        const isSelected = selectedClub?.id === club.id;
+        const lastMessage = lastMessages[club.id];
+        const hasUnread = unreadClubs.has(club.id);
+        
+        // Format the last message preview with sender name and timestamp
+        const messagePreview = lastMessage ? (
+          <div className="truncate text-xs text-gray-500">
+            <span className={cn("font-medium", hasUnread && "font-bold text-gray-700")}>
+              {lastMessage.sender?.name || 'Unknown'}: 
+            </span>{' '}
+            <span className={cn(hasUnread && "font-semibold text-gray-600")}>
+              {lastMessage.message}
+            </span>
+          </div>
+        ) : (
+          <div className="text-xs text-gray-400 italic">No messages yet</div>
+        );
+        
+        const timestamp = lastMessage ? formatTimeAgo(lastMessage.timestamp) : '';
+        
+        return (
+          <div
+            key={club.id}
+            className={cn(
+              "p-2 rounded-lg flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors",
+              isSelected ? "bg-gray-100" : "bg-white",
+              hasUnread && "border-l-4 border-primary"
+            )}
+            onClick={() => onSelectClub(club)}
+          >
+            <div className="flex items-center flex-1 min-w-0">
+              <UserAvatar name={club.name} image={club.logo} size="sm" />
+              <div className="ml-2 flex-1 min-w-0">
+                <div className="flex justify-between items-center">
+                  <div className={cn("font-medium truncate", hasUnread && "font-bold text-primary")}>
                     {club.name}
-                  </h2>
-                  {formattedTime && (
-                    <span className={`text-xs ${isUnread ? 'font-bold' : 'text-gray-500'} flex-shrink-0 ml-auto`}>
-                      {formattedTime}
-                    </span>
+                  </div>
+                  {timestamp && (
+                    <div className={cn("text-xs text-gray-400 ml-1 shrink-0", hasUnread && "text-gray-700 font-semibold")}>
+                      {timestamp}
+                    </div>
                   )}
                 </div>
-                
-                <div className="flex items-center">
-                  <p className={`text-sm truncate flex-1 ${isUnread ? 'text-gray-900' : 'text-gray-600'}`}>
-                    {lastMessage ? (
-                      <>
-                        <span className={isUnread ? 'font-bold' : 'font-medium'}>
-                          {lastMessage.sender?.name || 'Unknown'}:
-                        </span>{' '}
-                        {truncateMessage(lastMessage.message)}
-                      </>
-                    ) : (
-                      "No messages yet"
-                    )}
-                  </p>
-                  {isUnread && (
-                    <Badge variant="dot" className="ml-2" />
-                  )}
-                </div>
-                
-                <ClubMembersPopover club={club} onSelectUser={onSelectUser} />
+                {messagePreview}
               </div>
             </div>
-          );
-        })}
-        
-        {clubs.length === 0 && (
-          <div className="text-center py-4 text-sm text-gray-500">
-            You don't have any clubs yet
+            
+            <div className="ml-2 flex space-x-1">
+              {hasUnread && (
+                <Badge 
+                  variant="dot" 
+                  className="h-2 w-2 bg-red-500 rounded-full"
+                />
+              )}
+              <ClubMembersPopover 
+                clubId={club.id} 
+                clubName={club.name} 
+                onSelectUser={onSelectUser}
+              />
+            </div>
           </div>
-        )}
-      </div>
+        );
+      })}
+      
+      {clubs.length === 0 && (
+        <div className="p-4 text-center text-gray-500">
+          <User className="mx-auto h-10 w-10 text-gray-400 mb-2" />
+          <p>You don't have any clubs yet</p>
+          <p className="text-sm">Join a club to start chatting</p>
+        </div>
+      )}
     </div>
   );
 };
 
-export default ClubsList;
+export default React.memo(ClubsList);

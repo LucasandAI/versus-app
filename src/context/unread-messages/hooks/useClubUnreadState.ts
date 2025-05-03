@@ -8,6 +8,25 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
   const [clubUnreadCount, setClubUnreadCount] = useState(0);
   const [unreadMessagesPerClub, setUnreadMessagesPerClub] = useState<Record<string, number>>({});
   
+  // Listen for global clubMessageUnread events
+  useEffect(() => {
+    const handleClubMessageUnread = (event: CustomEvent) => {
+      const clubId = event.detail?.clubId;
+      
+      if (clubId) {
+        console.log(`[useClubUnreadState] Marking club ${clubId} as unread from event`);
+        markClubAsUnread(clubId);
+      }
+    };
+    
+    // Listen for clubMessageUnread events
+    window.addEventListener('clubMessageUnread', handleClubMessageUnread as EventListener);
+    
+    return () => {
+      window.removeEventListener('clubMessageUnread', handleClubMessageUnread as EventListener);
+    };
+  }, []);
+
   // Listen for global unreadMessagesUpdated events
   useEffect(() => {
     const handleUnreadUpdated = () => {
