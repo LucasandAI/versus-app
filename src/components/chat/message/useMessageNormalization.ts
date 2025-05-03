@@ -5,12 +5,13 @@ export const useMessageNormalization = (currentUserId: string | null, getMemberN
   const normalizeMessage = (message: any): ChatMessage => {
     console.log('[useMessageNormalization] Normalizing message:', message);
     
-    // More robust check for a complete sender object with required properties
+    // Case 1: Message already has complete sender information - highest priority
     if (
       typeof message.sender === 'object' &&
       message.sender !== null &&
       typeof message.sender.id !== 'undefined' &&
-      typeof message.sender.name === 'string'
+      typeof message.sender.name === 'string' &&
+      message.sender.name !== ''
     ) {
       console.log('[useMessageNormalization] Using existing complete sender info:', message.sender);
       
@@ -20,8 +21,8 @@ export const useMessageNormalization = (currentUserId: string | null, getMemberN
         text: message.text !== undefined ? message.text : message.message,
         sender: {
           id: String(message.sender.id),
-          name: message.sender.name, // Preserve the name exactly as provided
-          avatar: message.sender.avatar // Preserve the avatar exactly as provided
+          name: message.sender.name,
+          avatar: message.sender.avatar
         },
         timestamp: message.timestamp || message.created_at || new Date().toISOString(),
         isSupport: Boolean(message.isSupport),
@@ -29,20 +30,19 @@ export const useMessageNormalization = (currentUserId: string | null, getMemberN
       };
     }
     
-    // Handle messages with sender object but incomplete information
+    // Case 2: Message has partial sender object
     if (message.sender && typeof message.sender === 'object') {
-      console.log('[useMessageNormalization] Message has sender object but may need enhancement:', message.sender);
-      
-      // CRITICAL CHANGE: Never fall back to getMemberName if we already have a name in sender
-      const senderName = typeof message.sender.name === 'string' && message.sender.name !== '' 
-                        ? message.sender.name 
-                        : getMemberName(message.sender.id);
+      // Never use getMemberName for DMs if we already have a sender.id
+      // This prevents flickering by avoiding dynamic resolution
+      const senderName = 
+        (typeof message.sender.name === 'string' && message.sender.name !== '') 
+          ? message.sender.name 
+          : message.sender.id === currentUserId ? 'You' : 'User';
                         
-      const senderAvatar = typeof message.sender.avatar === 'string' && message.sender.avatar !== '' 
-                         ? message.sender.avatar 
-                         : undefined;
-      
-      console.log(`[useMessageNormalization] Using name="${senderName}", avatar="${senderAvatar || 'undefined'}"`);
+      const senderAvatar = 
+        typeof message.sender.avatar === 'string' && message.sender.avatar !== '' 
+          ? message.sender.avatar 
+          : undefined;
       
       return {
         id: message.id,
@@ -57,15 +57,16 @@ export const useMessageNormalization = (currentUserId: string | null, getMemberN
       };
     }
     
-    // If it's from Supabase club_chat_messages table without sender object
+    // Case 3: Message from database without sender object (needs to be updated in our other hooks)
     if (message.message !== undefined && message.sender_id !== undefined) {
-      console.log('[useMessageNormalization] Message from database table without sender object:', message.sender_id);
+      // For this case, we'll set a placeholder, but our other hooks should
+      // pre-populate this with the correct data
       return {
         id: message.id,
         text: message.message,
         sender: {
           id: message.sender_id,
-          name: getMemberName(message.sender_id),
+          name: message.sender_id === currentUserId ? 'You' : 'User',
           avatar: undefined
         },
         timestamp: message.timestamp || message.created_at || new Date().toISOString(),
@@ -73,14 +74,13 @@ export const useMessageNormalization = (currentUserId: string | null, getMemberN
       };
     }
     
-    // Last resort fallback with enhanced logging - should rarely happen
-    console.warn('[useMessageNormalization] Unrecognized message format:', message);
+    // Last resort fallback - should rarely happen
     return {
       id: message.id || `unknown-${Date.now()}`,
       text: message.message || message.text || "Unknown message",
       sender: {
         id: String(message.sender_id || message.sender?.id || "unknown"),
-        name: message.sender?.name || getMemberName(message.sender_id || message.sender?.id || "unknown"),
+        name: message.sender?.name || (message.sender_id === currentUserId ? 'You' : 'User'),
         avatar: message.sender?.avatar || undefined
       },
       timestamp: message.timestamp || message.created_at || new Date().toISOString(),
