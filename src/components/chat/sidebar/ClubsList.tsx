@@ -4,7 +4,7 @@ import { Club } from '@/types';
 import UserAvatar from '../../shared/UserAvatar';
 import ClubMembersPopover from './ClubMembersPopover';
 import { useNavigation } from '@/hooks/useNavigation';
-import { formatDistanceToNow } from 'date-fns';
+import { formatTimeAgo } from '@/lib/format';
 import { useClubLastMessages } from '@/hooks/chat/messages/useClubLastMessages';
 import { useUnreadMessages } from '@/context/unread-messages';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +13,7 @@ interface ClubsListProps {
   clubs: Club[];
   selectedClub: Club | null;
   onSelectClub: (club: Club) => void;
-  unreadCounts: Record<string, number>;
+  unreadCounts?: Record<string, number>;
   unreadClubs?: Set<string>;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   setChatToDelete: (data: {
@@ -49,6 +49,11 @@ const ClubsList: React.FC<ClubsListProps> = ({
     onSelectClub(club);
     markClubMessagesAsRead(club.id);
     console.log('[ClubsList] Club selected for chat:', club.id);
+    
+    // Dispatch clubSelected event to notify other components
+    window.dispatchEvent(
+      new CustomEvent('clubSelected', { detail: { clubId: club.id } })
+    );
   };
 
   const truncateMessage = (text: string) => {
@@ -72,7 +77,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
           
           const lastMessage = lastMessages[club.id];
           const formattedTime = lastMessage?.timestamp 
-            ? formatDistanceToNow(new Date(lastMessage.timestamp), { addSuffix: false })
+            ? formatTimeAgo(new Date(lastMessage.timestamp))
             : '';
             
           return (

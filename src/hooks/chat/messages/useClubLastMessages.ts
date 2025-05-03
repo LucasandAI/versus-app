@@ -69,26 +69,44 @@ export const useClubLastMessages = (clubs: Club[]) => {
 
     fetchLatestMessages();
 
-    // Set up realtime subscription for new messages
-    const channel = supabase
-      .channel('club-last-messages')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'club_chat_messages',
-          filter: clubs.length > 0 ? `club_id=in.(${clubs.map(c => `'${c.id}'`).join(',')})` : undefined
-        },
-        () => {
-          console.log('[useClubLastMessages] Received realtime message update');
-          fetchLatestMessages(); // Refresh messages when changes occur
-        }
-      )
-      .subscribe();
-
+    // Listen for clubMessageReceived events to update lastMessages without refetching
+    const handleClubMessageReceived = (event: CustomEvent) => {
+      const { clubId, message } = event.detail;
+      
+      if (clubId && message) {
+        console.log('[useClubLastMessages] Received new message for club preview:', clubId, message);
+        
+        // Update lastMessages with the new message
+        setLastMessages(prev => ({
+          ...prev,
+          [clubId]: message
+        }));
+        
+        // Re-sort clubs based on new message timestamp
+        setSortedClubs(prevSorted => {
+          const clubsWithTimestamps = prevSorted.map(club => {
+            const lastMsg = club.id === clubId ? message : prev[club.id];
+            const lastTimestamp = lastMsg ? 
+              new Date(lastMsg.timestamp).getTime() : 
+              0;
+            
+            return {
+              club,
+              lastTimestamp
+            };
+          });
+          
+          return clubsWithTimestamps
+            .sort((a, b) => b.lastTimestamp - a.lastTimestamp)
+            .map(item => item.club);
+        });
+      }
+    };
+    
+    window.addEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
+    
     return () => {
-      supabase.removeChannel(channel);
+      window.removeEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
     };
   }, [clubs]);
 

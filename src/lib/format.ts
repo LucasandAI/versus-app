@@ -1,5 +1,6 @@
 
 import { Division } from '@/types';
+import { formatDistanceToNow } from 'date-fns';
 
 export const formatLeagueWithTier = (division?: Division, tier?: number) => {
   if (!division) return 'Unknown League';
@@ -12,4 +13,11 @@ export const formatLeagueWithTier = (division?: Division, tier?: number) => {
   
   // Return with tier if available, otherwise just the division name
   return tier ? `${capitalizedDivision} ${tier}` : capitalizedDivision;
+};
+
+export const formatTimeAgo = (date: string | Date): string => {
+  if (!date) return '';
+  
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return formatDistanceToNow(dateObj, { addSuffix: true });
 };

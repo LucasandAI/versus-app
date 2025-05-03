@@ -88,8 +88,16 @@ export const handleNewMessagePayload = async (
     // we need to update the unread count for this club
     if (typedPayload.new.sender_id !== currentUser?.id && 
         (!selectedClubRef || selectedClubRef !== messageClubId)) {
-      window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
+      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
         detail: { clubId: messageClubId } 
+      }));
+      
+      // Dispatch a special event for new message notification
+      window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
+        detail: { 
+          clubId: messageClubId,
+          isUnread: true 
+        } 
       }));
     }
   }

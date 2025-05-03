@@ -10,13 +10,23 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
   
   // Listen for global unreadMessagesUpdated events
   useEffect(() => {
-    const handleUnreadUpdated = () => {
-      console.log('[useClubUnreadState] Detected unreadMessagesUpdated event');
+    const handleUnreadUpdated = (e: CustomEvent) => {
+      console.log('[useClubUnreadState] Detected unreadMessagesUpdated event', e.detail);
+      
+      // Check if we have clubId in the event detail
+      if (e.detail?.clubId) {
+        const clubId = e.detail.clubId.toString();
+        
+        // Mark this club as unread
+        markClubAsUnread(clubId);
+      }
     };
     
-    window.addEventListener('unreadMessagesUpdated', handleUnreadUpdated);
-    return () => window.removeEventListener('unreadMessagesUpdated', handleUnreadUpdated);
-  }, []);
+    // Listen for the custom event
+    window.addEventListener('unreadMessagesUpdated', handleUnreadUpdated as EventListener);
+    
+    return () => window.removeEventListener('unreadMessagesUpdated', handleUnreadUpdated as EventListener);
+  }, []);  // Empty dependency array ensures this only runs once
 
   // Mark club as unread (for new incoming messages)
   const markClubAsUnread = useCallback((clubId: string) => {
