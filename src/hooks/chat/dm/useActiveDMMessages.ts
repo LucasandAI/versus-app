@@ -23,16 +23,7 @@ export const useActiveDMMessages = (
   const processedMsgIds = useRef(new Set<string>());
   const otherUserDataRef = useRef(otherUserData);
   const userCache = useRef<Record<string, { name: string; avatar?: string }>>({});
-  const messageUpdateQueue = useRef<ChatMessage[]>([]);
-  const isProcessingUpdates = useRef(false);
   const stableConversationId = useRef(conversationId);
-  const optimisticMessageIds = useRef(new Set<string>());
-  const messagesRef = useRef<ChatMessage[]>([]);
-
-  // Update messagesRef when messages change
-  useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
 
   // Update the ref when otherUserData changes
   useEffect(() => {
@@ -45,76 +36,7 @@ export const useActiveDMMessages = (
     }
   }, [otherUserData]);
 
-  // Process message updates in batches with improved stability
-  const processMessageQueue = useCallback(() => {
-    if (isProcessingUpdates.current || messageUpdateQueue.current.length === 0) return;
-    
-    isProcessingUpdates.current = true;
-    
-    // Process all queued messages at once
-    const messagesToAdd = [...messageUpdateQueue.current];
-    messageUpdateQueue.current = [];
-    
-    setMessages(prev => {
-      // Create a map of existing messages for efficient lookup
-      const prevMessageMap = new Map(prev.map(msg => [msg.id, msg]));
-      let hasNewMessages = false;
-      
-      // Process each message
-      messagesToAdd.forEach(msg => {
-        const msgId = msg.id?.toString();
-        if (!msgId) return;
-        
-        // Skip if we've already processed this message
-        if (processedMsgIds.current.has(msgId)) {
-          return;
-        }
-
-        // Check if message already exists in our state
-        const existingMessage = prevMessageMap.get(msgId);
-        if (existingMessage) {
-          // If message exists and has complete sender info, KEEP the existing message
-          if (existingMessage.sender?.name && existingMessage.sender.name !== 'Unknown') {
-            return;
-          }
-          
-          // If existing message has worse metadata than new message, allow replacement
-          if (msg.sender?.name && msg.sender.name !== 'Unknown') {
-            prevMessageMap.set(msgId, msg);
-            hasNewMessages = true;
-          }
-          return;
-        }
-        
-        // Mark as processed
-        processedMsgIds.current.add(msgId);
-        prevMessageMap.set(msgId, msg);
-        hasNewMessages = true;
-      });
-      
-      if (!hasNewMessages) {
-        return prev;
-      }
-      
-      // Convert map back to array and sort
-      const updatedMessages = Array.from(prevMessageMap.values());
-      return updatedMessages.sort(
-        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      );
-    });
-    
-    // Reset processing flag after a short delay
-    setTimeout(() => {
-      isProcessingUpdates.current = false;
-      
-      // Check if new messages arrived during processing
-      if (messageUpdateQueue.current.length > 0) {
-        processMessageQueue();
-      }
-    }, 50);
-  }, []);
-
-  // Listen for DM message events with optimized handler
+  // Listen for DM message events
   useEffect(() => {
     const handleDMMessageReceived = (e: CustomEvent) => {
       if (e.detail?.conversationId !== stableConversationId.current || !e.detail?.message) {
@@ -130,22 +52,21 @@ export const useActiveDMMessages = (
         return;
       }
       
-      // Immediately add to messages state to prevent flicker
+      // Mark as processed
+      processedMsgIds.current.add(msgId);
+      
+      // Add message to state
       setMessages(prev => {
-        const existingMessage = prev.find(msg => msg.id === msgId);
-        if (existingMessage) {
+        // Check if message already exists
+        if (prev.some(msg => msg.id === msgId)) {
           return prev;
         }
-        return [...prev, newMessage];
+        
+        // Add new message and sort by timestamp
+        return [...prev, newMessage].sort(
+          (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
       });
-      
-      // Queue for proper processing
-      messageUpdateQueue.current.push(newMessage);
-      
-      // Schedule processing
-      if (!isProcessingUpdates.current) {
-        requestAnimationFrame(processMessageQueue);
-      }
     };
 
     const handleDMMessageDeleted = (e: CustomEvent) => {
@@ -156,22 +77,15 @@ export const useActiveDMMessages = (
       const msgId = e.detail.messageId?.toString();
       if (!msgId) return;
       
-      // Also remove from processed set
-      if (processedMsgIds.current.has(msgId)) {
-        processedMsgIds.current.delete(msgId);
-      }
+      // Remove from processed set
+      processedMsgIds.current.delete(msgId);
       
-      // Remove from optimistic IDs if it exists
-      if (optimisticMessageIds.current.has(msgId)) {
-        optimisticMessageIds.current.delete(msgId);
-      }
-      
+      // Remove from messages
       setMessages(prev => 
         prev.filter(msg => msg.id !== msgId)
       );
     };
 
-    // Add event listeners
     window.addEventListener('dmMessageReceived', handleDMMessageReceived as EventListener);
     window.addEventListener('dmMessageDeleted', handleDMMessageDeleted as EventListener);
 
@@ -179,12 +93,12 @@ export const useActiveDMMessages = (
       window.removeEventListener('dmMessageReceived', handleDMMessageReceived as EventListener);
       window.removeEventListener('dmMessageDeleted', handleDMMessageDeleted as EventListener);
     };
-  }, [processMessageQueue]);
+  }, []);
 
   // Load initial messages for the conversation
   const fetchMessages = useCallback(async () => {
     if (!userId || !currentUser?.id || !conversationId || conversationId === 'new') {
-      return [];
+      return;
     }
 
     try {
@@ -230,23 +144,20 @@ export const useActiveDMMessages = (
       }
     } catch (error) {
       console.error('[useActiveDMMessages] Error fetching messages:', error);
-      return [];
     }
   }, [userId, currentUser, conversationId]);
   
-  // Only fetch messages when the conversation changes
+  // Fetch messages when conversation changes
   useEffect(() => {
+    stableConversationId.current = conversationId;
+    processedMsgIds.current.clear();
     fetchMessages();
-  }, [fetchMessages]);
+  }, [conversationId, fetchMessages]);
 
-  // Add a new message optimistically (for local UI updates)
+  // Add a new message optimistically
   const addLocalOptimisticMessage = useCallback((message: ChatMessage) => {
-    // Skip if already processed
     const msgId = message.id?.toString();
-    if (!msgId || processedMsgIds.current.has(msgId)) return;
-    
-    // Track this as an optimistic message
-    optimisticMessageIds.current.add(msgId);
+    if (!msgId) return;
     
     // Mark as processed
     processedMsgIds.current.add(msgId);
@@ -256,14 +167,11 @@ export const useActiveDMMessages = (
       ...message,
       optimistic: true
     }]);
-    
-    console.log('[useActiveDMMessages] Added optimistic message:', msgId);
   }, []);
 
-  // Return stable object reference
-  return useMemo(() => ({
+  return {
     messages,
     setMessages,
     addOptimisticMessage: addLocalOptimisticMessage
-  }), [messages, addLocalOptimisticMessage]);
+  };
 };
