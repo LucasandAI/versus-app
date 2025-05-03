@@ -12,6 +12,7 @@ export const useMessageHandling = (clubId: string) => {
   const { addOptimisticMessage, scrollToBottom } = useMessageOptimism();
   const { updateClubUnreadCount } = useUnreadMessages();
   const processedMsgIds = useRef(new Set<string>());
+  const isChatOpen = useRef(false);
 
   // Handle new messages
   const handleNewMessage = useCallback((message: ChatMessage) => {
@@ -29,17 +30,20 @@ export const useMessageHandling = (clubId: string) => {
       );
     });
     
-    // Update unread count and notify UI
-    updateClubUnreadCount(clubId, 1);
-    
-    // Dispatch event for UI updates
-    window.dispatchEvent(new CustomEvent('clubMessageReceived', {
-      detail: {
-        clubId,
-        message,
-        unreadCount: 1
-      }
-    }));
+    // Only update unread count if chat is not open
+    if (!isChatOpen.current) {
+      updateClubUnreadCount(clubId, 1);
+      
+      // Dispatch event for UI updates
+      window.dispatchEvent(new CustomEvent('clubMessageReceived', {
+        detail: {
+          clubId,
+          message,
+          unreadCount: 1,
+          isUnread: true
+        }
+      }));
+    }
   }, [clubId, updateClubUnreadCount]);
 
   // Handle message deletion
@@ -74,12 +78,24 @@ export const useMessageHandling = (clubId: string) => {
       handleMessageDeleted(e.detail.messageId);
     };
 
+    const handleChatOpen = () => {
+      isChatOpen.current = true;
+    };
+
+    const handleChatClose = () => {
+      isChatOpen.current = false;
+    };
+
     window.addEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
     window.addEventListener('clubMessageDeleted', handleClubMessageDeleted as EventListener);
+    window.addEventListener('chatOpen', handleChatOpen);
+    window.addEventListener('chatClose', handleChatClose);
 
     return () => {
       window.removeEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
       window.removeEventListener('clubMessageDeleted', handleClubMessageDeleted as EventListener);
+      window.removeEventListener('chatOpen', handleChatOpen);
+      window.removeEventListener('chatClose', handleChatClose);
     };
   }, [clubId, handleNewMessage, handleMessageDeleted]);
 

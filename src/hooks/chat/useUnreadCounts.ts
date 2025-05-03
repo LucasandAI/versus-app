@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
@@ -57,54 +56,7 @@ export const useUnreadCounts = () => {
   }, [userId]);
 
   useEffect(() => {
-    // Skip if not authenticated or session not ready
     if (!isSessionReady || !userId) return;
-
-    const fetchUnreadCounts = async () => {
-      try {
-        // Fetch DM unread counts
-        const { data: dmCount, error: dmError } = await supabase.rpc('get_unread_dm_count', {
-          user_id: userId
-        });
-        
-        if (dmError) throw dmError;
-        setDMUnreadCount(dmCount || 0);
-
-        // Fetch club unread counts
-        const { data: clubCount, error: clubError } = await supabase.rpc('get_unread_club_messages_count', {
-          user_id: userId
-        });
-        
-        if (clubError) throw clubError;
-        setClubUnreadCount(clubCount || 0);
-
-        // Get unread conversations
-        const { data: unreadDMs } = await supabase
-          .from('direct_messages_read')
-          .select('conversation_id')
-          .eq('user_id', userId)
-          .filter('has_unread', 'eq', true);
-
-        if (unreadDMs) {
-          setUnreadConversations(new Set(unreadDMs.map(dm => dm.conversation_id)));
-        }
-
-        // Get unread clubs
-        const { data: unreadClubsData } = await supabase
-          .from('club_messages_read')
-          .select('club_id')
-          .eq('user_id', userId)
-          .filter('has_unread', 'eq', true);
-
-        if (unreadClubsData) {
-          setUnreadClubs(new Set(unreadClubsData?.map(club => club.club_id)));
-        }
-      } catch (error) {
-        console.error('[useUnreadCounts] Error fetching unread counts:', error);
-      }
-    };
-
-    fetchUnreadCounts();
 
     // Only set up subscriptions when authenticated
     const dmChannel = supabase.channel('dm-notifications')
@@ -130,13 +82,18 @@ export const useUnreadCounts = () => {
         table: 'club_chat_messages'
       }, (payload) => {
         if (payload.new.sender_id !== userId) {
+          // Update unread count immediately
           setClubUnreadCount(prev => prev + 1);
           setUnreadClubs(prev => new Set([...prev, payload.new.club_id]));
           
-          // Dispatch global event to notify other parts of the app
+          // Dispatch events for immediate UI updates
           window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
           window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
-            detail: { clubId: payload.new.club_id } 
+            detail: { 
+              clubId: payload.new.club_id,
+              unreadCount: 1,
+              isUnread: true
+            } 
           }));
         }
       })
