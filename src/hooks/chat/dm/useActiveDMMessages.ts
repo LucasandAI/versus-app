@@ -27,6 +27,12 @@ export const useActiveDMMessages = (
   const isProcessingUpdates = useRef(false);
   const stableConversationId = useRef(conversationId);
   const optimisticMessageIds = useRef(new Set<string>());
+  const messagesRef = useRef<ChatMessage[]>([]);
+
+  // Update messagesRef when messages change
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Update the ref when otherUserData changes
   useEffect(() => {
@@ -124,7 +130,16 @@ export const useActiveDMMessages = (
         return;
       }
       
-      // Queue message update
+      // Immediately add to messages state to prevent flicker
+      setMessages(prev => {
+        const existingMessage = prev.find(msg => msg.id === msgId);
+        if (existingMessage) {
+          return prev;
+        }
+        return [...prev, newMessage];
+      });
+      
+      // Queue for proper processing
       messageUpdateQueue.current.push(newMessage);
       
       // Schedule processing
