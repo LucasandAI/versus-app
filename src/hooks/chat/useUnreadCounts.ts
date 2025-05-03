@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
@@ -55,45 +56,55 @@ export const useUnreadCounts = () => {
     }
   }, [userId]);
 
-  // Listen for unread message updates
   useEffect(() => {
-    const handleUnreadMessagesUpdated = (e: CustomEvent) => {
-      const { clubId, unreadCount, isUnread } = e.detail || {};
-      
-      if (clubId) {
-        // Update club-specific unread state
-        setUnreadClubs(prev => {
-          const updated = new Set(prev);
-          if (isUnread) {
-            updated.add(clubId);
-          } else {
-            updated.delete(clubId);
-          }
-          return updated;
+    // Skip if not authenticated or session not ready
+    if (!isSessionReady || !userId) return;
+
+    const fetchUnreadCounts = async () => {
+      try {
+        // Fetch DM unread counts
+        const { data: dmCount, error: dmError } = await supabase.rpc('get_unread_dm_count', {
+          user_id: userId
         });
         
-        // Update total club unread count
-        if (unreadCount !== undefined) {
-          setClubUnreadCount(prev => {
-            if (isUnread) {
-              return prev + unreadCount;
-            } else {
-              return Math.max(0, prev - unreadCount);
-            }
-          });
+        if (dmError) throw dmError;
+        setDMUnreadCount(dmCount || 0);
+
+        // Fetch club unread counts
+        const { data: clubCount, error: clubError } = await supabase.rpc('get_unread_club_messages_count', {
+          user_id: userId
+        });
+        
+        if (clubError) throw clubError;
+        setClubUnreadCount(clubCount || 0);
+
+        // Get unread conversations
+        const { data: unreadDMs } = await supabase
+          .from('direct_messages_read')
+          .select('conversation_id')
+          .eq('user_id', userId)
+          .filter('has_unread', 'eq', true);
+
+        if (unreadDMs) {
+          setUnreadConversations(new Set(unreadDMs.map(dm => dm.conversation_id)));
         }
+
+        // Get unread clubs
+        const { data: unreadClubsData } = await supabase
+          .from('club_messages_read')
+          .select('club_id')
+          .eq('user_id', userId)
+          .filter('has_unread', 'eq', true);
+
+        if (unreadClubsData) {
+          setUnreadClubs(new Set(unreadClubsData?.map(club => club.club_id)));
+        }
+      } catch (error) {
+        console.error('[useUnreadCounts] Error fetching unread counts:', error);
       }
     };
 
-    window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated as EventListener);
-
-    return () => {
-      window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated as EventListener);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isSessionReady || !userId) return;
+    fetchUnreadCounts();
 
     // Only set up subscriptions when authenticated
     const dmChannel = supabase.channel('dm-notifications')
@@ -119,17 +130,13 @@ export const useUnreadCounts = () => {
         table: 'club_chat_messages'
       }, (payload) => {
         if (payload.new.sender_id !== userId) {
-          // Update unread count immediately
           setClubUnreadCount(prev => prev + 1);
           setUnreadClubs(prev => new Set([...prev, payload.new.club_id]));
           
-          // Dispatch events for immediate UI updates
-          window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', {
-            detail: {
-              clubId: payload.new.club_id,
-              unreadCount: 1,
-              isUnread: true
-            }
+          // Dispatch global event to notify other parts of the app
+          window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+          window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
+            detail: { clubId: payload.new.club_id } 
           }));
         }
       })

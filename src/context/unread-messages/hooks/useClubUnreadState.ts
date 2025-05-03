@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
@@ -9,36 +10,12 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
   
   // Listen for global unreadMessagesUpdated events
   useEffect(() => {
-    const handleUnreadUpdated = (event: CustomEvent) => {
-      console.log('[useClubUnreadState] Detected unreadMessagesUpdated event:', event.detail);
-      if (event.detail?.clubId) {
-        // Always create a new Set, never mutate in place!
-        setUnreadClubs(prev => {
-          const updated = new Set(prev);
-          if (event.detail.isUnread) {
-            updated.add(event.detail.clubId);
-          } else {
-            updated.delete(event.detail.clubId);
-          }
-          return updated;
-        });
-        
-        setUnreadMessagesPerClub(prev => {
-          const updated = { ...prev };
-          if (event.detail.isUnread) {
-            updated[event.detail.clubId] = (updated[event.detail.clubId] || 0) + 1;
-          } else {
-            delete updated[event.detail.clubId];
-          }
-          return updated;
-        });
-        
-        setClubUnreadCount(prev => event.detail.isUnread ? prev + 1 : Math.max(0, prev - 1));
-      }
+    const handleUnreadUpdated = () => {
+      console.log('[useClubUnreadState] Detected unreadMessagesUpdated event');
     };
     
-    window.addEventListener('unreadMessagesUpdated', handleUnreadUpdated as EventListener);
-    return () => window.removeEventListener('unreadMessagesUpdated', handleUnreadUpdated as EventListener);
+    window.addEventListener('unreadMessagesUpdated', handleUnreadUpdated);
+    return () => window.removeEventListener('unreadMessagesUpdated', handleUnreadUpdated);
   }, []);
 
   // Mark club as unread (for new incoming messages)
@@ -46,7 +23,6 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
     console.log(`[useClubUnreadState] Marking club ${clubId} as unread`);
     
     setUnreadClubs(prev => {
-      // Always create a new Set, never mutate in place!
       const updated = new Set(prev);
       const normalizedClubId = clubId.toString(); // Convert to string to ensure consistency
       
@@ -63,14 +39,8 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
         
         setClubUnreadCount(prev => prev + 1);
         
-        // Dispatch event to notify UI components with detailed information
-        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
-          detail: { 
-            clubId: normalizedClubId,
-            isUnread: true,
-            unreadCount: 1
-          }
-        }));
+        // Dispatch event to notify UI components
+        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
       } else {
         console.log(`[useClubUnreadState] Club ${normalizedClubId} was already in unread set`);
         
@@ -82,19 +52,10 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
         });
         
         setClubUnreadCount(prev => prev + 1);
-        
-        // Dispatch event to notify UI components with updated count
-        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
-          detail: { 
-            clubId: normalizedClubId,
-            isUnread: true,
-            unreadCount: unreadMessagesPerClub[normalizedClubId] + 1
-          }
-        }));
       }
       return updated;
     });
-  }, [unreadMessagesPerClub]);
+  }, []);
 
   // Mark club messages as read
   const markClubMessagesAsRead = useCallback(async (clubId: string) => {
@@ -109,10 +70,9 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
     setUnreadClubs(prev => {
       if (!prev.has(clubId)) {
         console.log(`[useClubUnreadState] Club ${clubId} not in unread set:`, Array.from(prev));
-        return new Set(prev); // Always return a new Set, even if unchanged
+        return prev;
       }
       
-      // Always create a new Set, never mutate in place!
       const updated = new Set(prev);
       updated.delete(clubId);
       console.log(`[useClubUnreadState] Club ${clubId} removed from unread set:`, Array.from(updated));
@@ -127,14 +87,8 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
         return updated;
       });
       
-      // Dispatch event to notify UI components with detailed information
-      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
-        detail: { 
-          clubId,
-          isUnread: false,
-          unreadCount: 0
-        }
-      }));
+      // Dispatch event to notify UI components
+      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
       
       return updated;
     });
@@ -169,7 +123,6 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
       
       // Revert optimistic update on error
       setUnreadClubs(prev => {
-        // Always create a new Set, never mutate in place!
         const reverted = new Set(prev);
         reverted.add(clubId);
         return reverted;
@@ -183,14 +136,8 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
       
       setClubUnreadCount(prev => prev + messageCount);
       
-      // Notify UI components about the revert with detailed information
-      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
-        detail: { 
-          clubId,
-          isUnread: true,
-          unreadCount: messageCount
-        }
-      }));
+      // Notify UI components about the revert
+      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
       
       toast.error("Failed to mark club messages as read");
     }

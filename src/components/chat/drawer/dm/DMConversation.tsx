@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useCallback, memo, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,23 +39,6 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   const [isSending, setIsSending] = React.useState(false);
   const { formatTime } = useMessageFormatting();
   
-  // Create a stable reference to the user object that won't change identity
-  const userDataForMessages = useMemo(() => ({
-    id: user.id,
-    name: user.name,
-    avatar: user.avatar
-  }), [user.id, user.name, user.avatar]);
-
-  // Create a stable reference to the club members array
-  const clubMembers = useMemo(() => 
-    currentUser ? [{
-      id: currentUser.id,
-      name: currentUser.name,
-      avatar: currentUser.avatar
-    }] : [], 
-    [currentUser]
-  );
-  
   // Validate user data completeness at the component level
   const hasCompleteUserData = Boolean(user && user.id && user.name && user.avatar);
   
@@ -91,6 +75,13 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       </div>
     );
   }
+  
+  // Create a stable reference to the user object that won't change identity
+  const userDataForMessages = useMemo(() => ({
+    id: user.id,
+    name: user.name,
+    avatar: user.avatar
+  }), [user.id, user.name, user.avatar]);
   
   // Use our hook for active messages - pass the userDataForMessages as source of truth
   const { messages, setMessages, addOptimisticMessage } = useActiveDMMessages(
@@ -192,6 +183,12 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       setIsSending(false);
     }
   }, [currentUser, user, conversationId, addOptimisticMessage, createConversation, scrollToBottom, setMessages]);
+  
+  // Club members array for ChatMessages - memoized to prevent recreating
+  const clubMembers = useMemo(() => 
+    currentUser ? [currentUser] : [], 
+    [currentUser]
+  );
 
   return (
     <div className="flex flex-col h-full w-full">
@@ -215,6 +212,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
             />
           </div>
         </div>
+        {/* This empty div helps maintain balance in the header */}
         <div className="w-9"></div>
       </div>
       

@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
@@ -36,23 +37,11 @@ export const useRealtimeChat = (
             const clubId = payload.new.club_id;
             console.log('[useRealtimeChat] Dispatching unread message event for club:', clubId);
             
-            // Dispatch multiple events to ensure all UI components update
-            window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
-              detail: { 
-                clubId,
-                unreadCount: 1,
-                isUnread: true
-              }
-            }));
-            
-            // Dispatch club-specific event for targeted updates
-            window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
-              detail: { 
-                clubId,
-                unreadCount: 1,
-                isUnread: true
-              }
-            }));
+            // Dispatch event to update unread messages
+            const event = new CustomEvent('unreadMessagesUpdated', { 
+              detail: { clubId }
+            });
+            window.dispatchEvent(event);
           }
         }
       )
