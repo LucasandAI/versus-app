@@ -18,7 +18,6 @@ export const useClubMessageSubscriptions = (
   const { currentUser, isSessionReady } = useApp();
   const { markClubMessagesAsRead } = useUnreadMessages();
   
-  // Track the currently selected club
   const selectedClubRef = useRef<string | null>(null);
   
   useEffect(() => {
@@ -64,18 +63,29 @@ export const useClubMessageSubscriptions = (
       
     channelsRef.current.push(deletionChannel);
     
+    // Add a global debug subscription to confirm INSERT events
+    const debugGlobalChannel = supabase
+      .channel('debug_all_club_messages')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'club_chat_messages'
+      }, (payload) => {
+        console.log('[GLOBAL DEBUG] New message inserted:', payload);
+      })
+      .subscribe();
+    
+    channelsRef.current.push(debugGlobalChannel);
+    
     // Create a single channel for all club messages
     const clubMessagesChannel = supabase.channel('all_club_messages');
     
-    // Subscribe to all club chat messages for user's clubs
+    // Subscribe to all club chat messages without filter
     clubMessagesChannel
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
-        table: 'club_chat_messages',
-        filter: userClubs.length > 0 ? 
-          `club_id=in.(${userClubs.map(club => `'${club.id}'`).join(',')})` : 
-          undefined
+        table: 'club_chat_messages'
       }, (payload) => {
         handleNewMessagePayload(
           payload, 
@@ -109,7 +119,6 @@ export const useClubMessageSubscriptions = (
     const handleClubSelected = (e: CustomEvent) => {
       const clubId = e.detail?.clubId;
       if (clubId) {
-        console.log(`[useClubMessageSubscriptions] Club selected: ${clubId}`);
         selectedClubRef.current = clubId;
         
         // Mark club messages as read when selected
@@ -120,7 +129,6 @@ export const useClubMessageSubscriptions = (
     };
 
     const handleClubDeselected = () => {
-      console.log('[useClubMessageSubscriptions] Club deselected');
       selectedClubRef.current = null;
     };
 
