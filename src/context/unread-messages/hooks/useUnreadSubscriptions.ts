@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -56,13 +55,16 @@ export const useUnreadSubscriptions = ({
       if (pendingClubUpdates.size > 0) {
         pendingClubUpdates.forEach(clubId => {
           handlersRef.current.markClubAsUnread(clubId);
+          // Dispatch event for immediate UI update
+          window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', {
+            detail: {
+              clubId,
+              isUnread: true,
+              unreadCount: 1
+            }
+          }));
         });
         pendingClubUpdates.clear();
-      }
-      
-      // Only dispatch one event regardless of how many updates
-      if (pendingUpdates.size > 0 || pendingClubUpdates.size > 0) {
-        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
       }
       
       updateTimeout = null;

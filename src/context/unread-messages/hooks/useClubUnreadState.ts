@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
@@ -10,12 +9,36 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
   
   // Listen for global unreadMessagesUpdated events
   useEffect(() => {
-    const handleUnreadUpdated = () => {
-      console.log('[useClubUnreadState] Detected unreadMessagesUpdated event');
+    const handleUnreadUpdated = (event: CustomEvent) => {
+      console.log('[useClubUnreadState] Detected unreadMessagesUpdated event:', event.detail);
+      if (event.detail?.clubId) {
+        // Update the unread state based on the event details
+        setUnreadClubs(prev => {
+          const updated = new Set(prev);
+          if (event.detail.isUnread) {
+            updated.add(event.detail.clubId);
+          } else {
+            updated.delete(event.detail.clubId);
+          }
+          return updated;
+        });
+        
+        setUnreadMessagesPerClub(prev => {
+          const updated = { ...prev };
+          if (event.detail.isUnread) {
+            updated[event.detail.clubId] = (updated[event.detail.clubId] || 0) + 1;
+          } else {
+            delete updated[event.detail.clubId];
+          }
+          return updated;
+        });
+        
+        setClubUnreadCount(prev => event.detail.isUnread ? prev + 1 : Math.max(0, prev - 1));
+      }
     };
     
-    window.addEventListener('unreadMessagesUpdated', handleUnreadUpdated);
-    return () => window.removeEventListener('unreadMessagesUpdated', handleUnreadUpdated);
+    window.addEventListener('unreadMessagesUpdated', handleUnreadUpdated as EventListener);
+    return () => window.removeEventListener('unreadMessagesUpdated', handleUnreadUpdated as EventListener);
   }, []);
 
   // Mark club as unread (for new incoming messages)
@@ -39,8 +62,14 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
         
         setClubUnreadCount(prev => prev + 1);
         
-        // Dispatch event to notify UI components
-        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+        // Dispatch event to notify UI components with detailed information
+        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
+          detail: { 
+            clubId: normalizedClubId,
+            isUnread: true,
+            unreadCount: 1
+          }
+        }));
       } else {
         console.log(`[useClubUnreadState] Club ${normalizedClubId} was already in unread set`);
         
@@ -52,10 +81,19 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
         });
         
         setClubUnreadCount(prev => prev + 1);
+        
+        // Dispatch event to notify UI components with updated count
+        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
+          detail: { 
+            clubId: normalizedClubId,
+            isUnread: true,
+            unreadCount: unreadMessagesPerClub[normalizedClubId] + 1
+          }
+        }));
       }
       return updated;
     });
-  }, []);
+  }, [unreadMessagesPerClub]);
 
   // Mark club messages as read
   const markClubMessagesAsRead = useCallback(async (clubId: string) => {
@@ -87,8 +125,14 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
         return updated;
       });
       
-      // Dispatch event to notify UI components
-      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+      // Dispatch event to notify UI components with detailed information
+      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
+        detail: { 
+          clubId,
+          isUnread: false,
+          unreadCount: 0
+        }
+      }));
       
       return updated;
     });
@@ -136,8 +180,14 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
       
       setClubUnreadCount(prev => prev + messageCount);
       
-      // Notify UI components about the revert
-      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+      // Notify UI components about the revert with detailed information
+      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
+        detail: { 
+          clubId,
+          isUnread: true,
+          unreadCount: messageCount
+        }
+      }));
       
       toast.error("Failed to mark club messages as read");
     }
