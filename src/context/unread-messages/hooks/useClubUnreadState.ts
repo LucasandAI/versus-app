@@ -12,7 +12,7 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
     const handleUnreadUpdated = (event: CustomEvent) => {
       console.log('[useClubUnreadState] Detected unreadMessagesUpdated event:', event.detail);
       if (event.detail?.clubId) {
-        // Update the unread state based on the event details
+        // Always create a new Set, never mutate in place!
         setUnreadClubs(prev => {
           const updated = new Set(prev);
           if (event.detail.isUnread) {
@@ -46,6 +46,7 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
     console.log(`[useClubUnreadState] Marking club ${clubId} as unread`);
     
     setUnreadClubs(prev => {
+      // Always create a new Set, never mutate in place!
       const updated = new Set(prev);
       const normalizedClubId = clubId.toString(); // Convert to string to ensure consistency
       
@@ -108,9 +109,10 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
     setUnreadClubs(prev => {
       if (!prev.has(clubId)) {
         console.log(`[useClubUnreadState] Club ${clubId} not in unread set:`, Array.from(prev));
-        return prev;
+        return new Set(prev); // Always return a new Set, even if unchanged
       }
       
+      // Always create a new Set, never mutate in place!
       const updated = new Set(prev);
       updated.delete(clubId);
       console.log(`[useClubUnreadState] Club ${clubId} removed from unread set:`, Array.from(updated));
@@ -167,6 +169,7 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
       
       // Revert optimistic update on error
       setUnreadClubs(prev => {
+        // Always create a new Set, never mutate in place!
         const reverted = new Set(prev);
         reverted.add(clubId);
         return reverted;
