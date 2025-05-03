@@ -7,7 +7,7 @@ export const useMessageHandling = (
   updateUnreadCount: (chatId: string, count: number) => void
 ) => {
   const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({});
-  const { markClubAsUnread, updateClubUnreadState } = useUnreadMessages();
+  const { markClubAsUnread, updateClubUnreadState, updateClubUnreadCount } = useUnreadMessages();
 
   const handleNewMessage = useCallback((
     clubId: string,
@@ -35,16 +35,20 @@ export const useMessageHandling = (
       // Update club unread state for UI components
       updateClubUnreadState(clubId, true);
       
+      // Update club unread count for UI components
+      updateClubUnreadCount(clubId, 1);
+      
       // Dispatch event for UI updates
       window.dispatchEvent(new CustomEvent('clubMessageReceived', {
         detail: { 
           clubId,
           message,
-          unread: true
+          unread: true,
+          unreadCount: 1
         }
       }));
     }
-  }, [saveMessages, updateUnreadCount, markClubAsUnread, updateClubUnreadState]);
+  }, [saveMessages, updateUnreadCount, markClubAsUnread, updateClubUnreadState, updateClubUnreadCount]);
 
   return {
     messages,
