@@ -1,16 +1,16 @@
+
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
 import { useUserData } from './useUserData';
 
-// Add otherUserData parameter to receive the full user object
 export const useDMSubscription = (
   conversationId: string | undefined,
   otherUserId: string | undefined,
   currentUserId: string | undefined,
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
-  otherUserData?: { id: string; name: string; avatar?: string } // New parameter for the full user object
+  otherUserData?: { id: string; name: string; avatar?: string }
 ) => {
   const subscriptionError = useRef(false);
   const isMounted = useRef(true);
@@ -47,7 +47,6 @@ export const useDMSubscription = (
     return () => {
       isMounted.current = false;
       cleanupSubscription();
-      // Clear processed messages cache on unmount
       processedMessages.current.clear();
     };
   }, [cleanupSubscription]);
@@ -174,7 +173,10 @@ export const useDMSubscription = (
             senderAvatar: chatMessage.sender.avatar
           });
           
-          // Use the stable reference to event dispatch
+          // Update the messages state
+          setMessages(prevMessages => [...prevMessages, chatMessage]);
+          
+          // Dispatch an event to update the conversation list with the latest message
           window.dispatchEvent(new CustomEvent('dmMessageReceived', { 
             detail: { 
               conversationId: conversation_id, 
@@ -203,5 +205,5 @@ export const useDMSubscription = (
     }
     
     return cleanupSubscription;
-  }, [conversationId, currentUserId, otherUserId, userCache, cleanupSubscription, fetchUserData]);
+  }, [conversationId, currentUserId, otherUserId, userCache, cleanupSubscription, fetchUserData, setMessages]);
 };

@@ -94,20 +94,35 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
   useEffect(() => {
     const handler = () => {
       console.log('[UnreadMessagesProvider] Handling unreadMessagesUpdated event');
-      // We don't need to do anything here - the individual hooks handle their own state
+    };
+    
+    // Listen for DM events
+    const dmHandler = (e: CustomEvent) => {
+      if (e.detail?.conversationId) {
+        console.log('[UnreadMessagesProvider] DM received for conversation:', e.detail.conversationId);
+        if (currentUser && e.detail.message && e.detail.message.sender.id !== currentUser.id) {
+          markConversationAsUnread(e.detail.conversationId);
+        }
+      }
     };
     
     window.addEventListener('unreadMessagesUpdated', handler);
-    return () => window.removeEventListener('unreadMessagesUpdated', handler);
-  }, []);
+    window.addEventListener('dmMessageReceived', dmHandler as EventListener);
+    
+    return () => {
+      window.removeEventListener('unreadMessagesUpdated', handler);
+      window.removeEventListener('dmMessageReceived', dmHandler as EventListener);
+    };
+  }, [currentUser, markConversationAsUnread]);
   
   // Force re-render method that components can call - memoized
   const forceRefresh = useCallback(() => {
     console.log('[UnreadMessagesProvider] Force refresh triggered');
     // Use state from ref to avoid closure issues
     setUnreadClubs(new Set(stateRef.current.unreadClubs));
+    setUnreadConversations(new Set(stateRef.current.unreadConversations));
     window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
-  }, [setUnreadClubs]);
+  }, [setUnreadClubs, setUnreadConversations]);
   
   // Memoize context value to prevent unnecessary re-renders of consumers
   const contextValue = useMemo(() => ({

@@ -40,8 +40,8 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
 }) => {
   const { setCurrentView, setSelectedUser } = useApp();
   const [chatToDelete, setChatToDelete] = useState<{id: string, name: string} | null>(null);
-  const { unreadClubs: contextUnreadClubs } = useUnreadMessages();
-
+  const { unreadClubs: contextUnreadClubs, forceRefresh } = useUnreadMessages();
+  
   // Use passed props if available, otherwise use context
   const effectiveUnreadClubs = unreadClubs || contextUnreadClubs;
   
@@ -52,6 +52,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   useEffect(() => {
     const handleUnreadChanged = () => {
       setUpdateKey(prev => prev + 1);
+      forceRefresh(); // Force a refresh of the unread state
     };
     
     window.addEventListener('unreadMessagesUpdated', handleUnreadChanged);
@@ -63,7 +64,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
       window.removeEventListener('clubMessageReceived', handleUnreadChanged);
       window.removeEventListener('clubMessagesRead', handleUnreadChanged);
     };
-  }, []);
+  }, [forceRefresh]);
 
   const handleDeleteChat = () => {
     if (chatToDelete && onDeleteChat) {
@@ -73,14 +74,15 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   };
   
   // Create a key for forced re-renders
-  const unreadKey = JSON.stringify([...effectiveUnreadClubs].sort()) + `-${updateKey}`;
+  const unreadKey = `sidebar-${updateKey}-${JSON.stringify([...effectiveUnreadClubs].sort())}`;
+  console.log('[ChatSidebar] Rendering with unread key:', unreadKey);
 
   return (
     <div className="flex-1 overflow-auto bg-white">
       {/* Only show clubs when the clubs tab is active */}
       {activeTab === "clubs" && (
         <ClubsList
-          key={`clubs-list-${unreadKey}`}
+          key={unreadKey}
           clubs={clubs}
           selectedClub={selectedClub}
           onSelectClub={onSelectClub}
@@ -113,4 +115,4 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   );
 };
 
-export default ChatSidebar;
+export default React.memo(ChatSidebar);

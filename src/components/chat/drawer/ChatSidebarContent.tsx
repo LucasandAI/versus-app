@@ -11,6 +11,7 @@ interface ChatSidebarContentProps {
   onDeleteChat?: (chatId: string) => void;
   unreadCounts?: Record<string, number>;
   unreadClubs?: Set<string>;
+  unreadConversations?: Set<string>;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   activeTab: "clubs" | "dm";
 }
@@ -22,11 +23,13 @@ const ChatSidebarContent: React.FC<ChatSidebarContentProps> = ({
   onDeleteChat,
   unreadCounts,
   unreadClubs: propUnreadClubs,
+  unreadConversations: propUnreadConversations,
   onSelectUser,
   activeTab
 }) => {
-  const { unreadClubs: contextUnreadClubs } = useUnreadMessages();
+  const { unreadClubs: contextUnreadClubs, unreadConversations: contextUnreadConversations, forceRefresh } = useUnreadMessages();
   const unreadClubs = propUnreadClubs || contextUnreadClubs;
+  const unreadConversations = propUnreadConversations || contextUnreadConversations;
   
   // State to track changes in unread state
   const [updateCounter, setUpdateCounter] = useState(0);
@@ -35,21 +38,25 @@ const ChatSidebarContent: React.FC<ChatSidebarContentProps> = ({
   useEffect(() => {
     const handleUnreadUpdate = () => {
       setUpdateCounter(prev => prev + 1);
+      forceRefresh();
     };
     
     window.addEventListener('unreadMessagesUpdated', handleUnreadUpdate);
     window.addEventListener('clubMessageReceived', handleUnreadUpdate);
     window.addEventListener('clubMessagesRead', handleUnreadUpdate);
+    window.addEventListener('dmMessageReceived', handleUnreadUpdate);
     
     return () => {
       window.removeEventListener('unreadMessagesUpdated', handleUnreadUpdate);
       window.removeEventListener('clubMessageReceived', handleUnreadUpdate);
       window.removeEventListener('clubMessagesRead', handleUnreadUpdate);
+      window.removeEventListener('dmMessageReceived', handleUnreadUpdate);
     };
-  }, []);
+  }, [forceRefresh]);
   
   // Create a key for forced re-renders
-  const unreadKey = `${Array.from(unreadClubs).sort().join(',')}-${updateCounter}`;
+  const unreadKey = `${updateCounter}-${Array.from(unreadClubs).sort().join(',')}-${Array.from(unreadConversations).sort().join(',')}`;
+  console.log(`[ChatSidebarContent] Rendering with key: ${unreadKey}`);
   
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -68,4 +75,4 @@ const ChatSidebarContent: React.FC<ChatSidebarContentProps> = ({
   );
 };
 
-export default ChatSidebarContent;
+export default React.memo(ChatSidebarContent);

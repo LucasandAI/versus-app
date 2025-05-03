@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Club } from '@/types';
 import UserAvatar from '../../shared/UserAvatar';
 import ClubMembersPopover from './ClubMembersPopover';
@@ -33,31 +33,36 @@ const ClubsList: React.FC<ClubsListProps> = ({
 }) => {
   const { navigateToClubDetail } = useNavigation();
   const { lastMessages, sortedClubs } = useClubLastMessages(clubs);
-  const { unreadClubs: contextUnreadClubs, markClubMessagesAsRead } = useUnreadMessages();
+  const { unreadClubs: contextUnreadClubs, markClubMessagesAsRead, forceRefresh } = useUnreadMessages();
   
   // Use either the passed props (preferred) or fall back to context
   const unreadClubs = propUnreadClubs || contextUnreadClubs;
   
-  // Re-render when unread state changes
+  // State to force re-renders when unread state changes
+  const [updateTrigger, setUpdateTrigger] = useState(0);
+  
+  // Re-render when unread state changes or messages are received
   useEffect(() => {
     const handleUnreadUpdated = () => {
       console.log('[ClubsList] Force re-render due to unread state change');
-      // This is just to force a re-render
+      setUpdateTrigger(prev => prev + 1);
+      forceRefresh();
     };
     
     window.addEventListener('unreadMessagesUpdated', handleUnreadUpdated);
     window.addEventListener('clubMessageReceived', handleUnreadUpdated);
+    window.addEventListener('clubMessagesRead', handleUnreadUpdated);
     
     return () => {
       window.removeEventListener('unreadMessagesUpdated', handleUnreadUpdated);
       window.removeEventListener('clubMessageReceived', handleUnreadUpdated);
+      window.removeEventListener('clubMessagesRead', handleUnreadUpdated);
     };
-  }, []);
+  }, [forceRefresh]);
   
   useEffect(() => {
     console.log('[ClubsList] unreadClubs set updated:', Array.from(unreadClubs));
-    console.log('[ClubsList] Using prop unread clubs?', !!propUnreadClubs);
-  }, [unreadClubs, propUnreadClubs]);
+  }, [unreadClubs, updateTrigger]);
   
   const handleClubClick = (club: Club, e: React.MouseEvent) => {
     e.preventDefault();
@@ -76,7 +81,8 @@ const ClubsList: React.FC<ClubsListProps> = ({
   };
 
   // Create a key that will change whenever unread status changes
-  const unreadKey = Array.from(unreadClubs).join(',');
+  const unreadKey = `clubs-${updateTrigger}-${Array.from(unreadClubs).join(',')}`;
+  console.log('[ClubsList] Rendering with key:', unreadKey);
 
   return (
     <div className="p-3">
@@ -95,9 +101,12 @@ const ClubsList: React.FC<ClubsListProps> = ({
             ? formatTimeAgo(new Date(lastMessage.timestamp))
             : '';
             
+          // Add updateTrigger to the key to force re-render
+          const itemKey = `${club.id}-${isUnread ? 'unread' : 'read'}-${updateTrigger}`;
+            
           return (
             <div 
-              key={`${club.id}-${isUnread ? 'unread' : 'read'}`}
+              key={itemKey}
               className={`flex items-start px-4 py-3 cursor-pointer hover:bg-gray-50 relative group
                 ${selectedClub?.id === club.id ? 'bg-primary/10 text-primary' : ''}
                 ${isUnread ? 'font-medium' : ''}`}
@@ -156,4 +165,4 @@ const ClubsList: React.FC<ClubsListProps> = ({
   );
 };
 
-export default ClubsList;
+export default React.memo(ClubsList);

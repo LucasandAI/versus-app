@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import ConversationItem from './ConversationItem';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useApp } from '@/context/AppContext';
@@ -9,24 +9,59 @@ import { useDirectConversationsContext } from '@/context/DirectConversationsCont
 interface Props {
   onSelectUser: (userId: string, userName: string, userAvatar: string, conversationId: string) => void;
   selectedUserId?: string;
-  unreadConversations?: Set<string>; // This prop is now defined
+  unreadConversations?: Set<string>;
 }
 
 const DMConversationList: React.FC<Props> = ({ 
   onSelectUser, 
   selectedUserId,
-  unreadConversations = new Set() // Default value properly defined
+  unreadConversations = new Set()
 }) => {
   const { currentUser } = useApp();
-  const { conversations, loading } = useDirectConversationsContext();
+  const { conversations, loading, refreshConversations } = useDirectConversationsContext();
+  const { forceRefresh } = useUnreadMessages();
+  const [updateTrigger, setUpdateTrigger] = useState(0);
   
   const isEmpty = !loading && conversations.length === 0;
   
   // Debug logging to check the unread conversations
   console.log('[DMConversationList] unreadConversations:', Array.from(unreadConversations));
+  
+  // Add event listeners for dynamic updates
+  useEffect(() => {
+    const handleUnreadUpdated = () => {
+      console.log('[DMConversationList] Detected unread state change');
+      setUpdateTrigger(prev => prev + 1);
+    };
+    
+    const handleDmReceived = (e: CustomEvent) => {
+      console.log('[DMConversationList] Received new DM, refreshing conversations');
+      if (e.detail?.conversationId) {
+        refreshConversations();
+        setUpdateTrigger(prev => prev + 1);
+      }
+    };
+    
+    window.addEventListener('unreadMessagesUpdated', handleUnreadUpdated);
+    window.addEventListener('dmMessageReceived', handleDmReceived as EventListener);
+    
+    return () => {
+      window.removeEventListener('unreadMessagesUpdated', handleUnreadUpdated);
+      window.removeEventListener('dmMessageReceived', handleDmReceived as EventListener);
+    };
+  }, [forceRefresh, refreshConversations]);
+  
+  // Make sure to refresh conversations when component mounts
+  useEffect(() => {
+    refreshConversations();
+  }, [refreshConversations]);
+  
+  // Add updateTrigger to the component key to force full re-renders
+  const componentKey = `dm-list-${updateTrigger}-${Array.from(unreadConversations).join(',')}`;
+  console.log('[DMConversationList] Rendering with key:', componentKey);
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-white" key={componentKey}>
       <h1 className="text-4xl font-bold p-4">Messages</h1>
       
       <div className="flex-1 overflow-auto">
@@ -53,11 +88,13 @@ const DMConversationList: React.FC<Props> = ({
               .filter(conversation => conversation.userId !== currentUser?.id)
               .map((conversation) => {
                 const isUnread = unreadConversations.has(conversation.conversationId);
-                console.log(`[DMConversationList] Conversation ${conversation.conversationId} isUnread: ${isUnread}`);
+                const itemKey = `conversation-${conversation.conversationId}-${isUnread ? 'unread' : 'read'}-${updateTrigger}`;
+                
+                console.log(`[DMConversationList] Rendering conversation ${conversation.conversationId} isUnread: ${isUnread} key: ${itemKey}`);
                 
                 return (
                   <ConversationItem
-                    key={conversation.conversationId}
+                    key={itemKey}
                     conversation={{
                       ...conversation,
                       lastMessage: conversation.lastMessage || '',
@@ -82,4 +119,4 @@ const DMConversationList: React.FC<Props> = ({
   );
 };
 
-export default DMConversationList;
+export default React.memo(DMConversationList);
