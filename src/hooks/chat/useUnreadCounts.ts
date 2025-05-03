@@ -55,6 +55,43 @@ export const useUnreadCounts = () => {
     }
   }, [userId]);
 
+  // Listen for unread message updates
+  useEffect(() => {
+    const handleUnreadMessagesUpdated = (e: CustomEvent) => {
+      const { clubId, unreadCount, isUnread } = e.detail || {};
+      
+      if (clubId) {
+        // Update club-specific unread state
+        setUnreadClubs(prev => {
+          const updated = new Set(prev);
+          if (isUnread) {
+            updated.add(clubId);
+          } else {
+            updated.delete(clubId);
+          }
+          return updated;
+        });
+        
+        // Update total club unread count
+        if (unreadCount !== undefined) {
+          setClubUnreadCount(prev => {
+            if (isUnread) {
+              return prev + unreadCount;
+            } else {
+              return Math.max(0, prev - unreadCount);
+            }
+          });
+        }
+      }
+    };
+
+    window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated as EventListener);
+
+    return () => {
+      window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated as EventListener);
+    };
+  }, []);
+
   useEffect(() => {
     if (!isSessionReady || !userId) return;
 
@@ -87,13 +124,12 @@ export const useUnreadCounts = () => {
           setUnreadClubs(prev => new Set([...prev, payload.new.club_id]));
           
           // Dispatch events for immediate UI updates
-          window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
-          window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
-            detail: { 
+          window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', {
+            detail: {
               clubId: payload.new.club_id,
               unreadCount: 1,
               isUnread: true
-            } 
+            }
           }));
         }
       })
