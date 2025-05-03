@@ -1,6 +1,5 @@
 
 import { useState } from 'react';
-import { useRouter } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import { toast } from 'sonner';
 import { sendClubInvite } from '@/utils/clubInviteActions';

@@ -37,7 +37,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     
     if (clubId && clubName) {
       console.log("[NotificationItem] Navigating to club:", clubId, clubName);
-      navigateToClub({ id: clubId, name: clubName });
+      navigateToClub(clubId, { id: clubId, name: clubName }); // Added clubId as first parameter
       
       // Mark as read when clicked
       if (onMarkAsRead && !notification.read) {
