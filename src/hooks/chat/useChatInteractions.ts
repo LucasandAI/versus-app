@@ -2,6 +2,7 @@
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
 import { useNavigation } from '@/hooks/useNavigation';
+import { sendClubInvite } from '@/utils/clubInviteActions';
 
 export const useChatInteractions = () => {
   const { setCurrentView, setSelectedClub } = useApp();
@@ -21,9 +22,15 @@ export const useChatInteractions = () => {
     navigateToClub(club);
   };
 
+  // Added a handler specifically for club invites from chat
+  const handleClubInvite = async (userId: string, userName: string, clubId: string, clubName: string): Promise<boolean> => {
+    return await sendClubInvite(clubId, clubName, userId, userName);
+  };
+
   return {
     handleMatchClick,
     handleSelectUser,
-    handleClubClick
+    handleClubClick,
+    handleClubInvite
   };
 };

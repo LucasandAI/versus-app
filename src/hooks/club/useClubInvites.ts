@@ -42,7 +42,8 @@ export const useClubInvites = (clubId: string, clubName?: string) => {
       const { data: invites, error: invitesError } = await supabase
         .from('club_invites')
         .select('user_id, status')
-        .eq('club_id', clubId);
+        .eq('club_id', clubId)
+        .eq('status', 'pending');
         
       if (invitesError) {
         throw new Error(`Error fetching club invites: ${invitesError.message}`);
@@ -50,10 +51,12 @@ export const useClubInvites = (clubId: string, clubName?: string) => {
       
       // Create exclusion sets for efficient lookups
       const memberIds = new Set(members?.map(m => m.user_id) || []);
-      const invitedUserIds = new Map(); // Map of user_id to status
+      const invitedUserIds = new Set();
       
       invites?.forEach(invite => {
-        invitedUserIds.set(invite.user_id, invite.status);
+        if (invite.status === 'pending') {
+          invitedUserIds.add(invite.user_id);
+        }
       });
       
       // Fetch all users except the current user
@@ -65,7 +68,7 @@ export const useClubInvites = (clubId: string, clubName?: string) => {
         throw new Error(`Error fetching users: ${usersError.message}`);
       }
       
-      // Filter and format users
+      // Filter and format users - include all users except those who are currently members
       const formattedUsers = allUsers
         ?.filter(user => {
           // We always want to show users who aren't members
@@ -75,7 +78,7 @@ export const useClubInvites = (clubId: string, clubName?: string) => {
           id: user.id,
           name: user.name,
           avatar: user.avatar,
-          alreadyInvited: invitedUserIds.has(user.id) && invitedUserIds.get(user.id) === 'pending',
+          alreadyInvited: invitedUserIds.has(user.id),
           alreadyMember: memberIds.has(user.id)
         })) || [];
       
@@ -145,6 +148,7 @@ export const useClubInvites = (clubId: string, clubName?: string) => {
     setProcessingUsers(prev => new Set(prev).add(userId));
     
     try {
+      // Use the improved sendClubInvite function that creates notifications
       const success = await sendClubInvite(clubId, clubName, userId, userName);
       
       if (success) {
