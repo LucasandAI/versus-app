@@ -1,19 +1,21 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
+import { useUserData } from './useUserData';
 
 /**
- * Hook for managing active DM messages that relies exclusively on passed user data
- * and doesn't perform dynamic user data resolution
+ * Hook for managing active DM messages that syncs with global message state
+ * and handles real-time updates via events
  */
 export const useActiveDMMessages = (
   conversationId: string,
   otherUserId: string,
   currentUserId: string | undefined,
-  otherUserData?: { id: string; name: string; avatar?: string }
+  otherUserData?: { id: string; name: string; avatar?: string } // Added parameter for otherUserData
 ) => {
   // Local state for messages in this conversation
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const { userCache, fetchUserData } = useUserData();
   
   // Use stable refs to prevent capturing stale values in closures
   const processedMsgIds = useRef(new Set<string>());
@@ -22,29 +24,22 @@ export const useActiveDMMessages = (
   const stableConversationId = useRef(conversationId);
   const optimisticMessageIds = useRef(new Set<string>());
   
-  // Store authoritative user data in refs for stable access
+  // Store authoritative user data in a ref for stable access
   const otherUserDataRef = useRef(otherUserData);
-  const currentUserRef = useRef({
-    id: currentUserId,
-    name: 'You', 
-    avatar: undefined
-  });
   
   // Update the stable refs when props change
   useEffect(() => {
     stableConversationId.current = conversationId;
     otherUserDataRef.current = otherUserData;
-    currentUserRef.current.id = currentUserId;
     
     // Clear tracked message state when conversation changes
-    if (conversationId !== stableConversationId.current) {
-      processedMsgIds.current.clear();
-      optimisticMessageIds.current.clear();
-      messageUpdateQueue.current = [];
-    }
+    processedMsgIds.current.clear();
+    optimisticMessageIds.current.clear();
+    messageUpdateQueue.current = [];
     
-    console.log('[useActiveDMMessages] Updated stable refs with user data:', otherUserData);
-  }, [conversationId, otherUserData, currentUserId]);
+    // Log the authoritative user data for debugging
+    console.log('[useActiveDMMessages] Received authoritative user data:', otherUserData);
+  }, [conversationId, otherUserData]);
 
   // Process message updates in batches to avoid multiple state updates
   const processMessageQueue = useCallback(() => {
@@ -71,11 +66,35 @@ export const useActiveDMMessages = (
           return;
         }
 
-        // Check if message already exists in our state
+        // CRITICAL: Check if message already exists in our state
         const existingMessage = prevMessageMap.get(msgId);
         if (existingMessage) {
-          // Always keep the existing message if it has complete metadata
-          // This prevents any flickering from metadata updates
+          // If message exists and has complete sender info, KEEP the existing message
+          // This prevents overwriting good metadata with incomplete metadata
+          if (
+            existingMessage.sender && 
+            typeof existingMessage.sender.name === 'string' &&
+            existingMessage.sender.name !== 'Unknown' &&
+            existingMessage.sender.name !== 'User'
+          ) {
+            console.log('[useActiveDMMessages] Preserving existing message with good metadata:', msgId);
+            // Keep existing message with good metadata
+            return;
+          }
+          
+          // If existing message has worse metadata than new message, allow replacement
+          if (
+            msg.sender && 
+            typeof msg.sender.name === 'string' && 
+            msg.sender.name !== 'Unknown' && 
+            msg.sender.name !== 'User' &&
+            (existingMessage.sender.name === 'Unknown' || existingMessage.sender.name === 'User')
+          ) {
+            console.log('[useActiveDMMessages] Replacing message with better metadata:', msgId);
+            prevMessageMap.set(msgId, msg);
+            hasNewMessages = true;
+          }
+          
           return;
         }
         
@@ -83,6 +102,7 @@ export const useActiveDMMessages = (
         const isOptimisticReplacement = 
           !msg.optimistic && 
           Array.from(optimisticMessageIds.current).some(optId => {
+            // If this is a real message that replaces an optimistic one, remove optimistic
             const matchesOptimistic = prev.find(m => 
               m.id === optId && 
               m.text === msg.text && 
@@ -90,7 +110,9 @@ export const useActiveDMMessages = (
             );
             
             if (matchesOptimistic) {
+              // Remove the optimistic marker
               optimisticMessageIds.current.delete(optId);
+              // Also remove from prevMessageMap so we don't keep both versions
               prevMessageMap.delete(optId);
               return true;
             }
@@ -192,7 +214,7 @@ export const useActiveDMMessages = (
   // Load initial messages for the conversation
   const fetchMessages = useCallback(async () => {
     // Skip for new conversations
-    if (!conversationId || conversationId === 'new' || !currentUserId || !otherUserData) {
+    if (!conversationId || conversationId === 'new' || !currentUserId) {
       return;
     }
 
@@ -212,27 +234,30 @@ export const useActiveDMMessages = (
         .limit(50);
 
       if (data && data.length > 0) {
-        // Transform database records to ChatMessage format with authoritative sender data
+        // Transform database records to ChatMessage format
         const formattedMessages: ChatMessage[] = data.map(msg => {
           const isCurrentUser = msg.sender_id === currentUserId;
           
-          // Always use the pre-known user objects without any fallbacks
-          const chatMessage = {
-            id: msg.id,
-            text: msg.text,
-            sender: isCurrentUser ? 
-              {
-                id: currentUserId,
-                name: 'You',
-                avatar: undefined
-              } : 
-              {
-                id: otherUserData.id,
-                name: otherUserData.name,
-                avatar: otherUserData.avatar
-              },
-            timestamp: msg.timestamp
-          };
+          // Default values
+          let senderName = isCurrentUser ? 'You' : 'User';
+          let senderAvatar: string | undefined = undefined;
+          
+          if (!isCurrentUser) {
+            // CRITICAL CHANGE: Always prioritize otherUserData from props
+            // This ensures consistency with the user data passed from parent
+            if (otherUserDataRef.current) {
+              senderName = otherUserDataRef.current.name;
+              senderAvatar = otherUserDataRef.current.avatar;
+              console.log(`[useActiveDMMessages] Using authoritative user data for message: id=${msg.id}, name="${senderName}", avatar="${senderAvatar || 'undefined'}"`);
+            } 
+            // Only fall back to cache if otherUserData is not available
+            else if (userCache[msg.sender_id]) {
+              const user = userCache[msg.sender_id];
+              senderName = user.name;
+              senderAvatar = user.avatar;
+              console.log(`[useActiveDMMessages] Using cached user data for message: id=${msg.id}, name="${senderName}", avatar="${senderAvatar || 'undefined'}"`);
+            }
+          }
           
           const msgId = msg.id?.toString();
           if (msgId) {
@@ -240,7 +265,16 @@ export const useActiveDMMessages = (
             processedMsgIds.current.add(msgId);
           }
           
-          return chatMessage;
+          return {
+            id: msg.id,
+            text: msg.text,
+            sender: {
+              id: msg.sender_id,
+              name: senderName,
+              avatar: senderAvatar
+            },
+            timestamp: msg.timestamp
+          };
         });
         
         setMessages(formattedMessages);
@@ -248,14 +282,12 @@ export const useActiveDMMessages = (
     } catch (error) {
       console.error('[useActiveDMMessages] Error fetching DM messages:', error);
     }
-  }, [conversationId, currentUserId, otherUserData]);
+  }, [conversationId, currentUserId, userCache]);
   
-  // Only fetch messages when the conversation or user data changes
+  // Only fetch messages when the conversation changes
   useEffect(() => {
-    if (otherUserData) {
-      fetchMessages();
-    }
-  }, [fetchMessages, otherUserData]);
+    fetchMessages();
+  }, [fetchMessages]);
 
   // Add a new message optimistically (for local UI updates)
   const addOptimisticMessage = useCallback((message: ChatMessage) => {

@@ -1,5 +1,5 @@
 
-import React, { useRef, useEffect, useCallback, memo, useMemo, useState } from 'react';
+import React, { useRef, useEffect, useCallback, memo, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -15,8 +15,7 @@ import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
 import DMMessageInput from './DMMessageInput';
 import DMHeader from './DMHeader';
 import { ArrowLeft } from 'lucide-react';
-import { ChatMessage } from '@/types/chat';
-import { Spinner } from '@/components/ui/spinner';
+import { useUserData } from '@/hooks/chat/dm/useUserData';
 
 interface DMConversationProps {
   user: {
@@ -40,72 +39,72 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   const [isSending, setIsSending] = React.useState(false);
   const { formatTime } = useMessageFormatting();
   
-  // Add a render delay to prevent flickering
-  const [renderMessages, setRenderMessages] = useState(false);
-  
   // Validate user data completeness at the component level
   const hasCompleteUserData = Boolean(user && user.id && user.name && user.avatar);
   
+  // Log comprehensive user data validation
+  console.log(`[DMConversation] User data validation:`, {
+    id: user?.id || 'missing',
+    name: user?.name || 'missing',
+    avatar: user?.avatar || 'missing',
+    isComplete: hasCompleteUserData
+  });
+  
+  // If user data is incomplete, don't proceed with rendering the conversation
+  if (!hasCompleteUserData) {
+    return (
+      <div className="flex flex-col h-full w-full">
+        <div className="border-b p-3 flex items-center">
+          <button 
+            onClick={onBack}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div className="flex-1 flex justify-center">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse"></div>
+              <div className="h-5 w-24 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
+          <div className="w-9"></div>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-gray-500">Loading conversation data...</p>
+        </div>
+      </div>
+    );
+  }
+  
   // Create a stable reference to the user object that won't change identity
   const userDataForMessages = useMemo(() => ({
-    id: user?.id || '',
-    name: user?.name || '',
-    avatar: user?.avatar || ''
-  }), [user?.id, user?.name, user?.avatar]);
+    id: user.id,
+    name: user.name,
+    avatar: user.avatar
+  }), [user.id, user.name, user.avatar]);
   
-  // Use our hook for active messages with the stable user data
+  // Use our hook for active messages - pass the userDataForMessages as source of truth
   const { messages, setMessages, addOptimisticMessage } = useActiveDMMessages(
     conversationId, 
-    user?.id || '',
+    user.id,
     currentUser?.id,
-    hasCompleteUserData ? userDataForMessages : undefined // Only pass user data when complete
+    userDataForMessages // Pass the authoritative user data to useActiveDMMessages
   );
   
-  // Check if we have complete message metadata
-  const hasCompleteMessageMetadata = useMemo(() => {
-    if (messages.length === 0) return false;
-    
-    return messages.every(m => 
-      m.sender &&
-      typeof m.sender.name === 'string' &&
-      m.sender.name !== 'User' &&
-      m.sender.name !== 'Unknown'
-    );
-  }, [messages]);
-  
-  // Pass the complete user data object to useDMSubscription
+  // Pass the complete user data object to useDMSubscription to ensure consistent display
   useDMSubscription(
     conversationId, 
-    user?.id, 
+    user.id, 
     currentUser?.id, 
     setMessages,
-    hasCompleteUserData ? userDataForMessages : undefined // Only pass user data when complete
+    userDataForMessages // This is the authoritative source of user metadata
   );
   
   // Use scroll management hook with optimized scrolling
   const { scrollRef, lastMessageRef, scrollToBottom } = useMessageScroll(messages);
   
   // Custom hooks for conversation management
-  const { createConversation } = useConversationManagement(currentUser?.id, user?.id);
-  
-  // Add a render delay to prevent flickering
-  useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    
-    if (hasCompleteUserData && hasCompleteMessageMetadata) {
-      // Delay rendering to ensure stable data
-      timeoutId = setTimeout(() => {
-        setRenderMessages(true);
-      }, 200);
-    } else {
-      // Reset the render flag if data becomes incomplete
-      setRenderMessages(false);
-    }
-    
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [hasCompleteUserData, hasCompleteMessageMetadata, conversationId]);
+  const { createConversation } = useConversationManagement(currentUser?.id, user.id);
   
   // Mark conversation as read when opened
   useEffect(() => {
@@ -127,7 +126,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       text,
       sender: {
         id: currentUser.id,
-        name: 'You',
+        name: currentUser.name || 'You',
         avatar: currentUser.avatar
       },
       timestamp: new Date().toISOString(),
@@ -191,39 +190,6 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     [currentUser]
   );
 
-  // Log data state for debugging
-  console.log('[DMConversation] Render state:', {
-    hasCompleteUserData,
-    hasCompleteMessageMetadata,
-    renderMessages,
-    messagesCount: messages.length
-  });
-
-  if (!hasCompleteUserData) {
-    return (
-      <div className="flex flex-col h-full w-full">
-        <div className="border-b p-3 flex items-center">
-          <button 
-            onClick={onBack}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <div className="flex-1 flex justify-center">
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse"></div>
-              <div className="h-5 w-24 bg-gray-200 rounded animate-pulse"></div>
-            </div>
-          </div>
-          <div className="w-9"></div>
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-gray-500">Loading conversation data...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col h-full w-full">
       {/* Header with back button and centered user info */}
@@ -252,26 +218,17 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         <div className="flex-1 min-h-0">
-          {renderMessages ? (
-            <ChatMessages 
-              messages={messages}
-              clubMembers={clubMembers}
-              onSelectUser={(userId, userName, userAvatar) => 
-                navigateToUserProfile(userId, userName, userAvatar)
-              }
-              currentUserAvatar={currentUser?.avatar}
-              lastMessageRef={lastMessageRef}
-              formatTime={formatTime}
-              scrollRef={scrollRef}
-            />
-          ) : (
-            <div className="h-full w-full flex items-center justify-center">
-              <div className="flex flex-col items-center gap-2">
-                <Spinner size="lg" />
-                <p className="text-sm text-gray-500">Loading messages...</p>
-              </div>
-            </div>
-          )}
+          <ChatMessages 
+            messages={messages}
+            clubMembers={clubMembers}
+            onSelectUser={(userId, userName, userAvatar) => 
+              navigateToUserProfile(userId, userName, userAvatar)
+            }
+            currentUserAvatar={currentUser?.avatar}
+            lastMessageRef={lastMessageRef}
+            formatTime={formatTime}
+            scrollRef={scrollRef}
+          />
         </div>
         
         <DMMessageInput
