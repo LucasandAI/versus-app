@@ -85,7 +85,7 @@ export const useClubLastMessages = (clubs: Club[]) => {
         // Re-sort clubs based on new message timestamp
         setSortedClubs(prevSorted => {
           const clubsWithTimestamps = prevSorted.map(club => {
-            const lastMsg = club.id === clubId ? message : prev[club.id];
+            const lastMsg = club.id === clubId ? message : lastMessages[club.id];
             const lastTimestamp = lastMsg ? 
               new Date(lastMsg.timestamp).getTime() : 
               0;
@@ -108,7 +108,7 @@ export const useClubLastMessages = (clubs: Club[]) => {
     return () => {
       window.removeEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
     };
-  }, [clubs]);
+  }, [clubs, lastMessages]);
 
   // Return without any memoization to ensure fresh data on each render
   return { 
