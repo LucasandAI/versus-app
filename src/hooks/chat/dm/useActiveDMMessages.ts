@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
@@ -37,15 +36,10 @@ export const useActiveDMMessages = (
     processedMsgIds.current.clear();
     optimisticMessageIds.current.clear();
     messageUpdateQueue.current = [];
+    
+    // Log the authoritative user data for debugging
+    console.log('[useActiveDMMessages] Received authoritative user data:', otherUserData);
   }, [conversationId, otherUserData]);
-  
-  // Fetch other user's data if needed
-  useEffect(() => {
-    // Only fetch user data if otherUserData is not provided and we don't have it in cache
-    if (otherUserId && !otherUserData && !userCache[otherUserId] && currentUserId) {
-      fetchUserData(otherUserId);
-    }
-  }, [otherUserId, userCache, fetchUserData, currentUserId, otherUserData]);
 
   // Process message updates in batches to avoid multiple state updates
   const processMessageQueue = useCallback(() => {
@@ -244,25 +238,24 @@ export const useActiveDMMessages = (
         const formattedMessages: ChatMessage[] = data.map(msg => {
           const isCurrentUser = msg.sender_id === currentUserId;
           
-          // Use otherUserData as primary source of truth if available
+          // Default values
           let senderName = isCurrentUser ? 'You' : 'User';
           let senderAvatar: string | undefined = undefined;
           
           if (!isCurrentUser) {
-            // First priority: Use otherUserData from props (from DMHeader)
+            // CRITICAL CHANGE: Always prioritize otherUserData from props
+            // This ensures consistency with the user data passed from parent
             if (otherUserDataRef.current) {
               senderName = otherUserDataRef.current.name;
               senderAvatar = otherUserDataRef.current.avatar;
-              console.log(`[useActiveDMMessages] Using authoritative user data from props: name="${senderName}", avatar="${senderAvatar || 'undefined'}"`);
+              console.log(`[useActiveDMMessages] Using authoritative user data for message: id=${msg.id}, name="${senderName}", avatar="${senderAvatar || 'undefined'}"`);
             } 
-            // Second priority: Fall back to user cache
-            else {
+            // Only fall back to cache if otherUserData is not available
+            else if (userCache[msg.sender_id]) {
               const user = userCache[msg.sender_id];
-              if (user) {
-                senderName = user.name;
-                senderAvatar = user.avatar;
-                console.log(`[useActiveDMMessages] Using cached user data: name="${senderName}", avatar="${senderAvatar || 'undefined'}"`);
-              }
+              senderName = user.name;
+              senderAvatar = user.avatar;
+              console.log(`[useActiveDMMessages] Using cached user data for message: id=${msg.id}, name="${senderName}", avatar="${senderAvatar || 'undefined'}"`);
             }
           }
           

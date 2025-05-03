@@ -29,13 +29,18 @@ export const useMessageNormalization = (currentUserId: string | null, getMemberN
       };
     }
     
-    // Handle messages with sender object but incomplete information from join query
+    // Handle messages with sender object but incomplete information
     if (message.sender && typeof message.sender === 'object') {
       console.log('[useMessageNormalization] Message has sender object but may need enhancement:', message.sender);
       
-      // Preserve existing name/avatar if they exist, only fall back if truly missing
-      const senderName = typeof message.sender.name === 'string' ? message.sender.name : getMemberName(message.sender.id);
-      const senderAvatar = typeof message.sender.avatar === 'string' ? message.sender.avatar : undefined;
+      // CRITICAL CHANGE: Never fall back to getMemberName if we already have a name in sender
+      const senderName = typeof message.sender.name === 'string' && message.sender.name !== '' 
+                        ? message.sender.name 
+                        : getMemberName(message.sender.id);
+                        
+      const senderAvatar = typeof message.sender.avatar === 'string' && message.sender.avatar !== '' 
+                         ? message.sender.avatar 
+                         : undefined;
       
       console.log(`[useMessageNormalization] Using name="${senderName}", avatar="${senderAvatar || 'undefined'}"`);
       

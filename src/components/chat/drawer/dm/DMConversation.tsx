@@ -39,12 +39,42 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   const [isSending, setIsSending] = React.useState(false);
   const { formatTime } = useMessageFormatting();
   
-  // Log comprehensive user data when component mounts/updates
-  console.log(`[DMConversation] Using authoritative user data:`, {
-    id: user.id,
-    name: user.name || 'Unknown',
-    avatar: user.avatar || 'none'
+  // Validate user data completeness at the component level
+  const hasCompleteUserData = Boolean(user && user.id && user.name && user.avatar);
+  
+  // Log comprehensive user data validation
+  console.log(`[DMConversation] User data validation:`, {
+    id: user?.id || 'missing',
+    name: user?.name || 'missing',
+    avatar: user?.avatar || 'missing',
+    isComplete: hasCompleteUserData
   });
+  
+  // If user data is incomplete, don't proceed with rendering the conversation
+  if (!hasCompleteUserData) {
+    return (
+      <div className="flex flex-col h-full w-full">
+        <div className="border-b p-3 flex items-center">
+          <button 
+            onClick={onBack}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div className="flex-1 flex justify-center">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse"></div>
+              <div className="h-5 w-24 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
+          <div className="w-9"></div>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-gray-500">Loading conversation data...</p>
+        </div>
+      </div>
+    );
+  }
   
   // Create a stable reference to the user object that won't change identity
   const userDataForMessages = useMemo(() => ({
@@ -160,9 +190,6 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     [currentUser]
   );
 
-  // Check if we have valid user data before rendering messages
-  const hasValidUserData = Boolean(user.name);
-
   return (
     <div className="flex flex-col h-full w-full">
       {/* Header with back button and centered user info */}
@@ -191,23 +218,17 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         <div className="flex-1 min-h-0">
-          {hasValidUserData ? (
-            <ChatMessages 
-              messages={messages}
-              clubMembers={clubMembers}
-              onSelectUser={(userId, userName, userAvatar) => 
-                navigateToUserProfile(userId, userName, userAvatar)
-              }
-              currentUserAvatar={currentUser?.avatar}
-              lastMessageRef={lastMessageRef}
-              formatTime={formatTime}
-              scrollRef={scrollRef}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-gray-500">
-              <p>Loading conversation...</p>
-            </div>
-          )}
+          <ChatMessages 
+            messages={messages}
+            clubMembers={clubMembers}
+            onSelectUser={(userId, userName, userAvatar) => 
+              navigateToUserProfile(userId, userName, userAvatar)
+            }
+            currentUserAvatar={currentUser?.avatar}
+            lastMessageRef={lastMessageRef}
+            formatTime={formatTime}
+            scrollRef={scrollRef}
+          />
         </div>
         
         <DMMessageInput
