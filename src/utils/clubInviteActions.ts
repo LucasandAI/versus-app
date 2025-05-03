@@ -163,20 +163,32 @@ export const sendClubInvite = async (
       return false;
     }
     
-    // Use upsert to handle duplicate invites
+    // Check if user is already a member
+    const isMember = await isUserClubMember(clubId, userId);
+    if (isMember) {
+      toast.error(`${userName} is already a member of this club`);
+      return false;
+    }
+    
+    // First delete any existing invites for this user and club to ensure clean state
+    // This fixes the issue where users who have left or denied can't be re-invited
+    await supabase
+      .from('club_invites')
+      .delete()
+      .eq('club_id', clubId)
+      .eq('user_id', userId);
+    
+    // Create a new invite
     const { error: inviteError } = await supabase
       .from('club_invites')
-      .upsert({
+      .insert({
         club_id: clubId,
         user_id: userId,
         status: 'pending'
-      }, { 
-        onConflict: 'club_id,user_id',
-        ignoreDuplicates: false 
       });
       
     if (inviteError) {
-      console.error('[sendClubInvite] Error creating/updating invite:', inviteError);
+      console.error('[sendClubInvite] Error creating invite:', inviteError);
       toast.error('Failed to send invitation');
       return false;
     }
