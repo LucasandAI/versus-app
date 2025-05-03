@@ -8,11 +8,10 @@ interface DMHeaderProps {
   userAvatar?: string;
 }
 
-// Memoized component to prevent unnecessary re-renders
+// Primary component that defines user metadata for the conversation
 const DMHeader: React.FC<DMHeaderProps> = memo(({ userId, userName, userAvatar }) => {
-  console.log(`[DMHeader] Rendering for user ${userId} with name "${userName}" and avatar "${userAvatar}"`);
+  console.log(`[DMHeader] Providing authoritative user data: id=${userId}, name="${userName}", avatar="${userAvatar || 'undefined'}"`);
   
-  // Never fall back to "User" - only use the provided userName
   return (
     <>
       <UserAvatar 

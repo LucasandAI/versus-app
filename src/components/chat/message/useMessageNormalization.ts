@@ -5,20 +5,18 @@ export const useMessageNormalization = (currentUserId: string | null, getMemberN
   const normalizeMessage = (message: any): ChatMessage => {
     console.log('[useMessageNormalization] Normalizing message:', message);
     
-    // If it's already in the expected format with a complete sender object
-    // This is the most important case to handle for direct messages
-    if (message.text !== undefined && message.sender !== undefined) {
-      console.log('[useMessageNormalization] Message already in expected format with sender:', message.sender);
+    // If the message already has complete sender information, use it without modification
+    if (message.text !== undefined && message.sender?.name) {
+      console.log('[useMessageNormalization] Using existing complete sender info:', message.sender);
       
-      // Make sure we don't lose any sender information
+      // Return the message exactly as is, preserving all sender information
       return {
         id: message.id,
         text: message.text,
         sender: {
           id: String(message.sender.id),
-          // Preserve existing name and avatar if they exist
-          name: message.sender.name || getMemberName(message.sender.id),
-          avatar: message.sender.avatar || '/placeholder.svg'
+          name: message.sender.name, // Preserve the name exactly as provided
+          avatar: message.sender.avatar // Preserve the avatar exactly as provided
         },
         timestamp: message.timestamp,
         isSupport: Boolean(message.isSupport),
@@ -26,49 +24,54 @@ export const useMessageNormalization = (currentUserId: string | null, getMemberN
       };
     }
     
-    // Handle messages with sender object from join query
+    // Handle messages with sender object but incomplete information from join query
     if (message.sender && typeof message.sender === 'object') {
-      console.log('[useMessageNormalization] Message has sender object from join:', message.sender);
+      console.log('[useMessageNormalization] Message has sender object but may need enhancement:', message.sender);
+      
+      // Preserve existing name/avatar if they exist, only fall back if truly missing
+      const senderName = message.sender.name || getMemberName(message.sender.id);
+      const senderAvatar = message.sender.avatar || undefined;
+      
+      console.log(`[useMessageNormalization] Using name="${senderName}", avatar="${senderAvatar || 'undefined'}"`);
+      
       return {
         id: message.id,
         text: message.message || message.text,
         sender: {
           id: message.sender.id,
-          name: message.sender.name || getMemberName(message.sender.id),
-          avatar: message.sender.avatar || '/placeholder.svg'
+          name: senderName,
+          avatar: senderAvatar
         },
         timestamp: message.timestamp || message.created_at || new Date().toISOString(),
         isSupport: Boolean(message.isSupport)
       };
     }
     
-    // If it's from Supabase club_chat_messages table
+    // If it's from Supabase club_chat_messages table without sender object
     if (message.message !== undefined && message.sender_id !== undefined) {
-      console.log('[useMessageNormalization] Message from club_chat_messages table:', message.sender_id);
+      console.log('[useMessageNormalization] Message from database table without sender object:', message.sender_id);
       return {
         id: message.id,
         text: message.message,
         sender: {
           id: message.sender_id,
           name: getMemberName(message.sender_id),
-          avatar: message.sender?.avatar || '/placeholder.svg'
+          avatar: undefined
         },
         timestamp: message.timestamp || message.created_at || new Date().toISOString(),
         isSupport: false
       };
     }
     
-    // Fallback with enhanced logging - should rarely happen for DM messages
+    // Last resort fallback with enhanced logging - should rarely happen
     console.warn('[useMessageNormalization] Using fallback normalization for message:', message);
     return {
       id: message.id || `unknown-${Date.now()}`,
       text: message.message || message.text || "Unknown message",
       sender: {
         id: String(message.sender_id || message.sender?.id || "unknown"),
-        // Try to use existing name first if available
         name: message.sender?.name || getMemberName(message.sender_id || message.sender?.id || "unknown"),
-        // Try to use existing avatar first if available
-        avatar: message.sender?.avatar || '/placeholder.svg'
+        avatar: message.sender?.avatar || undefined
       },
       timestamp: message.timestamp || message.created_at || new Date().toISOString(),
       isSupport: false

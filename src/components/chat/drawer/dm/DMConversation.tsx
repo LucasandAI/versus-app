@@ -35,47 +35,16 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
 }) => {
   const { currentUser } = useApp();
   const { navigateToUserProfile } = useNavigation();
-  const { conversations } = useConversations([]);
   const { markConversationAsRead } = useUnreadMessages();
   const [isSending, setIsSending] = React.useState(false);
   const { formatTime } = useMessageFormatting();
-  const { userCache, fetchUserData } = useUserData();
   
-  // Use refs to maintain stable references to props
-  const userRef = useRef(user);
-  const conversationIdRef = useRef(conversationId);
-  
-  // Update refs when props change
-  useEffect(() => {
-    userRef.current = user;
-    conversationIdRef.current = conversationId;
-    
-    // Log when we receive new user data to help debug
-    console.log(`[DMConversation] User data updated: id=${user.id}, name=${user.name}, avatar=${user.avatar || 'none'}`);
-  }, [user, conversationId]);
-  
-  // Log comprehensive user data when the component mounts
-  useEffect(() => {
-    console.log(`[DMConversation] Initial render with user:`, {
-      id: user.id,
-      name: user.name,
-      avatar: user.avatar || 'none'
-    });
-  }, []);
-  
-  // Fetch user data if not already in cache - only do this once
-  const initialFetchDoneRef = useRef(false);
-  useEffect(() => {
-    const fetchUserIfNeeded = async () => {
-      if (!initialFetchDoneRef.current && user.id && !userCache[user.id]) {
-        console.log(`[DMConversation] Fetching data for user ${user.id} on mount`);
-        await fetchUserData(user.id);
-        initialFetchDoneRef.current = true;
-      }
-    };
-    
-    fetchUserIfNeeded();
-  }, [user.id, userCache, fetchUserData]);
+  // Log comprehensive user data when component mounts/updates
+  console.log(`[DMConversation] Using authoritative user data:`, {
+    id: user.id,
+    name: user.name || 'Unknown',
+    avatar: user.avatar || 'none'
+  });
   
   // Use our hook for active messages
   const { messages, setMessages, addOptimisticMessage } = useActiveDMMessages(
@@ -84,26 +53,20 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     currentUser?.id
   );
   
-  // Enhanced logging to ensure we're passing the correct user data
-  const fullUserObject = useMemo(() => {
-    const result = {
-      id: user.id,
-      name: user.name || (userCache[user.id]?.name || 'Unknown User'),
-      avatar: user.avatar || (userCache[user.id]?.avatar || undefined)
-    };
-    
-    console.log(`[DMConversation] Providing full user object to subscription:`, result);
-    return result;
-  }, [user, userCache]);
+  // Create a stable reference to the user object that won't change identity
+  const userDataForMessages = useMemo(() => ({
+    id: user.id,
+    name: user.name,
+    avatar: user.avatar
+  }), [user.id, user.name, user.avatar]);
   
-  // Use subscription hook with the full user object to prevent flickering
+  // Pass the complete user data object to useDMSubscription to ensure consistent display
   useDMSubscription(
     conversationId, 
     user.id, 
     currentUser?.id, 
     setMessages,
-    // Pass the full user object to prevent flickering on new messages
-    fullUserObject
+    userDataForMessages // This is the authoritative source of user metadata
   );
   
   // Use scroll management hook with optimized scrolling
@@ -148,15 +111,13 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     });
     
     try {
-      let finalConversationId = conversationIdRef.current;
+      let finalConversationId = conversationId;
       
       // Create conversation if needed
       if (finalConversationId === 'new') {
         const newConversationId = await createConversation();
         if (newConversationId) {
           finalConversationId = newConversationId;
-          // Update our ref but don't trigger a re-render
-          conversationIdRef.current = newConversationId;
         } else {
           throw new Error("Failed to create conversation");
         }
@@ -168,7 +129,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
         .insert({
           text,
           sender_id: currentUser.id,
-          receiver_id: userRef.current.id,
+          receiver_id: user.id,
           conversation_id: finalConversationId
         })
         .select('id')
@@ -190,33 +151,13 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     } finally {
       setIsSending(false);
     }
-  }, [currentUser, addOptimisticMessage, createConversation, scrollToBottom, setMessages]);
+  }, [currentUser, user, conversationId, addOptimisticMessage, createConversation, scrollToBottom, setMessages]);
   
   // Club members array for ChatMessages - memoized to prevent recreating
   const clubMembers = useMemo(() => 
     currentUser ? [currentUser] : [], 
     [currentUser]
   );
-  
-  // Get the most up-to-date user data by combining props with cache
-  const displayedUser = useMemo(() => {
-    const cachedUser = userCache[user.id];
-    
-    if (cachedUser) {
-      const result = {
-        id: user.id,
-        name: user.name || cachedUser.name,
-        avatar: user.avatar || cachedUser.avatar
-      };
-      console.log(`[DMConversation] Using enhanced user data for display:`, result);
-      return result;
-    }
-    
-    return user;
-  }, [user, userCache]);
-
-  // Log when the component renders to track unnecessary re-renders
-  console.log(`[DMConversation] Rendering for user ${user.id} (${displayedUser.name})`);
 
   return (
     <div className="flex flex-col h-full w-full">
@@ -231,12 +172,12 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
         <div className="flex-1 flex justify-center">
           <div 
             className="flex items-center gap-3 cursor-pointer hover:opacity-80" 
-            onClick={() => navigateToUserProfile(displayedUser.id, displayedUser.name, displayedUser.avatar)}
+            onClick={() => navigateToUserProfile(user.id, user.name, user.avatar)}
           >
             <DMHeader 
-              userId={displayedUser.id} 
-              userName={displayedUser.name} 
-              userAvatar={displayedUser.avatar} 
+              userId={user.id} 
+              userName={user.name} 
+              userAvatar={user.avatar} 
             />
           </div>
         </div>

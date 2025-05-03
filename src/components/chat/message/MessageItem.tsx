@@ -30,8 +30,12 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const [canDelete, setCanDelete] = useState(false);
   const { navigateToUserProfile } = useNavigation();
   
-  // Debug log to see what's being rendered
-  console.log(`[MessageItem] Rendering message with id ${message.id}, sender:`, message.sender);
+  // Debug log to see complete sender data
+  console.log(`[MessageItem] Rendering message with id ${message.id}, sender:`, {
+    id: message.sender?.id || 'unknown',
+    name: message.sender?.name || 'unknown',
+    avatar: message.sender?.avatar || 'undefined'
+  });
   
   useEffect(() => {
     const checkDeletePermission = async () => {
@@ -58,6 +62,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
   const handleProfileClick = () => {
     if (!isSupport && message.sender) {
+      console.log('[MessageItem] Profile clicked, using sender data:', message.sender);
       navigateToUserProfile(message.sender.id, message.sender.name, message.sender.avatar);
     }
   };
@@ -70,9 +75,12 @@ const MessageItem: React.FC<MessageItemProps> = ({
     return message.timestamp;
   };
 
-  // Make sure we have proper sender data
+  // IMPORTANT: Always use the data provided in the message object
+  // Never fall back to defaults for name - this ensures consistent display
   const senderName = message.sender?.name || 'Unknown';
-  const senderAvatar = message.sender?.avatar || undefined;
+  
+  // Only use the avatar that was provided, no placeholder
+  const senderAvatar = message.sender?.avatar;
 
   const renderDeleteButton = () => {
     if (!isUserMessage || !canDelete || !onDeleteMessage) {
@@ -93,7 +101,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   // Use the proper alignment for messages
   return (
     <div className={`flex ${isUserMessage ? 'justify-end mr-4' : 'justify-start ml-4'} mb-6 group`}>
-      {/* Avatar appears only for non-user messages (support messages) */}
+      {/* Avatar appears only for non-user messages */}
       {!isUserMessage && (
         <UserAvatar
           name={senderName}
@@ -127,7 +135,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
         </div>
       </div>
 
-      {/* Avatar and delete button for user's own messages */}
+      {/* Delete button for user's own messages */}
       {isUserMessage && renderDeleteButton()}
     </div>
   );
