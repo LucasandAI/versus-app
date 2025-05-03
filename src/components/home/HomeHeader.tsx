@@ -26,25 +26,29 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   const { setCurrentView, currentUser, setSelectedUser } = useApp();
   const { open } = useChatDrawerGlobal();
   const { totalUnreadCount } = useUnreadMessages();
-  const [updateTrigger, setUpdateTrigger] = useState(0);
+  const [badgeCount, setBadgeCount] = useState(totalUnreadCount);
   
   console.log("[HomeHeader] Rendering with notifications:", 
     notifications.length, notifications);
   
+  // Update badge count when totalUnreadCount changes
+  useEffect(() => {
+    setBadgeCount(totalUnreadCount);
+  }, [totalUnreadCount]);
+  
   // Listen for unreadMessagesUpdated event to update badge count
   useEffect(() => {
     const handleUnreadMessagesUpdated = () => {
-      setUpdateTrigger(prev => prev + 1);
+      setTimeout(() => {
+        // This will trigger a re-render that will pick up the latest totalUnreadCount
+        setBadgeCount(prev => prev); // Force an update
+      }, 100);
     };
     
     window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
-    window.addEventListener('dmMessageReceived', handleUnreadMessagesUpdated);
-    window.addEventListener('clubMessageReceived', handleUnreadMessagesUpdated);
     
     return () => {
       window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
-      window.removeEventListener('dmMessageReceived', handleUnreadMessagesUpdated);
-      window.removeEventListener('clubMessageReceived', handleUnreadMessagesUpdated);
     };
   }, []);
   
@@ -54,9 +58,6 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
       setCurrentView('profile');
     }
   };
-
-  // Use updateTrigger to force re-render when unread counts change
-  console.log(`[HomeHeader] Rendering with totalUnreadCount: ${totalUnreadCount}, updateTrigger: ${updateTrigger}`);
 
   return (
     <div className="flex items-center justify-between mb-6">
@@ -74,8 +75,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           onClick={open}
           className="text-primary hover:bg-gray-100 rounded-full p-2"
           icon={<MessageCircle className="h-5 w-5" />}
-          badge={totalUnreadCount > 0 ? totalUnreadCount : 0}
-          key={`chat-button-${updateTrigger}-${totalUnreadCount}`}
+          badge={badgeCount > 0 ? badgeCount : 0}
         />
         <UserAvatar 
           name={currentUser?.name || "User"} 
@@ -88,4 +88,4 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   );
 };
 
-export default React.memo(HomeHeader);
+export default HomeHeader;

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Club } from '@/types';
 import { useApp } from '@/context/AppContext';
 import {
@@ -13,7 +13,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import ClubsList from './sidebar/ClubsList';
-import { useUnreadMessages } from '@/context/unread-messages';
 
 interface ChatSidebarProps {
   clubs: Club[];
@@ -33,38 +32,13 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onSelectClub,
   onDeleteChat,
   unreadCounts = {},
-  unreadClubs,
+  unreadClubs = new Set(),
   onSelectUser,
   activeTab = "clubs",
   clubMessages = {}
 }) => {
   const { setCurrentView, setSelectedUser } = useApp();
   const [chatToDelete, setChatToDelete] = useState<{id: string, name: string} | null>(null);
-  const { unreadClubs: contextUnreadClubs, forceRefresh } = useUnreadMessages();
-  
-  // Use passed props if available, otherwise use context
-  const effectiveUnreadClubs = unreadClubs || contextUnreadClubs;
-  
-  // State to force re-renders when unread state changes
-  const [updateKey, setUpdateKey] = useState(0);
-  
-  // Listen for unread state changes to force re-render
-  useEffect(() => {
-    const handleUnreadChanged = () => {
-      setUpdateKey(prev => prev + 1);
-      forceRefresh(); // Force a refresh of the unread state
-    };
-    
-    window.addEventListener('unreadMessagesUpdated', handleUnreadChanged);
-    window.addEventListener('clubMessageReceived', handleUnreadChanged);
-    window.addEventListener('clubMessagesRead', handleUnreadChanged);
-    
-    return () => {
-      window.removeEventListener('unreadMessagesUpdated', handleUnreadChanged);
-      window.removeEventListener('clubMessageReceived', handleUnreadChanged);
-      window.removeEventListener('clubMessagesRead', handleUnreadChanged);
-    };
-  }, [forceRefresh]);
 
   const handleDeleteChat = () => {
     if (chatToDelete && onDeleteChat) {
@@ -74,20 +48,19 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   };
   
   // Create a key for forced re-renders
-  const unreadKey = `sidebar-${updateKey}-${JSON.stringify([...effectiveUnreadClubs].sort())}`;
-  console.log('[ChatSidebar] Rendering with unread key:', unreadKey);
+  const unreadKey = JSON.stringify([...unreadClubs].sort());
 
   return (
     <div className="flex-1 overflow-auto bg-white">
       {/* Only show clubs when the clubs tab is active */}
       {activeTab === "clubs" && (
         <ClubsList
-          key={unreadKey}
+          key={`clubs-list-${unreadKey}`}
           clubs={clubs}
           selectedClub={selectedClub}
           onSelectClub={onSelectClub}
           unreadCounts={unreadCounts}
-          unreadClubs={effectiveUnreadClubs}
+          unreadClubs={unreadClubs}
           onSelectUser={onSelectUser}
           setChatToDelete={setChatToDelete}
         />
@@ -115,4 +88,4 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   );
 };
 
-export default React.memo(ChatSidebar);
+export default ChatSidebar;

@@ -61,9 +61,6 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       unreadMessagesPerClub,
       totalUnreadCount
     };
-    
-    // Dispatch event when unread state changes to notify components
-    window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
   }, [
     unreadConversations, dmUnreadCount, unreadMessagesPerConversation,
     unreadClubs, clubUnreadCount, unreadMessagesPerClub, totalUnreadCount
@@ -94,35 +91,19 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
   useEffect(() => {
     const handler = () => {
       console.log('[UnreadMessagesProvider] Handling unreadMessagesUpdated event');
-    };
-    
-    // Listen for DM events
-    const dmHandler = (e: CustomEvent) => {
-      if (e.detail?.conversationId) {
-        console.log('[UnreadMessagesProvider] DM received for conversation:', e.detail.conversationId);
-        if (currentUser && e.detail.message && e.detail.message.sender.id !== currentUser.id) {
-          markConversationAsUnread(e.detail.conversationId);
-        }
-      }
+      // We don't need to do anything here - the individual hooks handle their own state
     };
     
     window.addEventListener('unreadMessagesUpdated', handler);
-    window.addEventListener('dmMessageReceived', dmHandler as EventListener);
-    
-    return () => {
-      window.removeEventListener('unreadMessagesUpdated', handler);
-      window.removeEventListener('dmMessageReceived', dmHandler as EventListener);
-    };
-  }, [currentUser, markConversationAsUnread]);
+    return () => window.removeEventListener('unreadMessagesUpdated', handler);
+  }, []);
   
   // Force re-render method that components can call - memoized
   const forceRefresh = useCallback(() => {
     console.log('[UnreadMessagesProvider] Force refresh triggered');
     // Use state from ref to avoid closure issues
     setUnreadClubs(new Set(stateRef.current.unreadClubs));
-    setUnreadConversations(new Set(stateRef.current.unreadConversations));
-    window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
-  }, [setUnreadClubs, setUnreadConversations]);
+  }, [setUnreadClubs]);
   
   // Memoize context value to prevent unnecessary re-renders of consumers
   const contextValue = useMemo(() => ({
@@ -137,13 +118,12 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
     markClubMessagesAsRead,
     markConversationAsUnread,
     markClubAsUnread,
-    fetchUnreadCounts,
-    forceRefresh
+    fetchUnreadCounts
   }), [
     unreadConversations, dmUnreadCount, unreadMessagesPerConversation,
     unreadClubs, clubUnreadCount, unreadMessagesPerClub, totalUnreadCount,
     markConversationAsRead, markClubMessagesAsRead, markConversationAsUnread, markClubAsUnread,
-    fetchUnreadCounts, forceRefresh
+    fetchUnreadCounts
   ]);
   
   return (
