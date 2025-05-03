@@ -61,6 +61,9 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
       unreadMessagesPerClub,
       totalUnreadCount
     };
+    
+    // Dispatch event when unread state changes to notify components
+    window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
   }, [
     unreadConversations, dmUnreadCount, unreadMessagesPerConversation,
     unreadClubs, clubUnreadCount, unreadMessagesPerClub, totalUnreadCount
@@ -103,6 +106,7 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
     console.log('[UnreadMessagesProvider] Force refresh triggered');
     // Use state from ref to avoid closure issues
     setUnreadClubs(new Set(stateRef.current.unreadClubs));
+    window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
   }, [setUnreadClubs]);
   
   // Memoize context value to prevent unnecessary re-renders of consumers
@@ -118,12 +122,13 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
     markClubMessagesAsRead,
     markConversationAsUnread,
     markClubAsUnread,
-    fetchUnreadCounts
+    fetchUnreadCounts,
+    forceRefresh
   }), [
     unreadConversations, dmUnreadCount, unreadMessagesPerConversation,
     unreadClubs, clubUnreadCount, unreadMessagesPerClub, totalUnreadCount,
     markConversationAsRead, markClubMessagesAsRead, markConversationAsUnread, markClubAsUnread,
-    fetchUnreadCounts
+    fetchUnreadCounts, forceRefresh
   ]);
   
   return (

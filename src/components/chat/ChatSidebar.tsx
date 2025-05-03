@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import { useApp } from '@/context/AppContext';
 import {
@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import ClubsList from './sidebar/ClubsList';
+import { useUnreadMessages } from '@/context/unread-messages';
 
 interface ChatSidebarProps {
   clubs: Club[];
@@ -32,13 +33,37 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onSelectClub,
   onDeleteChat,
   unreadCounts = {},
-  unreadClubs = new Set(),
+  unreadClubs,
   onSelectUser,
   activeTab = "clubs",
   clubMessages = {}
 }) => {
   const { setCurrentView, setSelectedUser } = useApp();
   const [chatToDelete, setChatToDelete] = useState<{id: string, name: string} | null>(null);
+  const { unreadClubs: contextUnreadClubs } = useUnreadMessages();
+
+  // Use passed props if available, otherwise use context
+  const effectiveUnreadClubs = unreadClubs || contextUnreadClubs;
+  
+  // State to force re-renders when unread state changes
+  const [updateKey, setUpdateKey] = useState(0);
+  
+  // Listen for unread state changes to force re-render
+  useEffect(() => {
+    const handleUnreadChanged = () => {
+      setUpdateKey(prev => prev + 1);
+    };
+    
+    window.addEventListener('unreadMessagesUpdated', handleUnreadChanged);
+    window.addEventListener('clubMessageReceived', handleUnreadChanged);
+    window.addEventListener('clubMessagesRead', handleUnreadChanged);
+    
+    return () => {
+      window.removeEventListener('unreadMessagesUpdated', handleUnreadChanged);
+      window.removeEventListener('clubMessageReceived', handleUnreadChanged);
+      window.removeEventListener('clubMessagesRead', handleUnreadChanged);
+    };
+  }, []);
 
   const handleDeleteChat = () => {
     if (chatToDelete && onDeleteChat) {
@@ -48,7 +73,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   };
   
   // Create a key for forced re-renders
-  const unreadKey = JSON.stringify([...unreadClubs].sort());
+  const unreadKey = JSON.stringify([...effectiveUnreadClubs].sort()) + `-${updateKey}`;
 
   return (
     <div className="flex-1 overflow-auto bg-white">
@@ -60,7 +85,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
           selectedClub={selectedClub}
           onSelectClub={onSelectClub}
           unreadCounts={unreadCounts}
-          unreadClubs={unreadClubs}
+          unreadClubs={effectiveUnreadClubs}
           onSelectUser={onSelectUser}
           setChatToDelete={setChatToDelete}
         />

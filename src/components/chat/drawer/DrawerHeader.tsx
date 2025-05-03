@@ -1,5 +1,5 @@
 
-import React, { useEffect, memo } from 'react';
+import React, { useEffect, useState, memo } from 'react';
 import { Club } from '@/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnreadMessages } from '@/context/unread-messages';
@@ -18,6 +18,22 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
   selectedClub 
 }) => {
   const { unreadConversations, unreadClubs, markClubMessagesAsRead } = useUnreadMessages();
+  const [updateTrigger, setUpdateTrigger] = useState(0);
+
+  // Force re-render when unread state changes
+  useEffect(() => {
+    const handleUnreadChanged = () => {
+      setUpdateTrigger(prev => prev + 1);
+    };
+    
+    window.addEventListener('unreadMessagesUpdated', handleUnreadChanged);
+    window.addEventListener('clubMessageReceived', handleUnreadChanged);
+    
+    return () => {
+      window.removeEventListener('unreadMessagesUpdated', handleUnreadChanged);
+      window.removeEventListener('clubMessageReceived', handleUnreadChanged);
+    };
+  }, []);
 
   // Mark club messages as read when a club is selected and the clubs tab is active
   useEffect(() => {
@@ -27,24 +43,9 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
     }
   }, [activeTab, selectedClub, markClubMessagesAsRead]);
   
-  // Use useMemo for stable rendering of unread indicators
-  const clubsUnreadBadge = React.useMemo(() => {
-    return unreadClubs.size > 0 ? (
-      <Badge 
-        variant="dot" 
-        className="!inline-block !visible" 
-      />
-    ) : null;
-  }, [unreadClubs.size]);
-
-  const dmUnreadBadge = React.useMemo(() => {
-    return unreadConversations.size > 0 ? (
-      <Badge 
-        variant="dot" 
-        className="!inline-block !visible" 
-      />
-    ) : null;
-  }, [unreadConversations.size]);
+  // Get current unread counts
+  const clubsUnreadCount = unreadClubs.size;
+  const dmsUnreadCount = unreadConversations.size;
   
   return (
     <div className="px-4 py-2 border-b">
@@ -52,11 +53,21 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="clubs" className="inline-flex items-center justify-center gap-2">
             Club Chat
-            {clubsUnreadBadge}
+            {clubsUnreadCount > 0 && (
+              <Badge 
+                variant="dot" 
+                className="!inline-block !visible" 
+              />
+            )}
           </TabsTrigger>
           <TabsTrigger value="dm" className="inline-flex items-center justify-center gap-2">
             Direct Messages
-            {dmUnreadBadge}
+            {dmsUnreadCount > 0 && (
+              <Badge 
+                variant="dot" 
+                className="!inline-block !visible" 
+              />
+            )}
           </TabsTrigger>
         </TabsList>
       </Tabs>

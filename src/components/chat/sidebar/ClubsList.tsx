@@ -38,7 +38,22 @@ const ClubsList: React.FC<ClubsListProps> = ({
   // Use either the passed props (preferred) or fall back to context
   const unreadClubs = propUnreadClubs || contextUnreadClubs;
   
-  // Add a debug effect to log unread clubs when they change
+  // Re-render when unread state changes
+  useEffect(() => {
+    const handleUnreadUpdated = () => {
+      console.log('[ClubsList] Force re-render due to unread state change');
+      // This is just to force a re-render
+    };
+    
+    window.addEventListener('unreadMessagesUpdated', handleUnreadUpdated);
+    window.addEventListener('clubMessageReceived', handleUnreadUpdated);
+    
+    return () => {
+      window.removeEventListener('unreadMessagesUpdated', handleUnreadUpdated);
+      window.removeEventListener('clubMessageReceived', handleUnreadUpdated);
+    };
+  }, []);
+  
   useEffect(() => {
     console.log('[ClubsList] unreadClubs set updated:', Array.from(unreadClubs));
     console.log('[ClubsList] Using prop unread clubs?', !!propUnreadClubs);
@@ -82,7 +97,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
             
           return (
             <div 
-              key={`${club.id}-${isUnread ? 'unread' : 'read'}-${unreadKey}`}
+              key={`${club.id}-${isUnread ? 'unread' : 'read'}`}
               className={`flex items-start px-4 py-3 cursor-pointer hover:bg-gray-50 relative group
                 ${selectedClub?.id === club.id ? 'bg-primary/10 text-primary' : ''}
                 ${isUnread ? 'font-medium' : ''}`}
