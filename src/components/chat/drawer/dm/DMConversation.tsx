@@ -160,6 +160,9 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     [currentUser]
   );
 
+  // Check if we have valid user data before rendering messages
+  const hasValidUserData = Boolean(user.name);
+
   return (
     <div className="flex flex-col h-full w-full">
       {/* Header with back button and centered user info */}
@@ -188,17 +191,23 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         <div className="flex-1 min-h-0">
-          <ChatMessages 
-            messages={messages}
-            clubMembers={clubMembers}
-            onSelectUser={(userId, userName, userAvatar) => 
-              navigateToUserProfile(userId, userName, userAvatar)
-            }
-            currentUserAvatar={currentUser?.avatar}
-            lastMessageRef={lastMessageRef}
-            formatTime={formatTime}
-            scrollRef={scrollRef}
-          />
+          {hasValidUserData ? (
+            <ChatMessages 
+              messages={messages}
+              clubMembers={clubMembers}
+              onSelectUser={(userId, userName, userAvatar) => 
+                navigateToUserProfile(userId, userName, userAvatar)
+              }
+              currentUserAvatar={currentUser?.avatar}
+              lastMessageRef={lastMessageRef}
+              formatTime={formatTime}
+              scrollRef={scrollRef}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full text-gray-500">
+              <p>Loading conversation...</p>
+            </div>
+          )}
         </div>
         
         <DMMessageInput
