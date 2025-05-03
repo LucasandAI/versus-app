@@ -114,6 +114,7 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
     clubUnreadCount,
     unreadMessagesPerClub,
     totalUnreadCount,
+    forceRefresh, // Include the forceRefresh function in the context value
     markConversationAsRead,
     markClubMessagesAsRead,
     markConversationAsUnread,
@@ -122,6 +123,7 @@ export const UnreadMessagesProvider: React.FC<{children: React.ReactNode}> = ({ 
   }), [
     unreadConversations, dmUnreadCount, unreadMessagesPerConversation,
     unreadClubs, clubUnreadCount, unreadMessagesPerClub, totalUnreadCount,
+    forceRefresh, // Add to dependency array as well
     markConversationAsRead, markClubMessagesAsRead, markConversationAsUnread, markClubAsUnread,
     fetchUnreadCounts
   ]);
