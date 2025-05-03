@@ -38,7 +38,7 @@ export const useClubInvites = (clubId: string, clubName?: string) => {
         throw new Error(`Error fetching club members: ${membersError.message}`);
       }
       
-      // Get existing invites
+      // Get only current pending invites - we want to allow re-inviting users who previously declined
       const { data: invites, error: invitesError } = await supabase
         .from('club_invites')
         .select('user_id, status')
@@ -51,13 +51,7 @@ export const useClubInvites = (clubId: string, clubName?: string) => {
       
       // Create exclusion sets for efficient lookups
       const memberIds = new Set(members?.map(m => m.user_id) || []);
-      const invitedUserIds = new Set();
-      
-      invites?.forEach(invite => {
-        if (invite.status === 'pending') {
-          invitedUserIds.add(invite.user_id);
-        }
-      });
+      const invitedUserIds = new Set(invites?.map(invite => invite.user_id) || []);
       
       // Fetch all users except the current user
       const { data: allUsers, error: usersError } = await supabase
@@ -69,16 +63,16 @@ export const useClubInvites = (clubId: string, clubName?: string) => {
       }
       
       // Filter and format users - include all users except those who are currently members
+      // or have a pending invite. Allow users who previously left or declined invites.
       const formattedUsers = allUsers
         ?.filter(user => {
-          // We always want to show users who aren't members
-          return !memberIds.has(user.id);
+          return !memberIds.has(user.id); // Only exclude current members
         })
         .map(user => ({
           id: user.id,
           name: user.name,
           avatar: user.avatar,
-          alreadyInvited: invitedUserIds.has(user.id),
+          alreadyInvited: invitedUserIds.has(user.id), // Only shows current pending invites
           alreadyMember: memberIds.has(user.id)
         })) || [];
       

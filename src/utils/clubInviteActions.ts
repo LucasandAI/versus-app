@@ -184,25 +184,39 @@ export const sendClubInvite = async (
     const { data: { user } } = await supabase.auth.getUser();
     const inviterName = user ? user.email?.split('@')[0] || 'Admin' : 'Admin';
 
-    // Always create a new invite or update existing one
+    // Clean up any existing invites for this user/club combination regardless of status
+    // This allows re-inviting users who previously rejected invitations
+    try {
+      const { error: deleteInviteError } = await supabase
+        .from('club_invites')
+        .delete()
+        .eq('club_id', clubId)
+        .eq('user_id', userId);
+        
+      if (deleteInviteError) {
+        console.log('[sendClubInvite] Error cleaning up old invites:', deleteInviteError);
+      }
+    } catch (error) {
+      console.error('[sendClubInvite] Failed to clean up old invites:', error);
+      // Continue execution, this is not critical
+    }
+    
+    // Create a new invite with pending status
     const { error: inviteError } = await supabase
       .from('club_invites')
-      .upsert({
+      .insert({
         club_id: clubId,
         user_id: userId,
         status: 'pending'
-      }, { 
-        onConflict: 'club_id,user_id',
-        ignoreDuplicates: false 
       });
       
     if (inviteError) {
-      console.error('[sendClubInvite] Error creating/updating invite:', inviteError);
+      console.error('[sendClubInvite] Error creating invite:', inviteError);
       toast.error('Failed to send invitation');
       return false;
     }
     
-    // First try to delete any existing notifications for this club/user/type combination
+    // Delete any existing notifications for this club/user/type combination
     // This ensures we'll create a fresh notification
     try {
       await supabase
@@ -210,7 +224,7 @@ export const sendClubInvite = async (
         .delete()
         .eq('user_id', userId)
         .eq('club_id', clubId)
-        .eq('type', 'invite' as const);
+        .eq('type', 'invite');
         
       console.log('[sendClubInvite] Cleaned up old notifications');
     } catch (error) {
