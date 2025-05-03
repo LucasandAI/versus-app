@@ -1,121 +1,189 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { sendClubInvite } from '@/utils/clubInviteActions';
 
-export function useClubInvites(clubId: string, clubName: string) {
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [processingUsers, setProcessingUsers] = useState<{[key: string]: boolean}>({});
+type UserResult = {
+  id: string;
+  name: string;
+  avatar: string | null;
+  alreadyInvited: boolean;
+  alreadyMember: boolean;
+};
 
-  // Fetch users who are not members of the club
+export const useClubInvites = (clubId: string, clubName?: string) => {
+  const [users, setUsers] = useState<UserResult[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [processingUsers, setProcessingUsers] = useState<Set<string>>(new Set());
+
+  // Fetch users not in the club (for invites)
   const fetchAvailableUsers = useCallback(async () => {
+    if (!clubId) return;
+    
+    setLoading(true);
+    setError(null);
+
     try {
-      setLoading(true);
+      console.log('[useClubInvites] Fetching users for club:', clubId);
       
-      // Get current club members
+      // Get existing club members
       const { data: members, error: membersError } = await supabase
         .from('club_members')
         .select('user_id')
         .eq('club_id', clubId);
         
       if (membersError) {
-        throw membersError;
+        throw new Error(`Error fetching club members: ${membersError.message}`);
       }
       
-      const memberIds = members.map(m => m.user_id);
-      
-      // Get all existing invites for this club
+      // Get existing invites
       const { data: invites, error: invitesError } = await supabase
         .from('club_invites')
         .select('user_id, status')
         .eq('club_id', clubId);
         
       if (invitesError) {
-        throw invitesError;
+        throw new Error(`Error fetching club invites: ${invitesError.message}`);
       }
       
-      // Get all users who are not members of this club
-      const { data: availableUsers, error: usersError } = await supabase
+      // Create exclusion sets for efficient lookups
+      const memberIds = new Set(members?.map(m => m.user_id) || []);
+      const invitedUserIds = new Map(); // Map of user_id to status
+      
+      invites?.forEach(invite => {
+        invitedUserIds.set(invite.user_id, invite.status);
+      });
+      
+      // Fetch all users except the current user
+      const { data: allUsers, error: usersError } = await supabase
         .from('users')
-        .select('id, name, avatar')
-        .not('id', 'in', `(${memberIds.length > 0 ? memberIds.join(',') : 'NULL'})`);
+        .select('id, name, avatar');
         
       if (usersError) {
-        throw usersError;
+        throw new Error(`Error fetching users: ${usersError.message}`);
       }
       
-      // Mark users who already have pending invites
-      const pendingInviteUserIds = invites
-        ?.filter(invite => invite.status === 'pending')
-        .map(invite => invite.user_id) || [];
-        
-      // Add the alreadyInvited flag to users
-      const processedUsers = availableUsers.map(user => ({
-        ...user,
-        alreadyInvited: pendingInviteUserIds.includes(user.id)
-      }));
+      // Filter and format users
+      const formattedUsers = allUsers
+        ?.filter(user => {
+          // We always want to show users who aren't members
+          return !memberIds.has(user.id);
+        })
+        .map(user => ({
+          id: user.id,
+          name: user.name,
+          avatar: user.avatar,
+          alreadyInvited: invitedUserIds.has(user.id) && invitedUserIds.get(user.id) === 'pending',
+          alreadyMember: memberIds.has(user.id)
+        })) || [];
       
-      setUsers(processedUsers);
-      setError(null);
-    } catch (err: any) {
-      console.error('[useClubInvites] Error fetching available users:', err);
-      setError(err.message || 'Failed to load users');
+      setUsers(formattedUsers);
+    } catch (error) {
+      console.error('[useClubInvites] Error:', error);
+      setError(error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
   }, [clubId]);
-  
-  // Send an invite to a user
-  const sendInvite = useCallback(async (userId: string, userName: string) => {
-    setProcessingUsers(prev => ({ ...prev, [userId]: true }));
+
+  // Listen for changes to invites and members
+  useEffect(() => {
+    fetchAvailableUsers();
+    
+    // Set up realtime listeners
+    const membersChannel = supabase
+      .channel('club-invites-members-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'club_members',
+          filter: `club_id=eq.${clubId}`
+        },
+        () => {
+          console.log('[useClubInvites] Club members changed, refreshing data');
+          fetchAvailableUsers();
+        }
+      )
+      .subscribe();
+      
+    const invitesChannel = supabase
+      .channel('club-invites-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'club_invites',
+          filter: `club_id=eq.${clubId}`
+        },
+        () => {
+          console.log('[useClubInvites] Club invites changed, refreshing data');
+          fetchAvailableUsers();
+        }
+      )
+      .subscribe();
+      
+    // Clean up channels on unmount
+    return () => {
+      supabase.removeChannel(membersChannel);
+      supabase.removeChannel(invitesChannel);
+    };
+  }, [clubId, fetchAvailableUsers]);
+
+  // Function to send an invite
+  const sendInvite = async (userId: string, userName: string): Promise<boolean> => {
+    if (!clubId || !clubName) {
+      toast.error('Club information missing');
+      return false;
+    }
+    
+    // Mark this user as processing
+    setProcessingUsers(prev => new Set(prev).add(userId));
     
     try {
-      console.log('[useClubInvites] Sending invite to:', userId, userName);
-      
-      // Use the centralized sendClubInvite function which handles both DB entry and notification
       const success = await sendClubInvite(clubId, clubName, userId, userName);
       
       if (success) {
-        console.log('[useClubInvites] Invite sent successfully');
-        
-        // Update the local state to mark this user as invited
-        setUsers(prevUsers => prevUsers.map(user => {
-          if (user.id === userId) {
-            return { ...user, alreadyInvited: true };
-          }
-          return user;
-        }));
+        // Update the local state optimistically
+        setUsers(prev => 
+          prev.map(user => 
+            user.id === userId 
+              ? { ...user, alreadyInvited: true } 
+              : user
+          )
+        );
       }
       
       return success;
-    } catch (err) {
-      console.error('[useClubInvites] Error sending invite:', err);
+    } catch (error) {
+      console.error('[useClubInvites] Error sending invite:', error);
       toast.error('Failed to send invitation');
       return false;
     } finally {
-      setProcessingUsers(prev => ({ ...prev, [userId]: false }));
+      // Remove this user from processing state
+      setProcessingUsers(prev => {
+        const updated = new Set(prev);
+        updated.delete(userId);
+        return updated;
+      });
     }
-  }, [clubId, clubName]);
+  };
 
   // Check if a user is currently being processed
-  const isProcessing = useCallback((userId: string) => {
-    return !!processingUsers[userId];
+  const isProcessing = useCallback((userId: string): boolean => {
+    return processingUsers.has(userId);
   }, [processingUsers]);
 
-  // Load users when the hook is first used
-  useState(() => {
-    fetchAvailableUsers();
-  });
-
-  return {
-    users,
-    loading,
-    error,
-    sendInvite,
+  return { 
+    users, 
+    loading, 
+    error, 
+    sendInvite, 
     isProcessing,
     refreshUsers: fetchAvailableUsers
   };
-}
+};

@@ -163,74 +163,48 @@ export const sendClubInvite = async (
       return false;
     }
     
-    // Check if user is already a member
-    const isMember = await isUserClubMember(clubId, userId);
-    if (isMember) {
-      toast.error(`${userName} is already a member of this club`);
-      return false;
-    }
-    
-    // First delete any existing invites for this user and club to ensure clean state
-    // This fixes the issue where users who have left or denied can't be re-invited
-    await supabase
-      .from('club_invites')
-      .delete()
-      .eq('club_id', clubId)
-      .eq('user_id', userId);
-    
-    // Create a new invite
+    // Use upsert to handle duplicate invites
     const { error: inviteError } = await supabase
       .from('club_invites')
-      .insert({
+      .upsert({
         club_id: clubId,
         user_id: userId,
         status: 'pending'
+      }, { 
+        onConflict: 'club_id,user_id',
+        ignoreDuplicates: false 
       });
       
     if (inviteError) {
-      console.error('[sendClubInvite] Error creating invite:', inviteError);
+      console.error('[sendClubInvite] Error creating/updating invite:', inviteError);
       toast.error('Failed to send invitation');
       return false;
     }
-
-    // Create the notification with explicit values to ensure proper data is stored
-    // Use a type literal value from the allowed notification types instead of a regular string
-    const notificationData = {
-      user_id: userId,
-      club_id: clubId,
-      type: 'invite' as const, // Use a type assertion to specific literal type
-      message: `You've been invited to join ${clubName}`,
-      read: false,
-      data: {
-        clubId: clubId,
-        clubName: clubName,
-        inviterName: 'Admin' // This should ideally be the current user's name
-      }
-    };
     
-    console.log('[sendClubInvite] Creating notification:', notificationData);
-    
-    const { data: notificationResult, error: notificationError } = await supabase
+    // Create or replace notification
+    const { error: notificationError } = await supabase
       .from('notifications')
-      .insert(notificationData)
-      .select('id')
-      .single();
+      .upsert({
+        user_id: userId,
+        club_id: clubId,
+        type: 'invite',
+        message: `You've been invited to join ${clubName}`,
+        read: false,
+        data: {
+          clubId,
+          clubName,
+          inviterName: 'Admin' // This should ideally be the current user's name
+        }
+      }, {
+        onConflict: 'user_id,club_id,type',
+        ignoreDuplicates: false 
+      });
       
     if (notificationError) {
       console.error('[sendClubInvite] Error creating notification:', notificationError);
-      toast.error('Invitation sent but failed to notify user');
-      
-      // The club invite was created, so we count this as a partial success
-      // We'll trigger an event to refresh the UI
-      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
-      
-      return true; // Return true since the invite was created even if notification failed
+      toast.error('Failed to notify user');
+      return false;
     }
-    
-    console.log('[sendClubInvite] Notification created successfully:', notificationResult);
-    
-    // Trigger an event to refresh notifications in the UI
-    window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     
     toast.success(`Invitation sent to ${userName}`);
     return true;

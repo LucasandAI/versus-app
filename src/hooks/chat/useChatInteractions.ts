@@ -18,7 +18,7 @@ export const useChatInteractions = () => {
   };
   
   const handleClubClick = (club: Club) => {
-    navigateToClub(club.id, club); // Added the clubId as first parameter
+    navigateToClub(club);
   };
 
   return {
