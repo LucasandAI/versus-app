@@ -13,6 +13,9 @@ export interface UnreadMessagesContextType {
   // Combined total
   totalUnreadCount: number;
   
+  // Force refresh (used to trigger re-renders)
+  forceRefresh: () => void;
+  
   // Mark as read functions
   markConversationAsRead: (conversationId: string) => Promise<void>;
   markClubMessagesAsRead: (clubId: string) => Promise<void>;

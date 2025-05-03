@@ -1,22 +1,32 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-// Function to check if a club is full
-export const isClubFull = async (clubId: string): Promise<boolean> => {
+// Check if a club is full (has 5 or more members)
+export const checkClubCapacity = async (clubId: string): Promise<{
+  isFull: boolean;
+  memberCount: number;
+}> => {
   try {
-    const { data, error } = await supabase
+    const { data, error, count } = await supabase
       .from('club_members')
       .select('user_id', { count: 'exact' })
       .eq('club_id', clubId);
-
+      
     if (error) {
-      console.error('Error checking club capacity:', error);
-      return false;
+      console.error('[checkClubCapacity] Error:', error);
+      return { 
+        isFull: false, // Default to false to avoid blocking functionality on error
+        memberCount: 0
+      };
     }
-
-    return (data?.length || 0) >= 5;
+    
+    const memberCount = count || 0;
+    return {
+      isFull: memberCount >= 5,
+      memberCount
+    };
   } catch (error) {
-    console.error('Error in isClubFull:', error);
-    return false;
+    console.error('[checkClubCapacity] Unexpected error:', error);
+    return { isFull: false, memberCount: 0 };
   }
 };
