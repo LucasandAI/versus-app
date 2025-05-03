@@ -45,7 +45,7 @@ export const useActiveDMMessages = (
     }
   }, [otherUserData]);
 
-  // Process message updates in batches
+  // Process message updates in batches with improved stability
   const processMessageQueue = useCallback(() => {
     if (isProcessingUpdates.current || messageUpdateQueue.current.length === 0) return;
     

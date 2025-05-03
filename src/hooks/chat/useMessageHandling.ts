@@ -16,6 +16,7 @@ export const useMessageHandling = (
   ) => {
     console.log('[useMessageHandling] Handling new message for club:', clubId);
     
+    // Update messages state first
     setMessages(prev => {
       const updated = {
         ...prev,
@@ -26,7 +27,7 @@ export const useMessageHandling = (
     });
 
     if (!isOpen) {
-      // Update unread count
+      // Update unread count immediately
       updateUnreadCount(clubId, 1);
       
       // Mark club as unread for notifications
@@ -38,13 +39,14 @@ export const useMessageHandling = (
       // Update club unread count for UI components
       updateClubUnreadCount(clubId, 1);
       
-      // Dispatch event for UI updates
+      // Dispatch event for UI updates with complete message details
       window.dispatchEvent(new CustomEvent('clubMessageReceived', {
         detail: { 
           clubId,
           message,
           unread: true,
-          unreadCount: 1
+          unreadCount: 1,
+          timestamp: new Date().toISOString()
         }
       }));
     }

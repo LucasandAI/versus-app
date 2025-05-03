@@ -1,8 +1,8 @@
-
 import { useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
+import { ChatMessage } from '@/types/chat';
 
 export const useChatActions = () => {
   const { currentUser } = useApp();
@@ -15,19 +15,19 @@ export const useChatActions = () => {
       
       // Generate a unique temp ID for optimistic UI
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      const timestamp = new Date().toISOString();
       
       // Create a fresh optimistic message with the current text input
-      const optimisticMessage = {
+      const optimisticMessage: ChatMessage = {
         id: tempId,
-        message: messageText,
-        club_id: clubId,
-        sender_id: currentUser.id,
-        timestamp: new Date().toISOString(),
+        text: messageText,
         sender: {
           id: currentUser.id,
-          name: currentUser.name,
+          name: currentUser.name || 'You',
           avatar: currentUser.avatar
-        }
+        },
+        timestamp,
+        optimistic: true
       };
       
       console.log('[useChatActions] Created optimistic message:', optimisticMessage);
@@ -116,7 +116,14 @@ export const useChatActions = () => {
           return {
             ...prevMessages,
             [clubId]: clubMessages.map(msg => 
-              msg.id === tempId ? insertedMessage : msg
+              msg.id === tempId ? {
+                ...insertedMessage,
+                sender: {
+                  id: insertedMessage.sender_id,
+                  name: insertedMessage.sender?.name || 'User',
+                  avatar: insertedMessage.sender?.avatar
+                }
+              } : msg
             )
           };
         });
@@ -162,53 +169,21 @@ export const useChatActions = () => {
       console.log('[useChatActions] Skipping Supabase deletion for temp message:', messageId);
       return true;
     }
-
-    // 3. Call Supabase for real messages
+    
     try {
-      console.log('[useChatActions] Deleting message from Supabase:', messageId);
-      
       const { error } = await supabase
         .from('club_chat_messages')
         .delete()
         .eq('id', messageId);
+
+      if (error) throw error;
       
-      if (error) {
-        console.error('[useChatActions] Error deleting message:', error);
-        toast({
-          title: "Delete Error",
-          description: error.message || "Failed to delete message",
-          variant: "destructive"
-        });
-        
-        // Fetch the message again if deletion failed to restore it in UI
-        const { data: message } = await supabase
-          .from('club_chat_messages')
-          .select('*, sender:sender_id(*)')
-          .eq('id', messageId)
-          .single();
-        
-        if (message && setClubMessages) {
-          setClubMessages(prevMessages => {
-            const clubId = message.club_id;
-            const clubMessages = prevMessages[clubId] || [];
-            
-            return {
-              ...prevMessages,
-              [clubId]: [...clubMessages, message]
-            };
-          });
-        }
-        
-        return false;
-      }
-      
-      console.log('[useChatActions] Message deleted successfully:', messageId);
       return true;
     } catch (error) {
       console.error('[useChatActions] Error deleting message:', error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred while deleting the message",
+        description: "Failed to delete message",
         variant: "destructive"
       });
       return false;
