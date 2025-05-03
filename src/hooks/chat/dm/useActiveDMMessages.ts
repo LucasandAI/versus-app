@@ -60,8 +60,40 @@ export const useActiveDMMessages = (
         const msgId = msg.id?.toString();
         if (!msgId) return;
         
-        // Skip if we've already processed this message or it already exists
-        if (processedMsgIds.current.has(msgId) || prevMessageMap.has(msgId)) {
+        // Skip if we've already processed this message
+        if (processedMsgIds.current.has(msgId)) {
+          return;
+        }
+
+        // CRITICAL: Check if message already exists in our state
+        const existingMessage = prevMessageMap.get(msgId);
+        if (existingMessage) {
+          // If message exists and has complete sender info, KEEP the existing message
+          // This prevents overwriting good metadata with incomplete metadata
+          if (
+            existingMessage.sender && 
+            typeof existingMessage.sender.name === 'string' &&
+            existingMessage.sender.name !== 'Unknown' &&
+            existingMessage.sender.name !== 'User'
+          ) {
+            console.log('[useActiveDMMessages] Preserving existing message with good metadata:', msgId);
+            // Keep existing message with good metadata
+            return;
+          }
+          
+          // If existing message has worse metadata than new message, allow replacement
+          if (
+            msg.sender && 
+            typeof msg.sender.name === 'string' && 
+            msg.sender.name !== 'Unknown' && 
+            msg.sender.name !== 'User' &&
+            (existingMessage.sender.name === 'Unknown' || existingMessage.sender.name === 'User')
+          ) {
+            console.log('[useActiveDMMessages] Replacing message with better metadata:', msgId);
+            prevMessageMap.set(msgId, msg);
+            hasNewMessages = true;
+          }
+          
           return;
         }
         
@@ -218,7 +250,7 @@ export const useActiveDMMessages = (
             sender: {
               id: msg.sender_id,
               name: isCurrentUser ? 'You' : user?.name || 'User',
-              avatar: isCurrentUser ? undefined : user?.avatar || '/placeholder.svg'
+              avatar: isCurrentUser ? undefined : user?.avatar || undefined
             },
             timestamp: msg.timestamp
           };
