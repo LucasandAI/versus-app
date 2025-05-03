@@ -46,19 +46,20 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     avatar: user.avatar || 'none'
   });
   
-  // Use our hook for active messages
-  const { messages, setMessages, addOptimisticMessage } = useActiveDMMessages(
-    conversationId, 
-    user.id,
-    currentUser?.id
-  );
-  
   // Create a stable reference to the user object that won't change identity
   const userDataForMessages = useMemo(() => ({
     id: user.id,
     name: user.name,
     avatar: user.avatar
   }), [user.id, user.name, user.avatar]);
+  
+  // Use our hook for active messages - pass the userDataForMessages as source of truth
+  const { messages, setMessages, addOptimisticMessage } = useActiveDMMessages(
+    conversationId, 
+    user.id,
+    currentUser?.id,
+    userDataForMessages // Pass the authoritative user data to useActiveDMMessages
+  );
   
   // Pass the complete user data object to useDMSubscription to ensure consistent display
   useDMSubscription(

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
@@ -10,7 +11,8 @@ import { useUserData } from './useUserData';
 export const useActiveDMMessages = (
   conversationId: string,
   otherUserId: string,
-  currentUserId: string | undefined
+  currentUserId: string | undefined,
+  otherUserData?: { id: string; name: string; avatar?: string } // Added parameter for otherUserData
 ) => {
   // Local state for messages in this conversation
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -23,22 +25,27 @@ export const useActiveDMMessages = (
   const stableConversationId = useRef(conversationId);
   const optimisticMessageIds = useRef(new Set<string>());
   
-  // Update the stable ref when conversationId changes
+  // Store authoritative user data in a ref for stable access
+  const otherUserDataRef = useRef(otherUserData);
+  
+  // Update the stable refs when props change
   useEffect(() => {
     stableConversationId.current = conversationId;
+    otherUserDataRef.current = otherUserData;
     
     // Clear tracked message state when conversation changes
     processedMsgIds.current.clear();
     optimisticMessageIds.current.clear();
     messageUpdateQueue.current = [];
-  }, [conversationId]);
+  }, [conversationId, otherUserData]);
   
   // Fetch other user's data if needed
   useEffect(() => {
-    if (otherUserId && !userCache[otherUserId] && currentUserId) {
+    // Only fetch user data if otherUserData is not provided and we don't have it in cache
+    if (otherUserId && !otherUserData && !userCache[otherUserId] && currentUserId) {
       fetchUserData(otherUserId);
     }
-  }, [otherUserId, userCache, fetchUserData, currentUserId]);
+  }, [otherUserId, userCache, fetchUserData, currentUserId, otherUserData]);
 
   // Process message updates in batches to avoid multiple state updates
   const processMessageQueue = useCallback(() => {
@@ -236,7 +243,28 @@ export const useActiveDMMessages = (
         // Transform database records to ChatMessage format
         const formattedMessages: ChatMessage[] = data.map(msg => {
           const isCurrentUser = msg.sender_id === currentUserId;
-          const user = isCurrentUser ? null : userCache[msg.sender_id];
+          
+          // Use otherUserData as primary source of truth if available
+          let senderName = isCurrentUser ? 'You' : 'User';
+          let senderAvatar: string | undefined = undefined;
+          
+          if (!isCurrentUser) {
+            // First priority: Use otherUserData from props (from DMHeader)
+            if (otherUserDataRef.current) {
+              senderName = otherUserDataRef.current.name;
+              senderAvatar = otherUserDataRef.current.avatar;
+              console.log(`[useActiveDMMessages] Using authoritative user data from props: name="${senderName}", avatar="${senderAvatar || 'undefined'}"`);
+            } 
+            // Second priority: Fall back to user cache
+            else {
+              const user = userCache[msg.sender_id];
+              if (user) {
+                senderName = user.name;
+                senderAvatar = user.avatar;
+                console.log(`[useActiveDMMessages] Using cached user data: name="${senderName}", avatar="${senderAvatar || 'undefined'}"`);
+              }
+            }
+          }
           
           const msgId = msg.id?.toString();
           if (msgId) {
@@ -249,8 +277,8 @@ export const useActiveDMMessages = (
             text: msg.text,
             sender: {
               id: msg.sender_id,
-              name: isCurrentUser ? 'You' : user?.name || 'User',
-              avatar: isCurrentUser ? undefined : user?.avatar || undefined
+              name: senderName,
+              avatar: senderAvatar
             },
             timestamp: msg.timestamp
           };
