@@ -18,6 +18,8 @@ export const useClubNavigation = () => {
     try {
       setIsLoading(true);
       
+      console.log('[useClubNavigation] Sending invite:', { userId, userName, clubId, clubName });
+      
       // Use the centralized sendClubInvite function that creates both the DB entry and notification
       const success = await sendClubInvite(clubId, clubName, userId, userName);
       

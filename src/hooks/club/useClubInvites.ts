@@ -73,10 +73,14 @@ export function useClubInvites(clubId: string, clubName: string) {
     setProcessingUsers(prev => ({ ...prev, [userId]: true }));
     
     try {
+      console.log('[useClubInvites] Sending invite to:', userId, userName);
+      
       // Use the centralized sendClubInvite function which handles both DB entry and notification
       const success = await sendClubInvite(clubId, clubName, userId, userName);
       
       if (success) {
+        console.log('[useClubInvites] Invite sent successfully');
+        
         // Update the local state to mark this user as invited
         setUsers(prevUsers => prevUsers.map(user => {
           if (user.id === userId) {

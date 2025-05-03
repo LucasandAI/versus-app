@@ -192,31 +192,44 @@ export const sendClubInvite = async (
       toast.error('Failed to send invitation');
       return false;
     }
+
+    // Create the notification with explicit values to ensure proper data is stored
+    const notificationData = {
+      user_id: userId,
+      club_id: clubId,
+      type: 'invite',
+      message: `You've been invited to join ${clubName}`,
+      read: false,
+      data: {
+        clubId: clubId,
+        clubName: clubName,
+        inviterName: 'Admin' // This should ideally be the current user's name
+      }
+    };
     
-    // Create or replace notification
-    const { error: notificationError } = await supabase
+    console.log('[sendClubInvite] Creating notification:', notificationData);
+    
+    const { data: notificationResult, error: notificationError } = await supabase
       .from('notifications')
-      .upsert({
-        user_id: userId,
-        club_id: clubId,
-        type: 'invite',
-        message: `You've been invited to join ${clubName}`,
-        read: false,
-        data: {
-          clubId,
-          clubName,
-          inviterName: 'Admin' // This should ideally be the current user's name
-        }
-      }, {
-        onConflict: 'user_id,club_id,type',
-        ignoreDuplicates: false 
-      });
+      .insert(notificationData)
+      .select('id')
+      .single();
       
     if (notificationError) {
       console.error('[sendClubInvite] Error creating notification:', notificationError);
-      toast.error('Failed to notify user');
-      return false;
+      toast.error('Invitation sent but failed to notify user');
+      
+      // The club invite was created, so we count this as a partial success
+      // We'll trigger an event to refresh the UI
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+      
+      return true; // Return true since the invite was created even if notification failed
     }
+    
+    console.log('[sendClubInvite] Notification created successfully:', notificationResult);
+    
+    // Trigger an event to refresh notifications in the UI
+    window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     
     toast.success(`Invitation sent to ${userName}`);
     return true;
