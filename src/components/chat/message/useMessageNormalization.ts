@@ -10,7 +10,9 @@ export const useMessageNormalization = (currentUserId: string | null, getMemberN
       typeof message.sender === 'object' &&
       message.sender !== null &&
       typeof message.sender.id !== 'undefined' &&
-      typeof message.sender.name === 'string'
+      typeof message.sender.name === 'string' &&
+      message.sender.name !== 'User' &&
+      message.sender.name !== 'Unknown'
     ) {
       console.log('[useMessageNormalization] Using existing complete sender info:', message.sender);
       

@@ -100,6 +100,20 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     userDataForMessages // This is the authoritative source of user metadata
   );
   
+  // Add anti-flicker guard to ensure all messages have valid metadata before rendering
+  const hasCompleteMessageMetadata = useMemo(() => {
+    // If there are no messages, we can render (an empty state will be shown)
+    if (!messages || messages.length === 0) return true;
+    
+    // Check that every message has valid sender metadata
+    return messages.every(m => 
+      m.sender &&
+      typeof m.sender.name === 'string' &&
+      m.sender.name !== 'User' &&
+      m.sender.name !== 'Unknown'
+    );
+  }, [messages]);
+  
   // Use scroll management hook with optimized scrolling
   const { scrollRef, lastMessageRef, scrollToBottom } = useMessageScroll(messages);
   
@@ -218,17 +232,25 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         <div className="flex-1 min-h-0">
-          <ChatMessages 
-            messages={messages}
-            clubMembers={clubMembers}
-            onSelectUser={(userId, userName, userAvatar) => 
-              navigateToUserProfile(userId, userName, userAvatar)
-            }
-            currentUserAvatar={currentUser?.avatar}
-            lastMessageRef={lastMessageRef}
-            formatTime={formatTime}
-            scrollRef={scrollRef}
-          />
+          {/* Apply anti-flicker guard - only render ChatMessages when metadata is complete */}
+          {hasCompleteMessageMetadata ? (
+            <ChatMessages 
+              messages={messages}
+              clubMembers={clubMembers}
+              onSelectUser={(userId, userName, userAvatar) => 
+                navigateToUserProfile(userId, userName, userAvatar)
+              }
+              currentUserAvatar={currentUser?.avatar}
+              lastMessageRef={lastMessageRef}
+              formatTime={formatTime}
+              scrollRef={scrollRef}
+            />
+          ) : (
+            <div className="flex h-full w-full flex-col items-center justify-center p-4">
+              <div className="w-8 h-8 border-2 border-t-transparent border-blue-500 rounded-full animate-spin mb-3"></div>
+              <p className="text-gray-500">Preparing messages...</p>
+            </div>
+          )}
         </div>
         
         <DMMessageInput
