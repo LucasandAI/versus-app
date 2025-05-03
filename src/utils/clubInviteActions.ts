@@ -194,10 +194,11 @@ export const sendClubInvite = async (
     }
 
     // Create the notification with explicit values to ensure proper data is stored
+    // Use a type literal value from the allowed notification types instead of a regular string
     const notificationData = {
       user_id: userId,
       club_id: clubId,
-      type: 'invite',
+      type: 'invite' as const, // Use a type assertion to specific literal type
       message: `You've been invited to join ${clubName}`,
       read: false,
       data: {
