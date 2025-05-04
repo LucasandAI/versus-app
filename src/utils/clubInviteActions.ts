@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { checkClubCapacity } from './notifications/clubCapacity';
@@ -224,7 +223,7 @@ export const sendClubInvite = async (
         .delete()
         .eq('user_id', userId)
         .eq('club_id', clubId)
-        .eq('type', 'invite');
+        .eq('type', 'invite' as const);
         
       console.log('[sendClubInvite] Cleaned up old notifications');
     } catch (error) {
@@ -238,7 +237,7 @@ export const sendClubInvite = async (
       .insert({
         user_id: userId,
         club_id: clubId,
-        type: 'invite' as const,
+        type: 'invite' as const, // <-- Use type assertion here to make TypeScript happy
         message: `You've been invited to join ${clubName}`,
         read: false,
         data: {
