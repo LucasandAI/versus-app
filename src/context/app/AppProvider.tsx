@@ -135,6 +135,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setUserLoading,
     setAuthChecked,
     setAuthError,
+    setNeedsProfileCompletion,
   });
 
   const setCurrentUserWithUpdates = (userOrFunction: User | null | ((prev: User | null) => User | null)) => {

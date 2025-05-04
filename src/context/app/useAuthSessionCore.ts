@@ -1,12 +1,7 @@
-
 import { useEffect } from 'react';
 import { safeSupabase } from '@/integrations/supabase/safeClient';
-import { AppView, User } from '@/types';
+import { User, AppView } from '@/types';
 import { useLoadCurrentUser } from './useLoadCurrentUser';
-import { toast } from '@/hooks/use-toast';
-
-// Timeout for authentication check (10 seconds)
-export const AUTH_TIMEOUT = 10000;
 
 interface AuthSessionCoreProps {
   setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>;
@@ -14,160 +9,126 @@ interface AuthSessionCoreProps {
   setUserLoading: (loading: boolean) => void;
   setAuthChecked: (checked: boolean) => void;
   setAuthError: (error: string | null) => void;
+  setNeedsProfileCompletion?: (needsCompletion: boolean) => void;
 }
 
+/**
+ * Core functionality for managing authentication state changes
+ * This is used by useAuthSessionEffect to handle auth state changes
+ */
 export const useAuthSessionCore = ({
   setCurrentUser,
   setCurrentView,
   setUserLoading,
   setAuthChecked,
   setAuthError,
+  setNeedsProfileCompletion,
 }: AuthSessionCoreProps) => {
   const { loadCurrentUser } = useLoadCurrentUser();
 
   useEffect(() => {
-    let isMounted = true;
-    let authTimeoutId: ReturnType<typeof setTimeout>;
-    
-    console.log('[useAuthSessionCore] Setting up auth session listener');
+    let unsubscribe: any;
 
-    // First, set up the auth state change listener
-    const { data } = safeSupabase.auth.onAuthStateChange((event, session) => {
-      if (!isMounted) return;
+    const checkUserProfile = async (userId: string): Promise<boolean> => {
+      console.log('[useAuthSessionCore] Checking if user has profile:', userId);
       
-      console.log('[useAuthSessionCore] Auth state changed:', { 
-        event, 
-        userId: session?.user?.id,
-        userEmail: session?.user?.email
-      });
+      try {
+        // Check if the user has a profile in the users table
+        const { data: userProfile, error } = await safeSupabase
+          .from('users')
+          .select('id, name')
+          .eq('id', userId)
+          .maybeSingle();
 
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        if (session?.user?.id) {
-          try {
-            // Only set loading if user explicitly tried to sign in (event === 'SIGNED_IN')
-            if (event === 'SIGNED_IN') {
-              setUserLoading(true);
-            }
-            
-            console.log('[useAuthSessionCore] Loading user profile for ID:', session.user.id);
-            
-            // Create a basic user first with session details
-            const basicUser: User = {
-              id: session.user.id,
-              name: session.user.email || 'User',
-              avatar: '/placeholder.svg',
-              bio: '',
-              clubs: []
-            };
-            
-            // Set the basic user immediately for better UX
-            setCurrentUser(basicUser);
-            
-            // Fetch full user profile in the background
-            // Using setTimeout to avoid potential deadlocks with Supabase auth
-            setTimeout(async () => {
-              if (!isMounted) return;
-              
-              try {
-                const userProfile = await loadCurrentUser(session.user.id);
-                if (isMounted && userProfile) {
-                  console.log('[useAuthSessionCore] User profile loaded:', userProfile.id);
-                  setCurrentUser(userProfile);
-                  
-                  // Log additional user information for debugging
-                  console.log('[useAuthSessionCore] Updated user context with:', {
-                    id: userProfile.id,
-                    name: userProfile.name,
-                    clubsCount: userProfile.clubs?.length || 0
-                  });
-                }
-              } catch (profileError) {
-                console.warn('[useAuthSessionCore] Error loading full profile, using basic user:', profileError);
-              } finally {
-                if (isMounted) {
-                  setUserLoading(false);
-                }
-              }
-            }, 0);
-            
-            // Even with just the basic user, proceed to home view
-            setCurrentView('home');
-            setAuthChecked(true);
-          } catch (error) {
-            console.error('[useAuthSessionCore] Error in auth flow:', error);
-            if (isMounted) {
-              setAuthError(error instanceof Error ? error.message : 'Authentication error');
-              setUserLoading(false);
-              setAuthChecked(true);
-            }
-          }
-        } else {
-          console.warn('[useAuthSessionCore] Session exists but no user ID');
-          if (isMounted) {
-            setAuthChecked(true);
-            setUserLoading(false);
-            setCurrentView('connect');
-          }
-        }
-      } else if (event === 'SIGNED_OUT') {
-        console.log('[useAuthSessionCore] User signed out');
-        if (isMounted) {
-          setCurrentUser(null);
-          setCurrentView('connect');
-          setAuthChecked(true);
-          setUserLoading(false);
-        }
-      } else {
-        console.log('[useAuthSessionCore] Other auth event:', event);
-        if (isMounted) {
-          setAuthChecked(true);
-          setUserLoading(false);
-        }
-      }
-    });
-    
-    // Then, check for an existing session, but don't show loading screen
-    // Using setTimeout to avoid potential deadlocks with the auth state change listener
-    setTimeout(() => {
-      if (!isMounted) return;
-      
-      safeSupabase.auth.getSession().then(({ data: { session }, error }) => {
-        if (!isMounted) return;
-        
-        console.log('[useAuthSessionCore] Initial session check:', { 
-          hasSession: !!session,
-          userId: session?.user?.id,
-          userEmail: session?.user?.email,
-          error: error?.message
-        });
-        
         if (error) {
-          console.error('[useAuthSessionCore] Session check error:', error);
-          setAuthError(error.message);
-          setAuthChecked(true);
-          setUserLoading(false);
-          setCurrentView('connect');
-          return;
+          console.error('[useAuthSessionCore] Error checking user profile:', error);
+          return false;
         }
         
-        if (!session || !session.user) {
-          // No valid session found, staying on connect view
-          setAuthChecked(true);
-          setUserLoading(false);
-          setCurrentView('connect');
+        // If no profile found or if profile is incomplete (no name)
+        if (!userProfile || !userProfile.name) {
+          console.log('[useAuthSessionCore] User has no profile or incomplete profile');
+          if (setNeedsProfileCompletion) {
+            setNeedsProfileCompletion(true);
+          }
+          return false;
         }
-        // If session exists, the onAuthStateChange handler will be triggered
-      });
-    }, 0);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(authTimeoutId);
-      
-      // Clean up the subscription
-      if (data && data.subscription && typeof data.subscription.unsubscribe === 'function') {
-        data.subscription.unsubscribe();
+        
+        console.log('[useAuthSessionCore] User has complete profile');
+        return true;
+      } catch (error) {
+        console.error('[useAuthSessionCore] Error in checkUserProfile:', error);
+        return false;
       }
     };
-  }, [setCurrentUser, setCurrentView, setUserLoading, setAuthChecked, setAuthError, loadCurrentUser]);
+
+    const setupAuthListener = async () => {
+      console.log('[useAuthSessionCore] Setting up auth listener');
+      
+      const { data: { subscription } } = safeSupabase.auth.onAuthStateChange(
+        async (event, session) => {
+          console.log('[useAuthSessionCore] Auth state change:', event);
+          
+          setAuthChecked(true);
+          
+          if (event === 'SIGNED_OUT') {
+            console.log('[useAuthSessionCore] User signed out');
+            setCurrentUser(null);
+            setCurrentView('connect');
+            setUserLoading(false);
+            if (setNeedsProfileCompletion) {
+              setNeedsProfileCompletion(false);
+            }
+            return;
+          }
+          
+          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            if (session?.user) {
+              console.log('[useAuthSessionCore] User signed in:', session.user.id);
+              setUserLoading(true);
+              
+              // Check if user has a profile
+              const hasProfile = await checkUserProfile(session.user.id);
+              
+              if (!hasProfile) {
+                console.log('[useAuthSessionCore] User needs to complete profile');
+                setCurrentView('connect');
+                setUserLoading(false);
+                return;
+              }
+              
+              try {
+                const user = await loadCurrentUser(session.user.id);
+                if (user) {
+                  setCurrentUser(user);
+                  setCurrentView('home');
+                  console.log('[useAuthSessionCore] User profile loaded successfully');
+                } else {
+                  setCurrentView('connect');
+                  console.error('[useAuthSessionCore] Failed to load user profile');
+                }
+              } catch (error) {
+                console.error('[useAuthSessionCore] Error loading user:', error);
+                setAuthError(error instanceof Error ? error.message : 'Unknown error loading user profile');
+                setCurrentView('connect');
+              } finally {
+                setUserLoading(false);
+              }
+            }
+          }
+        }
+      );
+      
+      unsubscribe = subscription.unsubscribe;
+    };
+    
+    setupAuthListener();
+    
+    return () => {
+      if (unsubscribe) {
+        console.log('[useAuthSessionCore] Unsubscribing from auth listener');
+        unsubscribe();
+      }
+    };
+  }, [setCurrentUser, setCurrentView, setUserLoading, setAuthChecked, setAuthError, loadCurrentUser, setNeedsProfileCompletion]);
 };

@@ -51,19 +51,35 @@ export const useAuth = (): AuthState & AuthActions => {
         return null;
       }
       
-      // Create a basic user object with what we know from auth
+      // Check if the user has a profile
+      const { data: userProfile, error: profileError } = await safeSupabase
+        .from('users')
+        .select('id, name')
+        .eq('id', authData.user.id)
+        .maybeSingle();
+        
+      if (profileError) {
+        console.error('[useAuth] Profile check error:', profileError);
+      }
+      
+      // Create a basic user object with what we know from auth and profile
       const basicUser: User = {
         id: authData.user.id,
-        name: authData.user.email || 'User',
-        avatar: '/placeholder.svg',
-        bio: '',
+        name: userProfile?.name || authData.user.email || 'User',
+        avatar: userProfile?.avatar || '/placeholder.svg',
+        bio: userProfile?.bio || '',
         clubs: []
       };
       
-      toast({
-        title: "Login successful",
-        description: "Welcome back!",
-      });
+      // If the user doesn't have a profile, we'll need to create one
+      if (!userProfile || !userProfile.name) {
+        console.log('[useAuth] User needs to complete profile');
+      } else {
+        toast({
+          title: "Login successful",
+          description: "Welcome back!",
+        });
+      }
       
       console.log('[useAuth] Returning basic user:', basicUser.id);
       return basicUser;

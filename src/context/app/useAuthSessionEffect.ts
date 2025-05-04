@@ -10,6 +10,7 @@ interface Props {
   setUserLoading: (loading: boolean) => void;
   setAuthChecked: (checked: boolean) => void;
   setAuthError: (error: string | null) => void;
+  setNeedsProfileCompletion?: (needsCompletion: boolean) => void;
 }
 
 /**
@@ -23,6 +24,7 @@ export const useAuthSessionEffect = ({
   setUserLoading,
   setAuthChecked,
   setAuthError,
+  setNeedsProfileCompletion,
 }: Props) => {
   // Initial setup effect
   useEffect(() => {
@@ -49,5 +51,6 @@ export const useAuthSessionEffect = ({
     setUserLoading,
     setAuthChecked,
     setAuthError,
+    setNeedsProfileCompletion,
   });
 };
