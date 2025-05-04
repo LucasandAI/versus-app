@@ -1,6 +1,5 @@
 
 import React from "react";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -12,36 +11,36 @@ interface BasicInfoSectionProps {
 }
 
 const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
-  name,
-  setName,
-  bio,
-  setBio
+  name, setName,
+  bio, setBio
 }) => {
   return (
-    <>
-      <div className="space-y-2">
-        <Label htmlFor="name">Name</Label>
+    <div className="space-y-4">
+      <div>
+        <label htmlFor="name" className="block text-sm font-medium">
+          Name
+        </label>
         <Input
           id="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Your name"
-          required
         />
       </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="bio">Bio</Label>
+      
+      <div>
+        <label htmlFor="bio" className="block text-sm font-medium">
+          Bio <span className="text-gray-500 text-xs italic">(optional)</span>
+        </label>
         <Textarea
           id="bio"
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           placeholder="Tell us about yourself"
           className="resize-none"
-          rows={3}
         />
       </div>
-    </>
+    </div>
   );
 };
 

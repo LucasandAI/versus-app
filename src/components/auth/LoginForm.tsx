@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -341,7 +340,7 @@ const LoginForm: React.FC = () => {
                 name="bio"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Bio</FormLabel>
+                    <FormLabel>Bio <span className="text-gray-500 text-xs italic">(optional)</span></FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="Say something about yourself (optional)"
