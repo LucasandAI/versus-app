@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { uploadAvatar } from '@/components/profile/edit-profile/uploadAvatar';
 import AvatarSection from '@/components/profile/edit-profile/AvatarSection';
 import SocialLinksSection from '@/components/profile/edit-profile/SocialLinksSection';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 // Login form schema
 const loginSchema = z.object({
@@ -33,6 +34,11 @@ const signupSchema = z.object({
   path: ["confirmPassword"],
 });
 
+// Reset password schema
+const resetPasswordSchema = z.object({
+  email: z.string().email({ message: 'Please enter a valid email address' }),
+});
+
 // Profile completion schema
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters' }),
@@ -40,6 +46,7 @@ const profileSchema = z.object({
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
+type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
 const LoginForm: React.FC = () => {
   const { signIn, needsProfileCompletion, setNeedsProfileCompletion } = useApp();
@@ -47,6 +54,7 @@ const LoginForm: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [userId, setUserId] = useState<string | null>(null);
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   
   // Profile form state
   const [avatar, setAvatar] = useState<string>('');
@@ -93,6 +101,37 @@ const LoginForm: React.FC = () => {
     }
   }, [needsProfileCompletion]);
 
+  // Reset password form
+  const resetPasswordForm = useForm<ResetPasswordFormValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      email: '',
+    },
+  });
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const previewUrl = URL.createObjectURL(file);
+      console.log('[LoginForm] Local preview URL created:', previewUrl);
+      setAvatar(previewUrl);
+      setAvatarFile(file);
+      setPreviewKey(Date.now());
+    }
+  };
+
+  // Reset loading state after 10 seconds to prevent getting stuck
+  useEffect(() => {
+    if (isLoading) {
+      const timeout = setTimeout(() => {
+        setIsLoading(false);
+        setError('Operation is taking longer than expected. Please try again.');
+      }, 10000);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [isLoading]);
+
   // Login form
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -121,29 +160,6 @@ const LoginForm: React.FC = () => {
     },
   });
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const previewUrl = URL.createObjectURL(file);
-      console.log('[LoginForm] Local preview URL created:', previewUrl);
-      setAvatar(previewUrl);
-      setAvatarFile(file);
-      setPreviewKey(Date.now());
-    }
-  };
-
-  // Reset loading state after 10 seconds to prevent getting stuck
-  useEffect(() => {
-    if (isLoading) {
-      const timeout = setTimeout(() => {
-        setIsLoading(false);
-        setError('Operation is taking longer than expected. Please try again.');
-      }, 10000);
-      
-      return () => clearTimeout(timeout);
-    }
-  }, [isLoading]);
-
   const handleLogin = async (values: LoginFormValues) => {
     if (isLoading) return; // Prevent multiple submissions
     
@@ -169,20 +185,16 @@ const LoginForm: React.FC = () => {
     }
   };
 
-  const handleForgotPassword = async () => {
-    const email = loginForm.getValues("email");
-    if (!email) {
-      toast({
-        title: "Email required",
-        description: "Please enter your email address first",
-        variant: "destructive"
-      });
-      return;
-    }
+  const handleForgotPassword = () => {
+    setIsResetDialogOpen(true);
+  };
+
+  const handleResetPassword = async (values: ResetPasswordFormValues) => {
+    if (isLoading) return;
     
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
         redirectTo: window.location.origin
       });
       
@@ -192,6 +204,8 @@ const LoginForm: React.FC = () => {
         title: "Password reset email sent",
         description: "Check your inbox for instructions to reset your password"
       });
+      setIsResetDialogOpen(false);
+      resetPasswordForm.reset();
     } catch (error) {
       console.error('[LoginForm] Password reset error:', error);
       toast({
@@ -602,6 +616,58 @@ const LoginForm: React.FC = () => {
   return (
     <div className="w-full max-w-md">
       {renderForm()}
+      
+      <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Enter your email address to receive a password reset link.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...resetPasswordForm}>
+            <form onSubmit={resetPasswordForm.handleSubmit(handleResetPassword)} className="space-y-4">
+              <FormField
+                control={resetPasswordForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="you@example.com"
+                        type="email"
+                        autoComplete="email"
+                        disabled={isLoading}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsResetDialogOpen(false)}
+                  disabled={isLoading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Sending...' : 'Send Reset Link'}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
