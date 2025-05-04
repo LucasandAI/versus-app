@@ -37,10 +37,11 @@ const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
       return;
     }
 
-    createClub(
-      name.trim(),
-      image || '/placeholder.svg'
-    );
+    createClub({
+      name: name.trim(),
+      logo: image || '/placeholder.svg',
+      bio: bio.trim()
+    });
 
     toast({
       title: "Success",
