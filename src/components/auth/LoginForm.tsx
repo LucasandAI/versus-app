@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,6 +13,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { uploadAvatar } from '@/components/profile/edit-profile/uploadAvatar';
+import AvatarSection from '@/components/profile/edit-profile/AvatarSection';
+import SocialLinksSection from '@/components/profile/edit-profile/SocialLinksSection';
 
 // Login form schema
 const loginSchema = z.object({
@@ -43,6 +47,19 @@ const LoginForm: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [userId, setUserId] = useState<string | null>(null);
+  
+  // Profile form state
+  const [avatar, setAvatar] = useState<string>('');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [previewKey, setPreviewKey] = useState(Date.now());
+  
+  // Social media links
+  const [instagram, setInstagram] = useState('');
+  const [twitter, setTwitter] = useState('');
+  const [facebook, setFacebook] = useState('');
+  const [linkedin, setLinkedin] = useState('');
+  const [website, setWebsite] = useState('');
+  const [tiktok, setTiktok] = useState('');
 
   // Effect to check if we need to show the profile completion form
   useEffect(() => {
@@ -103,6 +120,17 @@ const LoginForm: React.FC = () => {
       bio: '',
     },
   });
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const previewUrl = URL.createObjectURL(file);
+      console.log('[LoginForm] Local preview URL created:', previewUrl);
+      setAvatar(previewUrl);
+      setAvatarFile(file);
+      setPreviewKey(Date.now());
+    }
+  };
 
   // Reset loading state after 10 seconds to prevent getting stuck
   useEffect(() => {
@@ -225,13 +253,30 @@ const LoginForm: React.FC = () => {
     try {
       console.log('[LoginForm] Completing profile for user:', userId);
       
+      let avatarUrl = '/placeholder.svg'; // Default avatar
+      
+      if (avatarFile) {
+        console.log('[LoginForm] Uploading avatar file');
+        const uploadedUrl = await uploadAvatar(userId, avatarFile);
+        if (uploadedUrl) {
+          console.log('[LoginForm] Avatar URL:', uploadedUrl);
+          avatarUrl = uploadedUrl;
+        }
+      }
+      
       const { error } = await supabase
         .from('users')
         .insert({
           id: userId,
           name: values.name,
           bio: values.bio || null,
-          avatar: values.avatar ? '/placeholder.svg' : null, // Default avatar for now
+          avatar: avatarUrl,
+          instagram: instagram || null,
+          twitter: twitter || null,
+          facebook: facebook || null,
+          linkedin: linkedin || null,
+          website: website || null,
+          tiktok: tiktok || null,
         });
 
       if (error) {
@@ -261,43 +306,68 @@ const LoginForm: React.FC = () => {
     if (authMode === 'profile-completion') {
       return (
         <Form {...profileForm}>
-          <form onSubmit={profileForm.handleSubmit(handleProfileCompletion)} className="space-y-4">
+          <form onSubmit={profileForm.handleSubmit(handleProfileCompletion)} className="space-y-6">
             <h2 className="text-xl font-bold text-center">Complete Your Profile</h2>
-            <FormField
-              control={profileForm.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Your name"
-                      type="text"
-                      disabled={isLoading}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+            
+            <AvatarSection
+              name={profileForm.watch('name') || ""}
+              avatar={avatar}
+              handleAvatarChange={handleAvatarChange}
+              previewKey={previewKey}
             />
             
-            <FormField
-              control={profileForm.control}
-              name="bio"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Bio</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Say something about yourself (optional)"
-                      disabled={isLoading}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+            <div className="space-y-4">
+              <FormField
+                control={profileForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Your name"
+                        type="text"
+                        disabled={isLoading}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={profileForm.control}
+                name="bio"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Bio</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Say something about yourself (optional)"
+                        disabled={isLoading}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <SocialLinksSection
+              instagram={instagram}
+              setInstagram={setInstagram}
+              linkedin={linkedin}
+              setLinkedin={setLinkedin}
+              twitter={twitter}
+              setTwitter={setTwitter}
+              facebook={facebook}
+              setFacebook={setFacebook}
+              website={website}
+              setWebsite={setWebsite}
+              tiktok={tiktok}
+              setTiktok={setTiktok}
             />
             
             {error && (
