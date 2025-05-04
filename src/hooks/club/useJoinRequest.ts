@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useApp } from '@/context/AppContext';
@@ -9,13 +9,8 @@ export const useJoinRequest = (clubId: string) => {
   const [hasPendingRequest, setHasPendingRequest] = useState(false);
   const { currentUser } = useApp();
 
-  useEffect(() => {
-    if (currentUser) {
-      checkPendingRequest(currentUser.id);
-    }
-  }, [currentUser, clubId]);
-
-  const checkPendingRequest = async (userId: string) => {
+  // Use useCallback to memoize the function and prevent recreation on every render
+  const checkPendingRequest = useCallback(async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('club_requests')
@@ -35,10 +30,23 @@ export const useJoinRequest = (clubId: string) => {
       console.error('Error checking pending request:', error);
       return false;
     }
-  };
+  }, [clubId]);
+
+  // Only check pending requests once when component mounts or when user/clubId changes
+  useEffect(() => {
+    if (currentUser) {
+      checkPendingRequest(currentUser.id);
+    }
+  }, [currentUser, clubId, checkPendingRequest]);
 
   const sendJoinRequest = async (userId: string) => {
+    // Prevent multiple rapid clicks
+    if (isRequesting) return false;
+    
     setIsRequesting(true);
+    // Optimistically update UI immediately
+    setHasPendingRequest(true);
+    
     try {
       const { error } = await supabase
         .from('club_requests')
@@ -48,9 +56,12 @@ export const useJoinRequest = (clubId: string) => {
           status: 'pending'
         }]);
 
-      if (error) throw error;
+      if (error) {
+        // Revert optimistic update on error
+        setHasPendingRequest(false);
+        throw error;
+      }
 
-      setHasPendingRequest(true);
       toast({
         title: "Request Sent",
         description: "Your request to join has been sent to the club admins"
@@ -66,12 +77,21 @@ export const useJoinRequest = (clubId: string) => {
       });
       return false;
     } finally {
-      setIsRequesting(false);
+      // Small delay before allowing new requests to prevent button flickering
+      setTimeout(() => {
+        setIsRequesting(false);
+      }, 500);
     }
   };
 
   const cancelJoinRequest = async (userId: string) => {
+    // Prevent multiple rapid clicks
+    if (isRequesting) return false;
+    
     setIsRequesting(true);
+    // Optimistically update UI immediately
+    setHasPendingRequest(false);
+    
     try {
       // Delete the request directly
       const { error } = await supabase
@@ -80,7 +100,11 @@ export const useJoinRequest = (clubId: string) => {
         .eq('club_id', clubId)
         .eq('user_id', userId);
 
-      if (error) throw error;
+      if (error) {
+        // Revert optimistic update on error
+        setHasPendingRequest(true);
+        throw error;
+      }
 
       // Delete any admin notifications related to this join request
       try {
@@ -130,7 +154,6 @@ export const useJoinRequest = (clubId: string) => {
         console.error('Error handling notification deletion:', error);
       }
 
-      setHasPendingRequest(false);
       toast({
         title: "Request Canceled",
         description: "Your join request has been canceled"
@@ -149,7 +172,10 @@ export const useJoinRequest = (clubId: string) => {
       });
       return false;
     } finally {
-      setIsRequesting(false);
+      // Small delay before allowing new requests to prevent button flickering
+      setTimeout(() => {
+        setIsRequesting(false);
+      }, 500);
     }
   };
 

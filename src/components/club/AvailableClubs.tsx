@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { UserPlus, X } from 'lucide-react';
+import { UserPlus, X, Loader2 } from 'lucide-react';
 import Button from '../shared/Button';
 import { formatLeagueWithTier } from '@/lib/format';
 import UserAvatar from '../shared/UserAvatar';
@@ -27,6 +27,7 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
   const { navigateToClubDetail } = useNavigation();
   const { currentUser } = useApp();
   const [pendingRequests, setPendingRequests] = useState<Record<string, boolean>>({});
+  const [processingRequests, setProcessingRequests] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
 
@@ -154,22 +155,35 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
     });
   };
 
-  const handleRequestClick = (e: React.MouseEvent, clubId: string, clubName: string) => {
+  const handleRequestClick = async (e: React.MouseEvent, clubId: string, clubName: string) => {
     e.stopPropagation();
-    onRequestJoin(clubId, clubName);
     
-    // Update the local state to reflect the change immediately
-    if (pendingRequests[clubId]) {
-      setPendingRequests(prev => ({
+    // Prevent double clicks and rapid toggling
+    if (processingRequests[clubId]) return;
+    
+    // Set processing state for this specific club
+    setProcessingRequests(prev => ({
+      ...prev,
+      [clubId]: true
+    }));
+    
+    // Update local state optimistically
+    const isCurrentlyPending = pendingRequests[clubId];
+    setPendingRequests(prev => ({
+      ...prev,
+      [clubId]: !isCurrentlyPending
+    }));
+    
+    // Call the parent handler
+    await onRequestJoin(clubId, clubName);
+    
+    // Add a small delay to prevent button flickering
+    setTimeout(() => {
+      setProcessingRequests(prev => ({
         ...prev,
         [clubId]: false
       }));
-    } else {
-      setPendingRequests(prev => ({
-        ...prev,
-        [clubId]: true
-      }));
-    }
+    }, 500);
   };
 
   if (clubs.length === 0) {
@@ -192,6 +206,7 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
         {clubs.map((club) => {
           // Use the updated member count from our state, or fall back to the prop value
           const currentMemberCount = memberCounts[club.id] !== undefined ? memberCounts[club.id] : club.members;
+          const isProcessing = processingRequests[club.id] || false;
           
           return (
             <div 
@@ -223,9 +238,13 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
                 variant={pendingRequests[club.id] ? "outline" : "outline"}
                 size="sm" 
                 className={`h-8 ${pendingRequests[club.id] ? "text-red-500 hover:text-red-700" : ""}`}
-                icon={pendingRequests[club.id] ? <X className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                icon={isProcessing ? 
+                  <Loader2 className="h-4 w-4 animate-spin" /> : 
+                  pendingRequests[club.id] ? <X className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />
+                }
                 onClick={(e) => handleRequestClick(e, club.id, club.name)}
-                loading={isLoading}
+                loading={isProcessing}
+                disabled={isProcessing}
               >
                 {pendingRequests[club.id] ? "Cancel Request" : "Request"}
               </Button>
