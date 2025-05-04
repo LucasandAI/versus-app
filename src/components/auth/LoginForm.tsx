@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -96,8 +97,8 @@ const LoginForm: React.FC = () => {
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: 'test@example.com', // Test credentials
-      password: 'password123',    // Test credentials
+      email: '',
+      password: '',
     },
   });
 
@@ -164,6 +165,41 @@ const LoginForm: React.FC = () => {
     } catch (error) {
       console.error('[LoginForm] Login error:', error);
       setError(error instanceof Error ? error.message : 'Failed to sign in');
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    const email = loginForm.getValues("email");
+    if (!email) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address first",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Password reset email sent",
+        description: "Check your inbox for instructions to reset your password"
+      });
+    } catch (error) {
+      console.error('[LoginForm] Password reset error:', error);
+      toast({
+        title: "Could not reset password",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive"
+      });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -455,9 +491,20 @@ const LoginForm: React.FC = () => {
                 </Button>
               </div>
               
+              <div className="text-center text-sm">
+                <Button 
+                  variant="link" 
+                  type="button" 
+                  className="p-0 h-auto text-sm" 
+                  onClick={handleForgotPassword}
+                  disabled={isLoading}
+                >
+                  Forgot password?
+                </Button>
+              </div>
+              
               <div className="text-center text-sm text-gray-500">
                 <p>Don't have an account? <Button variant="link" className="p-0 h-auto" onClick={() => setAuthMode('signup')}>Sign up</Button></p>
-                <p className="mt-2">Test credentials pre-filled for demo purposes</p>
               </div>
             </form>
           </Form>
