@@ -61,7 +61,6 @@ export const safeSupabase = {
   },
   storage: supabase.storage,
   clubs: {
-    // Updated getAvailableClubs to use member_count column
     getAvailableClubs: async (currentUserId?: string) => {
       try {
         if (!currentUserId) {
@@ -118,7 +117,6 @@ export const safeSupabase = {
       }
     },
     
-    // Add the missing getLeaderboardClubs function
     getLeaderboardClubs: async () => {
       try {
         const { data, error } = await supabase
@@ -164,6 +162,8 @@ export const clearAllAuthData = async () => {
   try {
     // Clear browser storage
     localStorage.removeItem('supabase.auth.token');
+    localStorage.clear();
+    sessionStorage.clear();
     
     // Sign out from Supabase
     await safeSupabase.auth.signOut();

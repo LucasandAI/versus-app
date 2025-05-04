@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { safeSupabase } from '@/integrations/supabase/safeClient';
 import { User, AppView } from '@/types';
@@ -65,6 +66,40 @@ export const useAuthSessionCore = ({
     const setupAuthListener = async () => {
       console.log('[useAuthSessionCore] Setting up auth listener');
       
+      // First check if we already have a session
+      const { data: sessionData } = await safeSupabase.auth.getSession();
+      const existingSession = sessionData?.session;
+      
+      if (existingSession?.user) {
+        console.log('[useAuthSessionCore] Found existing session, user:', existingSession.user.id);
+        setUserLoading(true);
+        
+        // Check profile status
+        const hasProfile = await checkUserProfile(existingSession.user.id);
+        
+        if (!hasProfile) {
+          console.log('[useAuthSessionCore] Existing user needs to complete profile');
+          setCurrentView('connect');
+          if (setNeedsProfileCompletion) {
+            setNeedsProfileCompletion(true);
+          }
+        } else {
+          try {
+            const user = await loadCurrentUser(existingSession.user.id);
+            if (user) {
+              setCurrentUser(user);
+              setCurrentView('home');
+            }
+          } catch (error) {
+            console.error('[useAuthSessionCore] Error loading existing user:', error);
+            setCurrentView('connect');
+          }
+        }
+        
+        setUserLoading(false);
+      }
+      
+      // Now set up the auth state change listener
       const { data: { subscription } } = safeSupabase.auth.onAuthStateChange(
         async (event, session) => {
           console.log('[useAuthSessionCore] Auth state change:', event);
@@ -82,38 +117,39 @@ export const useAuthSessionCore = ({
             return;
           }
           
-          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-            if (session?.user) {
-              console.log('[useAuthSessionCore] User signed in:', session.user.id);
-              setUserLoading(true);
-              
-              // Check if user has a profile
-              const hasProfile = await checkUserProfile(session.user.id);
-              
-              if (!hasProfile) {
-                console.log('[useAuthSessionCore] User needs to complete profile');
-                setCurrentView('connect');
-                setUserLoading(false);
-                return;
+          if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+            console.log('[useAuthSessionCore] User signed in:', session.user.id);
+            setUserLoading(true);
+            
+            // Check if user has a profile
+            const hasProfile = await checkUserProfile(session.user.id);
+            
+            if (!hasProfile) {
+              console.log('[useAuthSessionCore] User needs to complete profile');
+              setCurrentView('connect');
+              if (setNeedsProfileCompletion) {
+                setNeedsProfileCompletion(true);
               }
-              
-              try {
-                const user = await loadCurrentUser(session.user.id);
-                if (user) {
-                  setCurrentUser(user);
-                  setCurrentView('home');
-                  console.log('[useAuthSessionCore] User profile loaded successfully');
-                } else {
-                  setCurrentView('connect');
-                  console.error('[useAuthSessionCore] Failed to load user profile');
-                }
-              } catch (error) {
-                console.error('[useAuthSessionCore] Error loading user:', error);
-                setAuthError(error instanceof Error ? error.message : 'Unknown error loading user profile');
+              setUserLoading(false);
+              return;
+            }
+            
+            try {
+              const user = await loadCurrentUser(session.user.id);
+              if (user) {
+                setCurrentUser(user);
+                setCurrentView('home');
+                console.log('[useAuthSessionCore] User profile loaded successfully');
+              } else {
                 setCurrentView('connect');
-              } finally {
-                setUserLoading(false);
+                console.error('[useAuthSessionCore] Failed to load user profile');
               }
+            } catch (error) {
+              console.error('[useAuthSessionCore] Error loading user:', error);
+              setAuthError(error instanceof Error ? error.message : 'Unknown error loading user profile');
+              setCurrentView('connect');
+            } finally {
+              setUserLoading(false);
             }
           }
         }
