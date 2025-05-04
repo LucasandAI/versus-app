@@ -17,6 +17,7 @@ import { uploadAvatar } from '@/components/profile/edit-profile/uploadAvatar';
 import AvatarSection from '@/components/profile/edit-profile/AvatarSection';
 import SocialLinksSection from '@/components/profile/edit-profile/SocialLinksSection';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 // Login form schema
 const loginSchema = z.object({
@@ -34,9 +35,23 @@ const signupSchema = z.object({
   path: ["confirmPassword"],
 });
 
-// Reset password schema
+// Reset password email schema
 const resetPasswordSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
+});
+
+// OTP verification schema
+const verifyOtpSchema = z.object({
+  otp: z.string().length(6, { message: 'Please enter all 6 digits' }),
+});
+
+// New password schema
+const newPasswordSchema = z.object({
+  password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
+  confirmPassword: z.string().min(6, { message: 'Password must be at least 6 characters' }),
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 // Profile completion schema
@@ -47,6 +62,8 @@ const profileSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
+type VerifyOtpFormValues = z.infer<typeof verifyOtpSchema>;
+type NewPasswordFormValues = z.infer<typeof newPasswordSchema>;
 
 const LoginForm: React.FC = () => {
   const { signIn, needsProfileCompletion, setNeedsProfileCompletion } = useApp();
@@ -55,6 +72,8 @@ const LoginForm: React.FC = () => {
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [userId, setUserId] = useState<string | null>(null);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [resetPasswordStep, setResetPasswordStep] = useState<'email' | 'verify' | 'newPassword'>('email');
+  const [resetEmail, setResetEmail] = useState('');
   
   // Profile form state
   const [avatar, setAvatar] = useState<string>('');
@@ -106,6 +125,23 @@ const LoginForm: React.FC = () => {
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
       email: '',
+    },
+  });
+
+  // Verify OTP form
+  const verifyOtpForm = useForm<VerifyOtpFormValues>({
+    resolver: zodResolver(verifyOtpSchema),
+    defaultValues: {
+      otp: '',
+    },
+  });
+
+  // New password form
+  const newPasswordForm = useForm<NewPasswordFormValues>({
+    resolver: zodResolver(newPasswordSchema),
+    defaultValues: {
+      password: '',
+      confirmPassword: '',
     },
   });
 
@@ -187,29 +223,95 @@ const LoginForm: React.FC = () => {
 
   const handleForgotPassword = () => {
     setIsResetDialogOpen(true);
+    setResetPasswordStep('email');
+    resetPasswordForm.reset();
+    verifyOtpForm.reset();
+    newPasswordForm.reset();
   };
 
   const handleResetPassword = async (values: ResetPasswordFormValues) => {
     if (isLoading) return;
     
     setIsLoading(true);
+    setError(null);
+    
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
-        redirectTo: window.location.origin
+      const { error } = await supabase.auth.resetPasswordForEmail(values.email);
+      
+      if (error) throw error;
+      
+      setResetEmail(values.email);
+      setResetPasswordStep('verify');
+      toast({
+        title: "Verification code sent",
+        description: "Please check your email for a 6-digit verification code"
+      });
+    } catch (error) {
+      console.error('[LoginForm] Password reset error:', error);
+      toast({
+        title: "Could not send verification code",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (values: VerifyOtpFormValues) => {
+    if (isLoading) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: resetEmail,
+        token: values.otp,
+        type: 'recovery'
       });
       
       if (error) throw error;
       
+      setResetPasswordStep('newPassword');
       toast({
-        title: "Password reset email sent",
-        description: "Check your inbox for instructions to reset your password"
+        title: "Code verified",
+        description: "Please set your new password"
       });
-      setIsResetDialogOpen(false);
-      resetPasswordForm.reset();
     } catch (error) {
-      console.error('[LoginForm] Password reset error:', error);
+      console.error('[LoginForm] OTP verification error:', error);
       toast({
-        title: "Could not reset password",
+        title: "Invalid verification code",
+        description: error instanceof Error ? error.message : "Please check and try again",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSetNewPassword = async (values: NewPasswordFormValues) => {
+    if (isLoading) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: values.password
+      });
+      
+      if (error) throw error;
+      
+      setIsResetDialogOpen(false);
+      toast({
+        title: "Password updated",
+        description: "Your password has been successfully updated. You can now log in with your new password."
+      });
+    } catch (error) {
+      console.error('[LoginForm] Password update error:', error);
+      toast({
+        title: "Failed to update password",
         description: error instanceof Error ? error.message : "An error occurred",
         variant: "destructive"
       });
@@ -613,19 +715,11 @@ const LoginForm: React.FC = () => {
     );
   };
 
-  return (
-    <div className="w-full max-w-md">
-      {renderForm()}
-      
-      <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Reset Password</DialogTitle>
-            <DialogDescription>
-              Enter your email address to receive a password reset link.
-            </DialogDescription>
-          </DialogHeader>
-          
+  // Render the appropriate reset password form based on the current step
+  const renderResetPasswordForm = () => {
+    switch (resetPasswordStep) {
+      case 'email':
+        return (
           <Form {...resetPasswordForm}>
             <form onSubmit={resetPasswordForm.handleSubmit(handleResetPassword)} className="space-y-4">
               <FormField
@@ -648,7 +742,7 @@ const LoginForm: React.FC = () => {
                 )}
               />
               
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2 pt-4">
                 <Button
                   type="button"
                   variant="outline"
@@ -661,11 +755,165 @@ const LoginForm: React.FC = () => {
                   type="submit"
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Sending...' : 'Send Reset Link'}
+                  {isLoading ? 'Sending...' : 'Send Verification Code'}
                 </Button>
               </div>
             </form>
           </Form>
+        );
+        
+      case 'verify':
+        return (
+          <Form {...verifyOtpForm}>
+            <form onSubmit={verifyOtpForm.handleSubmit(handleVerifyOtp)} className="space-y-4">
+              <div className="text-center mb-4">
+                <p className="text-sm text-gray-500">
+                  Enter the 6-digit verification code sent to <span className="font-semibold">{resetEmail}</span>
+                </p>
+              </div>
+              
+              <FormField
+                control={verifyOtpForm.control}
+                name="otp"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col items-center">
+                    <FormControl>
+                      <InputOTP maxLength={6} {...field}>
+                        <InputOTPGroup>
+                          <InputOTPSlot index={0} />
+                          <InputOTPSlot index={1} />
+                          <InputOTPSlot index={2} />
+                          <InputOTPSlot index={3} />
+                          <InputOTPSlot index={4} />
+                          <InputOTPSlot index={5} />
+                        </InputOTPGroup>
+                      </InputOTP>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setResetPasswordStep('email')}
+                  disabled={isLoading}
+                >
+                  Back
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isLoading || verifyOtpForm.watch('otp')?.length !== 6}
+                >
+                  {isLoading ? 'Verifying...' : 'Verify Code'}
+                </Button>
+              </div>
+              
+              <div className="text-center text-sm pt-2">
+                <Button 
+                  variant="link" 
+                  type="button"
+                  className="p-0 h-auto text-sm"
+                  onClick={() => resetPasswordForm.handleSubmit(handleResetPassword)()}
+                  disabled={isLoading}
+                >
+                  Didn't receive a code? Send again
+                </Button>
+              </div>
+            </form>
+          </Form>
+        );
+        
+      case 'newPassword':
+        return (
+          <Form {...newPasswordForm}>
+            <form onSubmit={newPasswordForm.handleSubmit(handleSetNewPassword)} className="space-y-4">
+              <FormField
+                control={newPasswordForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>New Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="••••••••"
+                        type="password"
+                        autoComplete="new-password"
+                        disabled={isLoading}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={newPasswordForm.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="••••••••"
+                        type="password"
+                        autoComplete="new-password"
+                        disabled={isLoading}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setResetPasswordStep('verify')}
+                  disabled={isLoading}
+                >
+                  Back
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Updating...' : 'Update Password'}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        );
+    }
+  };
+
+  return (
+    <div className="w-full max-w-md">
+      {renderForm()}
+      
+      <Dialog open={isResetDialogOpen} onOpenChange={(open) => {
+        if (!open && !isLoading) setIsResetDialogOpen(false);
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {resetPasswordStep === 'email' && 'Reset Password'}
+              {resetPasswordStep === 'verify' && 'Enter Verification Code'}
+              {resetPasswordStep === 'newPassword' && 'Create New Password'}
+            </DialogTitle>
+            <DialogDescription>
+              {resetPasswordStep === 'email' && 'Enter your email address to receive a verification code.'}
+              {resetPasswordStep === 'verify' && 'Enter the 6-digit code that was sent to your email.'}
+              {resetPasswordStep === 'newPassword' && 'Create a new password for your account.'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {renderResetPasswordForm()}
         </DialogContent>
       </Dialog>
     </div>
