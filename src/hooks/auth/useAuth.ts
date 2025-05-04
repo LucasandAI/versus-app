@@ -37,7 +37,6 @@ export const useAuth = (): AuthState & AuthActions => {
           variant: "destructive"
         });
         setError(authError.message);
-        setIsLoading(false);
         return null;
       }
       
@@ -49,43 +48,24 @@ export const useAuth = (): AuthState & AuthActions => {
           variant: "destructive"
         });
         setError("No user data returned");
-        setIsLoading(false);
         return null;
       }
       
-      // Check if the user has a profile
-      const { data: userProfile, error: profileError } = await safeSupabase
-        .from('users')
-        .select('id, name')
-        .eq('id', authData.user.id)
-        .maybeSingle();
-        
-      if (profileError) {
-        console.error('[useAuth] Profile check error:', profileError);
-      }
-      
-      // Create a basic user object with what we know from auth and profile
+      // Create a basic user object with what we know from auth
       const basicUser: User = {
         id: authData.user.id,
-        name: userProfile?.name || authData.user.email?.split('@')[0] || 'User',
-        avatar: userProfile?.avatar || '/placeholder.svg',
-        bio: userProfile?.bio || '',
+        name: authData.user.email || 'User',
+        avatar: '/placeholder.svg',
+        bio: '',
         clubs: []
       };
       
-      // If the user doesn't have a profile, we'll need to create one
-      if (!userProfile || !userProfile.name) {
-        console.log('[useAuth] User needs to complete profile');
-      } else {
-        toast({
-          title: "Login successful",
-          description: "Welcome back!",
-        });
-      }
+      toast({
+        title: "Login successful",
+        description: "Welcome back!",
+      });
       
       console.log('[useAuth] Returning basic user:', basicUser.id);
-      setUser(basicUser);
-      setIsLoading(false);
       return basicUser;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to sign in";
@@ -96,8 +76,9 @@ export const useAuth = (): AuthState & AuthActions => {
         variant: "destructive"
       });
       console.error('[useAuth] Sign in error:', message);
-      setIsLoading(false);
       return null;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -112,8 +93,6 @@ export const useAuth = (): AuthState & AuthActions => {
           description: error.message,
           variant: "destructive"
         });
-        setError(error.message);
-        setIsLoading(false);
         throw error;
       }
       setUser(null);
@@ -124,12 +103,12 @@ export const useAuth = (): AuthState & AuthActions => {
       console.log('[useAuth] User signed out successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to sign out";
-      setError(message);
       toast({
         title: "Sign out failed",
         description: message,
         variant: "destructive"
       });
+      throw error;
     } finally {
       setIsLoading(false);
     }
