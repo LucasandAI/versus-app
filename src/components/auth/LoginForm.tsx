@@ -118,12 +118,41 @@ const LoginForm: React.FC = () => {
     try {
       console.log('[LoginForm] Submitting signup form with email:', values.email);
       
+      // First check if the email is already registered
+      const { data: existingUsers, error: userCheckError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', values.email)
+        .maybeSingle();
+        
+      if (userCheckError) {
+        console.error('[LoginForm] Error checking existing user:', userCheckError);
+      }
+      
+      // Also check auth.users (via the sign-in endpoint)
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: values.email,
+        password: 'temp-check-password-not-real'
+      });
+      
+      // If we can sign in with any password or get a specific error about password being wrong
+      // (but not about the user not existing), the email is already in use
+      if ((!signInError) || (signInError.message && !signInError.message.toLowerCase().includes('user') && signInError.message.toLowerCase().includes('password'))) {
+        setError('This email address is already registered. Please use a different email or try logging in.');
+        setIsLoading(false);
+        return;
+      }
+      
       const { data, error } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
       });
 
       if (error) {
+        // Check if the error is about the user already existing
+        if (error.message && error.message.toLowerCase().includes('email') && error.message.toLowerCase().includes('already')) {
+          throw new Error('This email address is already registered. Please use a different email or try logging in.');
+        }
         throw error;
       }
 
@@ -135,6 +164,10 @@ const LoginForm: React.FC = () => {
         if (data.session) {
           // User is authenticated immediately, proceed to profile completion
           setAuthMode('profile-completion');
+          toast({
+            title: "Sign-up successful",
+            description: "Please complete your profile",
+          });
         } else {
           // Email confirmation is required
           toast({
