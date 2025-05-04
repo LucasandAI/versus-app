@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Camera } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -13,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CreateClubDialogProps {
   open: boolean;
@@ -62,7 +63,6 @@ const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
       const fileName = `${currentUser.id}-club-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
       
-      // Fix the TypeScript error by removing the extra argument
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('club-logos')
         .upload(filePath, file);
