@@ -118,15 +118,17 @@ export interface AppContextType {
   currentView: AppView;
   selectedClub: Club | null;
   selectedUser: User | null;
+  isSessionReady: boolean;
+  needsProfileCompletion: boolean;
+  setNeedsProfileCompletion: (value: boolean) => void;
   setCurrentUser: (user: User | null | ((prev: User | null) => User | null)) => void;
   setCurrentView: (view: AppView) => void;
   setSelectedClub: (club: Club | null) => void;
   setSelectedUser: (user: User | null) => void;
   signIn: (email: string, password: string) => Promise<User | null>;
   signOut: () => Promise<void>;
-  createClub: (name: string, logo?: string) => Promise<Club | null>;
+  createClub: (clubData: any) => Promise<Club | null>;
   refreshCurrentUser: () => Promise<User | null>;
-  isSessionReady: boolean;
 }
 
 export type { ChatMessage } from './chat';

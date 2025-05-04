@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -39,11 +38,43 @@ const profileSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const LoginForm: React.FC = () => {
-  const { signIn } = useApp();
+  const { signIn, needsProfileCompletion, setNeedsProfileCompletion } = useApp();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [userId, setUserId] = useState<string | null>(null);
+
+  // Effect to check if we need to show the profile completion form
+  useEffect(() => {
+    const checkProfileCompletionStatus = async () => {
+      // Check if we have an authenticated user
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        // Check if the user has a profile in the users table
+        const { data: userProfile, error } = await supabase
+          .from('users')
+          .select('id')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('[LoginForm] Error checking user profile:', error);
+        }
+        
+        // If we have an auth session but no user profile, the user needs to complete their profile
+        if (!userProfile && session.user) {
+          console.log('[LoginForm] User authenticated but profile not found, showing profile completion');
+          setAuthMode('profile-completion');
+          setUserId(session.user.id);
+        }
+      }
+    };
+    
+    // If needsProfileCompletion is true from the context, set the auth mode
+    if (needsProfileCompletion) {
+      checkProfileCompletionStatus();
+    }
+  }, [needsProfileCompletion]);
 
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -164,6 +195,8 @@ const LoginForm: React.FC = () => {
         if (data.session) {
           // User is authenticated immediately, proceed to profile completion
           setAuthMode('profile-completion');
+          setNeedsProfileCompletion(true);
+          
           toast({
             title: "Sign-up successful",
             description: "Please complete your profile",
@@ -198,13 +231,16 @@ const LoginForm: React.FC = () => {
           id: userId,
           name: values.name,
           bio: values.bio || null,
-          avatar: '/placeholder.svg', // Default avatar
+          avatar: values.avatar ? '/placeholder.svg' : null, // Default avatar for now
         });
 
       if (error) {
         throw error;
       }
 
+      // Signal that profile completion is done
+      setNeedsProfileCompletion(false);
+      
       toast({
         title: "Profile completed",
         description: "Welcome to Versus!",
