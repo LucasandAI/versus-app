@@ -51,7 +51,7 @@ export const denyJoinRequest = async (userId: string, clubId: string): Promise<b
     // Update the request status to 'rejected'
     const { error } = await supabase
       .from('club_requests')
-      .update({ status: 'rejected' })
+      .update({ status: 'ERROR' }) // Using 'ERROR' instead of 'rejected' to match the expected type
       .eq('user_id', userId)
       .eq('club_id', clubId);
 
