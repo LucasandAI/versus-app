@@ -73,40 +73,36 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
     }));
   };
 
+  // Calculate days left
+  const currentDate = new Date();
+  const endDate = new Date(match.endDate);
+  const daysLeft = Math.ceil((endDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
+  
   // Only show the match details during the match phase (UNLESS forceShowDetails is true)
   const showMatch = forceShowDetails || cycleInfo.isInMatchPhase;
 
   return (
-    <Card className="shadow-sm">
+    <Card className="shadow-sm bg-white border">
       {showMatch ? (
         <>
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-lg">Current Match</CardTitle>
-              <div className="flex items-center text-amber-800 text-sm">
-                <Clock className="h-4 w-4 mr-1" />
-                <span>Match ends in: </span>
-                <CountdownTimer 
-                  useCurrentCycle={true} 
-                  className="font-mono ml-1" 
-                  onComplete={handleCountdownComplete} 
-                  refreshInterval={500} 
-                />
-              </div>
+          <CardHeader className="pb-2 flex flex-row justify-between items-center">
+            <CardTitle className="text-lg">Current Match</CardTitle>
+            <div className="bg-amber-50 px-3 py-1 rounded-full text-amber-800 text-sm font-medium">
+              {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left
             </div>
           </CardHeader>
           
           <CardContent>
             <div className="flex justify-between items-center mb-4">
               <div className="text-center">
-                <h4 className="font-medium">{match.homeClub.name}</h4>
+                <h4 className="font-medium text-base">{match.homeClub.name}</h4>
                 <p className="font-bold text-lg mt-1">{match.homeClub.totalDistance.toFixed(1)} km</p>
               </div>
               
               <div className="text-center text-gray-500 font-medium">vs</div>
               
               <div className="text-center">
-                <h4 className="font-medium cursor-pointer hover:text-primary transition-colors" onClick={() => handleClubClick(match.awayClub)}>
+                <h4 className="font-medium text-base cursor-pointer hover:text-primary transition-colors" onClick={() => handleClubClick(match.awayClub)}>
                   {match.awayClub.name}
                 </h4>
                 <p className="font-bold text-lg mt-1">{match.awayClub.totalDistance.toFixed(1)} km</p>
@@ -127,7 +123,7 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
               </Button>
             )}
             
-            {/* Member Details Panel - Now always shown when forceShowDetails is true */}
+            {/* Member Details Panel */}
             {(showMatchDetails || forceShowDetails) && (
               <div className="mt-4 border-t border-gray-100 pt-4">
                 <div className="grid grid-cols-2 divide-x">
