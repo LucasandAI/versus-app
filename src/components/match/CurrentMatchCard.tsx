@@ -117,13 +117,13 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
     }));
   };
   
-  // Only show the match details during the match phase
-  const showMatch = cycleInfo.isInMatchPhase;
-  
   // Calculate days remaining
   const currentDate = new Date();
   const endDate = new Date(match.endDate);
   const daysLeft = Math.ceil((endDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
+  
+  // Check if it's in match phase - needed for proper UI rendering
+  const isInMatchPhase = cycleInfo.isInMatchPhase; 
   
   return (
     <Card className="mb-4 overflow-hidden border-0 shadow-md">
@@ -159,38 +159,45 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
         
         {/* Match Content */}
         <div className="p-4">
-          {/* Match Header */}
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold text-lg">Current Match</h3>
-            {showMatch && (
-              <div className="bg-amber-50 text-amber-800 text-xs font-medium px-3 py-1 rounded-full">
-                {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left
-              </div>
-            )}
-          </div>
-          
-          {/* Clubs Matchup */}
-          <div className="flex justify-between items-center mb-4">
-            <div className="text-center">
-              <h4 className="font-medium">{userClubMatch.name}</h4>
-              <p className="font-bold text-lg mt-1">{userClubMatch.totalDistance.toFixed(1)} km</p>
-            </div>
-            
-            <div className="text-center text-gray-500 font-medium">vs</div>
-            
-            <div className="text-center">
-              <h4 
-                className="font-medium cursor-pointer hover:text-primary transition-colors"
-                onClick={() => handleClubClick(opponentClubMatch.id, opponentClubMatch)}
-              >
-                {opponentClubMatch.name}
-              </h4>
-              <p className="font-bold text-lg mt-1">{opponentClubMatch.totalDistance.toFixed(1)} km</p>
-            </div>
-          </div>
-          
-          {showMatch ? (
+          {isInMatchPhase ? (
             <>
+              {/* Match in Progress */}
+              <div className="bg-amber-50 p-3 rounded-md mb-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-semibold">Match in progress...</h3>
+                  <div className="flex items-center text-amber-800 text-sm">
+                    <Clock className="h-4 w-4 mr-1" />
+                    <span>Match ends in: </span>
+                    <CountdownTimer 
+                      useCurrentCycle={true} 
+                      className="font-mono ml-1" 
+                      onComplete={handleCountdownComplete}
+                      refreshInterval={500}
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Clubs Matchup */}
+              <div className="flex justify-between items-center mb-4">
+                <div className="text-center">
+                  <h4 className="font-medium">{userClubMatch.name}</h4>
+                  <p className="font-bold text-lg mt-1">{userClubMatch.totalDistance.toFixed(1)} km</p>
+                </div>
+                
+                <div className="text-center text-gray-500 font-medium">vs</div>
+                
+                <div className="text-center">
+                  <h4 
+                    className="font-medium cursor-pointer hover:text-primary transition-colors"
+                    onClick={() => handleClubClick(opponentClubMatch.id, opponentClubMatch)}
+                  >
+                    {opponentClubMatch.name}
+                  </h4>
+                  <p className="font-bold text-lg mt-1">{opponentClubMatch.totalDistance.toFixed(1)} km</p>
+                </div>
+              </div>
+              
               {/* Match Progress Bar */}
               <MatchProgressBar
                 homeDistance={userClubMatch.totalDistance}
@@ -210,6 +217,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
               </Button>
             </>
           ) : (
+            /* Match Cooldown Period */
             <div className="bg-blue-50 p-3 rounded-md text-center my-3">
               <p className="text-sm font-medium text-blue-700 mb-1">Match cooldown period</p>
               <p className="text-xs text-blue-600">
@@ -226,7 +234,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
         </div>
         
         {/* Member Details Panel */}
-        {showMatch && showDetails && (
+        {isInMatchPhase && showDetails && (
           <div className="border-t border-gray-100">
             <div className="grid grid-cols-2 divide-x">
               {/* Home Club Members */}

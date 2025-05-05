@@ -96,10 +96,12 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
   return (
     <div>
       {userClubs.map(club => {
+        // Check for active matches
         const activeMatch = getActiveMatch(club);
         const hasEnoughMembers = club.members.length >= 5;
         
         if (activeMatch) {
+          console.log(`[CurrentMatchesList] Rendering active match for club: ${club.name}`);
           return (
             <CurrentMatchCard 
               key={`${club.id}-match`} 
