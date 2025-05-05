@@ -7,8 +7,6 @@ import MatchProgressBar from '@/components/shared/MatchProgressBar';
 import { Button } from "@/components/ui/button";
 import { useNavigation } from '@/hooks/useNavigation';
 import { formatLeague } from '@/utils/club/leagueUtils';
-import { getMatchEndFromStart, isTestMode } from '@/utils/date/matchTiming';
-import CountdownTimer from '@/components/match/CountdownTimer';
 
 interface ClubCurrentMatchProps {
   match: Match;
@@ -18,13 +16,6 @@ interface ClubCurrentMatchProps {
 const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfile }) => {
   const [showMatchDetails, setShowMatchDetails] = useState(false);
   const { navigateToClubDetail } = useNavigation();
-  
-  // Calculate the end date to show the countdown
-  const endDate = match.endDate 
-    ? new Date(match.endDate) 
-    : match.startDate 
-      ? getMatchEndFromStart(new Date(match.startDate))
-      : new Date(Date.now() + (5 * 60 * 1000));
 
   const handleMemberClick = (member: any) => {
     onViewProfile(member.id, member.name, member.avatar);
@@ -38,13 +29,6 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfil
       members: club.members,
       matchHistory: []
     });
-  };
-  
-  const handleCountdownComplete = () => {
-    console.log('[ClubCurrentMatch] Match ended, refreshing...');
-    window.dispatchEvent(new CustomEvent('matchEnded', { 
-      detail: { matchId: match.id } 
-    }));
   };
 
   return (
@@ -83,18 +67,9 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfil
 
         <div className="text-center px-2">
           <span className="text-xs font-medium text-gray-500 uppercase">VS</span>
-          <div className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full mt-1">
-            <CountdownTimer 
-              targetDate={endDate}
-              className="text-xs"
-              onComplete={handleCountdownComplete}
-            />
-          </div>
-          {isTestMode() && (
-            <div className="mt-1 text-xs text-gray-500 italic">
-              (test mode)
-            </div>
-          )}
+          <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full block mt-1">
+            Ends in 3 days
+          </span>
         </div>
 
         <div 
