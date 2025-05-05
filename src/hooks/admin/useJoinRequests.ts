@@ -172,7 +172,7 @@ export const useJoinRequests = () => {
             userName: 'Unknown User',
             userAvatar: '',
             createdAt: request.created_at,
-            status: request.status
+            status: request.status === 'ERROR' ? 'rejected' : request.status
           });
         } else {
           formattedRequests.push({
@@ -182,7 +182,7 @@ export const useJoinRequests = () => {
             userName: userData.name || 'Unknown',
             userAvatar: userData.avatar || '',
             createdAt: request.created_at,
-            status: request.status
+            status: request.status === 'ERROR' ? 'rejected' : request.status
           });
         }
       }

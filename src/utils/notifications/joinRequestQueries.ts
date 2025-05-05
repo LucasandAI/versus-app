@@ -66,6 +66,9 @@ export const fetchClubJoinRequests = async (clubId: string): Promise<JoinRequest
         console.error('[fetchClubJoinRequests] Error fetching user data:', userError);
       }
       
+      // Map 'ERROR' status to 'rejected' if needed
+      const mappedStatus = request.status === 'ERROR' ? 'rejected' : request.status;
+      
       results.push({
         id: request.id,
         userId: request.user_id,
@@ -73,7 +76,7 @@ export const fetchClubJoinRequests = async (clubId: string): Promise<JoinRequest
         userName: userData?.name || 'Unknown User',
         userAvatar: userData?.avatar || '',
         createdAt: request.created_at,
-        status: request.status as 'PENDING' | 'SUCCESS'
+        status: mappedStatus as 'PENDING' | 'SUCCESS' | 'rejected'
       });
     }
     
