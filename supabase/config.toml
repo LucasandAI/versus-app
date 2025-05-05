@@ -1,8 +1,1 @@
-
 project_id = "goxpejofxjvcilfoyrxs"
-
-[functions.create-matches]
-verify_jwt = true
-
-[functions.end-matches]
-verify_jwt = true

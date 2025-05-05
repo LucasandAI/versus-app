@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -21,7 +22,7 @@ export const acceptJoinRequestFromNotification = async (
       .select('id')
       .eq('user_id', requesterId)  // Using requesterId (the person who requested to join)
       .eq('club_id', clubId)
-      .eq('status', 'PENDING') // Using uppercase for database query
+      .eq('status', 'pending')
       .single();
       
     if (requestError || !requestData) {
@@ -64,7 +65,7 @@ export const acceptJoinRequestFromNotification = async (
     // Update request status to accepted
     const { error: updateError } = await supabase
       .from('club_requests')
-      .update({ status: 'SUCCESS' })  // Use uppercase for database
+      .update({ status: 'accepted' })
       .eq('user_id', requesterId)
       .eq('club_id', clubId);
       
@@ -110,7 +111,7 @@ export const denyJoinRequestFromNotification = async (
       .select('id')
       .eq('user_id', requesterId)  // Using requesterId (the person who requested to join)
       .eq('club_id', clubId)
-      .eq('status', 'PENDING') // Fixed: Using uppercase for database query
+      .eq('status', 'pending')
       .single();
       
     if (requestError || !requestData) {

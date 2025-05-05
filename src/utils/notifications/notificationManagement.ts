@@ -75,13 +75,13 @@ export const updateClubJoinRequest = async (
 ): Promise<boolean> => {
   try {
     if (status === 'accepted') {
-      // Update to accepted - Use uppercase for database
+      // Update to accepted
       const { error } = await supabase
         .from('club_requests')
-        .update({ status: 'SUCCESS' })  // Use uppercase for database
+        .update({ status })
         .eq('user_id', userId)
         .eq('club_id', clubId)
-        .eq('status', 'PENDING');  // Use uppercase for database query
+        .eq('status', 'pending');
 
       if (error) {
         console.error('Error updating join request:', error);

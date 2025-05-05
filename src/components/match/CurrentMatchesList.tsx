@@ -37,24 +37,7 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
     }, 1000);
     
     // Set up real-time listeners for match updates
-    const matchesChannel = supabase
-      .channel(`matches-updates`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'matches'
-        },
-        (payload) => {
-          console.log(`[CurrentMatchesList] Match changed:`, payload);
-          window.dispatchEvent(new CustomEvent('matchUpdated'));
-        }
-      )
-      .subscribe();
-
-    // Set up channels for specific clubs
-    const clubChannels = initialClubs.map(club => {
+    const channels = initialClubs.map(club => {
       // Subscribe to match changes for this club
       return supabase
         .channel(`club-matches-${club.id}`)
@@ -90,28 +73,17 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
     window.addEventListener('clubMembershipChanged', handleMembershipChange as EventListener);
     window.addEventListener('userDataUpdated', () => setUserClubs(initialClubs));
     window.addEventListener('newMatchWeekStarted', handleMatchUpdate as EventListener);
-    window.addEventListener('matchCreated', handleMatchUpdate as EventListener);
-    window.addEventListener('matchEnded', handleMatchUpdate as EventListener);
-    
-    // Check for updates at the beginning of each cycle
-    if (cycleInfo.isInMatchPhase && Math.floor((Date.now() - cycleInfo.matchStart.getTime()) / 1000) < 5) {
-      console.log('[CurrentMatchesList] At start of match phase, checking for updates');
-      handleMatchUpdate();
-    }
     
     // Clean up subscriptions
     return () => {
       clearInterval(cycleTimer);
-      supabase.removeChannel(matchesChannel);
-      clubChannels.forEach(channel => supabase.removeChannel(channel));
+      channels.forEach(channel => supabase.removeChannel(channel));
       window.removeEventListener('matchUpdated', handleMatchUpdate as EventListener);
       window.removeEventListener('clubMembershipChanged', handleMembershipChange as EventListener);
       window.removeEventListener('userDataUpdated', () => setUserClubs(initialClubs));
       window.removeEventListener('newMatchWeekStarted', handleMatchUpdate as EventListener);
-      window.removeEventListener('matchCreated', handleMatchUpdate as EventListener);
-      window.removeEventListener('matchEnded', handleMatchUpdate as EventListener);
     };
-  }, [initialClubs, cycleInfo.isInMatchPhase, cycleInfo.matchStart]);
+  }, [initialClubs]);
 
   if (!userClubs || userClubs.length === 0) {
     return (

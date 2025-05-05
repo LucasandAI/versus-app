@@ -67,14 +67,12 @@ const WaitingForMatchCard: React.FC<WaitingForMatchCardProps> = ({ club: initial
     
     window.addEventListener('matchCreated', handleMatchCreate as EventListener);
     window.addEventListener('userDataUpdated', () => setClub(initialClub));
-    window.addEventListener('newMatchWeekStarted', handleNewMatchWeek as EventListener);
     
     return () => {
       clearInterval(cycleTimer);
       supabase.removeChannel(matchChannel);
       window.removeEventListener('matchCreated', handleMatchCreate as EventListener);
       window.removeEventListener('userDataUpdated', () => setClub(initialClub));
-      window.removeEventListener('newMatchWeekStarted', handleNewMatchWeek as EventListener);
     };
   }, [club.id, initialClub]);
 
@@ -85,12 +83,23 @@ const WaitingForMatchCard: React.FC<WaitingForMatchCardProps> = ({ club: initial
     const latestCycleInfo = getCurrentCycleInfo();
     
     // Only trigger match creation if we're transitioning to a match phase
-    if (latestCycleInfo.isInMatchPhase) {
-      console.log('[WaitingForMatchCard] New match cycle starting, checking for auto-created matches');
-      
-      // Refresh data to check if a match was created by the backend scheduler
-      window.dispatchEvent(new CustomEvent('newMatchWeekStarted'));
+    if (!latestCycleInfo.isInMatchPhase) {
+      return; // Don't create matches during cooldown
     }
+    
+    console.log('[WaitingForMatchCard] New match cycle starting, creating match');
+    window.dispatchEvent(new CustomEvent('newMatchWeekStarted'));
+    
+    // Use fetch to trigger match creation for this club
+    fetch(`/api/matches/create?clubId=${club.id}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    }).catch(err => {
+      console.error('[WaitingForMatchCard] Error triggering match creation:', err);
+    });
   };
   
   // Determine the appropriate status message based on cycle phase

@@ -177,21 +177,21 @@ export type Database = {
           club_id: string
           created_at: string
           id: string
-          status: "PENDING" | "SUCCESS" | "ERROR"
+          status: Database["public"]["Enums"]["request_status"]
           user_id: string
         }
         Insert: {
           club_id: string
           created_at?: string
           id?: string
-          status?: "PENDING" | "SUCCESS" | "ERROR"
+          status?: Database["public"]["Enums"]["request_status"]
           user_id: string
         }
         Update: {
           club_id?: string
           created_at?: string
           id?: string
-          status?: "PENDING" | "SUCCESS" | "ERROR"
+          status?: Database["public"]["Enums"]["request_status"]
           user_id?: string
         }
         Relationships: [
@@ -583,10 +583,6 @@ export type Database = {
     }
     Functions: {
       create_weekly_matches: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      end_expired_matches: {
         Args: Record<PropertyKey, never>
         Returns: number
       }

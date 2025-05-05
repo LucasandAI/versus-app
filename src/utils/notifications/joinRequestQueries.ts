@@ -12,7 +12,7 @@ export const hasPendingJoinRequest = async (userId: string, clubId: string): Pro
       .select('*')
       .eq('user_id', userId)
       .eq('club_id', clubId)
-      .eq('status', 'PENDING')  // Use uppercase for database query
+      .eq('status', 'pending')
       .single();
 
     if (error) {
@@ -40,7 +40,7 @@ export const fetchClubJoinRequests = async (clubId: string): Promise<JoinRequest
       .from('club_requests')
       .select('id, user_id, club_id, created_at, status')
       .eq('club_id', clubId)
-      .eq('status', 'PENDING');  // Use uppercase for database query
+      .eq('status', 'pending');
 
     if (requestsError) {
       console.error('[fetchClubJoinRequests] Error fetching join requests:', requestsError);
@@ -66,12 +66,6 @@ export const fetchClubJoinRequests = async (clubId: string): Promise<JoinRequest
         console.error('[fetchClubJoinRequests] Error fetching user data:', userError);
       }
       
-      // Map database status (uppercase) to frontend status (lowercase)
-      let frontendStatus: 'pending' | 'accepted' | 'rejected';
-      if (request.status === 'PENDING') frontendStatus = 'pending';
-      else if (request.status === 'SUCCESS') frontendStatus = 'accepted';
-      else frontendStatus = 'rejected';
-      
       results.push({
         id: request.id,
         userId: request.user_id,
@@ -79,7 +73,7 @@ export const fetchClubJoinRequests = async (clubId: string): Promise<JoinRequest
         userName: userData?.name || 'Unknown User',
         userAvatar: userData?.avatar || '',
         createdAt: request.created_at,
-        status: frontendStatus
+        status: request.status
       });
     }
     
