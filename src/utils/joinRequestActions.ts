@@ -22,7 +22,7 @@ export const acceptJoinRequestFromNotification = async (
       .select('id')
       .eq('user_id', requesterId)  // Using requesterId (the person who requested to join)
       .eq('club_id', clubId)
-      .eq('status', 'PENDING')
+      .eq('status', 'pending')
       .single();
       
     if (requestError || !requestData) {
@@ -65,7 +65,7 @@ export const acceptJoinRequestFromNotification = async (
     // Update request status to accepted
     const { error: updateError } = await supabase
       .from('club_requests')
-      .update({ status: 'SUCCESS' })
+      .update({ status: 'accepted' })
       .eq('user_id', requesterId)
       .eq('club_id', clubId);
       
@@ -111,7 +111,7 @@ export const denyJoinRequestFromNotification = async (
       .select('id')
       .eq('user_id', requesterId)  // Using requesterId (the person who requested to join)
       .eq('club_id', clubId)
-      .eq('status', 'PENDING')
+      .eq('status', 'pending')
       .single();
       
     if (requestError || !requestData) {

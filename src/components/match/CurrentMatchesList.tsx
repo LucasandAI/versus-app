@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Club, Match } from '@/types';
-import ClubCurrentMatch from '../club/detail/ClubCurrentMatch';
+import CurrentMatchCard from './CurrentMatchCard';
 import WaitingForMatchCard from './WaitingForMatchCard';
 import NeedMoreMembersCard from './NeedMoreMembersCard';
 import { isActiveMatchWeek, getCurrentCycleInfo } from '@/utils/date/matchTiming';
@@ -96,23 +96,17 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
   return (
     <div>
       {userClubs.map(club => {
-        // Check for active matches
         const activeMatch = getActiveMatch(club);
         const hasEnoughMembers = club.members.length >= 5;
         
         if (activeMatch) {
-          console.log(`[CurrentMatchesList] Rendering active match for club: ${club.name}`);
           return (
-            <div key={`${club.id}-match`} className="mb-6 bg-white rounded-lg shadow-sm overflow-hidden">
-              <div className="p-4 border-b border-gray-100">
-                <h3 className="font-bold text-md">{club.name}</h3>
-              </div>
-              <ClubCurrentMatch
-                match={activeMatch}
-                onViewProfile={onViewProfile}
-                forceShowDetails={true}  // Force showing the details in homepage view
-              />
-            </div>
+            <CurrentMatchCard 
+              key={`${club.id}-match`} 
+              match={activeMatch}
+              userClub={club}
+              onViewProfile={onViewProfile}
+            />
           );
         } else if (hasEnoughMembers) {
           return <WaitingForMatchCard key={`${club.id}-waiting`} club={club} />;

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Club } from '@/types';
@@ -75,7 +76,8 @@ const WaitingForMatchCard: React.FC<WaitingForMatchCardProps> = ({ club: initial
     };
   }, [club.id, initialClub]);
 
-  // Handle countdown completion (new match week)
+  // Only trigger match creation at the start of a new cycle (match phase)
+  // This should only happen during the transition from cooldown to match phase
   const handleCountdownComplete = () => {
     // Only create a match if we're at the start of a new cycle (match phase)
     const latestCycleInfo = getCurrentCycleInfo();
@@ -110,7 +112,7 @@ const WaitingForMatchCard: React.FC<WaitingForMatchCardProps> = ({ club: initial
   };
   
   return (
-    <Card className="mb-4 overflow-hidden border-0 shadow-md">
+    <Card className="mb-4 overflow-hidden">
       <CardContent className="p-4">
         <div className="flex items-center">
           <UserAvatar 
@@ -128,7 +130,7 @@ const WaitingForMatchCard: React.FC<WaitingForMatchCardProps> = ({ club: initial
               {club.name}
             </h3>
             <div className="flex items-center gap-1 mt-0.5">
-              <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600">
+              <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
                 {formatLeague(club.division, club.tier)}
               </span>
               <span className="text-xs text-gray-500">
@@ -139,7 +141,7 @@ const WaitingForMatchCard: React.FC<WaitingForMatchCardProps> = ({ club: initial
         </div>
         
         <div className={`mt-4 p-3 rounded-md ${cycleInfo.isInMatchPhase ? 'bg-amber-50' : 'bg-blue-50'}`}>
-          <p className="text-sm font-medium mb-2">{getStatusMessage()}</p>
+          <p className="text-sm mb-1">{getStatusMessage()}</p>
           <div className="flex items-center">
             <CountdownTimer 
               useCurrentCycle={true}

@@ -53,11 +53,11 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
     setCurrentView('clubDetail');
   };
 
-  const handleSelectUser = (userId: string, name: string, avatar?: string) => {
+  const handleSelectUser = (userId: string, name: string) => {
     setSelectedUser({
       id: userId,
       name: name,
-      avatar: avatar || '/placeholder.svg',
+      avatar: '/placeholder.svg',
       clubs: []
     });
     setCurrentView('profile');

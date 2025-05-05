@@ -78,10 +78,10 @@ export const updateClubJoinRequest = async (
       // Update to accepted
       const { error } = await supabase
         .from('club_requests')
-        .update({ status: 'SUCCESS' })
+        .update({ status })
         .eq('user_id', userId)
         .eq('club_id', clubId)
-        .eq('status', 'PENDING');
+        .eq('status', 'pending');
 
       if (error) {
         console.error('Error updating join request:', error);

@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { JoinRequest, Club, ClubMember } from '@/types';
@@ -137,7 +136,7 @@ export const useJoinRequests = () => {
         .from('club_requests')
         .select('id, user_id, club_id, created_at, status')
         .eq('club_id', clubId)
-        .eq('status', 'PENDING');
+        .eq('status', 'pending');
 
       if (requestsError) {
         console.error('[useJoinRequests] Error fetching club requests:', requestsError);
