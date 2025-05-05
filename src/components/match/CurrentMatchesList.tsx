@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Club, Match } from '@/types';
 import ClubCurrentMatch from '../club/detail/ClubCurrentMatch';
@@ -20,6 +21,8 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
   
   // Helper function to check if a club has an active match
   const getActiveMatch = (club: Club): Match | null => {
+    if (!club) return null;
+    
     const match = club.currentMatch || 
            (club.matchHistory && club.matchHistory.find(m => m.status === 'active')) ||
            null;
@@ -109,9 +112,11 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
   return (
     <div>
       {userClubs.map(club => {
+        if (!club) return null;
+        
         // Check for active matches
         const activeMatch = getActiveMatch(club);
-        const hasEnoughMembers = club.members.length >= 5;
+        const hasEnoughMembers = club.members && club.members.length >= 5;
         
         if (activeMatch) {
           console.log(`[CurrentMatchesList] Rendering active match for club: ${club.name}`);
