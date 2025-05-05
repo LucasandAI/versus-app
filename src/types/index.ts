@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -46,7 +45,7 @@ export interface JoinRequest {
   userName: string;
   userAvatar: string;
   createdAt: string;
-  status: 'PENDING' | 'SUCCESS'; // Updated to match the database enum
+  status: 'PENDING' | 'SUCCESS' | 'rejected'; // Updated to match the database enum
 }
 
 export interface ClubRequest {
