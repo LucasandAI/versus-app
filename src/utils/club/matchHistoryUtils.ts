@@ -1,5 +1,5 @@
 
-import { Club, ClubMember, Division, Match } from '@/types';
+import { Club, ClubMember, Division, Match, LeagueStatus } from '@/types';
 import { ensureDivision } from './leagueUtils';
 
 // Transform raw match data from Supabase into our Match type
@@ -12,33 +12,56 @@ export const transformMatchData = (
   const homeClubInfo = clubsMap.get(matchData.home_club_id) || { name: 'Unknown Club', logo: '/placeholder.svg', members: [] };
   const awayClubInfo = clubsMap.get(matchData.away_club_id) || { name: 'Unknown Club', logo: '/placeholder.svg', members: [] };
   
-  // Parse league data
+  // Parse league data with the new nested structure
   const parseLeagueData = (leagueData: any) => {
     if (!leagueData) return undefined;
     
     try {
       // If it's a string, try to parse it as JSON
-      if (typeof leagueData === 'string') {
-        const parsed = JSON.parse(leagueData);
-        return {
-          division: ensureDivision(parsed.division || 'bronze'),
-          tier: parseInt(parsed.tier || '1', 10),
-          elitePoints: parseInt(parsed.elite_points || '0', 10)
-        };
-      }
+      const parsedData = typeof leagueData === 'string' ? JSON.parse(leagueData) : leagueData;
       
-      // If it's already an object
+      // Check if it's already in the correct format with home/away structure
+      if (parsedData.home && parsedData.away) {
+        return {
+          home: {
+            division: ensureDivision(parsedData.home.division || 'bronze'),
+            tier: parseInt(parsedData.home.tier || '1', 10),
+            elitePoints: parseInt(parsedData.home.elite_points || parsedData.home.elitePoints || '0', 10)
+          },
+          away: {
+            division: ensureDivision(parsedData.away.division || 'bronze'),
+            tier: parseInt(parsedData.away.tier || '1', 10),
+            elitePoints: parseInt(parsedData.away.elite_points || parsedData.away.elitePoints || '0', 10)
+          }
+        };
+      } 
+      
+      // Fallback to old format and convert to new format
       return {
-        division: ensureDivision(leagueData.division || 'bronze'),
-        tier: parseInt(leagueData.tier || '1', 10),
-        elitePoints: parseInt(leagueData.elite_points || '0', 10)
+        home: {
+          division: ensureDivision(parsedData.division || 'bronze'),
+          tier: parseInt(parsedData.tier || '1', 10),
+          elitePoints: parseInt(parsedData.elite_points || parsedData.elitePoints || '0', 10)
+        },
+        away: {
+          division: ensureDivision(parsedData.division || 'bronze'),
+          tier: parseInt(parsedData.tier || '1', 10),
+          elitePoints: parseInt(parsedData.elite_points || parsedData.elitePoints || '0', 10)
+        }
       };
     } catch (e) {
       console.error('Error parsing league data:', e);
       return {
-        division: 'bronze' as Division,
-        tier: 1,
-        elitePoints: 0
+        home: {
+          division: 'bronze' as Division,
+          tier: 1,
+          elitePoints: 0
+        },
+        away: {
+          division: 'bronze' as Division,
+          tier: 1,
+          elitePoints: 0
+        }
       };
     }
   };
@@ -124,6 +147,23 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
     const homeDistance = Math.round((50 + Math.random() * 50) * 10) / 10;
     const awayDistance = Math.round((isWin ? homeDistance * 0.9 : homeDistance * 1.1) * 10) / 10;
     
+    const leagueData = {
+      home: {
+        division: club.division,
+        tier: club.tier,
+        elitePoints: club.division === 'elite' ? club.elitePoints : undefined
+      },
+      away: {
+        division: club.division === 'elite' ? 'diamond' : 
+                 club.division === 'diamond' ? 'platinum' : 
+                 club.division === 'platinum' ? 'gold' : 
+                 club.division === 'gold' ? 'silver' : 
+                 club.division === 'silver' ? 'bronze' : 'bronze',
+        tier: Math.floor(Math.random() * 5) + 1,
+        elitePoints: club.division === 'elite' ? Math.floor(Math.random() * 5) : undefined
+      }
+    };
+    
     const match: Match = {
       id: `mock-${i}-${club.id}`,
       homeClub: {
@@ -147,16 +187,8 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
       endDate: endDate.toISOString().split('T')[0],
       status: 'completed',
       winner: isWin ? 'home' : 'away',
-      leagueBeforeMatch: {
-        division: club.division,
-        tier: club.tier,
-        elitePoints: club.division === 'elite' ? club.elitePoints : undefined
-      },
-      leagueAfterMatch: {
-        division: club.division,
-        tier: club.tier,
-        elitePoints: club.division === 'elite' ? club.elitePoints : undefined
-      }
+      leagueBeforeMatch: leagueData,
+      leagueAfterMatch: leagueData
     };
     
     result.push(match);

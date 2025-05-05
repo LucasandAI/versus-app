@@ -111,7 +111,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({ match, userClub, on
                       <UserAvatar 
                         name={member.name} 
                         image={member.avatar} 
-                        size="xs"
+                        size="sm"
                         className="mr-2"
                       />
                       <span>{member.name}</span>
@@ -135,7 +135,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({ match, userClub, on
                       <UserAvatar 
                         name={member.name} 
                         image={member.avatar} 
-                        size="xs"
+                        size="sm"
                         className="mr-2"
                       />
                       <span>{member.name}</span>

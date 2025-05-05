@@ -74,6 +74,12 @@ export interface MatchTeam {
   members: ClubMember[];
 }
 
+export interface LeagueStatus {
+  division: Division;
+  tier: number;
+  elitePoints?: number;
+}
+
 export interface Match {
   id: string;
   homeClub: MatchTeam;
@@ -83,28 +89,12 @@ export interface Match {
   status: 'active' | 'completed';
   winner?: 'home' | 'away' | 'draw';
   leagueBeforeMatch?: {
-    home?: {
-      division: Division;
-      tier?: number;
-      elitePoints?: number;
-    };
-    away?: {
-      division: Division;
-      tier?: number;
-      elitePoints?: number;
-    };
+    home?: LeagueStatus;
+    away?: LeagueStatus;
   };
   leagueAfterMatch?: {
-    home?: {
-      division: Division;
-      tier?: number;
-      elitePoints?: number;
-    };
-    away?: {
-      division: Division;
-      tier?: number;
-      elitePoints?: number;
-    };
+    home?: LeagueStatus;
+    away?: LeagueStatus;
   };
 }
 

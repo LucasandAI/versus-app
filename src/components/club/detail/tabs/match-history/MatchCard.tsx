@@ -47,19 +47,30 @@ const MatchCard: React.FC<MatchCardProps> = ({
       return 'No league data';
     }
     
-    const beforeDivision = match.leagueBeforeMatch.division;
-    const afterDivision = match.leagueAfterMatch.division;
-    const afterTier = match.leagueAfterMatch.tier || 1;
+    const isHome = match.homeClub.id === clubId;
+    const sideKey = isHome ? 'home' : 'away';
+    
+    // Access nested properties correctly
+    const beforeLeague = match.leagueBeforeMatch[sideKey];
+    const afterLeague = match.leagueAfterMatch[sideKey];
+    
+    if (!beforeLeague || !afterLeague) {
+      return 'No league data available';
+    }
+    
+    const beforeDivision = beforeLeague.division;
+    const afterDivision = afterLeague.division;
+    const afterTier = afterLeague.tier;
     
     const afterEmoji = getDivisionEmoji(afterDivision);
     const afterLeague = formatLeague(afterDivision, afterTier);
     
     const isDivisionChange = beforeDivision !== afterDivision;
-    const isTierChange = match.leagueBeforeMatch.tier !== afterTier;
+    const isTierChange = beforeLeague.tier !== afterLeague.tier;
     
     if (afterDivision === 'elite') {
-      const beforePoints = match.leagueBeforeMatch.elitePoints || 0;
-      const afterPoints = match.leagueAfterMatch.elitePoints || 0;
+      const beforePoints = beforeLeague.elitePoints || 0;
+      const afterPoints = afterLeague.elitePoints || 0;
       const pointChange = afterPoints - beforePoints;
       const pointsText = `(${pointChange >= 0 ? '+' : ''}${pointChange} points, total: ${afterPoints})`;
       
@@ -81,7 +92,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
         return `Relegated to ${afterEmoji} ${afterLeague}`;
       }
     } else if (isTierChange) {
-      if (match.leagueBeforeMatch.tier && match.leagueBeforeMatch.tier > afterTier) {
+      if (beforeLeague.tier > afterLeague.tier) {
         return `Promoted to ${afterEmoji} ${afterLeague}`;
       } else {
         return `Relegated to ${afterEmoji} ${afterLeague}`;
