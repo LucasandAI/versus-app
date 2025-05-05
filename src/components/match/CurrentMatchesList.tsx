@@ -107,10 +107,12 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
               <div className="p-4 border-b border-gray-100">
                 <h3 className="font-bold text-md">{club.name}</h3>
               </div>
-              <ClubCurrentMatch 
-                match={activeMatch}
-                onViewProfile={onViewProfile}
-              />
+              <div className="p-4">
+                <ClubCurrentMatch 
+                  match={activeMatch}
+                  onViewProfile={onViewProfile}
+                />
+              </div>
             </div>
           );
         } else if (hasEnoughMembers) {
