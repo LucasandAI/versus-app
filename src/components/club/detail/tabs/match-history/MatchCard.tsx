@@ -63,7 +63,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
     const afterTier = afterLeagueData.tier;
     
     const afterEmoji = getDivisionEmoji(afterDivision);
-    const formattedAfterLeague = formatLeague(afterDivision, afterTier);
+    const formattedLeague = formatLeague(afterDivision, afterTier);
     
     const isDivisionChange = beforeDivision !== afterDivision;
     const isTierChange = beforeLeague.tier !== afterLeagueData.tier;
@@ -75,9 +75,9 @@ const MatchCard: React.FC<MatchCardProps> = ({
       const pointsText = `(${pointChange >= 0 ? '+' : ''}${pointChange} points, total: ${afterPoints})`;
       
       if (beforeDivision !== 'elite') {
-        return `Promoted to ${afterEmoji} ${formattedAfterLeague} ${pointsText}`;
+        return `Promoted to ${afterEmoji} ${formattedLeague} ${pointsText}`;
       } else {
-        return `${weWon ? 'Gained' : 'Lost'} points in ${afterEmoji} ${formattedAfterLeague} ${pointsText}`;
+        return `${weWon ? 'Gained' : 'Lost'} points in ${afterEmoji} ${formattedLeague} ${pointsText}`;
       }
     }
     
@@ -87,18 +87,18 @@ const MatchCard: React.FC<MatchCardProps> = ({
         ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'elite'].indexOf(beforeDivision);
       
       if (divisionOrderChange) {
-        return `Promoted to ${afterEmoji} ${formattedAfterLeague}`;
+        return `Promoted to ${afterEmoji} ${formattedLeague}`;
       } else {
-        return `Relegated to ${afterEmoji} ${formattedAfterLeague}`;
+        return `Relegated to ${afterEmoji} ${formattedLeague}`;
       }
     } else if (isTierChange) {
       if (beforeLeague.tier > afterLeagueData.tier) {
-        return `Promoted to ${afterEmoji} ${formattedAfterLeague}`;
+        return `Promoted to ${afterEmoji} ${formattedLeague}`;
       } else {
-        return `Relegated to ${afterEmoji} ${formattedAfterLeague}`;
+        return `Relegated to ${afterEmoji} ${formattedLeague}`;
       }
     } else {
-      return `Maintained in ${afterEmoji} ${formattedAfterLeague}`;
+      return `Maintained in ${afterEmoji} ${formattedLeague}`;
     }
   };
 
