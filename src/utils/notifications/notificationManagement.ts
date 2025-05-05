@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 // Function to create a new notification
@@ -70,17 +71,17 @@ export const updateNotificationStatus = async (
 export const updateClubJoinRequest = async (
   userId: string, 
   clubId: string, 
-  status: 'ACCEPTED' | 'REJECTED'
+  status: 'accepted' | 'rejected'
 ): Promise<boolean> => {
   try {
-    if (status === 'ACCEPTED') {
+    if (status === 'accepted') {
       // Update to accepted
       const { error } = await supabase
         .from('club_requests')
-        .update({ status: status })
+        .update({ status })
         .eq('user_id', userId)
         .eq('club_id', clubId)
-        .eq('status', 'PENDING');
+        .eq('status', 'pending');
 
       if (error) {
         console.error('Error updating join request:', error);

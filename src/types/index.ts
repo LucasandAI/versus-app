@@ -1,4 +1,3 @@
-import { RequestStatus } from './request-status';
 
 export interface User {
   id: string;
@@ -47,7 +46,7 @@ export interface JoinRequest {
   userName: string;
   userAvatar: string;
   createdAt: string;
-  status: RequestStatus;
+  status: 'pending' | 'accepted' | 'rejected';
 }
 
 export interface ClubRequest {
@@ -136,4 +135,3 @@ export interface AppContextType {
 }
 
 export type { ChatMessage } from './chat';
-export type { RequestStatus } from './request-status';

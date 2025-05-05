@@ -10,15 +10,11 @@ import { useNavigation } from '@/hooks/useNavigation';
 interface ClubCardProps {
   club: Club;
   onSelectUser: (userId: string, name: string, avatar?: string) => void;
-  isPreviewClub?: boolean;
-  children?: React.ReactNode; // Add children prop to support buttons
 }
 
 const ClubCard: React.FC<ClubCardProps> = ({ 
   club, 
-  onSelectUser,
-  isPreviewClub = false,
-  children
+  onSelectUser 
 }) => {
   const [expanded, setExpanded] = useState(false);
   const { navigateToClubDetail } = useNavigation();
@@ -82,13 +78,6 @@ const ClubCard: React.FC<ClubCardProps> = ({
           </div>
         </div>
       </div>
-      
-      {/* Conditionally render join buttons or other child elements */}
-      {children && (
-        <div className="mt-2">
-          {children}
-        </div>
-      )}
 
       {club.currentMatch && (
         <div className="border-t pt-3">
