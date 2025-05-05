@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Club, User } from '@/types';
 import ClubCard from './ClubCard';
@@ -22,13 +23,19 @@ interface AvailableClubsProps {
   emptyMessage?: string;
 }
 
+// Extended Club interface that includes the hasPendingRequest flag
+interface PreviewClub extends Club {
+  hasPendingRequest?: boolean;
+  member_count?: number;
+}
+
 const AvailableClubs: React.FC<AvailableClubsProps> = ({ 
   title = "Available Clubs", 
   limitPreviewsTo = 3,
   filters = {},
   emptyMessage = "No clubs available. Create a new club or search for different criteria."
 }) => {
-  const [availableClubs, setAvailableClubs] = useState<Club[]>([]);
+  const [availableClubs, setAvailableClubs] = useState<PreviewClub[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const [searchParams] = useSearchParams();
@@ -142,11 +149,18 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({
             .maybeSingle();
             
           return {
-            ...club,
-            hasPendingRequest: !!pendingRequest,
+            id: club.id,
+            name: club.name,
+            logo: club.logo,
+            bio: club.bio || '',
+            division: club.division,
+            tier: club.tier,
+            elitePoints: club.elite_points,
+            members: [],
             isPreviewClub: true,
-            members: [] // We don't have members here, but need it to match Club type
-          };
+            hasPendingRequest: !!pendingRequest,
+            member_count: club.member_count
+          } as PreviewClub;
         })
       );
       
@@ -180,7 +194,12 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({
       ) : clubsToDisplay.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {clubsToDisplay.map((club) => (
-            <ClubCard key={club.id} club={club} isPreviewClub={true}>
+            <ClubCard 
+              key={club.id} 
+              club={club} 
+              isPreviewClub={true}
+              onSelectUser={() => {}} 
+            >
               {currentUser && !isMemberOfClub(club.id) && (
                 <Button onClick={() => handleJoin(club.id)}>
                   {club.hasPendingRequest ? 'Cancel Request' : 'Request to Join'}

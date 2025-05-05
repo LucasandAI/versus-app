@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 // Function to create a new notification
@@ -78,7 +77,7 @@ export const updateClubJoinRequest = async (
       // Update to accepted
       const { error } = await supabase
         .from('club_requests')
-        .update({ status })
+        .update({ status: status })
         .eq('user_id', userId)
         .eq('club_id', clubId)
         .eq('status', 'PENDING');

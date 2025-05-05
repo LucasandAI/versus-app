@@ -6,17 +6,13 @@ import Button from '../shared/Button';
 import { Skeleton } from '../ui/skeleton';
 
 interface FindClubsSectionProps {
-  clubs: any[];
   isLoading?: boolean;
-  onRequestJoin: (clubId: string, clubName: string) => void;
   onSearchClick: () => void;
   onCreateClick: () => void;
 }
 
 const FindClubsSection: React.FC<FindClubsSectionProps> = ({
-  clubs,
   isLoading = false,
-  onRequestJoin,
   onSearchClick,
   onCreateClick,
 }) => {
@@ -43,10 +39,7 @@ const FindClubsSection: React.FC<FindClubsSectionProps> = ({
           </div>
         </div>
       ) : (
-        <AvailableClubs 
-          clubs={clubs}
-          onRequestJoin={onRequestJoin}
-        />
+        <AvailableClubs />
       )}
 
       <div className="mt-6 text-center">

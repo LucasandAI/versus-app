@@ -289,7 +289,7 @@ export const sendClubInvite = async (
       .insert({
         club_id: clubId,
         user_id: userId,
-        status: 'PENDING'
+        status: 'pending'
       });
       
     if (inviteError) {
@@ -298,13 +298,82 @@ export const sendClubInvite = async (
       return false;
     }
     
-    // ... keep existing code (notification handling)
+    // Delete any existing notifications for this club/user/type combination
+    // This ensures we'll create a fresh notification
+    try {
+      await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', userId)
+        .eq('club_id', clubId)
+        .eq('type', 'invite' as const);
+        
+      console.log('[sendClubInvite] Cleaned up old notifications');
+    } catch (error) {
+      console.log('[sendClubInvite] Error cleaning up old notifications:', error);
+      // Continue execution, this is not critical
+    }
+    
+    // Now create a fresh notification
+    const { error: notificationError } = await supabase
+      .from('notifications')
+      .insert({
+        user_id: userId,
+        club_id: clubId,
+        type: 'invite' as const, // <-- Use type assertion here to make TypeScript happy
+        message: `You've been invited to join ${clubName}`,
+        read: false,
+        data: {
+          clubId,
+          clubName,
+          inviterName
+        }
+      });
+      
+    if (notificationError) {
+      console.error('[sendClubInvite] Error creating notification:', notificationError);
+      toast.error('Failed to notify user');
+      return false;
+    }
+    
+    toast.success(`Invitation sent to ${userName}`);
+    
+    // Trigger notification update event
+    window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     
     return true;
     
   } catch (error) {
     console.error('[sendClubInvite] Unexpected error:', error);
     toast.error('Failed to send invitation');
+    return false;
+  }
+};
+
+// Check if a club is full
+export const isClubFull = async (clubId: string): Promise<boolean> => {
+  try {
+    const { isFull } = await checkClubCapacity(clubId);
+    return isFull;
+  } catch (error) {
+    console.error('[isClubFull] Unexpected error:', error);
+    return false;
+  }
+};
+
+// Check if user is already a member of the club
+export const isUserClubMember = async (clubId: string, userId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from('club_members')
+      .select('user_id')
+      .eq('club_id', clubId)
+      .eq('user_id', userId)
+      .single();
+      
+    return !error && data !== null;
+  } catch (error) {
+    console.error('[isUserClubMember] Unexpected error:', error);
     return false;
   }
 };
