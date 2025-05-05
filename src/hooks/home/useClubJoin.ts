@@ -1,3 +1,4 @@
+
 import { useApp } from '@/context/AppContext';
 import { getClubToJoin } from '@/utils/club';
 import { useClubValidation } from './useClubValidation';
@@ -54,11 +55,11 @@ export const useClubJoin = () => {
         // If no existing request, create a new one
         const { error } = await supabase
           .from('club_requests')
-          .insert([{
+          .insert({
             user_id: currentUser.id,
             club_id: clubId,
             status: 'pending'
-          }]);
+          });
           
         if (error) {
           console.error('Error sending join request:', error);

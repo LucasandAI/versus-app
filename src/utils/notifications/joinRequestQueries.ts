@@ -73,7 +73,7 @@ export const fetchClubJoinRequests = async (clubId: string): Promise<JoinRequest
         userName: userData?.name || 'Unknown User',
         userAvatar: userData?.avatar || '',
         createdAt: request.created_at,
-        status: request.status
+        status: request.status as 'pending' | 'accepted' // Type assertion since we know it's one of these values
       });
     }
     

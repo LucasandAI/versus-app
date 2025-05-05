@@ -50,11 +50,11 @@ export const useJoinRequest = (clubId: string) => {
     try {
       const { error } = await supabase
         .from('club_requests')
-        .insert([{
+        .insert({
           user_id: userId,
           club_id: clubId,
           status: 'pending'
-        }]);
+        });
 
       if (error) {
         // Revert optimistic update on error

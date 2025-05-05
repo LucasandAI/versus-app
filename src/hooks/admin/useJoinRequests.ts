@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { JoinRequest, Club, ClubMember } from '@/types';
@@ -171,7 +172,7 @@ export const useJoinRequests = () => {
             userName: 'Unknown User',
             userAvatar: '',
             createdAt: request.created_at,
-            status: request.status
+            status: request.status as 'pending' | 'accepted'
           });
         } else {
           formattedRequests.push({
@@ -181,7 +182,7 @@ export const useJoinRequests = () => {
             userName: userData.name || 'Unknown',
             userAvatar: userData.avatar || '',
             createdAt: request.created_at,
-            status: request.status
+            status: request.status as 'pending' | 'accepted'
           });
         }
       }

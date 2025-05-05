@@ -69,8 +69,8 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
     }));
   };
   
-  // Only show the match details during the match phase
-  const showMatch = cycleInfo.isInMatchPhase;
+  // Only show the match details during the match phase (UNLESS forceShowDetails is true)
+  const showMatch = forceShowDetails || cycleInfo.isInMatchPhase;
 
   return (
     <div className="p-4">
@@ -206,6 +206,90 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
               refreshInterval={500}
             />
           </p>
+          
+          {/* Always show match details during cooldown if forceShowDetails is true */}
+          {forceShowDetails && (
+            <div className="mt-4 pt-4 border-t border-blue-100">
+              <div className="flex justify-between items-center mb-4">
+                <div className="text-center">
+                  <h4 className="font-medium">{match.homeClub.name}</h4>
+                  <p className="font-bold text-lg mt-1">{match.homeClub.totalDistance.toFixed(1)} km</p>
+                </div>
+                
+                <div className="text-center text-gray-500 font-medium">vs</div>
+                
+                <div className="text-center">
+                  <h4 
+                    className="font-medium cursor-pointer hover:text-primary transition-colors"
+                    onClick={() => handleClubClick(match.awayClub)}
+                  >
+                    {match.awayClub.name}
+                  </h4>
+                  <p className="font-bold text-lg mt-1">{match.awayClub.totalDistance.toFixed(1)} km</p>
+                </div>
+              </div>
+
+              <MatchProgressBar
+                homeDistance={match.homeClub.totalDistance}
+                awayDistance={match.awayClub.totalDistance}
+                className="h-5 mb-4"
+              />
+
+              <div className="mt-4 pt-4">
+                <div className="grid grid-cols-2 divide-x">
+                  {/* Home Club Members */}
+                  <div className="pr-4">
+                    <h4 className="font-medium mb-3 text-sm">Home Club Members</h4>
+                    <div className="space-y-3">
+                      {match.homeClub.members.map(member => (
+                        <div 
+                          key={member.id} 
+                          className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1"
+                          onClick={() => handleMemberClick(member)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <UserAvatar 
+                              name={member.name}
+                              image={member.avatar} 
+                              size="sm"
+                              className="cursor-pointer"
+                            />
+                            <span className="text-sm hover:text-primary transition-colors">{member.name}</span>
+                          </div>
+                          <span className="text-sm font-medium">{member.distanceContribution?.toFixed(1) || "0.0"} km</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Away Club Members */}
+                  <div className="pl-4">
+                    <h4 className="font-medium mb-3 text-sm">Away Club Members</h4>
+                    <div className="space-y-3">
+                      {match.awayClub.members.map(member => (
+                        <div 
+                          key={member.id} 
+                          className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1"
+                          onClick={() => handleMemberClick(member)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <UserAvatar 
+                              name={member.name}
+                              image={member.avatar} 
+                              size="sm"
+                              className="cursor-pointer"
+                            />
+                            <span className="text-sm hover:text-primary transition-colors">{member.name}</span>
+                          </div>
+                          <span className="text-sm font-medium">{member.distanceContribution?.toFixed(1) || "0.0"} km</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
