@@ -198,12 +198,14 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
                 </div>
               </div>
               
-              {/* Match Progress Bar */}
-              <MatchProgressBar
-                homeDistance={userClubMatch.totalDistance}
-                awayDistance={opponentClubMatch.totalDistance}
-                className="h-5 mb-4"
-              />
+              {/* Match Progress Bar - This is the component we're adding to make it match the club detail view */}
+              <div className="mt-6">
+                <MatchProgressBar
+                  homeDistance={userClubMatch.totalDistance}
+                  awayDistance={opponentClubMatch.totalDistance}
+                  className="h-5 mb-4"
+                />
+              </div>
               
               {/* Details Toggle Button */}
               <Button 
