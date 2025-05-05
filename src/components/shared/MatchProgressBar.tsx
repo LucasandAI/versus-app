@@ -68,11 +68,11 @@ const MatchProgressBar: React.FC<MatchProgressBarProps> = ({
     <div className={cn('w-full rounded-full h-6 overflow-hidden relative', className)}>
       <div className="absolute inset-0 flex w-full">
         <div 
-          className="bg-primary h-full transition-all duration-300" 
+          className="bg-green-500 h-full transition-all duration-300" 
           style={{ width: `${displayHomePercentage}%` }}
         />
         <div 
-          className="bg-secondary h-full transition-all duration-300" 
+          className="bg-slate-800 h-full transition-all duration-300" 
           style={{ width: `${100 - displayHomePercentage}%` }}
         />
       </div>

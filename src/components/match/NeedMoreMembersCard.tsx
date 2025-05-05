@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Club } from '@/types';
@@ -67,7 +66,7 @@ const NeedMoreMembersCard: React.FC<NeedMoreMembersCardProps> = ({ club: initial
   }, [club.id, initialClub]);
   
   return (
-    <Card className="mb-4 overflow-hidden">
+    <Card className="mb-4 overflow-hidden border-0 shadow-md">
       <CardContent className="p-4">
         <div className="flex items-center">
           <UserAvatar 
@@ -85,7 +84,7 @@ const NeedMoreMembersCard: React.FC<NeedMoreMembersCardProps> = ({ club: initial
               {club.name}
             </h3>
             <div className="flex items-center gap-1 mt-0.5">
-              <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
+              <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600">
                 {formatLeague(club.division, club.tier)}
               </span>
               <span className="text-xs text-gray-500">
@@ -95,9 +94,9 @@ const NeedMoreMembersCard: React.FC<NeedMoreMembersCardProps> = ({ club: initial
           </div>
         </div>
         
-        <div className="mt-4 p-3 bg-gray-50 rounded-md">
+        <div className="mt-4 p-4 bg-gray-50 rounded-md border border-gray-100">
           <div className="flex items-center mb-2">
-            <Users size={16} className="text-gray-500 mr-2" />
+            <Users size={18} className="text-primary mr-2" />
             <span className="text-sm font-medium">
               {memberCount}/5 members
             </span>
