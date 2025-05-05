@@ -177,21 +177,21 @@ export type Database = {
           club_id: string
           created_at: string
           id: string
-          status: "PENDING" | "SUCCESS" | "ERROR"
+          status: Database["public"]["Enums"]["request_status"]
           user_id: string
         }
         Insert: {
           club_id: string
           created_at?: string
           id?: string
-          status?: "PENDING" | "SUCCESS" | "ERROR"
+          status?: Database["public"]["Enums"]["request_status"]
           user_id: string
         }
         Update: {
           club_id?: string
           created_at?: string
           id?: string
-          status?: "PENDING" | "SUCCESS" | "ERROR"
+          status?: Database["public"]["Enums"]["request_status"]
           user_id?: string
         }
         Relationships: [
@@ -582,21 +582,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_weekly_matches: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      end_expired_matches: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      find_eligible_opponents: {
-        Args: { p_club_id: string; p_division: string; p_tier: number }
-        Returns: {
-          club_id: string
-          division_diff: number
-        }[]
-      }
       get_unread_club_messages_count: {
         Args: { user_id: string }
         Returns: number
@@ -627,7 +612,7 @@ export type Database = {
         | "activity"
         | "incoming_request"
         | "request_accepted"
-      request_status: "pending" | "accepted" | "rejected"
+      request_status: "pending" | "accepted"
       request_status_legacy: "pending" | "accepted"
       request_status_old: "pending" | "accepted" | "rejected"
     }
@@ -763,7 +748,7 @@ export const Constants = {
         "incoming_request",
         "request_accepted",
       ],
-      request_status: ["pending", "accepted", "rejected"],
+      request_status: ["pending", "accepted"],
       request_status_legacy: ["pending", "accepted"],
       request_status_old: ["pending", "accepted", "rejected"],
     },
