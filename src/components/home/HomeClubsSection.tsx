@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
-import ClubList from './ClubList';
+import CurrentMatchesList from './current-matches/CurrentMatchesList';
 import FindClubsSection from './FindClubsSection';
 import { useApp } from '@/context/AppContext';
 
@@ -70,7 +70,7 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
 
   return (
     <>
-      <ClubList 
+      <CurrentMatchesList 
         userClubs={processedUserClubs}
         loading={isLoading}
         onSelectUser={onSelectUser}

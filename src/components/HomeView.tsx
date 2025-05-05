@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
 import CreateClubDialog from './club/CreateClubDialog';
@@ -7,10 +7,10 @@ import SearchClubDialog from './club/SearchClubDialog';
 import HomeHeader from './home/HomeHeader';
 import HomeClubsSection from './home/HomeClubsSection';
 import HomeNotificationsHandler from './home/HomeNotificationsHandler';
-import ChatDrawerHandler from './home/ChatDrawerHandler';
 import { useClubActions } from '@/hooks/home/useClubActions';
 import { useHomeNotifications } from '@/hooks/home/useHomeNotifications';
 import { ChatDrawerProvider } from '@/context/ChatDrawerContext';
+import ChatDrawerHandler from './home/ChatDrawerHandler';
 import { UnreadMessagesProvider } from '@/context/UnreadMessagesContext';
 
 interface HomeViewProps {
@@ -19,7 +19,6 @@ interface HomeViewProps {
 
 const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   const { setCurrentView, setSelectedClub, setSelectedUser, currentUser, refreshCurrentUser } = useApp();
-  const [notifications, setNotifications] = useState<any[]>([]);
   
   const {
     searchDialogOpen,
@@ -28,13 +27,16 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
     setCreateClubDialogOpen,
     handleRequestToJoin,
     handleJoinClub,
-    availableClubs
+    availableClubs,
+    clubsLoading
   } = useClubActions();
 
-  const { 
+  const {
+    notifications,
+    setNotifications,
     handleMarkAsRead,
     handleDeclineInvite,
-    handleClearAllNotifications,
+    handleClearAllNotifications
   } = useHomeNotifications();
 
   useEffect(() => {
@@ -87,6 +89,7 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
             <HomeClubsSection 
               userClubs={userClubs}
               availableClubs={availableClubs}
+              clubsLoading={clubsLoading}
               onSelectClub={handleSelectClub}
               onSelectUser={handleSelectUser}
               onCreateClub={() => setCreateClubDialogOpen(true)}
