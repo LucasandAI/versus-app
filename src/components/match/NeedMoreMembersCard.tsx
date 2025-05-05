@@ -67,7 +67,7 @@ const NeedMoreMembersCard: React.FC<NeedMoreMembersCardProps> = ({ club: initial
   }, [club.id, initialClub]);
   
   return (
-    <Card className="mb-4 overflow-hidden">
+    <Card className="mb-4 overflow-hidden border-2 border-gray-100 shadow-sm">
       <CardContent className="p-4">
         <div className="flex items-center">
           <UserAvatar 
@@ -79,13 +79,13 @@ const NeedMoreMembersCard: React.FC<NeedMoreMembersCardProps> = ({ club: initial
           />
           <div>
             <h3 
-              className="font-medium cursor-pointer hover:text-primary transition-colors"
+              className="font-bold cursor-pointer hover:text-primary transition-colors"
               onClick={handleClubClick}
             >
               {club.name}
             </h3>
             <div className="flex items-center gap-1 mt-0.5">
-              <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
+              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
                 {formatLeague(club.division, club.tier)}
               </span>
               <span className="text-xs text-gray-500">
@@ -95,14 +95,14 @@ const NeedMoreMembersCard: React.FC<NeedMoreMembersCardProps> = ({ club: initial
           </div>
         </div>
         
-        <div className="mt-4 p-3 bg-gray-50 rounded-md">
+        <div className="mt-4 p-3 bg-amber-50 rounded-md">
           <div className="flex items-center mb-2">
-            <Users size={16} className="text-gray-500 mr-2" />
-            <span className="text-sm font-medium">
+            <Users size={16} className="text-amber-600 mr-2" />
+            <span className="text-sm font-medium text-amber-800">
               {memberCount}/5 members
             </span>
           </div>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-amber-700">
             Your club needs {neededMembers} more {neededMembers === 1 ? 'member' : 'members'} to start competing in the league.
           </p>
         </div>
