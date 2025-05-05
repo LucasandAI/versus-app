@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useApp } from '@/context/AppContext';
@@ -17,7 +17,7 @@ export const useJoinRequest = (clubId: string) => {
         .select('*')
         .eq('club_id', clubId)
         .eq('user_id', userId)
-        .eq('status', 'pending')
+        .eq('status', 'PENDING')
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -50,11 +50,11 @@ export const useJoinRequest = (clubId: string) => {
     try {
       const { error } = await supabase
         .from('club_requests')
-        .insert([{
+        .insert({
           user_id: userId,
           club_id: clubId,
-          status: 'pending'
-        }]);
+          status: 'PENDING'
+        });
 
       if (error) {
         // Revert optimistic update on error

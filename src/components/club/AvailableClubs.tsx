@@ -125,17 +125,22 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
         .from('club_requests')
         .select('club_id')
         .eq('user_id', currentUser.id)
-        .eq('status', 'pending');
+        .eq('status', 'PENDING');
         
       if (error) {
         console.error('Error fetching pending requests:', error);
         return;
       }
 
+      // Initialize an empty object to store pending requests
       const requests: Record<string, boolean> = {};
-      data?.forEach(request => {
-        requests[request.club_id] = true;
-      });
+      
+      // Check if data exists and is an array before using forEach
+      if (data && Array.isArray(data)) {
+        data.forEach(request => {
+          requests[request.club_id] = true;
+        });
+      }
       
       setPendingRequests(requests);
     } catch (err) {
@@ -143,6 +148,23 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const checkExistingRequest = async (clubId: string) => {
+    const { data, error } = await supabase
+      .from('club_requests')
+      .select('id')
+      .eq('club_id', clubId)
+      .eq('user_id', currentUser?.id)
+      .eq('status', 'PENDING') // Updated from 'pending' to 'PENDING'
+      .single();
+      
+    if (error) {
+      console.error('Error checking existing request:', error);
+      return false;
+    }
+    
+    return data !== null;
   };
 
   const handleClubClick = (club: AvailableClub) => {

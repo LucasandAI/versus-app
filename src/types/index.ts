@@ -45,7 +45,7 @@ export interface JoinRequest {
   userName: string;
   userAvatar: string;
   createdAt: string;
-  status: 'pending' | 'accepted' | 'rejected';
+  status: 'PENDING' | 'SUCCESS'; // Updated to match the database enum
 }
 
 export interface ClubRequest {
@@ -63,35 +63,37 @@ export interface ClubInvite {
   createdAt: string;
 }
 
+export interface MatchTeam {
+  id: string;
+  name: string;
+  logo: string;
+  totalDistance: number;
+  division?: Division;
+  tier?: number;
+  members: ClubMember[];
+}
+
+export interface LeagueStatus {
+  division: Division;
+  tier: number;
+  elitePoints?: number;
+}
+
 export interface Match {
   id: string;
-  homeClub: {
-    id: string;
-    name: string;
-    logo: string;
-    totalDistance: number;
-    members: ClubMember[];
-  };
-  awayClub: {
-    id: string;
-    name: string;
-    logo: string;
-    totalDistance: number;
-    members: ClubMember[];
-  };
+  homeClub: MatchTeam;
+  awayClub: MatchTeam;
   startDate: string;
   endDate: string;
   status: 'active' | 'completed';
   winner?: 'home' | 'away' | 'draw';
   leagueBeforeMatch?: {
-    division: Division;
-    tier?: number;
-    elitePoints?: number;
+    home?: LeagueStatus;
+    away?: LeagueStatus;
   };
   leagueAfterMatch?: {
-    division: Division;
-    tier?: number;
-    elitePoints?: number;
+    home?: LeagueStatus;
+    away?: LeagueStatus;
   };
 }
 

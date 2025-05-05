@@ -7,10 +7,10 @@ import SearchClubDialog from './club/SearchClubDialog';
 import HomeHeader from './home/HomeHeader';
 import HomeClubsSection from './home/HomeClubsSection';
 import HomeNotificationsHandler from './home/HomeNotificationsHandler';
+import ChatDrawerHandler from './home/ChatDrawerHandler';
 import { useClubActions } from '@/hooks/home/useClubActions';
 import { useHomeNotifications } from '@/hooks/home/useHomeNotifications';
 import { ChatDrawerProvider } from '@/context/ChatDrawerContext';
-import ChatDrawerHandler from './home/ChatDrawerHandler';
 import { UnreadMessagesProvider } from '@/context/UnreadMessagesContext';
 
 interface HomeViewProps {
@@ -27,16 +27,14 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
     setCreateClubDialogOpen,
     handleRequestToJoin,
     handleJoinClub,
-    availableClubs,
-    clubsLoading
+    availableClubs
   } = useClubActions();
 
-  const {
+  const { 
     notifications,
-    setNotifications,
     handleMarkAsRead,
     handleDeclineInvite,
-    handleClearAllNotifications
+    handleClearAllNotifications,
   } = useHomeNotifications();
 
   useEffect(() => {
@@ -55,11 +53,11 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
     setCurrentView('clubDetail');
   };
 
-  const handleSelectUser = (userId: string, name: string) => {
+  const handleSelectUser = (userId: string, name: string, avatar?: string) => {
     setSelectedUser({
       id: userId,
       name: name,
-      avatar: '/placeholder.svg',
+      avatar: avatar || '/placeholder.svg',
       clubs: []
     });
     setCurrentView('profile');
@@ -89,7 +87,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
             <HomeClubsSection 
               userClubs={userClubs}
               availableClubs={availableClubs}
-              clubsLoading={clubsLoading}
               onSelectClub={handleSelectClub}
               onSelectUser={handleSelectUser}
               onCreateClub={() => setCreateClubDialogOpen(true)}

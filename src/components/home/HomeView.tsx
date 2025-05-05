@@ -10,8 +10,8 @@ import HomeNotificationsHandler from './HomeNotificationsHandler';
 import { useClubActions } from '@/hooks/home/useClubActions';
 import { useHomeNotifications } from '@/hooks/home/useHomeNotifications';
 import { ChatDrawerProvider } from '@/context/ChatDrawerContext';
-import ChatDrawerHandler from './ChatDrawerHandler';
 import { UnreadMessagesProvider } from '@/context/UnreadMessagesContext';
+import ChatDrawerHandler from './ChatDrawerHandler';
 
 interface HomeViewProps {
   chatNotifications?: number;
@@ -27,13 +27,11 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
     setCreateClubDialogOpen,
     handleRequestToJoin,
     handleJoinClub,
-    availableClubs,
-    clubsLoading
+    availableClubs
   } = useClubActions();
 
   const {
     notifications,
-    setNotifications,
     handleMarkAsRead,
     handleDeclineInvite,
     handleClearAllNotifications
@@ -89,7 +87,6 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
             <HomeClubsSection 
               userClubs={userClubs}
               availableClubs={availableClubs}
-              clubsLoading={clubsLoading}
               onSelectClub={handleSelectClub}
               onSelectUser={handleSelectUser}
               onCreateClub={() => setCreateClubDialogOpen(true)}

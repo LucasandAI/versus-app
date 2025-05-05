@@ -21,36 +21,63 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   onMarkAsRead,
   onClearAll,
   onUserClick,
-  onDeclineInvite,
+  onDeclineInvite
 }) => {
-  const { setCurrentView, currentUser, setSelectedUser } = useApp();
-  const { open } = useChatDrawerGlobal();
-  const { totalUnreadCount } = useUnreadMessages();
+  const {
+    setCurrentView,
+    currentUser,
+    setSelectedUser
+  } = useApp();
+  
+  const {
+    open
+  } = useChatDrawerGlobal();
+  
+  const {
+    totalUnreadCount
+  } = useUnreadMessages();
+  
   const [badgeCount, setBadgeCount] = useState(totalUnreadCount);
+  const [notificationsCount, setNotificationsCount] = useState(notifications.length);
   
-  console.log("[HomeHeader] Rendering with notifications:", 
-    notifications.length, notifications);
-  
+  console.log("[HomeHeader] Rendering with notifications:", notifications.length, notifications);
+
   // Update badge count when totalUnreadCount changes
   useEffect(() => {
     setBadgeCount(totalUnreadCount);
   }, [totalUnreadCount]);
   
+  // Update notifications count when notifications array changes
+  useEffect(() => {
+    setNotificationsCount(notifications.length);
+  }, [notifications]);
+
   // Listen for unreadMessagesUpdated event to update badge count
   useEffect(() => {
     const handleUnreadMessagesUpdated = () => {
       setTimeout(() => {
         // This will trigger a re-render that will pick up the latest totalUnreadCount
-        setBadgeCount(prev => prev); // Force an update
+        setBadgeCount(prev => {
+          console.log("[HomeHeader] Updating badge count to:", totalUnreadCount);
+          return totalUnreadCount;
+        });
+      }, 100);
+    };
+    
+    const handleNotificationsUpdated = () => {
+      setTimeout(() => {
+        setNotificationsCount(notifications.length);
       }, 100);
     };
     
     window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
+    window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
     
     return () => {
       window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
+      window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
     };
-  }, []);
+  }, [notifications.length, totalUnreadCount]);
   
   const handleViewOwnProfile = () => {
     if (currentUser) {
@@ -58,30 +85,30 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
       setCurrentView('profile');
     }
   };
-
+  
   return (
     <div className="flex items-center justify-between mb-6">
-      <h1 className="text-2xl font-bold">Current Matches</h1>
+      <h1 className="text-2xl font-bold">Versus</h1>
       <div className="flex items-center gap-2">
         <NotificationPopover 
-          notifications={notifications}
-          onMarkAsRead={onMarkAsRead}
-          onClearAll={onClearAll}
-          onUserClick={onUserClick}
-          onDeclineInvite={onDeclineInvite}
+          notifications={notifications} 
+          onMarkAsRead={onMarkAsRead} 
+          onClearAll={onClearAll} 
+          onUserClick={onUserClick} 
+          onDeclineInvite={onDeclineInvite} 
         />
         <Button 
-          variant="link"
-          onClick={open}
-          className="text-primary hover:bg-gray-100 rounded-full p-2"
-          icon={<MessageCircle className="h-5 w-5" />}
-          badge={badgeCount > 0 ? badgeCount : 0}
+          variant="link" 
+          onClick={open} 
+          className="text-primary hover:bg-gray-100 rounded-full p-2" 
+          icon={<MessageCircle className="h-5 w-5" />} 
+          badge={badgeCount > 0 ? badgeCount : 0} 
         />
         <UserAvatar 
           name={currentUser?.name || "User"} 
           image={currentUser?.avatar} 
-          size="sm"
-          onClick={handleViewOwnProfile}
+          size="sm" 
+          onClick={handleViewOwnProfile} 
         />
       </div>
     </div>
