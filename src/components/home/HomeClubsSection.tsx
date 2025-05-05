@@ -4,6 +4,7 @@ import { Club } from '@/types';
 import FindClubsSection from './FindClubsSection';
 import { useApp } from '@/context/AppContext';
 import CurrentMatchesList from '../match/CurrentMatchesList';
+import { supabase } from '@/integrations/supabase/client';
 
 interface HomeClubsSectionProps {
   userClubs: Club[];
@@ -17,8 +18,8 @@ interface HomeClubsSectionProps {
 }
 
 const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
-  userClubs,
-  availableClubs,
+  userClubs: initialUserClubs,
+  availableClubs: initialAvailableClubs,
   clubsLoading = false,
   onSelectClub,
   onSelectUser,
@@ -28,11 +29,17 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
 }) => {
   const { currentUser } = useApp();
   const [isLoading, setIsLoading] = useState(true);
+  const [userClubs, setUserClubs] = useState<Club[]>(initialUserClubs);
+  const [availableClubs, setAvailableClubs] = useState<any[]>(initialAvailableClubs);
   
   // Track loading state based on initial render and clubs data quality
   useEffect(() => {
+    // Update clubs when props change
+    setUserClubs(initialUserClubs);
+    setAvailableClubs(initialAvailableClubs);
+    
     // Define what makes a club "fully loaded"
-    const areClubsReady = userClubs.every(club => 
+    const areClubsReady = initialUserClubs.every(club => 
       club && 
       club.name && 
       club.logo && 
@@ -55,7 +62,74 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
     } else {
       setIsLoading(true);
     }
-  }, [currentUser, userClubs, clubsLoading]);
+  }, [currentUser, initialUserClubs, initialAvailableClubs, clubsLoading]);
+
+  // Set up real-time subscriptions for club data
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    // Global subscription to user's club memberships
+    const membershipChannel = supabase
+      .channel('user-club-memberships')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'club_members',
+          filter: `user_id=eq.${currentUser.id}`
+        },
+        (payload) => {
+          console.log('[HomeClubsSection] User club membership changed:', payload);
+          window.dispatchEvent(new CustomEvent('userClubMembershipChanged'));
+        }
+      )
+      .subscribe();
+
+    // Global subscription to club updates  
+    const clubsChannel = supabase
+      .channel('club-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'clubs'
+        },
+        (payload) => {
+          console.log('[HomeClubsSection] Club data updated:', payload);
+          window.dispatchEvent(new CustomEvent('clubDataUpdated'));
+        }
+      )
+      .subscribe();
+      
+    // Event handlers for global events
+    const handleDataUpdate = () => {
+      console.log('[HomeClubsSection] Data update event received, updating clubs');
+      setUserClubs(initialUserClubs);
+      setAvailableClubs(initialAvailableClubs);
+    };
+    
+    window.addEventListener('userDataUpdated', handleDataUpdate);
+    window.addEventListener('clubDataUpdated', handleDataUpdate);
+    window.addEventListener('userClubMembershipChanged', handleDataUpdate);
+    window.addEventListener('matchUpdated', handleDataUpdate);
+    window.addEventListener('matchCreated', handleDataUpdate);
+    window.addEventListener('matchEnded', handleDataUpdate);
+    window.addEventListener('newMatchWeekStarted', handleDataUpdate);
+    
+    return () => {
+      supabase.removeChannel(membershipChannel);
+      supabase.removeChannel(clubsChannel);
+      window.removeEventListener('userDataUpdated', handleDataUpdate);
+      window.removeEventListener('clubDataUpdated', handleDataUpdate);
+      window.removeEventListener('userClubMembershipChanged', handleDataUpdate);
+      window.removeEventListener('matchUpdated', handleDataUpdate);
+      window.removeEventListener('matchCreated', handleDataUpdate);
+      window.removeEventListener('matchEnded', handleDataUpdate);
+      window.removeEventListener('newMatchWeekStarted', handleDataUpdate);
+    };
+  }, [currentUser, initialUserClubs, initialAvailableClubs]);
   
   // Process clubs to ensure they have the necessary properties
   const processedUserClubs = userClubs

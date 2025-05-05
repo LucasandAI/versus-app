@@ -6,28 +6,35 @@ interface CountdownTimerProps {
   targetDate: Date;
   onComplete?: () => void;
   className?: string;
+  refreshInterval?: number; // Allow customizing the refresh rate
 }
 
 const CountdownTimer: React.FC<CountdownTimerProps> = ({ 
   targetDate, 
   onComplete,
-  className = ""
+  className = "",
+  refreshInterval = 1000 // Default to 1 second refresh
 }) => {
   const [seconds, setSeconds] = useState(getSecondsUntil(targetDate));
   
   useEffect(() => {
+    // Immediately update seconds when targetDate changes
+    setSeconds(getSecondsUntil(targetDate));
+    
     const timer = setInterval(() => {
       const newSeconds = getSecondsUntil(targetDate);
       setSeconds(newSeconds);
       
-      if (newSeconds <= 0 && onComplete) {
-        onComplete();
+      if (newSeconds <= 0) {
+        if (onComplete) {
+          onComplete();
+        }
         clearInterval(timer);
       }
-    }, 1000);
+    }, refreshInterval);
     
     return () => clearInterval(timer);
-  }, [targetDate, onComplete]);
+  }, [targetDate, onComplete, refreshInterval]);
   
   return (
     <div className={`font-mono ${className}`}>

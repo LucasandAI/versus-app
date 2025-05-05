@@ -1,17 +1,19 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Club } from '@/types';
 import { formatLeague } from '@/utils/club/leagueUtils';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { Users } from 'lucide-react';
 import { useNavigation } from '@/hooks/useNavigation';
+import { supabase } from '@/integrations/supabase/client';
 
 interface NeedMoreMembersCardProps {
   club: Club;
 }
 
-const NeedMoreMembersCard: React.FC<NeedMoreMembersCardProps> = ({ club }) => {
+const NeedMoreMembersCard: React.FC<NeedMoreMembersCardProps> = ({ club: initialClub }) => {
+  const [club, setClub] = useState(initialClub);
   const memberCount = club.members.length;
   const neededMembers = 5 - memberCount;
   const { navigateToClubDetail } = useNavigation();
@@ -19,6 +21,50 @@ const NeedMoreMembersCard: React.FC<NeedMoreMembersCardProps> = ({ club }) => {
   const handleClubClick = () => {
     navigateToClubDetail(club.id, club);
   };
+
+  // Set up real-time subscription to club member changes
+  useEffect(() => {
+    // Update club data when the prop changes
+    setClub(initialClub);
+
+    // Listen for real-time changes to club members
+    const channel = supabase
+      .channel(`club-members-${club.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'club_members',
+          filter: `club_id=eq.${club.id}`
+        },
+        () => {
+          // When members change, trigger a refresh
+          console.log(`[NeedMoreMembersCard] Club members changed for ${club.id}, refreshing...`);
+          window.dispatchEvent(new CustomEvent('clubMembershipChanged', { 
+            detail: { clubId: club.id }
+          }));
+        }
+      )
+      .subscribe();
+      
+    // Listen for clubMembershipChanged events
+    const handleMembershipChange = (event: CustomEvent) => {
+      if (event.detail?.clubId === club.id) {
+        // Fetch updated club data
+        console.log(`[NeedMoreMembersCard] Membership changed event received`);
+      }
+    };
+    
+    window.addEventListener('clubMembershipChanged', handleMembershipChange as EventListener);
+    window.addEventListener('userDataUpdated', () => setClub(initialClub));
+    
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('clubMembershipChanged', handleMembershipChange as EventListener);
+      window.removeEventListener('userDataUpdated', () => setClub(initialClub));
+    };
+  }, [club.id, initialClub]);
   
   return (
     <Card className="mb-4 overflow-hidden">

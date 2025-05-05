@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Club } from '@/types';
 import { getNextMatchStart } from '@/utils/date/matchTiming';
@@ -7,17 +7,72 @@ import CountdownTimer from './CountdownTimer';
 import { formatLeague } from '@/utils/club/leagueUtils';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { useNavigation } from '@/hooks/useNavigation';
+import { supabase } from '@/integrations/supabase/client';
 
 interface WaitingForMatchCardProps {
   club: Club;
 }
 
-const WaitingForMatchCard: React.FC<WaitingForMatchCardProps> = ({ club }) => {
+const WaitingForMatchCard: React.FC<WaitingForMatchCardProps> = ({ club: initialClub }) => {
+  const [club, setClub] = useState(initialClub);
   const nextMatchStart = getNextMatchStart();
   const { navigateToClubDetail } = useNavigation();
   
   const handleClubClick = () => {
     navigateToClubDetail(club.id, club);
+  };
+  
+  // Set up real-time subscription to club member and match changes
+  useEffect(() => {
+    // Update club data when the prop changes
+    setClub(initialClub);
+
+    // Listen for match creation for this club
+    const matchChannel = supabase
+      .channel(`club-matches-creation-${club.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'matches',
+          filter: `home_club_id=eq.${club.id},away_club_id=eq.${club.id}`
+        },
+        (payload) => {
+          console.log(`[WaitingForMatchCard] New match created for ${club.id}:`, payload);
+          window.dispatchEvent(new CustomEvent('matchCreated', { 
+            detail: { clubId: club.id } 
+          }));
+        }
+      )
+      .subscribe();
+      
+    // Listen for match creation events
+    const handleMatchCreate = (event: CustomEvent) => {
+      if (event.detail?.clubId === club.id) {
+        console.log(`[WaitingForMatchCard] Match created for ${club.id}, refreshing...`);
+      }
+    };
+    
+    // Listen for countdown completion (new match week)
+    const handleNewMatchWeek = () => {
+      console.log('[WaitingForMatchCard] New match week started, refreshing data');
+      window.dispatchEvent(new CustomEvent('newMatchWeekStarted'));
+    };
+    
+    window.addEventListener('matchCreated', handleMatchCreate as EventListener);
+    window.addEventListener('userDataUpdated', () => setClub(initialClub));
+    
+    return () => {
+      supabase.removeChannel(matchChannel);
+      window.removeEventListener('matchCreated', handleMatchCreate as EventListener);
+      window.removeEventListener('userDataUpdated', () => setClub(initialClub));
+    };
+  }, [club.id, initialClub]);
+
+  const handleCountdownComplete = () => {
+    console.log('[WaitingForMatchCard] Countdown complete, new match week starting');
+    window.dispatchEvent(new CustomEvent('newMatchWeekStarted'));
   };
   
   return (
@@ -56,6 +111,8 @@ const WaitingForMatchCard: React.FC<WaitingForMatchCardProps> = ({ club }) => {
             <CountdownTimer 
               targetDate={nextMatchStart} 
               className="text-sm font-medium text-amber-700"
+              onComplete={handleCountdownComplete}
+              refreshInterval={1000} // Update every second
             />
           </div>
         </div>

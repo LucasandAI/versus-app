@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Match, Club, ClubMember } from '@/types';
 import { getCurrentMatchEnd } from '@/utils/date/matchTiming';
@@ -10,6 +10,7 @@ import { ChevronsUpDown } from 'lucide-react';
 import MatchProgressBar from '@/components/shared/MatchProgressBar';
 import { Button } from '@/components/ui/button';
 import { useNavigation } from '@/hooks/useNavigation';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CurrentMatchCardProps {
   match: Match;
@@ -17,8 +18,14 @@ interface CurrentMatchCardProps {
   onViewProfile: (userId: string, name: string, avatar?: string) => void;
 }
 
-const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({ match, userClub, onViewProfile }) => {
+const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({ 
+  match: initialMatch, 
+  userClub: initialUserClub, 
+  onViewProfile 
+}) => {
   const [showDetails, setShowDetails] = useState(false);
+  const [match, setMatch] = useState(initialMatch);
+  const [userClub, setUserClub] = useState(initialUserClub);
   const matchEndDate = getCurrentMatchEnd();
   const { navigateToClubDetail } = useNavigation();
   
@@ -27,6 +34,67 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({ match, userClub, on
   const userClubMatch = isHome ? match.homeClub : match.awayClub;
   const opponentClubMatch = isHome ? match.awayClub : match.homeClub;
   
+  // Handle real-time updates for match data
+  useEffect(() => {
+    // Update state when props change
+    setMatch(initialMatch);
+    setUserClub(initialUserClub);
+
+    // Subscribe to match distance contributions
+    const distanceChannel = supabase
+      .channel(`match-distances-${initialMatch.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'match_distances',
+          filter: `match_id=eq.${initialMatch.id}`
+        },
+        (payload) => {
+          console.log(`[CurrentMatchCard] Match distance updated for ${initialMatch.id}:`, payload);
+          window.dispatchEvent(new CustomEvent('matchDistanceUpdated', { 
+            detail: { matchId: initialMatch.id } 
+          }));
+        }
+      )
+      .subscribe();
+
+    // Listen for match data updates
+    const handleMatchUpdate = (event: CustomEvent) => {
+      if (event.detail?.matchId === initialMatch.id || event.detail?.clubId === initialUserClub.id) {
+        console.log('[CurrentMatchCard] Match updated, refreshing data');
+        setMatch(initialMatch);
+        setUserClub(initialUserClub);
+      }
+    };
+
+    window.addEventListener('matchDistanceUpdated', handleMatchUpdate as EventListener);
+    window.addEventListener('matchUpdated', handleMatchUpdate as EventListener);
+    window.addEventListener('userDataUpdated', () => {
+      setMatch(initialMatch);
+      setUserClub(initialUserClub);
+    });
+    
+    // Check for match end
+    const handleMatchEnd = () => {
+      console.log('[CurrentMatchCard] Match ended, refreshing data');
+      window.dispatchEvent(new CustomEvent('matchEnded', { 
+        detail: { matchId: initialMatch.id } 
+      }));
+    };
+
+    return () => {
+      supabase.removeChannel(distanceChannel);
+      window.removeEventListener('matchDistanceUpdated', handleMatchUpdate as EventListener);
+      window.removeEventListener('matchUpdated', handleMatchUpdate as EventListener);
+      window.removeEventListener('userDataUpdated', () => {
+        setMatch(initialMatch);
+        setUserClub(initialUserClub);
+      });
+    };
+  }, [initialMatch, initialUserClub]);
+
   // Get member contribution data
   const handleMemberClick = (member: ClubMember) => {
     onViewProfile(member.id, member.name, member.avatar);
@@ -34,6 +102,13 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({ match, userClub, on
 
   const handleClubClick = (clubId: string, clubData: any) => {
     navigateToClubDetail(clubId, clubData);
+  };
+
+  const handleCountdownComplete = () => {
+    console.log('[CurrentMatchCard] Countdown complete, match ended');
+    window.dispatchEvent(new CustomEvent('matchEnded', { 
+      detail: { matchId: match.id } 
+    }));
   };
   
   return (
@@ -112,7 +187,12 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({ match, userClub, on
         
         <div className="mt-3 flex justify-between items-center">
           <div className="text-xs text-gray-500">
-            Match ends in: <CountdownTimer targetDate={matchEndDate} className="inline" />
+            Match ends in: <CountdownTimer 
+              targetDate={matchEndDate} 
+              className="inline" 
+              onComplete={handleCountdownComplete}
+              refreshInterval={1000} // Update every second
+            />
           </div>
           <Button
             variant="ghost"
