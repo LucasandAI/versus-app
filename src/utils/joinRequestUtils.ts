@@ -48,10 +48,10 @@ export const acceptJoinRequest = async (userId: string, clubId: string, userName
 
 export const denyJoinRequest = async (userId: string, clubId: string): Promise<boolean> => {
   try {
-    // Update the request status to 'rejected'
+    // Update the request status to 'ERROR' (which maps to 'rejected' in the UI)
     const { error } = await supabase
       .from('club_requests')
-      .update({ status: 'ERROR' }) // Using 'ERROR' instead of 'rejected' to match the expected type
+      .update({ status: 'ERROR' }) // Using 'ERROR' to match the database enum
       .eq('user_id', userId)
       .eq('club_id', clubId);
 

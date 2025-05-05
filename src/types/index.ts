@@ -45,7 +45,7 @@ export interface JoinRequest {
   userName: string;
   userAvatar: string;
   createdAt: string;
-  status: 'PENDING' | 'SUCCESS' | 'rejected'; // Updated to match the database enum
+  status: 'PENDING' | 'SUCCESS' | 'ERROR'; // Updated to match database enum exactly
 }
 
 export interface ClubRequest {
