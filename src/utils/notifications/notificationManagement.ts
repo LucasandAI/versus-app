@@ -71,17 +71,17 @@ export const updateNotificationStatus = async (
 export const updateClubJoinRequest = async (
   userId: string, 
   clubId: string, 
-  status: 'accepted' | 'rejected'
+  status: 'ACCEPTED' | 'REJECTED'
 ): Promise<boolean> => {
   try {
-    if (status === 'accepted') {
+    if (status === 'ACCEPTED') {
       // Update to accepted
       const { error } = await supabase
         .from('club_requests')
         .update({ status })
         .eq('user_id', userId)
         .eq('club_id', clubId)
-        .eq('status', 'pending');
+        .eq('status', 'PENDING');
 
       if (error) {
         console.error('Error updating join request:', error);

@@ -1,6 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { checkClubCapacity } from './notifications/clubCapacity';
 
 /**
  * Accepts a join request by:
@@ -22,7 +22,7 @@ export const acceptJoinRequestFromNotification = async (
       .select('id')
       .eq('user_id', requesterId)  // Using requesterId (the person who requested to join)
       .eq('club_id', clubId)
-      .eq('status', 'pending')
+      .eq('status', 'PENDING')
       .single();
       
     if (requestError || !requestData) {
@@ -65,7 +65,7 @@ export const acceptJoinRequestFromNotification = async (
     // Update request status to accepted
     const { error: updateError } = await supabase
       .from('club_requests')
-      .update({ status: 'accepted' })
+      .update({ status: 'ACCEPTED' })
       .eq('user_id', requesterId)
       .eq('club_id', clubId);
       
@@ -111,7 +111,7 @@ export const denyJoinRequestFromNotification = async (
       .select('id')
       .eq('user_id', requesterId)  // Using requesterId (the person who requested to join)
       .eq('club_id', clubId)
-      .eq('status', 'pending')
+      .eq('status', 'PENDING')
       .single();
       
     if (requestError || !requestData) {
@@ -221,5 +221,89 @@ const deleteRelatedNotification = async (
     }
   } catch (error) {
     console.error('[joinRequestActions] Error in deleteRelatedNotification:', error);
+  }
+};
+
+/**
+ * Send an invite to a user
+ */
+export const sendClubInvite = async (
+  clubId: string,
+  clubName: string,
+  userId: string,
+  userName: string
+): Promise<boolean> => {
+  try {
+    console.log('[sendClubInvite] Sending invite:', { clubId, userId, userName });
+    
+    // Check if club is already full
+    const { isFull } = await checkClubCapacity(clubId);
+      
+    if (isFull) {
+      toast.error('This club is already full (5/5 members)');
+      return false;
+    }
+    
+    // Check if user is already a member of the club
+    const { data: existingMember, error: memberError } = await supabase
+      .from('club_members')
+      .select('user_id')
+      .eq('club_id', clubId)
+      .eq('user_id', userId)
+      .maybeSingle();
+      
+    if (memberError) {
+      console.error('[sendClubInvite] Error checking membership:', memberError);
+    }
+    
+    if (existingMember) {
+      toast.error(`${userName} is already a member of this club`);
+      return false;
+    }
+
+    // Get current user to use as inviter
+    const { data: { user } } = await supabase.auth.getUser();
+    const inviterName = user ? user.email?.split('@')[0] || 'Admin' : 'Admin';
+
+    // Clean up any existing invites for this user/club combination regardless of status
+    // This allows re-inviting users who previously rejected invitations
+    try {
+      const { error: deleteInviteError } = await supabase
+        .from('club_invites')
+        .delete()
+        .eq('club_id', clubId)
+        .eq('user_id', userId);
+        
+      if (deleteInviteError) {
+        console.log('[sendClubInvite] Error cleaning up old invites:', deleteInviteError);
+      }
+    } catch (error) {
+      console.error('[sendClubInvite] Failed to clean up old invites:', error);
+      // Continue execution, this is not critical
+    }
+    
+    // Create a new invite with pending status
+    const { error: inviteError } = await supabase
+      .from('club_invites')
+      .insert({
+        club_id: clubId,
+        user_id: userId,
+        status: 'PENDING'
+      });
+      
+    if (inviteError) {
+      console.error('[sendClubInvite] Error creating invite:', inviteError);
+      toast.error('Failed to send invitation');
+      return false;
+    }
+    
+    // ... keep existing code (notification handling)
+    
+    return true;
+    
+  } catch (error) {
+    console.error('[sendClubInvite] Unexpected error:', error);
+    toast.error('Failed to send invitation');
+    return false;
   }
 };
