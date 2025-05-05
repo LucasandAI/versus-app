@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getSecondsUntil, formatCountdown, getCurrentCycleInfo } from '@/utils/date/matchTiming';
 import { Clock } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface CountdownTimerProps {
   targetDate?: Date;
@@ -10,6 +11,7 @@ interface CountdownTimerProps {
   refreshInterval?: number;
   showPhaseLabel?: boolean;
   useCurrentCycle?: boolean;
+  showIcon?: boolean;
 }
 
 const CountdownTimer: React.FC<CountdownTimerProps> = ({ 
@@ -19,6 +21,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({
   refreshInterval = 500, // Default to 500ms (2 updates per second) for smoother countdown
   showPhaseLabel = false,
   useCurrentCycle = false,
+  showIcon = false,
 }) => {
   // Use the current cycle or specific target date
   const [cycleInfo, setCycleInfo] = useState(getCurrentCycleInfo());
@@ -95,10 +98,10 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({
     : "Next match starts in:";
   
   return (
-    <div className={`font-mono flex items-center gap-1 ${className}`}>
+    <div className={cn("font-mono flex items-center gap-1", className)}>
       {showPhaseLabel && (
         <div className="flex items-center">
-          <Clock className="h-3 w-3 mr-1" />
+          {showIcon && <Clock className="h-3 w-3 mr-1" />}
           <span className="text-xs mr-1">{phaseLabel}</span>
         </div>
       )}

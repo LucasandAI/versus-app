@@ -1,110 +1,69 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Club } from '@/types';
-import { formatLeague } from '@/utils/club/leagueUtils';
 import UserAvatar from '@/components/shared/UserAvatar';
+import { formatLeague } from '@/utils/club/leagueUtils';
 import { Users } from 'lucide-react';
 import { useNavigation } from '@/hooks/useNavigation';
-import { supabase } from '@/integrations/supabase/client';
 
 interface NeedMoreMembersCardProps {
   club: Club;
 }
 
-const NeedMoreMembersCard: React.FC<NeedMoreMembersCardProps> = ({ club: initialClub }) => {
-  const [club, setClub] = useState(initialClub);
-  const memberCount = club.members.length;
-  const neededMembers = 5 - memberCount;
+const NeedMoreMembersCard: React.FC<NeedMoreMembersCardProps> = ({ club }) => {
   const { navigateToClubDetail } = useNavigation();
   
-  const handleClubClick = () => {
-    navigateToClubDetail(club.id, club);
+  const handleClubClick = (clubId: string, clubData: any) => {
+    navigateToClubDetail(clubId, clubData);
   };
 
-  // Set up real-time subscription to club member changes
-  useEffect(() => {
-    // Update club data when the prop changes
-    setClub(initialClub);
-
-    // Listen for real-time changes to club members
-    const channel = supabase
-      .channel(`club-members-${club.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'club_members',
-          filter: `club_id=eq.${club.id}`
-        },
-        () => {
-          // When members change, trigger a refresh
-          console.log(`[NeedMoreMembersCard] Club members changed for ${club.id}, refreshing...`);
-          window.dispatchEvent(new CustomEvent('clubMembershipChanged', { 
-            detail: { clubId: club.id }
-          }));
-        }
-      )
-      .subscribe();
-      
-    // Listen for clubMembershipChanged events
-    const handleMembershipChange = (event: CustomEvent) => {
-      if (event.detail?.clubId === club.id) {
-        // Fetch updated club data
-        console.log(`[NeedMoreMembersCard] Membership changed event received`);
-      }
-    };
-    
-    window.addEventListener('clubMembershipChanged', handleMembershipChange as EventListener);
-    window.addEventListener('userDataUpdated', () => setClub(initialClub));
-    
-    return () => {
-      supabase.removeChannel(channel);
-      window.removeEventListener('clubMembershipChanged', handleMembershipChange as EventListener);
-      window.removeEventListener('userDataUpdated', () => setClub(initialClub));
-    };
-  }, [club.id, initialClub]);
-  
   return (
-    <Card className="mb-4 overflow-hidden">
-      <CardContent className="p-4">
-        <div className="flex items-center">
-          <UserAvatar 
-            name={club.name} 
-            image={club.logo} 
-            size="md"
-            className="mr-3 cursor-pointer"
-            onClick={handleClubClick}
-          />
-          <div>
-            <h3 
-              className="font-medium cursor-pointer hover:text-primary transition-colors"
-              onClick={handleClubClick}
-            >
-              {club.name}
-            </h3>
-            <div className="flex items-center gap-1 mt-0.5">
-              <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
-                {formatLeague(club.division, club.tier)}
-              </span>
-              <span className="text-xs text-gray-500">
-                • {memberCount}/5 members
-              </span>
+    <Card className="mb-4 overflow-hidden border-2 border-gray-100 shadow-sm">
+      <CardContent className="p-0">
+        {/* Club header */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-gray-100">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-3">
+              <UserAvatar 
+                name={club.name} 
+                image={club.logo} 
+                size="md"
+                className="cursor-pointer"
+                onClick={() => handleClubClick(club.id, club)}
+              />
+              <div>
+                <h3 
+                  className="font-semibold cursor-pointer hover:text-primary transition-colors" 
+                  onClick={() => handleClubClick(club.id, club)}
+                >
+                  {club.name}
+                </h3>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600 font-medium">
+                    {formatLeague(club.division, club.tier)}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    • {club.members.length}/5 members
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
         
-        <div className="mt-4 p-3 bg-gray-50 rounded-md">
-          <div className="flex items-center mb-2">
-            <Users size={16} className="text-gray-500 mr-2" />
-            <span className="text-sm font-medium">
-              {memberCount}/5 members
-            </span>
+        {/* Club status */}
+        <div className="p-5">
+          <div className="flex items-center justify-center bg-gray-50 p-4 rounded-md">
+            <div className="text-center">
+              <p className="text-sm font-medium text-gray-700 mb-1">Need more members</p>
+              <div className="flex items-center justify-center text-sm text-gray-600">
+                <Users className="h-4 w-4 mr-1" />
+                <span className="font-mono">{club.members.length}/5</span>
+              </div>
+              <p className="text-xs text-gray-600 mt-2">Invite members to participate in matches</p>
+            </div>
           </div>
-          <p className="text-sm text-gray-600">
-            Your club needs {neededMembers} more {neededMembers === 1 ? 'member' : 'members'} to start competing in the league.
-          </p>
         </div>
       </CardContent>
     </Card>
