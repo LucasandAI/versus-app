@@ -4,7 +4,7 @@ import { Club, Match } from '@/types';
 import CurrentMatchCard from './CurrentMatchCard';
 import WaitingForMatchCard from './WaitingForMatchCard';
 import NeedMoreMembersCard from './NeedMoreMembersCard';
-import { isActiveMatchWeek, getCurrentCycleInfo } from '@/utils/date/matchTiming';
+import { isActiveMatchWeek } from '@/utils/date/matchTiming';
 import { supabase } from '@/integrations/supabase/client';
 
 interface CurrentMatchesListProps {
@@ -17,7 +17,6 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
   onViewProfile
 }) => {
   const [userClubs, setUserClubs] = useState<Club[]>(initialClubs);
-  const [cycleInfo, setCycleInfo] = useState(getCurrentCycleInfo());
   
   // Helper function to check if a club has an active match
   const getActiveMatch = (club: Club): Match | null => {
@@ -29,12 +28,6 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
   useEffect(() => {
     // Update clubs when initial data changes
     setUserClubs(initialClubs);
-    
-    // Update cycle info periodically
-    const cycleTimer = setInterval(() => {
-      const newCycleInfo = getCurrentCycleInfo();
-      setCycleInfo(newCycleInfo);
-    }, 1000);
     
     // Set up real-time listeners for match updates
     const channels = initialClubs.map(club => {
@@ -58,13 +51,13 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
     });
 
     // Listen for match data update events
-    const handleMatchUpdate = () => {
+    const handleMatchUpdate = (event: CustomEvent) => {
       console.log('[CurrentMatchesList] Match updated event received');
       setUserClubs(initialClubs);
     };
     
     // Listen for member data update events
-    const handleMembershipChange = () => {
+    const handleMembershipChange = (event: CustomEvent) => {
       console.log('[CurrentMatchesList] Club membership changed event received');
       setUserClubs(initialClubs);
     };
@@ -72,16 +65,13 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
     window.addEventListener('matchUpdated', handleMatchUpdate as EventListener);
     window.addEventListener('clubMembershipChanged', handleMembershipChange as EventListener);
     window.addEventListener('userDataUpdated', () => setUserClubs(initialClubs));
-    window.addEventListener('newMatchWeekStarted', handleMatchUpdate as EventListener);
     
     // Clean up subscriptions
     return () => {
-      clearInterval(cycleTimer);
       channels.forEach(channel => supabase.removeChannel(channel));
       window.removeEventListener('matchUpdated', handleMatchUpdate as EventListener);
       window.removeEventListener('clubMembershipChanged', handleMembershipChange as EventListener);
       window.removeEventListener('userDataUpdated', () => setUserClubs(initialClubs));
-      window.removeEventListener('newMatchWeekStarted', handleMatchUpdate as EventListener);
     };
   }, [initialClubs]);
 
@@ -98,6 +88,7 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
       {userClubs.map(club => {
         const activeMatch = getActiveMatch(club);
         const hasEnoughMembers = club.members.length >= 5;
+        const isMatchWeek = isActiveMatchWeek();
         
         if (activeMatch) {
           return (
@@ -108,10 +99,13 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
               onViewProfile={onViewProfile}
             />
           );
-        } else if (hasEnoughMembers) {
+        } else if (hasEnoughMembers && !isMatchWeek) {
           return <WaitingForMatchCard key={`${club.id}-waiting`} club={club} />;
-        } else {
+        } else if (!hasEnoughMembers) {
           return <NeedMoreMembersCard key={`${club.id}-needs-members`} club={club} />;
+        } else {
+          // Fallback for clubs with enough members during match week but no match
+          return <WaitingForMatchCard key={`${club.id}-waiting`} club={club} />;
         }
       })}
     </div>

@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+
+import React, { useState } from 'react';
 import { Match } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
-import { ChevronDown, Clock } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import MatchProgressBar from '@/components/shared/MatchProgressBar';
 import { Button } from "@/components/ui/button";
 import { useNavigation } from '@/hooks/useNavigation';
 import { formatLeague } from '@/utils/club/leagueUtils';
-import CountdownTimer from '@/components/match/CountdownTimer';
-import { getCurrentCycleInfo } from '@/utils/date/matchTiming';
 
 interface ClubCurrentMatchProps {
   match: Match;
@@ -17,25 +16,6 @@ interface ClubCurrentMatchProps {
 const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfile }) => {
   const [showMatchDetails, setShowMatchDetails] = useState(false);
   const { navigateToClubDetail } = useNavigation();
-  const matchEndDateRef = useRef<Date>(new Date(match.endDate));
-  const [cycleInfo, setCycleInfo] = useState(getCurrentCycleInfo());
-  
-  // Update match end time reference if match data changes
-  useEffect(() => {
-    const endDate = new Date(match.endDate);
-    if (endDate.getTime() !== matchEndDateRef.current.getTime()) {
-      matchEndDateRef.current = endDate;
-    }
-    
-    // Update cycle info periodically
-    const cycleTimer = setInterval(() => {
-      setCycleInfo(getCurrentCycleInfo());
-    }, 1000);
-    
-    return () => {
-      clearInterval(cycleTimer);
-    };
-  }, [match]);
 
   const handleMemberClick = (member: any) => {
     onViewProfile(member.id, member.name, member.avatar);
@@ -50,16 +30,6 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfil
       matchHistory: []
     });
   };
-  
-  const handleCountdownComplete = () => {
-    console.log('[ClubCurrentMatch] Match ended, refreshing data');
-    window.dispatchEvent(new CustomEvent('matchEnded', { 
-      detail: { matchId: match.id } 
-    }));
-  };
-  
-  // Only show the match details during the match phase
-  const showMatch = cycleInfo.isInMatchPhase;
 
   return (
     <div className="mt-6">
@@ -97,15 +67,9 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfil
 
         <div className="text-center px-2">
           <span className="text-xs font-medium text-gray-500 uppercase">VS</span>
-          <div className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full mt-1 whitespace-nowrap">
-            <CountdownTimer 
-              useCurrentCycle={true}
-              showPhaseLabel={true}
-              className="whitespace-nowrap" 
-              onComplete={handleCountdownComplete}
-              refreshInterval={500}
-            />
-          </div>
+          <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full block mt-1">
+            Ends in 3 days
+          </span>
         </div>
 
         <div 
@@ -139,32 +103,23 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfil
         </div>
       </div>
 
-      {showMatch ? (
-        <>
-          <MatchProgressBar
-            homeDistance={match.homeClub.totalDistance}
-            awayDistance={match.awayClub.totalDistance}
-            className="mb-4"
-          />
-          
-          <Button 
-            variant="link" 
-            size="sm" 
-            className="w-full mt-2 mb-2 text-sm flex items-center justify-center"
-            onClick={() => setShowMatchDetails(!showMatchDetails)}
-          >
-            {showMatchDetails ? 'Hide Team Contributions' : 'View Team Contributions'} 
-            <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${showMatchDetails ? 'rotate-180' : ''}`} />
-          </Button>
-        </>
-      ) : (
-        <div className="bg-blue-50 p-3 rounded-md text-center my-3">
-          <p className="text-sm font-medium text-blue-700">Match cooldown period</p>
-          <p className="text-xs text-blue-600">Next match starting soon</p>
-        </div>
-      )}
+      <MatchProgressBar
+        homeDistance={match.homeClub.totalDistance}
+        awayDistance={match.awayClub.totalDistance}
+        className="mb-4"
+      />
       
-      {showMatch && showMatchDetails && (
+      <Button 
+        variant="link" 
+        size="sm" 
+        className="w-full mt-2 mb-2 text-sm flex items-center justify-center"
+        onClick={() => setShowMatchDetails(!showMatchDetails)}
+      >
+        {showMatchDetails ? 'Hide Team Contributions' : 'View Team Contributions'} 
+        <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${showMatchDetails ? 'rotate-180' : ''}`} />
+      </Button>
+      
+      {showMatchDetails && (
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-3 rounded-md">
           <div>
             <p className="text-sm font-medium mb-2">{match.homeClub.name}</p>

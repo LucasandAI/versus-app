@@ -1,15 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Match, Club, ClubMember } from '@/types';
-import { ChevronsUpDown, Clock } from 'lucide-react';
+import { getCurrentMatchEnd } from '@/utils/date/matchTiming';
+import CountdownTimer from './CountdownTimer';
+import { formatLeague } from '@/utils/club/leagueUtils';
+import UserAvatar from '@/components/shared/UserAvatar';
+import { ChevronsUpDown } from 'lucide-react';
 import MatchProgressBar from '@/components/shared/MatchProgressBar';
 import { Button } from '@/components/ui/button';
 import { useNavigation } from '@/hooks/useNavigation';
 import { supabase } from '@/integrations/supabase/client';
-import UserAvatar from '@/components/shared/UserAvatar';
-import { formatLeague } from '@/utils/club/leagueUtils';
-import CountdownTimer from './CountdownTimer';
-import { getCurrentCycleInfo } from '@/utils/date/matchTiming';
 
 interface CurrentMatchCardProps {
   match: Match;
@@ -25,9 +26,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
   const [showDetails, setShowDetails] = useState(false);
   const [match, setMatch] = useState(initialMatch);
   const [userClub, setUserClub] = useState(initialUserClub);
-  const matchEndDateRef = useRef<Date>(new Date(initialMatch.endDate));
-  const [cycleInfo, setCycleInfo] = useState(getCurrentCycleInfo());
-  
+  const matchEndDate = getCurrentMatchEnd();
   const { navigateToClubDetail } = useNavigation();
   
   // Determine if user club is home or away
@@ -40,17 +39,6 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
     // Update state when props change
     setMatch(initialMatch);
     setUserClub(initialUserClub);
-    
-    // Update match end date reference when match data changes
-    const endDate = new Date(initialMatch.endDate);
-    if (endDate.getTime() !== matchEndDateRef.current.getTime()) {
-      matchEndDateRef.current = endDate;
-    }
-
-    // Update cycle info periodically
-    const cycleTimer = setInterval(() => {
-      setCycleInfo(getCurrentCycleInfo());
-    }, 1000);
 
     // Subscribe to match distance contributions
     const distanceChannel = supabase
@@ -87,9 +75,16 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
       setMatch(initialMatch);
       setUserClub(initialUserClub);
     });
+    
+    // Check for match end
+    const handleMatchEnd = () => {
+      console.log('[CurrentMatchCard] Match ended, refreshing data');
+      window.dispatchEvent(new CustomEvent('matchEnded', { 
+        detail: { matchId: initialMatch.id } 
+      }));
+    };
 
     return () => {
-      clearInterval(cycleTimer);
       supabase.removeChannel(distanceChannel);
       window.removeEventListener('matchDistanceUpdated', handleMatchUpdate as EventListener);
       window.removeEventListener('matchUpdated', handleMatchUpdate as EventListener);
@@ -115,9 +110,6 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
       detail: { matchId: match.id } 
     }));
   };
-  
-  // Only show the match details during the match phase
-  const showMatch = cycleInfo.isInMatchPhase;
   
   return (
     <Card className="mb-4 overflow-hidden">
@@ -183,51 +175,37 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
           </div>
         </div>
         
-        {showMatch ? (
-          <>
-            <div className="flex justify-between items-center mb-2 font-medium">
-              <span>{userClubMatch.totalDistance.toFixed(1)} km</span>
-              <span>{opponentClubMatch.totalDistance.toFixed(1)} km</span>
-            </div>
-            
-            <MatchProgressBar
-              homeDistance={userClubMatch.totalDistance}
-              awayDistance={opponentClubMatch.totalDistance}
-            />
-          </>
-        ) : (
-          <div className="bg-blue-50 p-3 rounded-md text-center my-2">
-            <p className="text-sm font-medium text-blue-700 mb-1">Match cooldown period</p>
-            <p className="text-xs text-blue-600">Scores are being tallied</p>
-          </div>
-        )}
-        
-        <div className="mt-3 flex justify-between items-center">
-          <div className="text-xs text-gray-500 flex items-center">
-            <Clock size={14} className="mr-1" />
-            <CountdownTimer 
-              useCurrentCycle={true}
-              showPhaseLabel={true}
-              className="inline" 
-              onComplete={handleCountdownComplete}
-              refreshInterval={500}
-            />
-          </div>
-          
-          {showMatch && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowDetails(!showDetails)}
-              className="text-xs flex items-center"
-            >
-              {showDetails ? "Hide Details" : "Show Details"}
-              <ChevronsUpDown size={14} className="ml-1" />
-            </Button>
-          )}
+        <div className="flex justify-between items-center mb-2 font-medium">
+          <span>{userClubMatch.totalDistance.toFixed(1)} km</span>
+          <span>{opponentClubMatch.totalDistance.toFixed(1)} km</span>
         </div>
         
-        {showMatch && showDetails && (
+        <MatchProgressBar
+          homeDistance={userClubMatch.totalDistance}
+          awayDistance={opponentClubMatch.totalDistance}
+        />
+        
+        <div className="mt-3 flex justify-between items-center">
+          <div className="text-xs text-gray-500">
+            Match ends in: <CountdownTimer 
+              targetDate={matchEndDate} 
+              className="inline" 
+              onComplete={handleCountdownComplete}
+              refreshInterval={1000} // Update every second
+            />
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowDetails(!showDetails)}
+            className="text-xs flex items-center"
+          >
+            {showDetails ? "Hide Details" : "Show Details"}
+            <ChevronsUpDown size={14} className="ml-1" />
+          </Button>
+        </div>
+        
+        {showDetails && (
           <div className="mt-3 grid grid-cols-2 gap-3 bg-gray-50 p-3 rounded-md">
             <div>
               <h4 className="text-sm font-medium mb-1">{userClub.name}</h4>

@@ -1,10 +1,10 @@
+
 import React from 'react';
 import { Match, Division } from '@/types';
 import { ChevronDown, ChevronUp } from "lucide-react";
 import MatchProgressBar from '@/components/shared/MatchProgressBar';
 import { formatLeague, getDivisionEmoji } from '@/utils/club/leagueUtils';
 import MatchDetails from './MatchDetails';
-import { format } from 'date-fns';
 
 interface MatchCardProps {
   match: Match;
@@ -31,11 +31,6 @@ const MatchCard: React.FC<MatchCardProps> = ({
   const formatDateRange = (startDate: string, endDate: string) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
-    // For short matches (same day), show specific times
-    if (start.toDateString() === end.toDateString()) {
-      return `${format(start, 'MMM d, h:mm a')} - ${format(end, 'h:mm a')}`;
-    }
     
     const startMonth = start.toLocaleDateString('en-US', { month: 'long' });
     const endMonth = end.toLocaleDateString('en-US', { month: 'long' });
