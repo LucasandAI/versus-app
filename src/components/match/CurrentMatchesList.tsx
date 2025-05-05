@@ -24,14 +24,16 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
     if (!club) return null;
     
     const match = club.currentMatch || 
-           (club.matchHistory && club.matchHistory.find(m => m.status === 'active')) ||
+           (club.matchHistory && Array.isArray(club.matchHistory) && club.matchHistory.find(m => m.status === 'active')) ||
            null;
+    
     console.log(`[CurrentMatchesList] Active match for club ${club.name}:`, {
       hasCurrentMatch: !!club.currentMatch,
       hasMatchHistory: !!club.matchHistory,
       matchHistoryLength: club.matchHistory?.length,
       foundMatch: match
     });
+    
     return match;
   };
 

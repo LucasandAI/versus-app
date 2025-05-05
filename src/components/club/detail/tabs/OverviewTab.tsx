@@ -29,12 +29,13 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       member && member.id === currentUser.id && member.isAdmin === true
     ) || false;
 
+  // Ensure matchHistory is an array
+  const matchHistory = Array.isArray(club.matchHistory) ? club.matchHistory : [];
+
   return (
     <div className="space-y-6">
-      <ClubStats 
-        club={club} 
-        matchHistory={Array.isArray(club.matchHistory) ? club.matchHistory : []} 
-      />
+      <ClubStats club={club} matchHistory={matchHistory} />
+      
       {club.currentMatch && (
         <div>
           <ClubCurrentMatch
@@ -43,6 +44,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           />
         </div>
       )}
+      
       {isAdmin && currentUser && <ClubAdminActions club={club} currentUser={currentUser} />}
     </div>
   );

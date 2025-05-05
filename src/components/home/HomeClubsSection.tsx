@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Club } from '@/types';
 import FindClubsSection from './FindClubsSection';
 import { useApp } from '@/context/AppContext';
 import CurrentMatchesList from '../match/CurrentMatchesList';
 import { supabase } from '@/integrations/supabase/client';
+import { transformRawMatchesToMatchType } from '@/utils/club/matchHistoryUtils';
 
 interface HomeClubsSectionProps {
   userClubs: Club[];
@@ -50,13 +52,16 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
             return club;
           }
           
-          // Find current active match
-          const currentMatch = matchHistory?.find(m => m.status === 'active') || null;
+          // Transform raw match data into Match type
+          const transformedMatches = transformRawMatchesToMatchType(matchHistory || [], club.id);
           
-          // Return hydrated club
+          // Find current active match
+          const currentMatch = transformedMatches.find(m => m.status === 'active') || null;
+          
+          // Return hydrated club with properly transformed data
           return {
             ...club,
-            matchHistory: matchHistory || [],
+            matchHistory: transformedMatches,
             currentMatch: currentMatch
           };
         })
@@ -169,9 +174,9 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
     // Event handlers for global events
     const handleDataUpdate = () => {
       console.log('[HomeClubsSection] Data update event received, updating clubs');
-      setUserClubs(initialUserClubs);
-      setAvailableClubs(initialAvailableClubs);
-      // Also refresh match data when other data changes
+      // We shouldn't directly set userClubs to initialUserClubs here
+      // because initialUserClubs might not have properly formatted matchHistory
+      // Instead, trigger the hydration process
       hydrateClubsWithMatchData();
     };
     
@@ -195,7 +200,7 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
       window.removeEventListener('matchEnded', handleDataUpdate);
       window.removeEventListener('newMatchWeekStarted', handleDataUpdate);
     };
-  }, [currentUser, initialUserClubs, initialAvailableClubs]);
+  }, [currentUser, initialUserClubs, initialAvailableClubs, hydrateClubsWithMatchData]);
   
   // Process clubs to ensure they have the necessary properties
   const processedUserClubs = userClubs
