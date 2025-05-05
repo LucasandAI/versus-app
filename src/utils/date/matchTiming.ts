@@ -1,4 +1,3 @@
-
 import { format, addDays, addMinutes, startOfWeek, endOfWeek, differenceInSeconds } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 
@@ -27,6 +26,36 @@ const getMondayMidnightParis = (): Date => {
   );
 };
 
+// Get the current cycle timing information
+export const getCurrentCycleInfo = () => {
+  const baseTime = getMondayMidnightParis().getTime();
+  const now = Date.now();
+  const elapsed = now - baseTime;
+  
+  // Calculate current cycle start
+  const currentCycleStart = baseTime + Math.floor(elapsed / CYCLE_DURATION_MS) * CYCLE_DURATION_MS;
+  
+  // Calculate timing points
+  const matchStart = currentCycleStart;
+  const matchEnd = matchStart + MATCH_DURATION_MS;
+  const cycleEnd = currentCycleStart + CYCLE_DURATION_MS;
+  
+  // Determine phase
+  const isInMatchPhase = now < matchEnd;
+  const isInCooldownPhase = now >= matchEnd && now < cycleEnd;
+  
+  return {
+    matchStart: new Date(matchStart),
+    matchEnd: new Date(matchEnd),
+    cycleEnd: new Date(cycleEnd),
+    nextMatchStart: new Date(cycleEnd),
+    isInMatchPhase,
+    isInCooldownPhase,
+    currentPhaseEndTime: isInMatchPhase ? new Date(matchEnd) : new Date(cycleEnd),
+    nextCycleStart: new Date(cycleEnd)
+  };
+};
+
 // Calculate the next match start time based on the cycle
 export const getNextMatchStart = (): Date => {
   const baseTime = getMondayMidnightParis().getTime();
@@ -44,30 +73,16 @@ export const getMatchEndFromStart = (startDate: Date): Date => {
 
 // Get the current match end time
 export const getCurrentMatchEnd = (): Date => {
-  const baseTime = getMondayMidnightParis().getTime();
-  const now = Date.now();
-  const elapsed = now - baseTime;
-  const currentCycleStart = baseTime + Math.floor(elapsed / CYCLE_DURATION_MS) * CYCLE_DURATION_MS;
-  const matchEndTime = currentCycleStart + MATCH_DURATION_MS;
+  const { isInMatchPhase, matchEnd, nextMatchStart } = getCurrentCycleInfo();
   
-  // If we're in the cooldown period, return the next match start
-  if (now > matchEndTime) {
-    return getNextMatchStart();
-  }
-  
-  return new Date(matchEndTime);
+  // If we're in the match phase, return match end time
+  // Otherwise, return the start of the next match
+  return isInMatchPhase ? matchEnd : nextMatchStart;
 };
 
 // Check if we're currently in an active match period
 export const isActiveMatchWeek = (): boolean => {
-  const now = Date.now();
-  const baseTime = getMondayMidnightParis().getTime();
-  const elapsed = now - baseTime;
-  const currentCycleStart = baseTime + Math.floor(elapsed / CYCLE_DURATION_MS) * CYCLE_DURATION_MS;
-  const matchEndTime = currentCycleStart + MATCH_DURATION_MS;
-  
-  // We're in an active match if we're within the match duration of the current cycle
-  return now >= currentCycleStart && now < matchEndTime;
+  return getCurrentCycleInfo().isInMatchPhase;
 };
 
 // Format a countdown display from seconds

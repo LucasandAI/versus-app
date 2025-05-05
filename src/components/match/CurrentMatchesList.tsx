@@ -4,7 +4,7 @@ import { Club, Match } from '@/types';
 import CurrentMatchCard from './CurrentMatchCard';
 import WaitingForMatchCard from './WaitingForMatchCard';
 import NeedMoreMembersCard from './NeedMoreMembersCard';
-import { isActiveMatchWeek } from '@/utils/date/matchTiming';
+import { isActiveMatchWeek, getCurrentCycleInfo } from '@/utils/date/matchTiming';
 import { supabase } from '@/integrations/supabase/client';
 
 interface CurrentMatchesListProps {
@@ -17,6 +17,7 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
   onViewProfile
 }) => {
   const [userClubs, setUserClubs] = useState<Club[]>(initialClubs);
+  const [cycleInfo, setCycleInfo] = useState(getCurrentCycleInfo());
   
   // Helper function to check if a club has an active match
   const getActiveMatch = (club: Club): Match | null => {
@@ -28,6 +29,12 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
   useEffect(() => {
     // Update clubs when initial data changes
     setUserClubs(initialClubs);
+    
+    // Update cycle info periodically
+    const cycleTimer = setInterval(() => {
+      const newCycleInfo = getCurrentCycleInfo();
+      setCycleInfo(newCycleInfo);
+    }, 1000);
     
     // Set up real-time listeners for match updates
     const channels = initialClubs.map(club => {
@@ -69,6 +76,7 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
     
     // Clean up subscriptions
     return () => {
+      clearInterval(cycleTimer);
       channels.forEach(channel => supabase.removeChannel(channel));
       window.removeEventListener('matchUpdated', handleMatchUpdate as EventListener);
       window.removeEventListener('clubMembershipChanged', handleMembershipChange as EventListener);
@@ -90,7 +98,6 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
       {userClubs.map(club => {
         const activeMatch = getActiveMatch(club);
         const hasEnoughMembers = club.members.length >= 5;
-        const isMatchWeek = isActiveMatchWeek();
         
         if (activeMatch) {
           return (

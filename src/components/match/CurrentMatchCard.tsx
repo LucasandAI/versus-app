@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Match, Club, ClubMember } from '@/types';
-import { ChevronsUpDown } from 'lucide-react';
+import { ChevronsUpDown, Clock } from 'lucide-react';
 import MatchProgressBar from '@/components/shared/MatchProgressBar';
 import { Button } from '@/components/ui/button';
 import { useNavigation } from '@/hooks/useNavigation';
@@ -10,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { formatLeague } from '@/utils/club/leagueUtils';
 import CountdownTimer from './CountdownTimer';
+import { getCurrentCycleInfo } from '@/utils/date/matchTiming';
 
 interface CurrentMatchCardProps {
   match: Match;
@@ -26,6 +26,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
   const [match, setMatch] = useState(initialMatch);
   const [userClub, setUserClub] = useState(initialUserClub);
   const matchEndDateRef = useRef<Date>(new Date(initialMatch.endDate));
+  const [cycleInfo, setCycleInfo] = useState(getCurrentCycleInfo());
   
   const { navigateToClubDetail } = useNavigation();
   
@@ -45,6 +46,11 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
     if (endDate.getTime() !== matchEndDateRef.current.getTime()) {
       matchEndDateRef.current = endDate;
     }
+
+    // Update cycle info periodically
+    const cycleTimer = setInterval(() => {
+      setCycleInfo(getCurrentCycleInfo());
+    }, 1000);
 
     // Subscribe to match distance contributions
     const distanceChannel = supabase
@@ -83,6 +89,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
     });
 
     return () => {
+      clearInterval(cycleTimer);
       supabase.removeChannel(distanceChannel);
       window.removeEventListener('matchDistanceUpdated', handleMatchUpdate as EventListener);
       window.removeEventListener('matchUpdated', handleMatchUpdate as EventListener);
@@ -108,6 +115,9 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
       detail: { matchId: match.id } 
     }));
   };
+  
+  // Only show the match details during the match phase
+  const showMatch = cycleInfo.isInMatchPhase;
   
   return (
     <Card className="mb-4 overflow-hidden">
@@ -173,37 +183,51 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
           </div>
         </div>
         
-        <div className="flex justify-between items-center mb-2 font-medium">
-          <span>{userClubMatch.totalDistance.toFixed(1)} km</span>
-          <span>{opponentClubMatch.totalDistance.toFixed(1)} km</span>
-        </div>
-        
-        <MatchProgressBar
-          homeDistance={userClubMatch.totalDistance}
-          awayDistance={opponentClubMatch.totalDistance}
-        />
+        {showMatch ? (
+          <>
+            <div className="flex justify-between items-center mb-2 font-medium">
+              <span>{userClubMatch.totalDistance.toFixed(1)} km</span>
+              <span>{opponentClubMatch.totalDistance.toFixed(1)} km</span>
+            </div>
+            
+            <MatchProgressBar
+              homeDistance={userClubMatch.totalDistance}
+              awayDistance={opponentClubMatch.totalDistance}
+            />
+          </>
+        ) : (
+          <div className="bg-blue-50 p-3 rounded-md text-center my-2">
+            <p className="text-sm font-medium text-blue-700 mb-1">Match cooldown period</p>
+            <p className="text-xs text-blue-600">Scores are being tallied</p>
+          </div>
+        )}
         
         <div className="mt-3 flex justify-between items-center">
-          <div className="text-xs text-gray-500">
-            Match ends in: <CountdownTimer 
-              targetDate={matchEndDateRef.current} 
+          <div className="text-xs text-gray-500 flex items-center">
+            <Clock size={14} className="mr-1" />
+            <CountdownTimer 
+              useCurrentCycle={true}
+              showPhaseLabel={true}
               className="inline" 
               onComplete={handleCountdownComplete}
-              refreshInterval={500} // Update every half second
+              refreshInterval={500}
             />
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowDetails(!showDetails)}
-            className="text-xs flex items-center"
-          >
-            {showDetails ? "Hide Details" : "Show Details"}
-            <ChevronsUpDown size={14} className="ml-1" />
-          </Button>
+          
+          {showMatch && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowDetails(!showDetails)}
+              className="text-xs flex items-center"
+            >
+              {showDetails ? "Hide Details" : "Show Details"}
+              <ChevronsUpDown size={14} className="ml-1" />
+            </Button>
+          )}
         </div>
         
-        {showDetails && (
+        {showMatch && showDetails && (
           <div className="mt-3 grid grid-cols-2 gap-3 bg-gray-50 p-3 rounded-md">
             <div>
               <h4 className="text-sm font-medium mb-1">{userClub.name}</h4>
