@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { JoinRequest } from '@/types';
@@ -7,16 +8,17 @@ export const useJoinRequests = (clubId: string) => {
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [processingRequests, setProcessingRequests] = useState<Set<string>>(new Set());
 
   // Fetch join requests for the club
-  const fetchJoinRequests = async () => {
+  const fetchJoinRequests = async (id?: string) => {
     setIsLoading(true);
     setError(null);
     try {
       const { data, error } = await supabase
         .from('club_requests')
         .select('*')
-        .eq('club_id', clubId)
+        .eq('club_id', id || clubId)
         .eq('status', 'PENDING');
 
       if (error) {
@@ -37,9 +39,13 @@ export const useJoinRequests = (clubId: string) => {
             if (userError) {
               console.error('[useJoinRequests] Error fetching user details:', userError);
               return {
-                ...request,
+                id: request.id,
+                userId: request.user_id,
+                clubId: request.club_id,
                 userName: 'Unknown User',
                 userAvatar: '/placeholder.svg',
+                createdAt: request.created_at,
+                status: request.status,
               };
             }
 
@@ -54,7 +60,7 @@ export const useJoinRequests = (clubId: string) => {
             };
           })
         );
-        setJoinRequests(requestsWithUserDetails);
+        setJoinRequests(requestsWithUserDetails as JoinRequest[]);
       }
     } catch (err) {
       console.error('[useJoinRequests] Unexpected error:', err);
@@ -64,16 +70,46 @@ export const useJoinRequests = (clubId: string) => {
     }
   };
 
-  // Refresh join requests
-  const refreshJoinRequests = async () => {
-    await fetchJoinRequests();
+  // Check if a request is currently being processed
+  const isProcessing = (requestId: string): boolean => {
+    return processingRequests.has(requestId);
   };
 
-  useEffect(() => {
-    if (clubId) {
-      fetchJoinRequests();
+  // Handle accepting a join request
+  const handleAcceptRequest = async (request: JoinRequest, club: any) => {
+    setProcessingRequests(prev => new Set(prev).add(request.id));
+    try {
+      const result = await acceptJoinRequest(request.id);
+      if (result) {
+        // Success
+        await fetchJoinRequests();
+      }
+    } finally {
+      setProcessingRequests(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(request.id);
+        return newSet;
+      });
     }
-  }, [clubId]);
+  };
+
+  // Handle declining a join request
+  const handleDeclineRequest = async (request: JoinRequest) => {
+    setProcessingRequests(prev => new Set(prev).add(request.id));
+    try {
+      const result = await rejectJoinRequest(request.id);
+      if (result) {
+        // Success
+        await fetchJoinRequests();
+      }
+    } finally {
+      setProcessingRequests(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(request.id);
+        return newSet;
+      });
+    }
+  };
 
   // Accept a join request
   const acceptJoinRequest = async (requestId: string) => {
@@ -126,7 +162,7 @@ export const useJoinRequests = (clubId: string) => {
         
       if (membershipError) {
         console.error('[useJoinRequests] Error adding user to club:', membershipError);
-        return null;
+        return false;
       }
       
       // 2. Update request status
@@ -137,15 +173,23 @@ export const useJoinRequests = (clubId: string) => {
         
       if (updateError) {
         console.error('[useJoinRequests] Error updating request status:', updateError);
-        return null;
+        return false;
       }
       
-      // 3. Update club member count
-      const { error: clubUpdateError } = await supabase.rpc('increment_club_member_count', { club_id });
-      if (clubUpdateError) {
-        console.error('[useJoinRequests] Error updating club member count:', clubUpdateError);
+      // 3. Update club member count - using a direct update since the RPC might not exist
+      try {
+        const { error: clubUpdateError } = await supabase
+          .from('clubs')
+          .update({ member_count: supabase.sql`member_count + 1` })
+          .eq('id', club_id);
+          
+        if (clubUpdateError) {
+          console.error('[useJoinRequests] Error updating club member count:', clubUpdateError);
+        }
+      } catch (error) {
+        console.error('[useJoinRequests] Error updating club member count:', error);
       }
-
+      
       // 4. Create notification for the user
       await createNotification({
         userId: user_id,
@@ -154,15 +198,14 @@ export const useJoinRequests = (clubId: string) => {
         title: 'Join Request Accepted',
         message: 'Your request to join the club has been accepted!',
       });
-
+      
       // Refresh join requests and trigger club membership change event
-      await refreshJoinRequests();
       window.dispatchEvent(new CustomEvent('clubMembershipChanged', { detail: { clubId: club_id } }));
       
       return true;
     } catch (error) {
       console.error('[useJoinRequests] Error accepting join request:', error);
-      return null;
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -182,11 +225,11 @@ export const useJoinRequests = (clubId: string) => {
         
       if (requestError) {
         console.error('[useJoinRequests] Error fetching request data:', requestError);
-        return null;
+        return false;
       }
       
       // Delete the request instead of rejecting it
-      // Since the schema only allows 'pending' and 'accepted', we'll just remove rejected requests
+      // Since the schema only allows 'PENDING' and 'SUCCESS', we'll just remove rejected requests
       const { error: deleteError } = await supabase
         .from('club_requests')
         .delete()
@@ -194,7 +237,7 @@ export const useJoinRequests = (clubId: string) => {
         
       if (deleteError) {
         console.error('[useJoinRequests] Error deleting request:', deleteError);
-        return null;
+        return false;
       }
       
       // Create notification for the user that their request was rejected
@@ -204,25 +247,33 @@ export const useJoinRequests = (clubId: string) => {
         title: 'Join Request Rejected',
         message: 'Your request to join the club was not accepted.',
       });
-
-      // Refresh join requests
-      await refreshJoinRequests();
       
       return true;
     } catch (error) {
       console.error('[useJoinRequests] Error rejecting join request:', error);
-      return null;
+      return false;
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Initialize join requests on mount
+  useEffect(() => {
+    if (clubId) {
+      fetchJoinRequests();
+    }
+  }, [clubId]);
+
   return {
     joinRequests,
     isLoading,
     error,
+    fetchClubRequests: fetchJoinRequests,
     acceptJoinRequest,
     rejectJoinRequest,
-    refreshJoinRequests,
+    refreshJoinRequests: fetchJoinRequests,
+    handleAcceptRequest,
+    handleDeclineRequest,
+    isProcessing
   };
 };

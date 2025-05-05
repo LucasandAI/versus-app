@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -45,7 +46,7 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
   // Check if user has any pending requests to these clubs
   useEffect(() => {
     const checkJoinRequests = async () => {
-      if (!currentUser || availableClubs.length === 0) return;
+      if (!currentUser || clubs.length === 0) return;
 
       try {
         // Get all pending requests for this user
@@ -68,7 +69,7 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
           // Update pending states based on requests
           const updatedPendingStates = new Map(pendingRequests);
           
-          availableClubs.forEach(club => {
+          clubs.forEach(club => {
             if (requestMap.has(club.id)) {
               updatedPendingStates.set(club.id, true);
             }
@@ -82,7 +83,7 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
     };
 
     checkJoinRequests();
-  }, [availableClubs, currentUser]);
+  }, [clubs, currentUser]);
 
   return (
     <div className="mt-4">
