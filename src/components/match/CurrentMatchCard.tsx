@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Match, Club, ClubMember } from '@/types';
@@ -243,7 +244,6 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
                           name={member.name}
                           image={member.avatar} 
                           size="sm"
-                          initials={member.name.split(' ').map(n => n[0]).join('')}
                           className="cursor-pointer"
                           onClick={(e) => {
                             e && e.stopPropagation();
@@ -273,7 +273,6 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
                           name={member.name}
                           image={member.avatar} 
                           size="sm"
-                          initials={member.name.split(' ').map(n => n[0]).join('')}
                           className="cursor-pointer"
                           onClick={(e) => {
                             e && e.stopPropagation();

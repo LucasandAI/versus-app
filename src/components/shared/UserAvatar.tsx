@@ -9,6 +9,7 @@ interface UserAvatarProps {
   size?: 'xs' | 'sm' | 'md' | 'lg';
   className?: string;
   onClick?: (e?: React.MouseEvent) => void;
+  initials?: string; // Optional prop for custom initials
 }
 
 const UserAvatar: React.FC<UserAvatarProps> = ({
@@ -16,7 +17,8 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   image,
   size = 'md',
   className,
-  onClick
+  onClick,
+  initials: customInitials
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -33,6 +35,9 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   }, [image]);
 
   const getInitials = (name: string) => {
+    // Use custom initials if provided
+    if (customInitials) return customInitials;
+    
     // Handle empty or null names
     if (!name || name.trim() === '') return 'NA';
     
