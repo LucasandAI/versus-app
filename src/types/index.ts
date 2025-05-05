@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -64,37 +63,35 @@ export interface ClubInvite {
   createdAt: string;
 }
 
-export interface MatchTeam {
-  id: string;
-  name: string;
-  logo: string;
-  totalDistance: number;
-  division?: Division;
-  tier?: number;
-  members: ClubMember[];
-}
-
-export interface LeagueStatus {
-  division: Division;
-  tier: number;
-  elitePoints?: number;
-}
-
 export interface Match {
   id: string;
-  homeClub: MatchTeam;
-  awayClub: MatchTeam;
+  homeClub: {
+    id: string;
+    name: string;
+    logo: string;
+    totalDistance: number;
+    members: ClubMember[];
+  };
+  awayClub: {
+    id: string;
+    name: string;
+    logo: string;
+    totalDistance: number;
+    members: ClubMember[];
+  };
   startDate: string;
   endDate: string;
   status: 'active' | 'completed';
   winner?: 'home' | 'away' | 'draw';
   leagueBeforeMatch?: {
-    home?: LeagueStatus;
-    away?: LeagueStatus;
+    division: Division;
+    tier?: number;
+    elitePoints?: number;
   };
   leagueAfterMatch?: {
-    home?: LeagueStatus;
-    away?: LeagueStatus;
+    division: Division;
+    tier?: number;
+    elitePoints?: number;
   };
 }
 

@@ -52,89 +52,22 @@ export const useClubMatches = () => {
 
         const matchStatus = new Date(match.end_date) > new Date() ? 'active' : 'completed';
 
-        // Process league data into the new format
-        let leagueBeforeMatch = undefined;
-        let leagueAfterMatch = undefined;
+        // Type cast league data properly
+        const leagueBeforeMatch = match.league_before_match ? {
+          division: ensureDivision(
+            getJsonObjectProperty(match.league_before_match, 'division', 'bronze')
+          ),
+          tier: Number(getJsonObjectProperty(match.league_before_match, 'tier', 1)),
+          elitePoints: Number(getJsonObjectProperty(match.league_before_match, 'elite_points', 0))
+        } : undefined;
         
-        if (match.league_before_match) {
-          try {
-            const rawLeagueData = typeof match.league_before_match === 'string' 
-              ? JSON.parse(match.league_before_match) 
-              : match.league_before_match;
-              
-            // Check if it already has home/away structure
-            if (rawLeagueData.home && rawLeagueData.away) {
-              leagueBeforeMatch = {
-                home: {
-                  division: ensureDivision(rawLeagueData.home.division || 'bronze'),
-                  tier: Number(rawLeagueData.home.tier || 1),
-                  elitePoints: Number(rawLeagueData.home.elite_points || rawLeagueData.home.elitePoints || 0)
-                },
-                away: {
-                  division: ensureDivision(rawLeagueData.away.division || 'bronze'),
-                  tier: Number(rawLeagueData.away.tier || 1),
-                  elitePoints: Number(rawLeagueData.away.elite_points || rawLeagueData.away.elitePoints || 0)
-                }
-              };
-            } else {
-              // Old format - convert to new format
-              leagueBeforeMatch = {
-                home: {
-                  division: ensureDivision(rawLeagueData.division || 'bronze'),
-                  tier: Number(rawLeagueData.tier || 1),
-                  elitePoints: Number(rawLeagueData.elite_points || rawLeagueData.elitePoints || 0)
-                },
-                away: {
-                  division: ensureDivision(rawLeagueData.division || 'bronze'),
-                  tier: Number(rawLeagueData.tier || 1),
-                  elitePoints: Number(rawLeagueData.elite_points || rawLeagueData.elitePoints || 0)
-                }
-              };
-            }
-          } catch (e) {
-            console.error('Error parsing league_before_match:', e);
-          }
-        }
-        
-        if (match.league_after_match) {
-          try {
-            const rawLeagueData = typeof match.league_after_match === 'string' 
-              ? JSON.parse(match.league_after_match) 
-              : match.league_after_match;
-              
-            // Check if it already has home/away structure
-            if (rawLeagueData.home && rawLeagueData.away) {
-              leagueAfterMatch = {
-                home: {
-                  division: ensureDivision(rawLeagueData.home.division || 'bronze'),
-                  tier: Number(rawLeagueData.home.tier || 1),
-                  elitePoints: Number(rawLeagueData.home.elite_points || rawLeagueData.home.elitePoints || 0)
-                },
-                away: {
-                  division: ensureDivision(rawLeagueData.away.division || 'bronze'),
-                  tier: Number(rawLeagueData.away.tier || 1),
-                  elitePoints: Number(rawLeagueData.away.elite_points || rawLeagueData.away.elitePoints || 0)
-                }
-              };
-            } else {
-              // Old format - convert to new format
-              leagueAfterMatch = {
-                home: {
-                  division: ensureDivision(rawLeagueData.division || 'bronze'),
-                  tier: Number(rawLeagueData.tier || 1),
-                  elitePoints: Number(rawLeagueData.elite_points || rawLeagueData.elitePoints || 0)
-                },
-                away: {
-                  division: ensureDivision(rawLeagueData.division || 'bronze'),
-                  tier: Number(rawLeagueData.tier || 1),
-                  elitePoints: Number(rawLeagueData.elite_points || rawLeagueData.elitePoints || 0)
-                }
-              };
-            }
-          } catch (e) {
-            console.error('Error parsing league_after_match:', e);
-          }
-        }
+        const leagueAfterMatch = match.league_after_match ? {
+          division: ensureDivision(
+            getJsonObjectProperty(match.league_after_match, 'division', 'bronze')
+          ),
+          tier: Number(getJsonObjectProperty(match.league_after_match, 'tier', 1)),
+          elitePoints: Number(getJsonObjectProperty(match.league_after_match, 'elite_points', 0))
+        } : undefined;
 
         const enhancedMatch = {
           id: match.id,

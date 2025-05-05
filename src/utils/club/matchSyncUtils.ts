@@ -22,25 +22,18 @@ export const syncClubDivisionWithMatchHistory = (club: Club): Club => {
   if (latestMatch.leagueAfterMatch) {
     console.log("Using leagueAfterMatch from latest match:", latestMatch.leagueAfterMatch);
     
-    // Find the correct side (home or away) for this club
-    const isHome = latestMatch.homeClub.id === club.id;
-    const sideKey = isHome ? 'home' : 'away';
-    const leagueAfter = latestMatch.leagueAfterMatch[sideKey];
+    // Ensure division is valid
+    const division = ensureDivision(latestMatch.leagueAfterMatch.division);
     
-    if (leagueAfter) {
-      // Ensure division is valid
-      const division = ensureDivision(leagueAfter.division);
-      
-      return {
-        ...club,
-        division,
-        tier: leagueAfter.tier || 1,
-        // Include elite points if available
-        elitePoints: leagueAfter.elitePoints !== undefined ? 
-          leagueAfter.elitePoints : 
-          (division === 'elite' ? club.elitePoints : 0)
-      };
-    }
+    return {
+      ...club,
+      division,
+      tier: latestMatch.leagueAfterMatch.tier || 1,
+      // Include elite points if available
+      elitePoints: latestMatch.leagueAfterMatch.elitePoints !== undefined ? 
+        latestMatch.leagueAfterMatch.elitePoints : 
+        (division === 'elite' ? club.elitePoints : 0)
+    };
   }
 
   // Fallback to calculating if leagueAfterMatch is missing
