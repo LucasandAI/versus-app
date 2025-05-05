@@ -43,7 +43,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({ match, userClub, on
             />
             <div>
               <h3 className="font-medium">{userClub.name}</h3>
-              <span className="text-xs text-gray-600">
+              <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
                 {formatLeague(userClub.division, userClub.tier)}
               </span>
             </div>
@@ -56,7 +56,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({ match, userClub, on
           <div className="flex items-center">
             <div className="text-right mr-2">
               <h3 className="font-medium">{opponentClubMatch.name}</h3>
-              <span className="text-xs text-gray-600">
+              <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
                 {match.leagueBeforeMatch && formatLeague(
                   (isHome ? match.leagueBeforeMatch.away?.division : match.leagueBeforeMatch.home?.division) as any,
                   (isHome ? match.leagueBeforeMatch.away?.tier : match.leagueBeforeMatch.home?.tier) as any
@@ -111,7 +111,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({ match, userClub, on
                       <UserAvatar 
                         name={member.name} 
                         image={member.avatar} 
-                        size="sm"
+                        size="xs"
                         className="mr-2"
                       />
                       <span>{member.name}</span>
@@ -135,7 +135,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({ match, userClub, on
                       <UserAvatar 
                         name={member.name} 
                         image={member.avatar} 
-                        size="sm"
+                        size="xs"
                         className="mr-2"
                       />
                       <span>{member.name}</span>

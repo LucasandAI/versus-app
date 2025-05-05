@@ -1,7 +1,7 @@
+
 import React from 'react';
 import { ClubMember } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
-import { useClubNavigation } from '@/hooks/useClubNavigation';
 
 interface MatchDetailsProps {
   homeTeam: {
@@ -20,8 +20,6 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({
   awayTeam,
   onSelectUser 
 }) => {
-  const { navigateToClub } = useClubNavigation();
-
   const ensureTeamSize = (members: ClubMember[], teamName: string): ClubMember[] => {
     const result = [...members];
     
@@ -65,7 +63,7 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({
           <UserAvatar 
             name={member.name} 
             image={member.avatar} 
-            size="sm" 
+            size="xs" 
             className={isRealMember ? 'cursor-pointer' : ''}
             onClick={(e) => {
               e && e.stopPropagation();
