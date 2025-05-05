@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Match, Club, ClubMember } from '@/types';
@@ -11,7 +10,6 @@ import UserAvatar from '@/components/shared/UserAvatar';
 import { formatLeague } from '@/utils/club/leagueUtils';
 import CountdownTimer from './CountdownTimer';
 import { getCurrentCycleInfo } from '@/utils/date/matchTiming';
-import { cn } from '@/lib/utils';
 
 interface CurrentMatchCardProps {
   match: Match;
@@ -122,44 +120,43 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
   const showMatch = cycleInfo.isInMatchPhase;
   
   return (
-    <Card className="mb-4 overflow-hidden border-2 border-gray-100 shadow-sm">
+    <Card className="mb-4 overflow-hidden">
       <CardContent className="p-4">
-        {/* Header with club information */}
         <div className="flex justify-between items-center mb-3">
-          {/* User's club */}
           <div className="flex items-center">
             <UserAvatar 
               name={userClub.name} 
               image={userClub.logo} 
               size="md"
-              className="mr-3 cursor-pointer"
+              className="mr-2 cursor-pointer"
               onClick={() => handleClubClick(userClub.id, userClub)}
             />
             <div>
               <h3 
-                className="font-bold cursor-pointer hover:text-primary transition-colors" 
+                className="font-medium cursor-pointer hover:text-primary transition-colors" 
                 onClick={() => handleClubClick(userClub.id, userClub)}
               >
                 {userClub.name}
               </h3>
               <div className="flex items-center gap-1 mt-0.5">
-                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
                   {formatLeague(userClub.division, userClub.tier)}
+                </span>
+                <span className="text-xs text-gray-500">
+                  • {userClub.members.length}/5 members
                 </span>
               </div>
             </div>
           </div>
           
-          {/* VS label */}
           <div className="text-center px-2">
-            <span className="text-xs font-medium text-gray-500 uppercase bg-gray-100 px-3 py-1 rounded-full">VS</span>
+            <span className="text-xs font-medium text-gray-500 uppercase">VS</span>
           </div>
           
-          {/* Opponent club */}
           <div className="flex items-center">
-            <div className="text-right mr-3">
+            <div className="text-right mr-2">
               <h3 
-                className="font-bold cursor-pointer hover:text-primary transition-colors" 
+                className="font-medium cursor-pointer hover:text-primary transition-colors" 
                 onClick={() => handleClubClick(opponentClubMatch.id, opponentClubMatch)}
               >
                 {opponentClubMatch.name}
@@ -170,6 +167,9 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
                     (isHome ? match.leagueBeforeMatch.away?.division : match.leagueBeforeMatch.home?.division) as any,
                     (isHome ? match.leagueBeforeMatch.away?.tier : match.leagueBeforeMatch.home?.tier) as any
                   )}
+                </span>
+                <span className="text-xs text-gray-500">
+                  • {opponentClubMatch.members.length}/5 members
                 </span>
               </div>
             </div>
@@ -183,84 +183,59 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
           </div>
         </div>
         
-        {/* Match Progress Section */}
         {showMatch ? (
-          <div className="mt-4">
-            {/* Current scores */}
-            <div className="flex justify-between items-center mb-2 font-bold">
+          <>
+            <div className="flex justify-between items-center mb-2 font-medium">
               <span>{userClubMatch.totalDistance.toFixed(1)} km</span>
               <span>{opponentClubMatch.totalDistance.toFixed(1)} km</span>
             </div>
             
-            {/* Progress bar */}
             <MatchProgressBar
               homeDistance={userClubMatch.totalDistance}
               awayDistance={opponentClubMatch.totalDistance}
-              className="mb-3"
             />
-            
-            {/* Countdown timer */}
-            <div className={cn(
-              "flex justify-between items-center py-2 px-3 rounded-md my-3",
-              userClubMatch.totalDistance > opponentClubMatch.totalDistance 
-                ? "bg-green-50" 
-                : userClubMatch.totalDistance < opponentClubMatch.totalDistance 
-                  ? "bg-amber-50"
-                  : "bg-blue-50"
-            )}>
-              <div className="text-xs flex items-center">
-                <Clock size={14} className="mr-1" />
-                <CountdownTimer 
-                  useCurrentCycle={true}
-                  showPhaseLabel={true}
-                  className={cn(
-                    "inline font-medium",
-                    userClubMatch.totalDistance > opponentClubMatch.totalDistance 
-                      ? "text-green-700" 
-                      : userClubMatch.totalDistance < opponentClubMatch.totalDistance 
-                        ? "text-amber-700"
-                        : "text-blue-700"
-                  )}
-                  onComplete={handleCountdownComplete}
-                  refreshInterval={500}
-                />
-              </div>
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowDetails(!showDetails)}
-                className="text-xs flex items-center"
-              >
-                {showDetails ? "Hide Details" : "Show Details"}
-                <ChevronsUpDown size={14} className="ml-1" />
-              </Button>
-            </div>
-          </div>
+          </>
         ) : (
-          <div className="bg-blue-50 p-3 rounded-md text-center my-3">
+          <div className="bg-blue-50 p-3 rounded-md text-center my-2">
             <p className="text-sm font-medium text-blue-700 mb-1">Match cooldown period</p>
-            <p className="text-xs text-blue-600">
-              <CountdownTimer 
-                useCurrentCycle={true}
-                refreshInterval={500}
-                className="font-medium"
-                onComplete={handleCountdownComplete}
-              />
-            </p>
+            <p className="text-xs text-blue-600">Scores are being tallied</p>
           </div>
         )}
         
-        {/* Member details section */}
+        <div className="mt-3 flex justify-between items-center">
+          <div className="text-xs text-gray-500 flex items-center">
+            <Clock size={14} className="mr-1" />
+            <CountdownTimer 
+              useCurrentCycle={true}
+              showPhaseLabel={true}
+              className="inline" 
+              onComplete={handleCountdownComplete}
+              refreshInterval={500}
+            />
+          </div>
+          
+          {showMatch && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowDetails(!showDetails)}
+              className="text-xs flex items-center"
+            >
+              {showDetails ? "Hide Details" : "Show Details"}
+              <ChevronsUpDown size={14} className="ml-1" />
+            </Button>
+          )}
+        </div>
+        
         {showMatch && showDetails && (
           <div className="mt-3 grid grid-cols-2 gap-3 bg-gray-50 p-3 rounded-md">
             <div>
-              <h4 className="text-sm font-medium mb-2 border-b pb-1">{userClub.name}</h4>
+              <h4 className="text-sm font-medium mb-1">{userClub.name}</h4>
               <div className="space-y-1">
                 {userClubMatch.members.map(member => (
                   <div 
                     key={member.id} 
-                    className="flex items-center justify-between text-xs hover:bg-gray-100 p-2 rounded cursor-pointer"
+                    className="flex items-center justify-between text-xs hover:bg-gray-100 p-1 rounded cursor-pointer"
                     onClick={() => handleMemberClick(member)}
                   >
                     <div className="flex items-center">
@@ -276,19 +251,19 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
                       />
                       <span className="hover:text-primary transition-colors">{member.name}</span>
                     </div>
-                    <span className="font-medium">{member.distanceContribution?.toFixed(1) || "0.0"} km</span>
+                    <span>{member.distanceContribution?.toFixed(1) || "0.0"} km</span>
                   </div>
                 ))}
               </div>
             </div>
             
             <div>
-              <h4 className="text-sm font-medium mb-2 border-b pb-1">{opponentClubMatch.name}</h4>
+              <h4 className="text-sm font-medium mb-1">{opponentClubMatch.name}</h4>
               <div className="space-y-1">
                 {opponentClubMatch.members.map(member => (
                   <div 
                     key={member.id} 
-                    className="flex items-center justify-between text-xs hover:bg-gray-100 p-2 rounded cursor-pointer"
+                    className="flex items-center justify-between text-xs hover:bg-gray-100 p-1 rounded cursor-pointer"
                     onClick={() => handleMemberClick(member)}
                   >
                     <div className="flex items-center">
@@ -304,7 +279,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
                       />
                       <span className="hover:text-primary transition-colors">{member.name}</span>
                     </div>
-                    <span className="font-medium">{member.distanceContribution?.toFixed(1) || "0.0"} km</span>
+                    <span>{member.distanceContribution?.toFixed(1) || "0.0"} km</span>
                   </div>
                 ))}
               </div>

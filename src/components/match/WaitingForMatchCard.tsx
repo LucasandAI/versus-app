@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Club } from '@/types';
@@ -111,7 +112,7 @@ const WaitingForMatchCard: React.FC<WaitingForMatchCardProps> = ({ club: initial
   };
   
   return (
-    <Card className="mb-4 overflow-hidden border-2 border-gray-100 shadow-sm">
+    <Card className="mb-4 overflow-hidden">
       <CardContent className="p-4">
         <div className="flex items-center">
           <UserAvatar 
@@ -123,13 +124,13 @@ const WaitingForMatchCard: React.FC<WaitingForMatchCardProps> = ({ club: initial
           />
           <div>
             <h3 
-              className="font-bold cursor-pointer hover:text-primary transition-colors"
+              className="font-medium cursor-pointer hover:text-primary transition-colors"
               onClick={handleClubClick}
             >
               {club.name}
             </h3>
             <div className="flex items-center gap-1 mt-0.5">
-              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+              <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
                 {formatLeague(club.division, club.tier)}
               </span>
               <span className="text-xs text-gray-500">
@@ -140,7 +141,7 @@ const WaitingForMatchCard: React.FC<WaitingForMatchCardProps> = ({ club: initial
         </div>
         
         <div className={`mt-4 p-3 rounded-md ${cycleInfo.isInMatchPhase ? 'bg-amber-50' : 'bg-blue-50'}`}>
-          <p className="text-sm font-medium mb-1">{getStatusMessage()}</p>
+          <p className="text-sm mb-1">{getStatusMessage()}</p>
           <div className="flex items-center">
             <CountdownTimer 
               useCurrentCycle={true}
