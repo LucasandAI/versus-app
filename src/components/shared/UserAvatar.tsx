@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 interface UserAvatarProps {
   name: string;
   image?: string | null;
-  size?: 'sm' | 'md' | 'lg' | 'xs';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   className?: string;
   onClick?: (e?: React.MouseEvent) => void;
 }
