@@ -15,7 +15,7 @@ interface WaitingForMatchCardProps {
 
 const WaitingForMatchCard: React.FC<WaitingForMatchCardProps> = ({ club: initialClub }) => {
   const [club, setClub] = useState(initialClub);
-  const nextMatchStart = getNextMatchStart();
+  const [nextMatchStart] = useState(getNextMatchStart()); // Store in state to prevent recomputing on re-render
   const { navigateToClubDetail } = useNavigation();
   
   const handleClubClick = () => {
@@ -72,7 +72,20 @@ const WaitingForMatchCard: React.FC<WaitingForMatchCardProps> = ({ club: initial
 
   const handleCountdownComplete = () => {
     console.log('[WaitingForMatchCard] Countdown complete, new match week starting');
+    // Trigger match creation by dispatching a global event
     window.dispatchEvent(new CustomEvent('newMatchWeekStarted'));
+    
+    // Use fetch to trigger match creation for this club
+    // This ensures the backend knows it's time to create a match for this club
+    fetch(`/api/matches/create?clubId=${club.id}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    }).catch(err => {
+      console.error('[WaitingForMatchCard] Error triggering match creation:', err);
+    });
   };
   
   return (
