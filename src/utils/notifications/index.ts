@@ -3,7 +3,6 @@ export * from './fetchNotifications';
 export * from './joinRequestQueries';
 export * from './notificationManagement';
 export * from './clubCapacity';
-export * from './notificationUtils';
 
 // Re-export the utility functions from lib/notificationUtils
 export { 

@@ -1,6 +1,6 @@
 
-import React, { useEffect } from 'react';
-import { Club } from '@/types';
+import React, { useEffect, useState } from 'react';
+import { Club, JoinRequest } from '@/types';
 import {
   Dialog,
   DialogContent,
@@ -25,14 +25,14 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
   club 
 }) => {
   const {
-    joinRequests,
     isLoading,
     error,
+    requests,
     fetchClubRequests,
     handleAcceptRequest,
     handleDeclineRequest,
     isProcessing
-  } = useJoinRequests(club.id);
+  } = useJoinRequests();
   
   const isClubFull = club.members.length >= 5;
   
@@ -87,9 +87,9 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
             <div className="py-8 text-center">
               <p className="text-red-500">Error loading requests. Please try again.</p>
             </div>
-          ) : joinRequests.length > 0 ? (
+          ) : requests.length > 0 ? (
             <div className="space-y-4">
-              {joinRequests.map(request => (
+              {requests.map(request => (
                 <JoinRequestItem
                   key={request.id}
                   request={request}
