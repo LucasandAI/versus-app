@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -22,7 +21,7 @@ export const acceptJoinRequestFromNotification = async (
       .select('id')
       .eq('user_id', requesterId)  // Using requesterId (the person who requested to join)
       .eq('club_id', clubId)
-      .eq('status', 'PENDING')  // Use uppercase for database
+      .eq('status', 'PENDING') // Using uppercase for database query
       .single();
       
     if (requestError || !requestData) {

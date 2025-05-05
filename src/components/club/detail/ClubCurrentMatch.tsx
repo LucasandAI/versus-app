@@ -10,9 +10,10 @@ import MatchProgressBar from '@/components/shared/MatchProgressBar';
 
 interface ClubCurrentMatchProps {
   match: Match;
+  onViewProfile?: (userId: string, name: string, avatar?: string) => void;
 }
 
-const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match }) => {
+const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfile }) => {
   const [cycleInfo, setCycleInfo] = useState(getCurrentCycleInfo());
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [showScoreboard, setShowScoreboard] = useState(true);
@@ -69,6 +70,13 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match }) => {
   // Always show match details for active matches regardless of phase
   // We only want to hide details if explicitly in cooldown phase
   const showMatch = match.status === 'active';
+
+  // Handle member click if onViewProfile is provided
+  const handleMemberClick = (userId: string, name: string, avatar?: string) => {
+    if (onViewProfile) {
+      onViewProfile(userId, name, avatar);
+    }
+  };
 
   return (
     <div className="mt-6">
@@ -175,8 +183,8 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match }) => {
                   </div>
                   
                   <MatchProgressBar 
-                    homeValue={homeTotal} 
-                    awayValue={awayTotal}
+                    homeDistance={homeTotal} 
+                    awayDistance={awayTotal}
                   />
                 </div>
               ) : (

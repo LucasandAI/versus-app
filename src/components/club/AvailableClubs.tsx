@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { UserPlus, X, Loader2 } from 'lucide-react';
 import Button from '../shared/Button';
@@ -125,7 +124,7 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
         .from('club_requests')
         .select('club_id')
         .eq('user_id', currentUser.id)
-        .eq('status', 'pending');
+        .eq('status', 'PENDING'); // Using uppercase for database query
         
       if (error) {
         console.error('Error fetching pending requests:', error);
