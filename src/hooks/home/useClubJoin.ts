@@ -28,7 +28,7 @@ export const useClubJoin = () => {
           .select('*')
           .eq('user_id', currentUser.id)
           .eq('club_id', clubId)
-          .eq('status', 'pending')
+          .eq('status', 'PENDING')
           .maybeSingle();
           
         if (existingRequest) {
@@ -38,7 +38,7 @@ export const useClubJoin = () => {
             .delete()
             .eq('user_id', currentUser.id)
             .eq('club_id', clubId)
-            .eq('status', 'pending');
+            .eq('status', 'PENDING');
             
           if (error) {
             console.error('Error canceling join request:', error);
@@ -58,7 +58,7 @@ export const useClubJoin = () => {
           .insert({
             user_id: currentUser.id,
             club_id: clubId,
-            status: 'pending'
+            status: 'PENDING'
           });
           
         if (error) {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { UserPlus, X, Loader2 } from 'lucide-react';
 import Button from '../shared/Button';
@@ -125,7 +124,8 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
         .from('club_requests')
         .select('club_id')
         .eq('user_id', currentUser.id)
-        .eq('status', 'pending');
+        .eq('status', 'PENDING') // Updated from 'pending' to 'PENDING'
+        .single();
         
       if (error) {
         console.error('Error fetching pending requests:', error);
@@ -143,6 +143,23 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const checkExistingRequest = async (clubId: string) => {
+    const { data, error } = await supabase
+      .from('club_requests')
+      .select('id')
+      .eq('club_id', clubId)
+      .eq('user_id', currentUser?.id)
+      .eq('status', 'PENDING') // Updated from 'pending' to 'PENDING'
+      .single();
+      
+    if (error) {
+      console.error('Error checking existing request:', error);
+      return false;
+    }
+    
+    return data !== null;
   };
 
   const handleClubClick = (club: AvailableClub) => {
