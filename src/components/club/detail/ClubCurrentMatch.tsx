@@ -2,61 +2,68 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Match } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
-import { ChevronDown, Clock } from 'lucide-react';
-import MatchProgressBar from '@/components/shared/MatchProgressBar';
-import { Button } from "@/components/ui/button";
-import { useNavigation } from '@/hooks/useNavigation';
-import { formatLeague } from '@/utils/club/leagueUtils';
-import CountdownTimer from '@/components/match/CountdownTimer';
 import { getCurrentCycleInfo } from '@/utils/date/matchTiming';
+import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
+import { calculateClubTotal, formatDistance } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import MatchProgressBar from '@/components/shared/MatchProgressBar';
 
 interface ClubCurrentMatchProps {
   match: Match;
-  onViewProfile: (userId: string, name: string, avatar?: string) => void;
 }
 
-const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfile }) => {
-  const [showMatchDetails, setShowMatchDetails] = useState(false);
-  const { navigateToClubDetail } = useNavigation();
-  const matchEndDateRef = useRef<Date>(new Date(match.endDate));
+const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match }) => {
   const [cycleInfo, setCycleInfo] = useState(getCurrentCycleInfo());
-  
-  // Update match end time reference if match data changes
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [showScoreboard, setShowScoreboard] = useState(true);
+  const [addingDistance, setAddingDistance] = useState(false);
+  const [distance, setDistance] = useState('');
+
   useEffect(() => {
-    const endDate = new Date(match.endDate);
-    if (endDate.getTime() !== matchEndDateRef.current.getTime()) {
-      matchEndDateRef.current = endDate;
-    }
-    
-    // Update cycle info periodically
-    const cycleTimer = setInterval(() => {
+    // Update cycle info every second
+    timerRef.current = setInterval(() => {
       setCycleInfo(getCurrentCycleInfo());
     }, 1000);
     
     return () => {
-      clearInterval(cycleTimer);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
     };
-  }, [match]);
-
-  const handleMemberClick = (member: any) => {
-    onViewProfile(member.id, member.name, member.avatar);
-  };
-
-  const handleClubClick = (club: any) => {
-    navigateToClubDetail(club.id, {
-      id: club.id,
-      name: club.name,
-      logo: club.logo,
-      members: club.members,
-      matchHistory: []
-    });
+  }, []);
+  
+  const homeTotal = calculateClubTotal(match.homeClub);
+  const awayTotal = calculateClubTotal(match.awayClub);
+  
+  const handleToggleScoreboard = () => {
+    setShowScoreboard(prev => !prev);
   };
   
-  const handleCountdownComplete = () => {
-    console.log('[ClubCurrentMatch] Match ended, refreshing data');
-    window.dispatchEvent(new CustomEvent('matchEnded', { 
-      detail: { matchId: match.id } 
-    }));
+  const handleAddDistance = () => {
+    setAddingDistance(true);
+  };
+  
+  const handleDistanceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Allow only numeric values with max 2 decimal places
+    const value = e.target.value;
+    if (/^\d*\.?\d{0,2}$/.test(value)) {
+      setDistance(value);
+    }
+  };
+  
+  const handleSubmitDistance = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // TODO: Submit distance to API
+    console.log(`Distance submitted: ${distance}`);
+    
+    // Reset form
+    setAddingDistance(false);
+    setDistance('');
+    
+    // Optimistically update UI
+    // This is just a placeholder - the actual implementation would update the match data
+    setShowScoreboard(true);
   };
   
   // Always show match details for active matches regardless of phase
@@ -65,165 +72,164 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfil
 
   return (
     <div className="mt-6">
-      <h3 className="font-bold text-md mb-4">Current Match</h3>
-      <div className="flex justify-between items-center mb-3">
-        <div 
-          className="text-center cursor-pointer"
-          onClick={() => handleClubClick(match.homeClub)}
-        >
-          <UserAvatar 
-            name={match.homeClub.name} 
-            image={match.homeClub.logo} 
-            size="md"
-            className="h-14 w-14 mx-auto cursor-pointer" 
-            onClick={(e) => {
-              e && e.stopPropagation();
-              handleClubClick(match.homeClub);
-            }}
-          />
-          <h3 className="mt-1 font-medium text-sm hover:text-primary transition-colors">
-            {match.homeClub.name}
-          </h3>
-          <div className="flex flex-col items-center mt-1">
-            <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
-              {formatLeague(match.homeClub.division as any, match.homeClub.tier as any)}
-            </span>
-            <span className="text-xs text-gray-500 mt-0.5">
-              • {match.homeClub.members.length}/5 members
-            </span>
-            <p className="font-bold text-lg mt-1">
-              {match.homeClub.totalDistance.toFixed(1)} km
-            </p>
-          </div>
-        </div>
-
-        <div className="text-center px-2">
-          <span className="text-xs font-medium text-gray-500 uppercase">VS</span>
-          <div className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full mt-1 whitespace-nowrap">
-            <CountdownTimer 
-              useCurrentCycle={true}
-              showPhaseLabel={true}
-              className="whitespace-nowrap" 
-              onComplete={handleCountdownComplete}
-              refreshInterval={500}
-            />
-          </div>
-        </div>
-
-        <div 
-          className="text-center cursor-pointer"
-          onClick={() => handleClubClick(match.awayClub)}
-        >
-          <UserAvatar 
-            name={match.awayClub.name} 
-            image={match.awayClub.logo} 
-            size="md"
-            className="h-14 w-14 mx-auto cursor-pointer" 
-            onClick={(e) => {
-              e && e.stopPropagation();
-              handleClubClick(match.awayClub);
-            }}
-          />
-          <h3 className="mt-1 font-medium text-sm hover:text-primary transition-colors">
-            {match.awayClub.name}
-          </h3>
-          <div className="flex flex-col items-center mt-1">
-            <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
-              {formatLeague(match.awayClub.division as any, match.awayClub.tier as any)}
-            </span>
-            <span className="text-xs text-gray-500 mt-0.5">
-              • {match.awayClub.members.length}/5 members
-            </span>
-            <p className="font-bold text-lg mt-1">
-              {match.awayClub.totalDistance.toFixed(1)} km
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {showMatch ? (
-        <>
-          <MatchProgressBar
-            homeDistance={match.homeClub.totalDistance}
-            awayDistance={match.awayClub.totalDistance}
-            className="mb-4"
-          />
-          
-          <Button 
-            variant="link" 
-            size="sm" 
-            className="w-full mt-2 mb-2 text-sm flex items-center justify-center"
-            onClick={() => setShowMatchDetails(!showMatchDetails)}
-          >
-            {showMatchDetails ? 'Hide Team Contributions' : 'View Team Contributions'} 
-            <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${showMatchDetails ? 'rotate-180' : ''}`} />
-          </Button>
-        </>
-      ) : (
-        <div className="bg-blue-50 p-3 rounded-md text-center my-3">
-          <p className="text-sm font-medium text-blue-700">Match cooldown period</p>
-          <p className="text-xs text-blue-600">Next match starting soon</p>
-        </div>
-      )}
-      
-      {showMatch && showMatchDetails && (
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-3 rounded-md">
-          <div>
-            <p className="text-sm font-medium mb-2">{match.homeClub.name}</p>
-            <div className="space-y-2">
-              {match.homeClub.members.map(member => (
-                <div 
-                  key={member.id} 
-                  className="flex items-center justify-between cursor-pointer hover:bg-gray-100 rounded p-1"
-                  onClick={() => handleMemberClick(member)}
+      <Card>
+        <CardHeader>
+          <CardTitle>Current Match</CardTitle>
+          <CardDescription>
+            {match.status === 'active' ? 'In progress' : 'Starting soon'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {showMatch ? (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <button 
+                  className={`text-sm font-medium ${showScoreboard ? 'text-blue-600' : 'text-gray-500'}`}
+                  onClick={handleToggleScoreboard}
                 >
-                  <div className="flex items-center gap-2">
-                    <UserAvatar 
-                      name={member.name} 
-                      image={member.avatar} 
-                      size="sm" 
-                      className="cursor-pointer"
-                      onClick={(e) => {
-                        e && e.stopPropagation();
-                        handleMemberClick(member);
-                      }}
-                    />
-                    <span className="text-sm hover:text-primary">{member.name}</span>
-                  </div>
-                  <span className="text-sm font-medium">{member.distanceContribution?.toFixed(1)} km</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="text-sm font-medium mb-2">{match.awayClub.name}</p>
-            <div className="space-y-2">
-              {match.awayClub.members.map(member => (
-                <div 
-                  key={member.id} 
-                  className="flex items-center justify-between cursor-pointer hover:bg-gray-100 rounded p-1"
-                  onClick={() => handleMemberClick(member)}
+                  Scoreboard
+                </button>
+                <button 
+                  className={`text-sm font-medium ${!showScoreboard ? 'text-blue-600' : 'text-gray-500'}`}
+                  onClick={handleToggleScoreboard}
                 >
-                  <div className="flex items-center gap-2">
-                    <UserAvatar 
-                      name={member.name} 
-                      image={member.avatar} 
-                      size="sm" 
-                      className="cursor-pointer"
-                      onClick={(e) => {
-                        e && e.stopPropagation();
-                        handleMemberClick(member);
-                      }}
+                  Leaderboard
+                </button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleAddDistance}
+                  disabled={addingDistance}
+                >
+                  Add Distance
+                </Button>
+              </div>
+              
+              {addingDistance ? (
+                <form onSubmit={handleSubmitDistance} className="space-y-4">
+                  <div>
+                    <label htmlFor="distance" className="block text-sm font-medium">
+                      Distance (km)
+                    </label>
+                    <input
+                      type="text"
+                      id="distance"
+                      value={distance}
+                      onChange={handleDistanceChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                      placeholder="Enter distance in km"
+                      autoFocus
                     />
-                    <span className="text-sm hover:text-primary">{member.name}</span>
                   </div>
-                  <span className="text-sm font-medium">{member.distanceContribution?.toFixed(1)} km</span>
+                  <div className="flex justify-end space-x-2">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setAddingDistance(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      size="sm"
+                      disabled={!distance}
+                    >
+                      Submit
+                    </Button>
+                  </div>
+                </form>
+              ) : showScoreboard ? (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex flex-col items-center">
+                      <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center mb-1">
+                        <img 
+                          src={match.homeClub.logo || '/placeholder.svg'} 
+                          alt={match.homeClub.name}
+                          className="h-12 w-12 rounded-full object-cover"
+                        />
+                      </div>
+                      <div className="text-sm font-medium">{match.homeClub.name}</div>
+                    </div>
+                    
+                    <div className="text-center px-4">
+                      <div className="text-xl font-bold">
+                        {formatDistance(homeTotal)} - {formatDistance(awayTotal)}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Distance (km)
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col items-center">
+                      <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center mb-1">
+                        <img 
+                          src={match.awayClub.logo || '/placeholder.svg'} 
+                          alt={match.awayClub.name}
+                          className="h-12 w-12 rounded-full object-cover"
+                        />
+                      </div>
+                      <div className="text-sm font-medium">{match.awayClub.name}</div>
+                    </div>
+                  </div>
+                  
+                  <MatchProgressBar 
+                    homeValue={homeTotal} 
+                    awayValue={awayTotal}
+                  />
                 </div>
-              ))}
+              ) : (
+                <div className="space-y-4">
+                  {/* Home club members */}
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2">{match.homeClub.name}</h4>
+                    <div className="space-y-2">
+                      {match.homeClub.members.map(member => (
+                        <div key={member.id} className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <UserAvatar name={member.name} image={member.avatar} size="sm" />
+                            <span className="ml-2 text-sm">{member.name}</span>
+                          </div>
+                          <span className="text-sm font-medium">{formatDistance(member.distanceContribution)} km</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="border-t border-gray-200 my-4"></div>
+                  
+                  {/* Away club members */}
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2">{match.awayClub.name}</h4>
+                    <div className="space-y-2">
+                      {match.awayClub.members.map(member => (
+                        <div key={member.id} className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <UserAvatar name={member.name} image={member.avatar} size="sm" />
+                            <span className="ml-2 text-sm">{member.name}</span>
+                          </div>
+                          <span className="text-sm font-medium">{formatDistance(member.distanceContribution)} km</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
             </div>
-          </div>
-        </div>
-      )}
+          ) : (
+            <div className="py-8 text-center">
+              <p className="text-gray-500">
+                The match is currently in cooldown phase.
+              </p>
+              <p className="text-sm text-gray-400 mt-2">
+                Details will be available when the next match starts.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

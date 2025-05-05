@@ -27,7 +27,7 @@ export const useClubJoin = () => {
           .select('*')
           .eq('user_id', currentUser.id)
           .eq('club_id', clubId)
-          .eq('status', 'pending')
+          .eq('status', 'PENDING')  // Use uppercase for database query
           .maybeSingle();
           
         if (existingRequest) {
@@ -37,7 +37,7 @@ export const useClubJoin = () => {
             .delete()
             .eq('user_id', currentUser.id)
             .eq('club_id', clubId)
-            .eq('status', 'pending');
+            .eq('status', 'PENDING');  // Use uppercase for database query
             
           if (error) {
             console.error('Error canceling join request:', error);
@@ -54,11 +54,11 @@ export const useClubJoin = () => {
         // If no existing request, create a new one
         const { error } = await supabase
           .from('club_requests')
-          .insert([{
+          .insert({
             user_id: currentUser.id,
             club_id: clubId,
-            status: 'pending'
-          }]);
+            status: 'PENDING'  // Use uppercase for database insert
+          });
           
         if (error) {
           console.error('Error sending join request:', error);

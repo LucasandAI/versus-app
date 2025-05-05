@@ -22,7 +22,7 @@ export const acceptJoinRequestFromNotification = async (
       .select('id')
       .eq('user_id', requesterId)  // Using requesterId (the person who requested to join)
       .eq('club_id', clubId)
-      .eq('status', 'pending')
+      .eq('status', 'PENDING')  // Use uppercase for database
       .single();
       
     if (requestError || !requestData) {
@@ -65,7 +65,7 @@ export const acceptJoinRequestFromNotification = async (
     // Update request status to accepted
     const { error: updateError } = await supabase
       .from('club_requests')
-      .update({ status: 'accepted' })
+      .update({ status: 'SUCCESS' })  // Use uppercase for database
       .eq('user_id', requesterId)
       .eq('club_id', clubId);
       

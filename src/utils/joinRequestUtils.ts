@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -48,10 +47,10 @@ export const acceptJoinRequest = async (
       throw joinError;
     }
     
-    // Update request status to accepted
+    // Update request status to accepted - Use uppercase for the database
     const { error: requestError } = await supabase
       .from('club_requests')
-      .update({ status: 'accepted' })
+      .update({ status: 'SUCCESS' }) // Using uppercase for database
       .eq('user_id', requesterId)
       .eq('club_id', clubId);
       
