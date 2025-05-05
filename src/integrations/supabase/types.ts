@@ -627,7 +627,7 @@ export type Database = {
         | "activity"
         | "incoming_request"
         | "request_accepted"
-      request_status: "pending" | "accepted" | "rejected"
+      request_status: "PENDING" | "SUCCESS" | "REJECTED"
       request_status_legacy: "pending" | "accepted"
       request_status_old: "pending" | "accepted" | "rejected"
     }
@@ -763,7 +763,7 @@ export const Constants = {
         "incoming_request",
         "request_accepted",
       ],
-      request_status: ["pending", "accepted", "rejected"],
+      request_status: ["PENDING", "SUCCESS", "REJECTED"],
       request_status_legacy: ["pending", "accepted"],
       request_status_old: ["pending", "accepted", "rejected"],
     },

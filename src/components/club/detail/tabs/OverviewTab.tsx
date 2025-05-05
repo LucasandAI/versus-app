@@ -34,10 +34,12 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
         matchHistory={Array.isArray(club.matchHistory) ? club.matchHistory : []} 
       />
       {club.currentMatch && (
-        <ClubCurrentMatch
-          match={club.currentMatch}
-          onViewProfile={onSelectUser}
-        />
+        <div>
+          <ClubCurrentMatch
+            match={club.currentMatch}
+            onViewProfile={onSelectUser}
+          />
+        </div>
       )}
       {isAdmin && currentUser && <ClubAdminActions club={club} currentUser={currentUser} />}
     </div>
