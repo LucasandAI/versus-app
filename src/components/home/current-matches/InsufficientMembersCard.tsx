@@ -15,12 +15,21 @@ const InsufficientMembersCard: React.FC<InsufficientMembersCardProps> = ({
 }) => {
   return (
     <Card className="overflow-hidden">
-      <CardContent className="p-4">
-        <div className="flex flex-col items-center p-4">
-          <h3 className="font-semibold mb-1">{club.name}</h3>
-          <p className="text-xs text-gray-500 capitalize mb-4">{club.division} {club.tier}</p>
+      <CardContent className="p-0">
+        <div className="p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <UserAvatar 
+              name={club.name} 
+              image={club.logo} 
+              size="sm"
+            />
+            <div>
+              <h3 className="font-semibold">{club.name}</h3>
+              <p className="text-xs text-gray-500 capitalize">{club.division} {club.tier}</p>
+            </div>
+          </div>
           
-          <div className="bg-amber-50 p-3 rounded-lg text-center mb-4 w-full">
+          <div className="bg-amber-50 p-3 rounded-lg text-center mb-4">
             <p className="text-amber-700 font-medium">
               Your club needs 5 members to start competing in the league.
             </p>
