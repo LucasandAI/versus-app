@@ -52,32 +52,32 @@ const MatchCard: React.FC<MatchCardProps> = ({
     
     // Access nested properties correctly
     const beforeLeague = match.leagueBeforeMatch[sideKey];
-    const afterLeague = match.leagueAfterMatch[sideKey];
+    const afterLeagueData = match.leagueAfterMatch[sideKey];
     
-    if (!beforeLeague || !afterLeague) {
+    if (!beforeLeague || !afterLeagueData) {
       return 'No league data available';
     }
     
     const beforeDivision = beforeLeague.division;
-    const afterDivision = afterLeague.division;
-    const afterTier = afterLeague.tier;
+    const afterDivision = afterLeagueData.division;
+    const afterTier = afterLeagueData.tier;
     
     const afterEmoji = getDivisionEmoji(afterDivision);
-    const afterLeague = formatLeague(afterDivision, afterTier);
+    const formattedAfterLeague = formatLeague(afterDivision, afterTier);
     
     const isDivisionChange = beforeDivision !== afterDivision;
-    const isTierChange = beforeLeague.tier !== afterLeague.tier;
+    const isTierChange = beforeLeague.tier !== afterLeagueData.tier;
     
     if (afterDivision === 'elite') {
       const beforePoints = beforeLeague.elitePoints || 0;
-      const afterPoints = afterLeague.elitePoints || 0;
+      const afterPoints = afterLeagueData.elitePoints || 0;
       const pointChange = afterPoints - beforePoints;
       const pointsText = `(${pointChange >= 0 ? '+' : ''}${pointChange} points, total: ${afterPoints})`;
       
       if (beforeDivision !== 'elite') {
-        return `Promoted to ${afterEmoji} ${afterLeague} ${pointsText}`;
+        return `Promoted to ${afterEmoji} ${formattedAfterLeague} ${pointsText}`;
       } else {
-        return `${weWon ? 'Gained' : 'Lost'} points in ${afterEmoji} ${afterLeague} ${pointsText}`;
+        return `${weWon ? 'Gained' : 'Lost'} points in ${afterEmoji} ${formattedAfterLeague} ${pointsText}`;
       }
     }
     
@@ -87,18 +87,18 @@ const MatchCard: React.FC<MatchCardProps> = ({
         ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'elite'].indexOf(beforeDivision);
       
       if (divisionOrderChange) {
-        return `Promoted to ${afterEmoji} ${afterLeague}`;
+        return `Promoted to ${afterEmoji} ${formattedAfterLeague}`;
       } else {
-        return `Relegated to ${afterEmoji} ${afterLeague}`;
+        return `Relegated to ${afterEmoji} ${formattedAfterLeague}`;
       }
     } else if (isTierChange) {
-      if (beforeLeague.tier > afterLeague.tier) {
-        return `Promoted to ${afterEmoji} ${afterLeague}`;
+      if (beforeLeague.tier > afterLeagueData.tier) {
+        return `Promoted to ${afterEmoji} ${formattedAfterLeague}`;
       } else {
-        return `Relegated to ${afterEmoji} ${afterLeague}`;
+        return `Relegated to ${afterEmoji} ${formattedAfterLeague}`;
       }
     } else {
-      return `Maintained in ${afterEmoji} ${afterLeague}`;
+      return `Maintained in ${afterEmoji} ${formattedAfterLeague}`;
     }
   };
 

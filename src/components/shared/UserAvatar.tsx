@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -55,10 +56,10 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   };
 
   const sizeClasses = {
+    xs: 'h-6 w-6 text-sm',
     sm: 'h-8 w-8 text-xs',
     md: 'h-10 w-10 text-sm',
-    lg: 'h-16 w-16 text-xl',
-    xs: 'h-6 w-6 text-sm'
+    lg: 'h-16 w-16 text-xl'
   };
 
   const handleImageError = () => {

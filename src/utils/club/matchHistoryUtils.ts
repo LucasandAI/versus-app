@@ -147,6 +147,13 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
     const homeDistance = Math.round((50 + Math.random() * 50) * 10) / 10;
     const awayDistance = Math.round((isWin ? homeDistance * 0.9 : homeDistance * 1.1) * 10) / 10;
     
+    // Generate league data in the correct format with ensureDivision for all division values
+    const opponentDivision = club.division === 'elite' ? 'diamond' : 
+                 club.division === 'diamond' ? 'platinum' : 
+                 club.division === 'platinum' ? 'gold' : 
+                 club.division === 'gold' ? 'silver' : 
+                 club.division === 'silver' ? 'bronze' : 'bronze';
+                 
     const leagueData = {
       home: {
         division: club.division,
@@ -154,13 +161,9 @@ export const generateMatchHistoryFromDivision = (club: Club): Match[] => {
         elitePoints: club.division === 'elite' ? club.elitePoints : undefined
       },
       away: {
-        division: club.division === 'elite' ? 'diamond' : 
-                 club.division === 'diamond' ? 'platinum' : 
-                 club.division === 'platinum' ? 'gold' : 
-                 club.division === 'gold' ? 'silver' : 
-                 club.division === 'silver' ? 'bronze' : 'bronze',
+        division: ensureDivision(opponentDivision),
         tier: Math.floor(Math.random() * 5) + 1,
-        elitePoints: club.division === 'elite' ? Math.floor(Math.random() * 5) : undefined
+        elitePoints: opponentDivision === 'elite' ? Math.floor(Math.random() * 5) : undefined
       }
     };
     
