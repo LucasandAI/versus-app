@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { getSecondsUntil, formatCountdown } from '@/utils/date/matchTiming';
+import { getSecondsUntil, formatCountdown, isTestMode } from '@/utils/date/matchTiming';
 
 interface CountdownTimerProps {
   targetDate: Date;
@@ -13,8 +13,12 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({
   targetDate, 
   onComplete,
   className = "",
-  refreshInterval = 1000 // Default to 1 second refresh
+  refreshInterval
 }) => {
+  // In test mode, refresh more frequently by default
+  const defaultInterval = isTestMode() ? 250 : 1000; // 4 updates per second in test mode
+  const interval = refreshInterval || defaultInterval;
+  
   const [seconds, setSeconds] = useState(getSecondsUntil(targetDate));
   
   useEffect(() => {
@@ -31,10 +35,10 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({
         }
         clearInterval(timer);
       }
-    }, refreshInterval);
+    }, interval);
     
     return () => clearInterval(timer);
-  }, [targetDate, onComplete, refreshInterval]);
+  }, [targetDate, onComplete, interval]);
   
   return (
     <div className={`font-mono ${className}`}>

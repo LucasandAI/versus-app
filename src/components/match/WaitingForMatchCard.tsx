@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Club } from '@/types';
-import { getNextMatchStart } from '@/utils/date/matchTiming';
+import { getNextMatchStart, isTestMode, getMatchDelay } from '@/utils/date/matchTiming';
 import CountdownTimer from './CountdownTimer';
 import { formatLeague } from '@/utils/club/leagueUtils';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -17,6 +17,7 @@ const WaitingForMatchCard: React.FC<WaitingForMatchCardProps> = ({ club: initial
   const [club, setClub] = useState(initialClub);
   const nextMatchStart = getNextMatchStart();
   const { navigateToClubDetail } = useNavigation();
+  const matchDelay = getMatchDelay();
   
   const handleClubClick = () => {
     navigateToClubDetail(club.id, club);
@@ -75,6 +76,10 @@ const WaitingForMatchCard: React.FC<WaitingForMatchCardProps> = ({ club: initial
     window.dispatchEvent(new CustomEvent('newMatchWeekStarted'));
   };
   
+  let messageText = isTestMode()
+    ? `Match starting in ${matchDelay.seconds} seconds...`
+    : "Matchmaking will begin soon. Your next match starts Monday at 00:00.";
+  
   return (
     <Card className="mb-4 overflow-hidden">
       <CardContent className="p-4">
@@ -105,16 +110,20 @@ const WaitingForMatchCard: React.FC<WaitingForMatchCardProps> = ({ club: initial
         </div>
         
         <div className="mt-4 p-3 bg-amber-50 rounded-md">
-          <p className="text-sm mb-1">Matchmaking will begin soon. Your next match starts Monday at 00:00.</p>
+          <p className="text-sm mb-1">{messageText}</p>
           <div className="flex items-center">
             <span className="text-xs text-gray-500 mr-2">Countdown:</span>
             <CountdownTimer 
               targetDate={nextMatchStart} 
               className="text-sm font-medium text-amber-700"
               onComplete={handleCountdownComplete}
-              refreshInterval={1000} // Update every second
             />
           </div>
+          {isTestMode() && (
+            <div className="mt-1 text-xs text-gray-600 italic">
+              Test mode: shortened matches (5 min)
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
