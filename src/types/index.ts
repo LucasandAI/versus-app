@@ -45,7 +45,7 @@ export interface JoinRequest {
   userName: string;
   userAvatar: string;
   createdAt: string;
-  status: 'pending' | 'success' | 'error'; // Updated to match database enum casing
+  status: 'PENDING' | 'SUCCESS' | 'ERROR'; // Changed back to uppercase to match database
 }
 
 export interface ClubRequest {

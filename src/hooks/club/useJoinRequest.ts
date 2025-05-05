@@ -17,7 +17,7 @@ export const useJoinRequest = (clubId: string) => {
         .select('*')
         .eq('club_id', clubId)
         .eq('user_id', userId)
-        .eq('status', 'pending') // Changed from 'PENDING' to 'pending'
+        .eq('status', 'PENDING')
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -55,7 +55,7 @@ export const useJoinRequest = (clubId: string) => {
         .insert({
           user_id: userId,
           club_id: clubId,
-          status: 'pending' // Changed from 'PENDING' to 'pending'
+          status: 'PENDING'
         });
 
       if (error) {
@@ -104,7 +104,7 @@ export const useJoinRequest = (clubId: string) => {
         .delete()
         .eq('club_id', clubId)
         .eq('user_id', userId)
-        .eq('status', 'pending'); // Changed from 'PENDING' to 'pending'
+        .eq('status', 'PENDING');
 
       if (error) {
         // Revert optimistic update on error
