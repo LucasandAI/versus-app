@@ -6,14 +6,14 @@ interface CountdownTimerProps {
   targetDate: Date;
   onComplete?: () => void;
   className?: string;
-  refreshInterval?: number; // Allow customizing the refresh rate
+  refreshInterval?: number;
 }
 
 const CountdownTimer: React.FC<CountdownTimerProps> = ({ 
   targetDate, 
   onComplete,
   className = "",
-  refreshInterval = 1000 // Default to 1 second refresh
+  refreshInterval = 500 // Default to 500ms (2 updates per second) for smoother countdown
 }) => {
   const [seconds, setSeconds] = useState(getSecondsUntil(targetDate));
   

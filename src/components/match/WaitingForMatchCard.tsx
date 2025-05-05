@@ -105,14 +105,14 @@ const WaitingForMatchCard: React.FC<WaitingForMatchCardProps> = ({ club: initial
         </div>
         
         <div className="mt-4 p-3 bg-amber-50 rounded-md">
-          <p className="text-sm mb-1">Matchmaking will begin soon. Your next match starts Monday at 00:00.</p>
+          <p className="text-sm mb-1">Next match starting soon...</p>
           <div className="flex items-center">
             <span className="text-xs text-gray-500 mr-2">Countdown:</span>
             <CountdownTimer 
               targetDate={nextMatchStart} 
               className="text-sm font-medium text-amber-700"
               onComplete={handleCountdownComplete}
-              refreshInterval={1000} // Update every second
+              refreshInterval={500} // Update every half second
             />
           </div>
         </div>

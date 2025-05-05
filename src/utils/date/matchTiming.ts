@@ -1,42 +1,33 @@
 
-import { format, addDays, startOfWeek, endOfWeek, differenceInSeconds } from 'date-fns';
+import { format, addDays, addMinutes, startOfWeek, endOfWeek, differenceInSeconds } from 'date-fns';
 
-// Get the next Monday at midnight Paris time
+// Production constants for shortened match cycle
+const MATCH_DURATION_MS = 5 * 60 * 1000;      // 5 minutes
+const NEXT_MATCH_DELAY_MS = 60 * 1000;        // 1 minute
+
+// Get the next match start time
 export const getNextMatchStart = (): Date => {
-  // Get the current date in the user's timezone
+  // Next match starts immediately (for testing) instead of waiting for Monday
   const now = new Date();
-  
-  // Calculate the next Monday
-  // Set to midnight and get the next week's Monday
-  const nextMonday = startOfWeek(addDays(now, 7), { weekStartsOn: 1 });
-  
-  return nextMonday;
+  return new Date(now.getTime() + NEXT_MATCH_DELAY_MS);
 };
 
-// Get the current match end time (Sunday at 23:59:59)
+// Calculate match end date from a start date
+export const getMatchEndFromStart = (startDate: Date): Date => {
+  return new Date(new Date(startDate).getTime() + MATCH_DURATION_MS);
+};
+
+// Get the current match end time
 export const getCurrentMatchEnd = (): Date => {
   const now = new Date();
-  
-  // Calculate the end of the current week (Sunday)
-  const endOfCurrentWeek = endOfWeek(now, { weekStartsOn: 1 });
-  
-  // Set the time to 23:59:59
-  endOfCurrentWeek.setHours(23, 59, 59, 999);
-  
-  return endOfCurrentWeek;
+  // For display purposes when we don't know the actual start time
+  return new Date(now.getTime() + MATCH_DURATION_MS);
 };
 
-// Check if we're currently in an active match week (Monday-Sunday)
+// Check if we're currently in an active match period
 export const isActiveMatchWeek = (): boolean => {
-  const now = new Date();
-  
-  // Get start and end of the current week
-  const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
-  const weekEnd = endOfWeek(now, { weekStartsOn: 1 });     // Sunday
-  weekEnd.setHours(23, 59, 59, 999);
-  
-  // Check if current time is within the week
-  return now >= weekStart && now <= weekEnd;
+  // Always return true to allow matches to start anytime
+  return true;
 };
 
 // Format a countdown display from seconds
@@ -47,6 +38,11 @@ export const formatCountdown = (seconds: number): string => {
   const hours = Math.floor((seconds % (24 * 3600)) / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = Math.floor(seconds % 60);
+  
+  // For short durations, just show minutes and seconds
+  if (days === 0 && hours === 0) {
+    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
   
   if (days > 0) {
     return `${days}d ${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m`;

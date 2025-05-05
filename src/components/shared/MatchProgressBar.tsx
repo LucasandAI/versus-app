@@ -13,7 +13,7 @@ const MatchProgressBar: React.FC<MatchProgressBarProps> = ({
   homeDistance,
   awayDistance,
   className,
-  animationDuration = 300
+  animationDuration = 200 // Faster animation for quick updates
 }) => {
   const [displayHomePercentage, setDisplayHomePercentage] = useState(0);
   const [displayHomeDistance, setDisplayHomeDistance] = useState(0);

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Match, Club, ClubMember } from '@/types';
-import { getCurrentMatchEnd } from '@/utils/date/matchTiming';
+import { getCurrentMatchEnd, getMatchEndFromStart } from '@/utils/date/matchTiming';
 import CountdownTimer from './CountdownTimer';
 import { formatLeague } from '@/utils/club/leagueUtils';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -26,7 +26,17 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
   const [showDetails, setShowDetails] = useState(false);
   const [match, setMatch] = useState(initialMatch);
   const [userClub, setUserClub] = useState(initialUserClub);
-  const matchEndDate = getCurrentMatchEnd();
+  
+  // Calculate match end date based on start date or current time
+  const [matchEndDate, setMatchEndDate] = useState<Date>(() => {
+    if (initialMatch.startDate) {
+      return getMatchEndFromStart(new Date(initialMatch.startDate));
+    } else if (initialMatch.endDate) {
+      return new Date(initialMatch.endDate);
+    }
+    return getCurrentMatchEnd();
+  });
+  
   const { navigateToClubDetail } = useNavigation();
   
   // Determine if user club is home or away
@@ -39,6 +49,13 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
     // Update state when props change
     setMatch(initialMatch);
     setUserClub(initialUserClub);
+    
+    // Update match end date when match data changes
+    if (initialMatch.startDate) {
+      setMatchEndDate(getMatchEndFromStart(new Date(initialMatch.startDate)));
+    } else if (initialMatch.endDate) {
+      setMatchEndDate(new Date(initialMatch.endDate));
+    }
 
     // Subscribe to match distance contributions
     const distanceChannel = supabase
@@ -75,14 +92,6 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
       setMatch(initialMatch);
       setUserClub(initialUserClub);
     });
-    
-    // Check for match end
-    const handleMatchEnd = () => {
-      console.log('[CurrentMatchCard] Match ended, refreshing data');
-      window.dispatchEvent(new CustomEvent('matchEnded', { 
-        detail: { matchId: initialMatch.id } 
-      }));
-    };
 
     return () => {
       supabase.removeChannel(distanceChannel);
@@ -191,7 +200,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
               targetDate={matchEndDate} 
               className="inline" 
               onComplete={handleCountdownComplete}
-              refreshInterval={1000} // Update every second
+              refreshInterval={500} // Update every half second
             />
           </div>
           <Button
