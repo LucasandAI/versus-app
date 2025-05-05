@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { UserPlus, X, Loader2 } from 'lucide-react';
 import Button from '../shared/Button';
@@ -124,18 +125,22 @@ const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin })
         .from('club_requests')
         .select('club_id')
         .eq('user_id', currentUser.id)
-        .eq('status', 'PENDING') // Updated from 'pending' to 'PENDING'
-        .single();
+        .eq('status', 'PENDING');
         
       if (error) {
         console.error('Error fetching pending requests:', error);
         return;
       }
 
+      // Initialize an empty object to store pending requests
       const requests: Record<string, boolean> = {};
-      data?.forEach(request => {
-        requests[request.club_id] = true;
-      });
+      
+      // Check if data exists and is an array before using forEach
+      if (data && Array.isArray(data)) {
+        data.forEach(request => {
+          requests[request.club_id] = true;
+        });
+      }
       
       setPendingRequests(requests);
     } catch (err) {
