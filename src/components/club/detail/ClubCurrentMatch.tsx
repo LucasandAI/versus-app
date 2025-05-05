@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Match } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { ChevronDown } from 'lucide-react';
@@ -7,7 +7,6 @@ import MatchProgressBar from '@/components/shared/MatchProgressBar';
 import { Button } from "@/components/ui/button";
 import { useNavigation } from '@/hooks/useNavigation';
 import { formatLeague } from '@/utils/club/leagueUtils';
-import { getMatchEndFromStart } from '@/utils/date/matchTiming';
 import CountdownTimer from '@/components/match/CountdownTimer';
 
 interface ClubCurrentMatchProps {
@@ -18,21 +17,13 @@ interface ClubCurrentMatchProps {
 const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfile }) => {
   const [showMatchDetails, setShowMatchDetails] = useState(false);
   const { navigateToClubDetail } = useNavigation();
+  const matchEndDateRef = useRef<Date>(new Date(match.endDate));
   
-  // Calculate end time based on start date for countdown
-  const [matchEndDate, setMatchEndDate] = useState<Date>(() => {
-    if (match.startDate) {
-      return getMatchEndFromStart(new Date(match.startDate));
-    }
-    return new Date(match.endDate);
-  });
-  
-  // Update end time if match data changes
+  // Update match end time reference if match data changes
   useEffect(() => {
-    if (match.startDate) {
-      setMatchEndDate(getMatchEndFromStart(new Date(match.startDate)));
-    } else if (match.endDate) {
-      setMatchEndDate(new Date(match.endDate));
+    const endDate = new Date(match.endDate);
+    if (endDate.getTime() !== matchEndDateRef.current.getTime()) {
+      matchEndDateRef.current = endDate;
     }
   }, [match]);
 
@@ -95,7 +86,7 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfil
           <span className="text-xs font-medium text-gray-500 uppercase">VS</span>
           <div className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full mt-1">
             <CountdownTimer 
-              targetDate={matchEndDate}
+              targetDate={matchEndDateRef.current}
               className="whitespace-nowrap" 
               onComplete={handleCountdownComplete}
               refreshInterval={500}

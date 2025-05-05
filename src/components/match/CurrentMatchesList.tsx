@@ -51,13 +51,13 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
     });
 
     // Listen for match data update events
-    const handleMatchUpdate = (event: CustomEvent) => {
+    const handleMatchUpdate = () => {
       console.log('[CurrentMatchesList] Match updated event received');
       setUserClubs(initialClubs);
     };
     
     // Listen for member data update events
-    const handleMembershipChange = (event: CustomEvent) => {
+    const handleMembershipChange = () => {
       console.log('[CurrentMatchesList] Club membership changed event received');
       setUserClubs(initialClubs);
     };
@@ -65,6 +65,7 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
     window.addEventListener('matchUpdated', handleMatchUpdate as EventListener);
     window.addEventListener('clubMembershipChanged', handleMembershipChange as EventListener);
     window.addEventListener('userDataUpdated', () => setUserClubs(initialClubs));
+    window.addEventListener('newMatchWeekStarted', handleMatchUpdate as EventListener);
     
     // Clean up subscriptions
     return () => {
@@ -72,6 +73,7 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
       window.removeEventListener('matchUpdated', handleMatchUpdate as EventListener);
       window.removeEventListener('clubMembershipChanged', handleMembershipChange as EventListener);
       window.removeEventListener('userDataUpdated', () => setUserClubs(initialClubs));
+      window.removeEventListener('newMatchWeekStarted', handleMatchUpdate as EventListener);
     };
   }, [initialClubs]);
 
@@ -99,13 +101,10 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
               onViewProfile={onViewProfile}
             />
           );
-        } else if (hasEnoughMembers && !isMatchWeek) {
+        } else if (hasEnoughMembers) {
           return <WaitingForMatchCard key={`${club.id}-waiting`} club={club} />;
-        } else if (!hasEnoughMembers) {
-          return <NeedMoreMembersCard key={`${club.id}-needs-members`} club={club} />;
         } else {
-          // Fallback for clubs with enough members during match week but no match
-          return <WaitingForMatchCard key={`${club.id}-waiting`} club={club} />;
+          return <NeedMoreMembersCard key={`${club.id}-needs-members`} club={club} />;
         }
       })}
     </div>

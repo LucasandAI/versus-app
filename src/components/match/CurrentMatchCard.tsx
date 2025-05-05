@@ -1,16 +1,15 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Match, Club, ClubMember } from '@/types';
-import { getCurrentMatchEnd, getMatchEndFromStart } from '@/utils/date/matchTiming';
-import CountdownTimer from './CountdownTimer';
-import { formatLeague } from '@/utils/club/leagueUtils';
-import UserAvatar from '@/components/shared/UserAvatar';
 import { ChevronsUpDown } from 'lucide-react';
 import MatchProgressBar from '@/components/shared/MatchProgressBar';
 import { Button } from '@/components/ui/button';
 import { useNavigation } from '@/hooks/useNavigation';
 import { supabase } from '@/integrations/supabase/client';
+import UserAvatar from '@/components/shared/UserAvatar';
+import { formatLeague } from '@/utils/club/leagueUtils';
+import CountdownTimer from './CountdownTimer';
 
 interface CurrentMatchCardProps {
   match: Match;
@@ -26,16 +25,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
   const [showDetails, setShowDetails] = useState(false);
   const [match, setMatch] = useState(initialMatch);
   const [userClub, setUserClub] = useState(initialUserClub);
-  
-  // Calculate match end date based on start date or current time
-  const [matchEndDate, setMatchEndDate] = useState<Date>(() => {
-    if (initialMatch.startDate) {
-      return getMatchEndFromStart(new Date(initialMatch.startDate));
-    } else if (initialMatch.endDate) {
-      return new Date(initialMatch.endDate);
-    }
-    return getCurrentMatchEnd();
-  });
+  const matchEndDateRef = useRef<Date>(new Date(initialMatch.endDate));
   
   const { navigateToClubDetail } = useNavigation();
   
@@ -50,11 +40,10 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
     setMatch(initialMatch);
     setUserClub(initialUserClub);
     
-    // Update match end date when match data changes
-    if (initialMatch.startDate) {
-      setMatchEndDate(getMatchEndFromStart(new Date(initialMatch.startDate)));
-    } else if (initialMatch.endDate) {
-      setMatchEndDate(new Date(initialMatch.endDate));
+    // Update match end date reference when match data changes
+    const endDate = new Date(initialMatch.endDate);
+    if (endDate.getTime() !== matchEndDateRef.current.getTime()) {
+      matchEndDateRef.current = endDate;
     }
 
     // Subscribe to match distance contributions
@@ -197,7 +186,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
         <div className="mt-3 flex justify-between items-center">
           <div className="text-xs text-gray-500">
             Match ends in: <CountdownTimer 
-              targetDate={matchEndDate} 
+              targetDate={matchEndDateRef.current} 
               className="inline" 
               onComplete={handleCountdownComplete}
               refreshInterval={500} // Update every half second
