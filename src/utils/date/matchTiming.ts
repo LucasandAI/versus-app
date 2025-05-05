@@ -1,3 +1,4 @@
+
 import { format, addDays, addMinutes, startOfWeek, endOfWeek, differenceInSeconds } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 
@@ -15,7 +16,7 @@ const getMondayMidnightParis = (): Date => {
   const currentWeekMonday = startOfWeek(now, { weekStartsOn: 1 }); // 1 = Monday
   
   // Set to midnight in Paris timezone
-  return fromZonedTime(
+  return toZonedTime(
     new Date(
       currentWeekMonday.getFullYear(),
       currentWeekMonday.getMonth(),
