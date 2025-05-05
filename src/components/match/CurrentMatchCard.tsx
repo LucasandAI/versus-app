@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Match, Club, ClubMember } from '@/types';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Clock } from 'lucide-react';
 import MatchProgressBar from '@/components/shared/MatchProgressBar';
 import { Button } from '@/components/ui/button';
 import { useNavigation } from '@/hooks/useNavigation';
@@ -126,111 +126,122 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
   const isInMatchPhase = cycleInfo.isInMatchPhase; 
   
   return (
-    <Card className="mb-4 overflow-hidden bg-white border shadow-sm">
-      {/* Club Header */}
-      <CardHeader className="p-4 border-b border-gray-100">
-        <div className="flex items-center">
-          <UserAvatar 
-            name={userClub.name} 
-            image={userClub.logo} 
-            size="md"
-            className="mr-3 cursor-pointer"
-            onClick={() => handleClubClick(userClub.id, userClub)}
-          />
-          <div>
-            <h3 
-              className="font-semibold cursor-pointer hover:text-primary transition-colors" 
+    <Card className="mb-4 overflow-hidden border-0 shadow-md">
+      <CardContent className="p-0">
+        {/* Club Header */}
+        <div className="p-4 border-b border-gray-100">
+          <div className="flex items-center">
+            <UserAvatar 
+              name={userClub.name} 
+              image={userClub.logo} 
+              size="md"
+              className="mr-3 cursor-pointer"
               onClick={() => handleClubClick(userClub.id, userClub)}
-            >
-              {userClub.name}
-            </h3>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600">
-                {formatLeague(userClub.division, userClub.tier)}
-              </span>
-              <span className="text-xs text-gray-500">
-                • {userClub.members.length} members
-              </span>
+            />
+            <div>
+              <h3 
+                className="font-semibold cursor-pointer hover:text-primary transition-colors" 
+                onClick={() => handleClubClick(userClub.id, userClub)}
+              >
+                {userClub.name}
+              </h3>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600">
+                  {formatLeague(userClub.division, userClub.tier)}
+                </span>
+                <span className="text-xs text-gray-500">
+                  • {userClub.members.length} members
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </CardHeader>
-      
-      {/* Match Content */}
-      <CardContent className="p-4">
-        {isInMatchPhase ? (
-          <>
-            {/* Match in Progress */}
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold">Current Match</h3>
-              <div className="bg-amber-50 px-3 py-1 rounded-full text-amber-800 text-sm font-medium">
-                {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left
-              </div>
-            </div>
-            
-            {/* Clubs Matchup */}
-            <div className="flex justify-between items-center mb-4">
-              <div className="text-center">
-                <h4 className="font-medium">{userClubMatch.name}</h4>
-                <p className="font-bold text-lg mt-1">{userClubMatch.totalDistance.toFixed(1)} km</p>
+        
+        {/* Match Content */}
+        <div className="p-4">
+          {isInMatchPhase ? (
+            <>
+              {/* Match in Progress */}
+              <div className="bg-amber-50 p-3 rounded-md mb-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-semibold">Match in progress...</h3>
+                  <div className="flex items-center text-amber-800 text-sm">
+                    <Clock className="h-4 w-4 mr-1" />
+                    <span>Match ends in: </span>
+                    <CountdownTimer 
+                      useCurrentCycle={true} 
+                      className="font-mono ml-1" 
+                      onComplete={handleCountdownComplete}
+                      refreshInterval={500}
+                    />
+                  </div>
+                </div>
               </div>
               
-              <div className="text-center text-gray-500 font-medium">vs</div>
-              
-              <div className="text-center">
-                <h4 
-                  className="font-medium cursor-pointer hover:text-primary transition-colors"
-                  onClick={() => handleClubClick(opponentClubMatch.id, opponentClubMatch)}
-                >
-                  {opponentClubMatch.name}
-                </h4>
-                <p className="font-bold text-lg mt-1">{opponentClubMatch.totalDistance.toFixed(1)} km</p>
+              {/* Clubs Matchup */}
+              <div className="flex justify-between items-center mb-4">
+                <div className="text-center">
+                  <h4 className="font-medium">{userClubMatch.name}</h4>
+                  <p className="font-bold text-lg mt-1">{userClubMatch.totalDistance.toFixed(1)} km</p>
+                </div>
+                
+                <div className="text-center text-gray-500 font-medium">vs</div>
+                
+                <div className="text-center">
+                  <h4 
+                    className="font-medium cursor-pointer hover:text-primary transition-colors"
+                    onClick={() => handleClubClick(opponentClubMatch.id, opponentClubMatch)}
+                  >
+                    {opponentClubMatch.name}
+                  </h4>
+                  <p className="font-bold text-lg mt-1">{opponentClubMatch.totalDistance.toFixed(1)} km</p>
+                </div>
               </div>
+              
+              {/* Match Progress Bar - This is the component we're adding to make it match the club detail view */}
+              <div className="mt-6">
+                <MatchProgressBar
+                  homeDistance={userClubMatch.totalDistance}
+                  awayDistance={opponentClubMatch.totalDistance}
+                  className="h-5 mb-4"
+                />
+              </div>
+              
+              {/* Details Toggle Button */}
+              <Button 
+                variant="outline"
+                size="sm"
+                className="w-full mt-2 mb-1 text-sm flex items-center justify-center bg-gray-50 hover:bg-gray-100 border-gray-200"
+                onClick={() => setShowDetails(!showDetails)}
+              >
+                {showDetails ? 'Hide Details' : 'Show Details'} 
+                <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${showDetails ? 'rotate-180' : ''}`} />
+              </Button>
+            </>
+          ) : (
+            /* Match Cooldown Period */
+            <div className="bg-blue-50 p-3 rounded-md text-center my-3">
+              <p className="text-sm font-medium text-blue-700 mb-1">Match cooldown period</p>
+              <p className="text-xs text-blue-600">
+                <CountdownTimer 
+                  useCurrentCycle={true}
+                  showPhaseLabel={true}
+                  className="inline" 
+                  onComplete={handleCountdownComplete}
+                  refreshInterval={500}
+                />
+              </p>
             </div>
-            
-            {/* Match Progress Bar */}
-            <div className="mt-6">
-              <MatchProgressBar
-                homeDistance={userClubMatch.totalDistance}
-                awayDistance={opponentClubMatch.totalDistance}
-                className="h-5 mb-4"
-              />
-            </div>
-            
-            {/* Details Toggle Button */}
-            <Button 
-              variant="outline"
-              size="sm"
-              className="w-full mt-2 mb-1 text-sm flex items-center justify-center bg-gray-50 hover:bg-gray-100 border-gray-200"
-              onClick={() => setShowDetails(!showDetails)}
-            >
-              {showDetails ? 'Hide Details' : 'Show Details'} 
-              <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${showDetails ? 'rotate-180' : ''}`} />
-            </Button>
-          </>
-        ) : (
-          /* Match Cooldown Period */
-          <div className="bg-blue-50 p-3 rounded-md text-center my-3">
-            <p className="text-sm font-medium text-blue-700 mb-1">Match cooldown period</p>
-            <p className="text-xs text-blue-600">
-              <CountdownTimer 
-                useCurrentCycle={true}
-                showPhaseLabel={true}
-                className="inline" 
-                onComplete={handleCountdownComplete}
-                refreshInterval={500}
-              />
-            </p>
-          </div>
-        )}
-      
+          )}
+        </div>
+        
         {/* Member Details Panel */}
         {isInMatchPhase && showDetails && (
-          <div className="border-t border-gray-100 pt-4 mt-4">
+          <div className="border-t border-gray-100">
             <div className="grid grid-cols-2 divide-x">
-              {/* User Club Members */}
-              <div className="pr-4">
-                <h4 className="font-medium mb-3 text-sm">{userClubMatch.name} Members</h4>
+              {/* Home Club Members */}
+              <div className="p-4">
+                <h4 className="font-medium mb-3 text-sm">Home Club Members</h4>
                 <div className="space-y-3">
                   {userClubMatch.members.map(member => (
                     <div 
@@ -257,9 +268,9 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
                 </div>
               </div>
               
-              {/* Opponent Club Members */}
-              <div className="pl-4">
-                <h4 className="font-medium mb-3 text-sm">{opponentClubMatch.name} Members</h4>
+              {/* Away Club Members */}
+              <div className="p-4">
+                <h4 className="font-medium mb-3 text-sm">Away Club Members</h4>
                 <div className="space-y-3">
                   {opponentClubMatch.members.map(member => (
                     <div 

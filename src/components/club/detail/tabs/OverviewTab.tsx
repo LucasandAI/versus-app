@@ -5,7 +5,6 @@ import ClubStats from '../ClubStats';
 import ClubCurrentMatch from '../ClubCurrentMatch';
 import ClubAdminActions from '@/components/admin/ClubAdminActions';
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface OverviewTabProps {
   club: Club;
@@ -34,24 +33,15 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
         club={club} 
         matchHistory={Array.isArray(club.matchHistory) ? club.matchHistory : []} 
       />
-      
       {club.currentMatch && (
-        <ClubCurrentMatch
-          match={club.currentMatch}
-          onViewProfile={onSelectUser}
-        />
+        <div>
+          <ClubCurrentMatch
+            match={club.currentMatch}
+            onViewProfile={onSelectUser}
+          />
+        </div>
       )}
-      
-      {isAdmin && currentUser && (
-        <Card className="bg-white border shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Admin Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ClubAdminActions club={club} currentUser={currentUser} />
-          </CardContent>
-        </Card>
-      )}
+      {isAdmin && currentUser && <ClubAdminActions club={club} currentUser={currentUser} />}
     </div>
   );
 };
