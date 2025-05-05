@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -133,5 +132,7 @@ export interface AppContextType {
   createClub: (clubData: any) => Promise<Club | null>;
   refreshCurrentUser: () => Promise<User | null>;
 }
+
+export type RequestStatus = 'pending' | 'accepted' | 'rejected';
 
 export type { ChatMessage } from './chat';

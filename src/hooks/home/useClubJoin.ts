@@ -1,3 +1,4 @@
+
 import { useApp } from '@/context/AppContext';
 import { getClubToJoin } from '@/utils/club';
 import { useClubValidation } from './useClubValidation';
