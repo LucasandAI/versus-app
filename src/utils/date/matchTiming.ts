@@ -3,9 +3,9 @@ import { format, addDays, addMinutes, startOfWeek, endOfWeek, differenceInSecond
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 
 // Constants for match cycle
-const MATCH_DURATION_MS = 5 * 60 * 1000;      // 5 minutes
-const COOLDOWN_DURATION_MS = 60 * 1000;       // 1 minute
-const CYCLE_DURATION_MS = MATCH_DURATION_MS + COOLDOWN_DURATION_MS; // 6 minutes
+export const MATCH_DURATION_MS = 5 * 60 * 1000;      // 5 minutes
+export const COOLDOWN_DURATION_MS = 60 * 1000;       // 1 minute
+export const CYCLE_DURATION_MS = MATCH_DURATION_MS + COOLDOWN_DURATION_MS; // 6 minutes
 
 // Get Paris Monday 00:00 as base time
 const getMondayMidnightParis = (): Date => {

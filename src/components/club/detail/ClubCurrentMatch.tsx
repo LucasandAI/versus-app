@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Match } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -58,8 +59,9 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({ match, onViewProfil
     }));
   };
   
-  // Only show the match details during the match phase
-  const showMatch = cycleInfo.isInMatchPhase;
+  // Always show match details for active matches regardless of phase
+  // We only want to hide details if explicitly in cooldown phase
+  const showMatch = match.status === 'active';
 
   return (
     <div className="mt-6">

@@ -1,6 +1,6 @@
 
 // Follow this setup guide to integrate the Deno runtime into your Next.js app:
-// https://deno.com/manual/examples/deploy/nextjs
+// https://deno.land/manual/examples/deploy/nextjs
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.1";
 

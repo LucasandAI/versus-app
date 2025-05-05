@@ -1,7 +1,7 @@
 
 import { NextApiRequest, NextApiResponse } from "next";
 import { supabase } from "@/integrations/supabase/client";
-import { getCurrentCycleInfo } from "@/utils/date/matchTiming";
+import { getCurrentCycleInfo, MATCH_DURATION_MS } from "@/utils/date/matchTiming";
 
 // This is a backup route to create matches if the automatic scheduler fails
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

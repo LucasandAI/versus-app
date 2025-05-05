@@ -1,6 +1,6 @@
 
 // Follow this setup guide to integrate the Deno runtime into your Next.js app:
-// https://deno.com/manual/examples/deploy/nextjs
+// https://deno.land/manual/examples/deploy/nextjs
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.1";
 
@@ -8,6 +8,11 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Constants for match timing - must match values in database function
+const MATCH_DURATION_MS = 5 * 60 * 1000;      // 5 minutes
+const COOLDOWN_DURATION_MS = 60 * 1000;       // 1 minute
+const CYCLE_DURATION_MS = MATCH_DURATION_MS + COOLDOWN_DURATION_MS; // 6 minutes
 
 serve(async (req: Request) => {
   // Handle CORS preflight requests
