@@ -17,7 +17,7 @@ export const useJoinRequest = (clubId: string) => {
         .select('*')
         .eq('club_id', clubId)
         .eq('user_id', userId)
-        .eq('status', 'PENDING')
+        .eq('status', 'pending') // Changed from 'PENDING' to 'pending'
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -48,20 +48,25 @@ export const useJoinRequest = (clubId: string) => {
     setHasPendingRequest(true);
     
     try {
+      console.log(`[sendJoinRequest] Sending request for user ${userId} to join club ${clubId}`);
+      
       const { error } = await supabase
         .from('club_requests')
         .insert({
           user_id: userId,
           club_id: clubId,
-          status: 'PENDING'
+          status: 'pending' // Changed from 'PENDING' to 'pending'
         });
 
       if (error) {
+        console.error('Error sending join request:', error);
         // Revert optimistic update on error
         setHasPendingRequest(false);
         throw error;
       }
 
+      console.log('[sendJoinRequest] Request sent successfully');
+      
       toast({
         title: "Request Sent",
         description: "Your request to join has been sent to the club admins"
@@ -98,7 +103,8 @@ export const useJoinRequest = (clubId: string) => {
         .from('club_requests')
         .delete()
         .eq('club_id', clubId)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .eq('status', 'pending'); // Changed from 'PENDING' to 'pending'
 
       if (error) {
         // Revert optimistic update on error

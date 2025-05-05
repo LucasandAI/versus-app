@@ -12,7 +12,7 @@ export const hasPendingJoinRequest = async (userId: string, clubId: string): Pro
       .select('*')
       .eq('user_id', userId)
       .eq('club_id', clubId)
-      .eq('status', 'PENDING')
+      .eq('status', 'pending') // Changed from 'PENDING' to 'pending'
       .single();
 
     if (error) {
@@ -40,7 +40,7 @@ export const fetchClubJoinRequests = async (clubId: string): Promise<JoinRequest
       .from('club_requests')
       .select('id, user_id, club_id, created_at, status')
       .eq('club_id', clubId)
-      .eq('status', 'PENDING');
+      .eq('status', 'pending'); // Changed from 'PENDING' to 'pending'
 
     if (requestsError) {
       console.error('[fetchClubJoinRequests] Error fetching join requests:', requestsError);
