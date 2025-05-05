@@ -67,7 +67,7 @@ const ClubCard: React.FC<ClubCardProps> = ({
           />
         </div>
         <div>
-          <h3 className="font-medium cursor-pointer hover:text-primary" onClick={handleClubClick}>{club.name}</h3>
+          <h3 className="font-medium cursor-pointer hover:text-primary transition-colors" onClick={handleClubClick}>{club.name}</h3>
           <div className="flex items-center gap-1 mt-0.5">
             <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
               {formatLeague(club.division, club.tier)}
@@ -90,14 +90,14 @@ const ClubCard: React.FC<ClubCardProps> = ({
           
           <div className="flex justify-between items-center mb-3 text-sm">
             <span 
-              className="font-medium cursor-pointer hover:text-primary"
+              className="font-medium cursor-pointer hover:text-primary transition-colors"
               onClick={(e) => handleClubNameClick(e, club.currentMatch!.homeClub)}
             >
               {club.currentMatch.homeClub.name}
             </span>
             <span className="text-xs text-gray-500">vs</span>
             <span 
-              className="font-medium cursor-pointer hover:text-primary"
+              className="font-medium cursor-pointer hover:text-primary transition-colors"
               onClick={(e) => handleClubNameClick(e, club.currentMatch!.awayClub)}
             >
               {club.currentMatch.awayClub.name}
@@ -133,7 +133,7 @@ const ClubCard: React.FC<ClubCardProps> = ({
                     >
                       <UserAvatar name={member.name} image={member.avatar} size="xs" />
                       <div>
-                        <p className="text-xs font-medium hover:text-primary">{member.name}</p>
+                        <p className="text-xs font-medium hover:text-primary transition-colors">{member.name}</p>
                         <p className="text-xs text-gray-500">{member.distanceContribution?.toFixed(1)} km</p>
                       </div>
                     </div>
@@ -152,7 +152,7 @@ const ClubCard: React.FC<ClubCardProps> = ({
                     >
                       <UserAvatar name={member.name} image={member.avatar} size="xs" />
                       <div>
-                        <p className="text-xs font-medium hover:text-primary">{member.name}</p>
+                        <p className="text-xs font-medium hover:text-primary transition-colors">{member.name}</p>
                         <p className="text-xs text-gray-500">{member.distanceContribution?.toFixed(1)} km</p>
                       </div>
                     </div>

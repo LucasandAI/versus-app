@@ -50,7 +50,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({ match, userClub, on
             />
             <div>
               <h3 
-                className="font-medium cursor-pointer hover:text-primary" 
+                className="font-medium cursor-pointer hover:text-primary transition-colors" 
                 onClick={() => handleClubClick(userClub.id, userClub)}
               >
                 {userClub.name}
@@ -73,7 +73,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({ match, userClub, on
           <div className="flex items-center">
             <div className="text-right mr-2">
               <h3 
-                className="font-medium cursor-pointer hover:text-primary" 
+                className="font-medium cursor-pointer hover:text-primary transition-colors" 
                 onClick={() => handleClubClick(opponentClubMatch.id, opponentClubMatch)}
               >
                 {opponentClubMatch.name}
@@ -141,9 +141,13 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({ match, userClub, on
                         name={member.name} 
                         image={member.avatar} 
                         size="xs"
-                        className="mr-2"
+                        className="mr-2 cursor-pointer"
+                        onClick={(e) => {
+                          e && e.stopPropagation();
+                          handleMemberClick(member);
+                        }}
                       />
-                      <span>{member.name}</span>
+                      <span className="hover:text-primary transition-colors">{member.name}</span>
                     </div>
                     <span>{member.distanceContribution?.toFixed(1) || "0.0"} km</span>
                   </div>
@@ -165,9 +169,13 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({ match, userClub, on
                         name={member.name} 
                         image={member.avatar} 
                         size="xs"
-                        className="mr-2"
+                        className="mr-2 cursor-pointer"
+                        onClick={(e) => {
+                          e && e.stopPropagation();
+                          handleMemberClick(member);
+                        }}
                       />
-                      <span>{member.name}</span>
+                      <span className="hover:text-primary transition-colors">{member.name}</span>
                     </div>
                     <span>{member.distanceContribution?.toFixed(1) || "0.0"} km</span>
                   </div>
