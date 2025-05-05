@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
 import CreateClubDialog from './club/CreateClubDialog';
@@ -19,7 +19,6 @@ interface HomeViewProps {
 
 const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   const { setCurrentView, setSelectedClub, setSelectedUser, currentUser, refreshCurrentUser } = useApp();
-  const [notifications, setNotifications] = useState<any[]>([]);
   
   const {
     searchDialogOpen,
@@ -32,6 +31,7 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   } = useClubActions();
 
   const { 
+    notifications,
     handleMarkAsRead,
     handleDeclineInvite,
     handleClearAllNotifications,

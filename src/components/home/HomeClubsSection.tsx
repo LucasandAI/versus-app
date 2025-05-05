@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
-import ClubList from './ClubList';
 import FindClubsSection from './FindClubsSection';
 import { useApp } from '@/context/AppContext';
+import CurrentMatchesList from '../match/CurrentMatchesList';
 
 interface HomeClubsSectionProps {
   userClubs: Club[];
@@ -70,12 +70,20 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
 
   return (
     <>
-      <ClubList 
-        userClubs={processedUserClubs}
-        loading={isLoading}
-        onSelectUser={onSelectUser}
-        onCreateClub={onCreateClub}
-      />
+      <h2 className="text-xl font-bold mt-6 mb-4">Current Matches</h2>
+      
+      {isLoading ? (
+        <div className="space-y-3">
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="h-40 bg-gray-100 animate-pulse rounded-md"></div>
+          ))}
+        </div>
+      ) : (
+        <CurrentMatchesList 
+          userClubs={processedUserClubs}
+          onViewProfile={onSelectUser}
+        />
+      )}
 
       {!isAtClubCapacity && !isLoading && (
         <FindClubsSection 

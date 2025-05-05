@@ -582,6 +582,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_weekly_matches: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      find_eligible_opponents: {
+        Args: { p_club_id: string; p_division: string; p_tier: number }
+        Returns: {
+          club_id: string
+          division_diff: number
+        }[]
+      }
       get_unread_club_messages_count: {
         Args: { user_id: string }
         Returns: number
