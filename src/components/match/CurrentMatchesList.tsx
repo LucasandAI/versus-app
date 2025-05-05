@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Club, Match } from '@/types';
 import ClubCurrentMatch from '../club/detail/ClubCurrentMatch';
@@ -21,14 +20,28 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
   
   // Helper function to check if a club has an active match
   const getActiveMatch = (club: Club): Match | null => {
-    return club.currentMatch || 
+    const match = club.currentMatch || 
            (club.matchHistory && club.matchHistory.find(m => m.status === 'active')) ||
            null;
+    console.log(`[CurrentMatchesList] Active match for club ${club.name}:`, {
+      hasCurrentMatch: !!club.currentMatch,
+      hasMatchHistory: !!club.matchHistory,
+      matchHistoryLength: club.matchHistory?.length,
+      foundMatch: match
+    });
+    return match;
   };
 
   useEffect(() => {
     // Update clubs when initial data changes
     setUserClubs(initialClubs);
+    console.log('[CurrentMatchesList] Initial clubs received:', initialClubs.map(club => ({
+      id: club.id,
+      name: club.name,
+      hasCurrentMatch: !!club.currentMatch,
+      currentMatch: club.currentMatch,
+      matchHistoryLength: club.matchHistory?.length
+    })));
     
     // Update cycle info periodically
     const cycleTimer = setInterval(() => {

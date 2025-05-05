@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import FindClubsSection from './FindClubsSection';
@@ -139,7 +138,14 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
       // Ensure the members array exists
       members: club.members || []
     }));
-  
+
+  console.log('[HomeClubsSection] Processed clubs with match data:', processedUserClubs.map(club => ({
+    id: club.id,
+    name: club.name,
+    hasCurrentMatch: !!club.currentMatch,
+    currentMatch: club.currentMatch
+  })));
+
   const isAtClubCapacity = processedUserClubs.length >= 3;
 
   return (

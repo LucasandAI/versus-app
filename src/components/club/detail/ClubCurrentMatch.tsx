@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Match } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -23,6 +22,14 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
   onViewProfile,
   forceShowDetails = false
 }) => {
+  console.log('[ClubCurrentMatch] Rendering with match data:', {
+    matchId: match.id,
+    homeClub: match.homeClub,
+    awayClub: match.awayClub,
+    status: match.status,
+    forceShowDetails
+  });
+
   const [showMatchDetails, setShowMatchDetails] = useState(forceShowDetails);
   const { navigateToClubDetail } = useNavigation();
   const matchEndDateRef = useRef<Date>(new Date(match.endDate));
