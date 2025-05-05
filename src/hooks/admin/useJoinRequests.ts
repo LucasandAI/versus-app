@@ -5,6 +5,7 @@ import { JoinRequest, Club, ClubMember } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { useApp } from '@/context/AppContext';
 import { acceptJoinRequest, denyJoinRequest } from '@/utils/joinRequestUtils';
+import { normalizeStatus, RequestStatus } from '@/types/request-status';
 
 export const useJoinRequests = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -172,7 +173,7 @@ export const useJoinRequests = () => {
             userName: 'Unknown User',
             userAvatar: '',
             createdAt: request.created_at,
-            status: request.status
+            status: normalizeStatus(request.status)
           });
         } else {
           formattedRequests.push({
@@ -182,7 +183,7 @@ export const useJoinRequests = () => {
             userName: userData.name || 'Unknown',
             userAvatar: userData.avatar || '',
             createdAt: request.created_at,
-            status: request.status
+            status: normalizeStatus(request.status)
           });
         }
       }

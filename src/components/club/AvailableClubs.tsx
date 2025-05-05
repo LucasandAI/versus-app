@@ -1,257 +1,202 @@
-
-import React, { useState, useEffect } from 'react';
-import { UserPlus, X, Loader2 } from 'lucide-react';
-import Button from '../shared/Button';
-import { formatLeagueWithTier } from '@/lib/format';
-import UserAvatar from '../shared/UserAvatar';
-import { Division } from '@/types';
-import { useNavigation } from '@/hooks/useNavigation';
+import React, { useEffect, useState } from 'react';
+import { Club, User } from '@/types';
+import ClubCard from './ClubCard';
+import { useClubJoin } from '@/hooks/home/useClubJoin';
+import { Button } from '../ui/button';
+import { useSearchParams } from 'react-router-dom';
+import { useCallback } from 'react';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
-
-interface AvailableClub {
-  id: string;
-  name: string;
-  division: Division;
-  tier: number;
-  members: number;
-  logo?: string;
-}
+import { useJoinRequest } from '@/hooks/club/useJoinRequest';
+import { toast } from '@/hooks/use-toast';
 
 interface AvailableClubsProps {
-  clubs: AvailableClub[];
-  onRequestJoin: (clubId: string, clubName: string) => void;
+  title?: string;
+  limitPreviewsTo?: number;
+  filters?: {
+    division?: string;
+    minTier?: number;
+    maxTier?: number;
+    search?: string;
+  };
+  emptyMessage?: string;
 }
 
-const AvailableClubs: React.FC<AvailableClubsProps> = ({ clubs, onRequestJoin }) => {
-  const { navigateToClubDetail } = useNavigation();
-  const { currentUser } = useApp();
-  const [pendingRequests, setPendingRequests] = useState<Record<string, boolean>>({});
-  const [processingRequests, setProcessingRequests] = useState<Record<string, boolean>>({});
+const AvailableClubs: React.FC<AvailableClubsProps> = ({ 
+  title = "Available Clubs", 
+  limitPreviewsTo = 3,
+  filters = {},
+  emptyMessage = "No clubs available. Create a new club or search for different criteria."
+}) => {
+  const [availableClubs, setAvailableClubs] = useState<Club[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
+  const [showAll, setShowAll] = useState(false);
+  const [searchParams] = useSearchParams();
+  const { currentUser } = useApp();
+  const { handleRequestToJoin } = useClubJoin();
 
-  useEffect(() => {
-    // Initialize member counts from the clubs prop
-    const initialCounts: Record<string, number> = {};
-    clubs.forEach(club => {
-      initialCounts[club.id] = club.members;
-    });
-    setMemberCounts(initialCounts);
-  }, [clubs]);
-
-  useEffect(() => {
-    if (currentUser) {
-      fetchPendingRequests();
+  // Check if current user is already a member of a club
+  const isMemberOfClub = useCallback((clubId: string) => {
+    if (!currentUser || !currentUser.clubs || currentUser.clubs.length === 0) {
+      return false;
     }
-    
-    // Set up Supabase realtime subscription for club_members table
-    const clubMembershipChannel = supabase
-      .channel('available-clubs-membership-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'club_members'
-        },
-        async () => {
-          console.log('[AvailableClubs] Realtime update detected for club members, refreshing member counts');
-          await fetchLatestMemberCounts();
-        }
-      )
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(clubMembershipChannel);
-    };
-  }, [currentUser, clubs]);
-  
-  // Handler for the clubMembershipChanged event
-  useEffect(() => {
-    const handleClubMembershipChange = async () => {
-      console.log('[AvailableClubs] clubMembershipChanged event received, refreshing member counts');
-      await fetchLatestMemberCounts();
-    };
-    
-    window.addEventListener('clubMembershipChanged', handleClubMembershipChange);
-    window.addEventListener('userDataUpdated', handleClubMembershipChange);
-    
-    return () => {
-      window.removeEventListener('clubMembershipChanged', handleClubMembershipChange);
-      window.removeEventListener('userDataUpdated', handleClubMembershipChange);
-    };
-  }, [clubs]);
+    return currentUser.clubs.some(club => club.id === clubId);
+  }, [currentUser]);
 
-  const fetchLatestMemberCounts = async () => {
-    if (!clubs.length) return;
-    
-    try {
-      const clubIds = clubs.map(club => club.id);
-      const { data, error } = await supabase
-        .from('clubs')
-        .select('id, member_count')
-        .in('id', clubIds);
-        
-      if (error) {
-        console.error('[AvailableClubs] Error fetching member counts:', error);
-        return;
-      }
-      
-      if (data && Array.isArray(data)) {
-        const newCounts: Record<string, number> = {};
-        data.forEach(club => {
-          newCounts[club.id] = club.member_count;
-        });
-        
-        setMemberCounts(prev => ({
-          ...prev,
-          ...newCounts
-        }));
-        
-        console.log('[AvailableClubs] Updated member counts:', newCounts);
-      }
-    } catch (err) {
-      console.error('[AvailableClubs] Error fetching member counts:', err);
-    }
+  // Handle show more/less clubs
+  const handleShowMoreToggle = () => {
+    setShowAll(!showAll);
   };
 
-  const fetchPendingRequests = async () => {
-    if (!currentUser) return;
+  // Handle joining a club
+  const handleJoin = async (clubId: string) => {
+    if (!currentUser) {
+      toast({
+        title: "Login Required",
+        description: "You need to be logged in to join a club",
+        variant: "destructive"
+      });
+      return;
+    }
     
+    // If the club is found in available clubs, get its name
+    const clubToJoin = availableClubs.find(club => club.id === clubId);
+    if (!clubToJoin) {
+      toast({
+        title: "Error",
+        description: "Club not found",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const joinRequest = useJoinRequest(clubId);
+    
+    // First check if the user already has a pending request
+    const hasPending = await joinRequest.checkPendingRequest(currentUser.id);
+    
+    if (hasPending) {
+      // Cancel the pending request
+      await joinRequest.cancelJoinRequest(currentUser.id);
+    } else {
+      // Send a new request
+      await joinRequest.sendJoinRequest(currentUser.id);
+    }
+    
+    // Refresh the available clubs list
+    fetchAvailableClubs();
+  };
+
+  // Fetch available clubs from Supabase
+  const fetchAvailableClubs = useCallback(async () => {
+    if (!currentUser) {
+      setAvailableClubs([]);
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('club_requests')
-        .select('club_id')
-        .eq('user_id', currentUser.id)
-        .eq('status', 'pending');
-        
+      let query = supabase
+        .from('clubs')
+        .select('id, name, logo, bio, division, tier, elite_points, member_count');
+      
+      // Apply any filters provided
+      if (filters.division) {
+        query = query.eq('division', filters.division);
+      }
+      
+      if (typeof filters.minTier === 'number') {
+        query = query.gte('tier', filters.minTier);
+      }
+      
+      if (typeof filters.maxTier === 'number') {
+        query = query.lte('tier', filters.maxTier);
+      }
+      
+      if (filters.search) {
+        query = query.ilike('name', `%${filters.search}%`);
+      }
+      
+      const { data, error } = await query;
+      
       if (error) {
-        console.error('Error fetching pending requests:', error);
+        console.error('Error fetching available clubs:', error);
+        return;
+      }
+      
+      if (!data) {
+        setAvailableClubs([]);
         return;
       }
 
-      const requests: Record<string, boolean> = {};
-      data?.forEach(request => {
-        requests[request.club_id] = true;
-      });
+      // If we have clubs data, check for pending join requests
+      const clubsWithRequestStatus = await Promise.all(
+        data.map(async (club) => {
+          // Check if user has a pending request for this club
+          const { data: pendingRequest, error: requestError } = await supabase
+            .from('club_requests')
+            .select('status')
+            .eq('user_id', currentUser.id)
+            .eq('club_id', club.id)
+            .eq('status', 'PENDING')
+            .maybeSingle();
+            
+          return {
+            ...club,
+            hasPendingRequest: !!pendingRequest,
+            isPreviewClub: true,
+            members: [] // We don't have members here, but need it to match Club type
+          };
+        })
+      );
       
-      setPendingRequests(requests);
-    } catch (err) {
-      console.error('Error processing pending requests:', err);
+      // Now we need to filter out clubs the user is already in
+      const userClubIds = currentUser.clubs.map(club => club.id);
+      const availableClubsData = clubsWithRequestStatus.filter(club => 
+        !userClubIds.includes(club.id)
+      );
+      
+      setAvailableClubs(availableClubsData);
+      
+    } catch (error) {
+      console.error('Error in fetchAvailableClubs:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentUser, filters]);
 
-  const handleClubClick = (club: AvailableClub) => {
-    navigateToClubDetail(club.id, {
-      id: club.id,
-      name: club.name,
-      division: club.division,
-      tier: club.tier,
-      logo: club.logo || '/placeholder.svg',
-    });
-  };
+  useEffect(() => {
+    fetchAvailableClubs();
+  }, [fetchAvailableClubs]);
 
-  const handleRequestClick = async (e: React.MouseEvent, clubId: string, clubName: string) => {
-    e.stopPropagation();
-    
-    // Prevent double clicks and rapid toggling
-    if (processingRequests[clubId]) return;
-    
-    // Set processing state for this specific club
-    setProcessingRequests(prev => ({
-      ...prev,
-      [clubId]: true
-    }));
-    
-    // Update local state optimistically
-    const isCurrentlyPending = pendingRequests[clubId];
-    setPendingRequests(prev => ({
-      ...prev,
-      [clubId]: !isCurrentlyPending
-    }));
-    
-    // Call the parent handler
-    await onRequestJoin(clubId, clubName);
-    
-    // Add a small delay to prevent button flickering
-    setTimeout(() => {
-      setProcessingRequests(prev => ({
-        ...prev,
-        [clubId]: false
-      }));
-    }, 500);
-  };
-
-  if (clubs.length === 0) {
-    return (
-      <div className="bg-white rounded-lg shadow-md p-4">
-        <p className="text-gray-500 text-center py-4">
-          No clubs available to join at the moment
-        </p>
-      </div>
-    );
-  }
+  // Determine which clubs to display based on showAll flag
+  const clubsToDisplay = showAll ? availableClubs : availableClubs.slice(0, limitPreviewsTo);
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4">
-      <p className="text-gray-500 text-sm mb-4">
-        Clubs looking for members
-      </p>
-
-      <div className="space-y-3">
-        {clubs.map((club) => {
-          // Use the updated member count from our state, or fall back to the prop value
-          const currentMemberCount = memberCounts[club.id] !== undefined ? memberCounts[club.id] : club.members;
-          const isProcessing = processingRequests[club.id] || false;
-          
-          return (
-            <div 
-              key={club.id} 
-              className="flex items-center justify-between border-b last:border-0 pb-3 last:pb-0"
-            >
-              <div 
-                className="flex items-center gap-3 cursor-pointer hover:text-primary"
-                onClick={() => handleClubClick(club)}
-              >
-                <UserAvatar
-                  name={club.name}
-                  image={club.logo}
-                  size="sm"
-                  className="h-10 w-10"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleClubClick(club);
-                  }}
-                />
-                <div>
-                  <h3 className="font-medium text-sm">{club.name}</h3>
-                  <span className="text-xs text-gray-500">
-                    {formatLeagueWithTier(club.division, club.tier)} • {currentMemberCount}/5 members
-                  </span>
-                </div>
-              </div>
-              <Button 
-                variant={pendingRequests[club.id] ? "outline" : "outline"}
-                size="sm" 
-                className={`h-8 ${pendingRequests[club.id] ? "text-red-500 hover:text-red-700" : ""}`}
-                icon={isProcessing ? 
-                  <Loader2 className="h-4 w-4 animate-spin" /> : 
-                  pendingRequests[club.id] ? <X className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />
-                }
-                onClick={(e) => handleRequestClick(e, club.id, club.name)}
-                loading={isProcessing}
-                disabled={isProcessing}
-              >
-                {pendingRequests[club.id] ? "Cancel Request" : "Request"}
-              </Button>
-            </div>
-          );
-        })}
-      </div>
+    <div className="py-6">
+      <h2 className="text-2xl font-bold mb-4">{title}</h2>
+      {isLoading ? (
+        <p>Loading clubs...</p>
+      ) : clubsToDisplay.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {clubsToDisplay.map((club) => (
+            <ClubCard key={club.id} club={club} isPreviewClub={true}>
+              {currentUser && !isMemberOfClub(club.id) && (
+                <Button onClick={() => handleJoin(club.id)}>
+                  {club.hasPendingRequest ? 'Cancel Request' : 'Request to Join'}
+                </Button>
+              )}
+            </ClubCard>
+          ))}
+        </div>
+      ) : (
+        <p>{emptyMessage}</p>
+      )}
+      {availableClubs.length > limitPreviewsTo && (
+        <button className="mt-4 text-primary hover:underline" onClick={handleShowMoreToggle}>
+          {showAll ? 'Show Less' : 'Show More'}
+        </button>
+      )}
     </div>
   );
 };
