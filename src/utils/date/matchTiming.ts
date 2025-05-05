@@ -1,6 +1,6 @@
 
 import { format, addDays, addMinutes, startOfWeek, endOfWeek, differenceInSeconds } from 'date-fns';
-import { zonedTimeToUtc } from 'date-fns-tz';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 
 // Constants for match cycle
 const MATCH_DURATION_MS = 5 * 60 * 1000;      // 5 minutes
@@ -16,7 +16,7 @@ const getMondayMidnightParis = (): Date => {
   const currentWeekMonday = startOfWeek(now, { weekStartsOn: 1 }); // 1 = Monday
   
   // Set to midnight in Paris timezone
-  return zonedTimeToUtc(
+  return fromZonedTime(
     new Date(
       currentWeekMonday.getFullYear(),
       currentWeekMonday.getMonth(),
