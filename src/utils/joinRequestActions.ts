@@ -110,7 +110,7 @@ export const denyJoinRequestFromNotification = async (
       .select('id')
       .eq('user_id', requesterId)  // Using requesterId (the person who requested to join)
       .eq('club_id', clubId)
-      .eq('status', 'pending')
+      .eq('status', 'PENDING') // Fixed: Using uppercase for database query
       .single();
       
     if (requestError || !requestData) {
