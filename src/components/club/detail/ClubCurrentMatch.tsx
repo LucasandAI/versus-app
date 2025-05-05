@@ -10,6 +10,7 @@ import { useNavigation } from '@/hooks/useNavigation';
 import { formatLeague } from '@/utils/club/leagueUtils';
 import CountdownTimer from '@/components/match/CountdownTimer';
 import { getCurrentCycleInfo } from '@/utils/date/matchTiming';
+import { useApp } from '@/context/AppContext';
 
 interface ClubCurrentMatchProps {
   match: Match;
@@ -23,11 +24,15 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
   forceShowDetails = false
 }) => {
   const [showMatchDetails, setShowMatchDetails] = useState(forceShowDetails);
-  const {
-    navigateToClubDetail
-  } = useNavigation();
+  const { navigateToClubDetail } = useNavigation();
   const matchEndDateRef = useRef<Date>(new Date(match.endDate));
   const [cycleInfo, setCycleInfo] = useState(getCurrentCycleInfo());
+  const { selectedClub } = useApp();
+  
+  // Determine if the current club is home or away
+  const isHomeClub = selectedClub && selectedClub.id === match.homeClub.id;
+  const currentClub = isHomeClub ? match.homeClub : match.awayClub;
+  const opponentClub = isHomeClub ? match.awayClub : match.homeClub;
 
   // Update match end time reference if match data changes
   useEffect(() => {
@@ -99,17 +104,17 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
           <CardContent>
             <div className="flex justify-between items-center mb-4">
               <div className="text-center">
-                <h4 className="font-medium">{match.homeClub.name}</h4>
-                <p className="font-bold text-lg mt-1">{match.homeClub.totalDistance.toFixed(1)} km</p>
+                <h4 className="font-medium">{currentClub.name}</h4>
+                <p className="font-bold text-lg mt-1">{currentClub.totalDistance.toFixed(1)} km</p>
               </div>
               
               <div className="text-center text-gray-500 font-medium">vs</div>
               
               <div className="text-center">
-                <h4 className="font-medium cursor-pointer hover:text-primary transition-colors" onClick={() => handleClubClick(match.awayClub)}>
-                  {match.awayClub.name}
+                <h4 className="font-medium cursor-pointer hover:text-primary transition-colors" onClick={() => handleClubClick(opponentClub)}>
+                  {opponentClub.name}
                 </h4>
-                <p className="font-bold text-lg mt-1">{match.awayClub.totalDistance.toFixed(1)} km</p>
+                <p className="font-bold text-lg mt-1">{opponentClub.totalDistance.toFixed(1)} km</p>
               </div>
             </div>
 
@@ -131,11 +136,11 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
             {(showMatchDetails || forceShowDetails) && (
               <div className="mt-4 border-t border-gray-100 pt-4">
                 <div className="grid grid-cols-2 divide-x">
-                  {/* Home Club Members */}
+                  {/* Current Club Members */}
                   <div className="pr-4">
-                    <h4 className="font-medium mb-3 text-sm">{match.homeClub.name} Members</h4>
+                    <h4 className="font-medium mb-3 text-sm">{currentClub.name} Members</h4>
                     <div className="space-y-3">
-                      {match.homeClub.members.map(member => (
+                      {currentClub.members.map(member => (
                         <div 
                           key={member.id} 
                           className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" 
@@ -160,11 +165,11 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
                     </div>
                   </div>
                   
-                  {/* Away Club Members */}
+                  {/* Opponent Club Members */}
                   <div className="pl-4">
-                    <h4 className="font-medium mb-3 text-sm">{match.awayClub.name} Members</h4>
+                    <h4 className="font-medium mb-3 text-sm">{opponentClub.name} Members</h4>
                     <div className="space-y-3">
-                      {match.awayClub.members.map(member => (
+                      {opponentClub.members.map(member => (
                         <div 
                           key={member.id} 
                           className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" 
@@ -212,17 +217,17 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
               <div className="mt-4 pt-4 border-t border-blue-100">
                 <div className="flex justify-between items-center mb-4">
                   <div className="text-center">
-                    <h4 className="font-medium">{match.homeClub.name}</h4>
-                    <p className="font-bold text-lg mt-1">{match.homeClub.totalDistance.toFixed(1)} km</p>
+                    <h4 className="font-medium">{currentClub.name}</h4>
+                    <p className="font-bold text-lg mt-1">{currentClub.totalDistance.toFixed(1)} km</p>
                   </div>
                   
                   <div className="text-center text-gray-500 font-medium">vs</div>
                   
                   <div className="text-center">
-                    <h4 className="font-medium cursor-pointer hover:text-primary transition-colors" onClick={() => handleClubClick(match.awayClub)}>
-                      {match.awayClub.name}
+                    <h4 className="font-medium cursor-pointer hover:text-primary transition-colors" onClick={() => handleClubClick(opponentClub)}>
+                      {opponentClub.name}
                     </h4>
-                    <p className="font-bold text-lg mt-1">{match.awayClub.totalDistance.toFixed(1)} km</p>
+                    <p className="font-bold text-lg mt-1">{opponentClub.totalDistance.toFixed(1)} km</p>
                   </div>
                 </div>
 
@@ -230,11 +235,11 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
 
                 <div className="mt-4 pt-4">
                   <div className="grid grid-cols-2 divide-x">
-                    {/* Home Club Members */}
+                    {/* Current Club Members */}
                     <div className="pr-4">
-                      <h4 className="font-medium mb-3 text-sm">{match.homeClub.name} Members</h4>
+                      <h4 className="font-medium mb-3 text-sm">{currentClub.name} Members</h4>
                       <div className="space-y-3">
-                        {match.homeClub.members.map(member => (
+                        {currentClub.members.map(member => (
                           <div 
                             key={member.id} 
                             className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" 
@@ -255,11 +260,11 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
                       </div>
                     </div>
                     
-                    {/* Away Club Members */}
+                    {/* Opponent Club Members */}
                     <div className="pl-4">
-                      <h4 className="font-medium mb-3 text-sm">{match.awayClub.name} Members</h4>
+                      <h4 className="font-medium mb-3 text-sm">{opponentClub.name} Members</h4>
                       <div className="space-y-3">
-                        {match.awayClub.members.map(member => (
+                        {opponentClub.members.map(member => (
                           <div 
                             key={member.id} 
                             className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" 
