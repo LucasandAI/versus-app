@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Match, Division } from '@/types';
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -26,7 +27,10 @@ const MatchCard: React.FC<MatchCardProps> = ({
   const isHomeTeam = match.homeClub.id === clubId;
   const ourTeam = isHomeTeam ? match.homeClub : match.awayClub;
   const theirTeam = isHomeTeam ? match.awayClub : match.homeClub;
-  const weWon = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
+  
+  // Handle TIE outcome
+  const matchResult = match.winner === 'draw' ? 'TIE' : 
+    ((isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away')) ? 'WIN' : 'LOSS';
 
   const formatDateRange = (startDate: string, endDate: string) => {
     const start = new Date(startDate);
@@ -70,6 +74,11 @@ const MatchCard: React.FC<MatchCardProps> = ({
     const afterEmoji = getDivisionEmoji(afterDivision);
     const formattedLeague = formatLeague(afterDivision, afterTier);
     
+    // Handle TIE outcomes
+    if (match.winner === 'draw') {
+      return `Maintained in ${afterEmoji} ${formattedLeague}`;
+    }
+    
     const isDivisionChange = beforeDivision !== afterDivision;
     const isTierChange = beforeLeague.tier !== afterLeagueData.tier;
     
@@ -82,32 +91,41 @@ const MatchCard: React.FC<MatchCardProps> = ({
       if (beforeDivision !== 'elite') {
         return `Promoted to ${afterEmoji} ${formattedLeague} ${pointsText}`;
       } else {
-        return `${weWon ? 'Gained' : 'Lost'} points in ${afterEmoji} ${formattedLeague} ${pointsText}`;
+        if (match.winner === 'draw') {
+          return `Maintained in ${afterEmoji} ${formattedLeague} ${pointsText}`;
+        } else if (matchResult === 'WIN') {
+          return `Gained points in ${afterEmoji} ${formattedLeague} ${pointsText}`;
+        } else {
+          return `Lost points in ${afterEmoji} ${formattedLeague} ${pointsText}`;
+        }
       }
     }
     
-    if (isDivisionChange) {
-      const divisionOrderChange = 
-        ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'elite'].indexOf(afterDivision) >
-        ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'elite'].indexOf(beforeDivision);
-      
-      if (divisionOrderChange) {
-        return `Promoted to ${afterEmoji} ${formattedLeague}`;
-      } else {
-        return `Relegated to ${afterEmoji} ${formattedLeague}`;
-      }
-    } else if (isTierChange) {
-      if (beforeLeague.tier > afterLeagueData.tier) {
-        return `Promoted to ${afterEmoji} ${formattedLeague}`;
-      } else {
-        return `Relegated to ${afterEmoji} ${formattedLeague}`;
-      }
-    } else {
+    // Simplify impact text based on match outcome
+    if (matchResult === 'WIN') {
+      return `Promoted to ${afterEmoji} ${formattedLeague}`;
+    } else if (matchResult === 'LOSS') {
+      return `Relegated to ${afterEmoji} ${formattedLeague}`;
+    } else { // TIE
       return `Maintained in ${afterEmoji} ${formattedLeague}`;
     }
   };
 
   const dateRange = formatDateRange(match.startDate, match.endDate);
+
+  // Determine the appropriate class for the match result
+  const getResultClass = () => {
+    switch(matchResult) {
+      case 'WIN':
+        return 'bg-green-100 text-green-800';
+      case 'LOSS':
+        return 'bg-red-100 text-red-800';
+      case 'TIE':
+        return 'bg-amber-100 text-amber-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   return (
     <div className="space-y-2 pb-3 border-b border-gray-100 last:border-0">
@@ -130,10 +148,8 @@ const MatchCard: React.FC<MatchCardProps> = ({
             </h3>
           </div>
         </div>
-        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-          weWon ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
-          {weWon ? 'WIN' : 'LOSS'}
+        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getResultClass()}`}>
+          {matchResult}
         </span>
       </div>
 
@@ -146,7 +162,8 @@ const MatchCard: React.FC<MatchCardProps> = ({
       <div>
         <p className="flex items-center gap-1 text-xs font-medium">
           League Impact: 
-          <span className={weWon ? 'text-green-600' : 'text-red-600'}>
+          <span className={matchResult === 'WIN' ? 'text-green-600' : 
+                           matchResult === 'LOSS' ? 'text-red-600' : 'text-amber-600'}>
             {getLeagueImpactText(match, clubId)}
           </span>
         </p>

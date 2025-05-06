@@ -20,14 +20,18 @@ const ClubStats: React.FC<ClubStatsProps> = ({ club, matchHistory }) => {
   // Safely handle potentially undefined matchHistory
   const safeMatchHistory = Array.isArray(matchHistory) ? matchHistory : [];
   
-  // Calculate win/loss record from match history
+  // Calculate win/loss/tie record from match history
   const wins = safeMatchHistory.filter(match => {
     if (!match || !match.homeClub?.id || !match.winner) return false;
     const isHomeTeam = match.homeClub.id === club.id;
     return (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
   }).length;
   
-  const losses = safeMatchHistory.length - wins;
+  const ties = safeMatchHistory.filter(match => {
+    return match && match.winner === 'draw';
+  }).length;
+  
+  const losses = safeMatchHistory.length - wins - ties;
   
   // Calculate win streak
   const winStreak = calculateWinStreak(safeMatchHistory, club.id);
@@ -67,7 +71,7 @@ const ClubStats: React.FC<ClubStatsProps> = ({ club, matchHistory }) => {
             <p className="text-xs text-gray-500">Match Record</p>
             <p className="font-medium">
               {safeMatchHistory.length > 0 
-                ? `${wins}W - ${losses}L` 
+                ? `${wins}W - ${losses}L${ties > 0 ? ` - ${ties}T` : ''}` 
                 : 'No matches yet'}
             </p>
           </div>
@@ -120,6 +124,9 @@ const calculateWinStreak = (matches: Match[] | undefined, clubId: string): numbe
   
   for (const match of sortedMatches) {
     if (!match || !match.homeClub?.id || !match.winner) continue;
+    
+    // Ties break the streak
+    if (match.winner === 'draw') break;
     
     const isHomeTeam = match.homeClub.id === clubId;
     const isWin = (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
