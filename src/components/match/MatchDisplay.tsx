@@ -158,7 +158,7 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
               <div className="grid grid-cols-2 gap-4">
                 {/* Current Club Members */}
                 <div>
-                  <h4 className="font-medium mb-3 text-sm">{currentClub.name}</h4>
+                  
                   <div className="space-y-3">
                     {currentClub.members && currentClub.members.length > 0 ? currentClub.members.map(member => <div key={member.id} className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" onClick={() => handleMemberClick(member)}>
                           <div className="flex items-center gap-2">
@@ -172,7 +172,7 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
                 
                 {/* Opponent Club Members */}
                 <div>
-                  <h4 className="font-medium mb-3 text-sm text-right">{opponentClub.name}</h4>
+                  
                   <div className="space-y-3">
                     {opponentClub && opponentClub.members && opponentClub.members.length > 0 ? opponentClub.members.map(member => <div key={member.id} className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" onClick={() => handleMemberClick(member)}>
                           <div className="flex items-center gap-2">
