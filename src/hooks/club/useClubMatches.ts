@@ -125,7 +125,7 @@ export const useClubMatches = () => {
             name: matchData.home_club_name || 'Unknown Team',
             logo: matchData.home_club_logo || '/placeholder.svg',
             division: ensureDivision(matchData.home_club_division || 'bronze'),
-            tier: Number(matchData.home_tier || 1),
+            tier: Number(matchData.home_club_tier || 1),
             totalDistance: parseFloat(String(matchData.home_total_distance || '0')),
             members: homeMembers
           },
@@ -133,8 +133,8 @@ export const useClubMatches = () => {
             id: matchData.away_club_id,
             name: matchData.away_club_name || 'Unknown Team',
             logo: matchData.away_club_logo || '/placeholder.svg',
-            division: ensureDivision(matchData.away_division || 'bronze'),
-            tier: Number(matchData.away_tier || 1),
+            division: ensureDivision(matchData.away_club_division || 'bronze'),
+            tier: Number(matchData.away_club_tier || 1),
             totalDistance: parseFloat(String(matchData.away_total_distance || '0')),
             members: awayMembers
           },
