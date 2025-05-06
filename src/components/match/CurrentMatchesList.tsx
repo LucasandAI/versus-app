@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Club, Match } from '@/types';
-import ClubCurrentMatch from '../club/detail/ClubCurrentMatch';
+import CurrentMatchCard from './CurrentMatchCard';
 import WaitingForMatchCard from './WaitingForMatchCard';
 import NeedMoreMembersCard from './NeedMoreMembersCard';
 import { useMatchInfo } from '@/hooks/match/useMatchInfo';
@@ -50,14 +50,11 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
         
         if (activeMatch) {
           return (
-            <div key={`${club.id}-match`} className="mb-6 bg-white rounded-lg shadow-sm overflow-hidden">
-              <div className="p-4 border-b border-gray-100">
-                <h3 className="font-bold text-md">{club.name}</h3>
-              </div>
-              <ClubCurrentMatch
+            <div key={`${club.id}-match`} className="mb-6">
+              <CurrentMatchCard
                 match={activeMatch}
+                userClub={club}
                 onViewProfile={onViewProfile}
-                forceShowDetails={true}  // Force showing the details in homepage view
               />
             </div>
           );
