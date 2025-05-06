@@ -11,6 +11,7 @@ export const useClubMatches = () => {
       .from('view_full_match_info')
       .select('*')
       .or(`home_club_id.eq.${clubId},away_club_id.eq.${clubId}`)
+      .eq('status', 'completed') // Only include completed matches in history
       .order('end_date', { ascending: false });
       
     if (matchesError) {
@@ -171,4 +172,3 @@ export const useClubMatches = () => {
 
   return { fetchClubMatches };
 };
-

@@ -14,6 +14,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
   userClub,
   onViewProfile
 }) => {
+  // Simple wrapper component to maintain API compatibility
   return (
     <MatchDisplay
       match={match}

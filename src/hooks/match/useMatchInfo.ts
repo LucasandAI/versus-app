@@ -53,11 +53,13 @@ export const useMatchInfo = (userClubs: Club[]) => {
       
       // Create home team data
       const homeMembers = parseMembers(match.home_club_members);
-      const homeTotalDistance = calculateTotalDistance(homeMembers);
+      const homeTotalDistance = match.home_total_distance !== null ? 
+        parseFloat(String(match.home_total_distance)) : 
+        calculateTotalDistance(homeMembers);
       
       const homeTeam: MatchTeam = {
         id: match.home_club_id,
-        name: match.home_club_name,
+        name: match.home_club_name || "Unknown Club",
         logo: match.home_club_logo || '/placeholder.svg',
         division: match.home_club_division as any,
         tier: match.home_club_tier,
@@ -67,16 +69,26 @@ export const useMatchInfo = (userClubs: Club[]) => {
       
       // Create away team data
       const awayMembers = parseMembers(match.away_club_members);
-      const awayTotalDistance = calculateTotalDistance(awayMembers);
+      const awayTotalDistance = match.away_total_distance !== null ? 
+        parseFloat(String(match.away_total_distance)) : 
+        calculateTotalDistance(awayMembers);
       
       const awayTeam: MatchTeam = {
         id: match.away_club_id,
-        name: match.away_club_name,
+        name: match.away_club_name || "Unknown Club",
         logo: match.away_club_logo || '/placeholder.svg',
         division: match.away_club_division as any,
         tier: match.away_club_tier,
         totalDistance: awayTotalDistance,
         members: awayMembers
+      };
+      
+      // Ensure winner value is one of the allowed literal types
+      const getWinnerValue = (winnerStr: string | null): 'home' | 'away' | 'draw' | undefined => {
+        if (winnerStr === 'home' || winnerStr === 'away' || winnerStr === 'draw') {
+          return winnerStr;
+        }
+        return undefined;
       };
 
       // Create the full match object
@@ -87,7 +99,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
         startDate: match.start_date,
         endDate: match.end_date,
         status: match.status as 'active' | 'completed',
-        winner: match.winner as 'home' | 'away' | 'draw' | undefined
+        winner: getWinnerValue(match.winner)
       };
     });
   };
@@ -119,6 +131,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
       }
 
       const transformedMatches = transformMatchData(data || []);
+      console.log('[useMatchInfo] Transformed matches:', transformedMatches);
       setMatches(transformedMatches);
     } catch (error) {
       console.error('Error processing matches:', error);
