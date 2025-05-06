@@ -7,7 +7,6 @@ import { debounce } from 'lodash';
 export const useClubMatchInfo = (clubId: string | undefined) => {
   const [match, setMatch] = useState<Match | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Transform the raw match data from view_full_match_info to our Match type
   const transformMatchData = useCallback((rawMatch: any): Match | null => {
@@ -95,8 +94,6 @@ export const useClubMatchInfo = (clubId: string | undefined) => {
     }
 
     try {
-      setIsTransitioning(true);
-      
       // Query the view_full_match_info for active matches for this club
       const { data, error } = await supabase
         .from('view_full_match_info')
@@ -111,25 +108,20 @@ export const useClubMatchInfo = (clubId: string | undefined) => {
         setMatch(null);
       } else {
         const transformedMatch = data ? transformMatchData(data) : null;
-        
-        // Add a small delay before updating the state to avoid flickering
-        setTimeout(() => {
-          setMatch(transformedMatch);
-          setIsTransitioning(false);
-          setIsLoading(false);
-        }, 300);
+        setMatch(transformedMatch);
       }
+      
+      setIsLoading(false);
     } catch (error) {
       console.error('Error processing club match:', error);
       setMatch(null);
-      setIsTransitioning(false);
       setIsLoading(false);
     }
   }, [clubId, transformMatchData]);
 
-  // Debounce the fetch operation to prevent too many rapid updates
+  // Debounce the fetch operation with a shorter delay to improve responsiveness
   const debouncedFetchClubMatch = useMemo(() => 
-    debounce(fetchClubMatch, 500, { leading: true, trailing: true, maxWait: 1000 }),
+    debounce(fetchClubMatch, 150, { leading: true, trailing: true }),
     [fetchClubMatch]
   );
 
@@ -216,7 +208,7 @@ export const useClubMatchInfo = (clubId: string | undefined) => {
 
   return {
     match,
-    isLoading: isLoading || isTransitioning, // Combined loading state to prevent flickering
+    isLoading,
     refreshMatch: debouncedFetchClubMatch
   };
 };

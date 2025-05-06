@@ -7,7 +7,6 @@ import { debounce } from 'lodash';
 export const useMatchInfo = (userClubs: Club[]) => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Memoize club IDs to prevent unnecessary refetches
   const clubIds = useMemo(() => {
@@ -107,8 +106,6 @@ export const useMatchInfo = (userClubs: Club[]) => {
     }
 
     try {
-      setIsTransitioning(true);
-      
       // Create a condition for "club_id IN (clubId1, clubId2, ...)" using OR conditions
       const clubConditions = clubIds.map(id => `home_club_id.eq.${id},away_club_id.eq.${id}`).join(',');
       
@@ -125,23 +122,17 @@ export const useMatchInfo = (userClubs: Club[]) => {
       }
 
       const transformedMatches = transformMatchData(data || []);
-      
-      // Add a small delay before updating the state to avoid flickering
-      setTimeout(() => {
-        setMatches(transformedMatches);
-        setIsTransitioning(false);
-        setIsLoading(false);
-      }, 300);
+      setMatches(transformedMatches);
+      setIsLoading(false);
     } catch (error) {
       console.error('Error processing matches:', error);
-      setIsTransitioning(false);
       setIsLoading(false);
     }
   }, [clubIds, transformMatchData]);
 
-  // Debounce the fetch operation to prevent too many rapid updates
+  // Debounce the fetch operation with a shorter delay to improve responsiveness
   const debouncedFetchMatches = useMemo(() => 
-    debounce(fetchMatches, 500, { leading: true, trailing: true, maxWait: 1000 }),
+    debounce(fetchMatches, 150, { leading: true, trailing: true }),
     [fetchMatches]
   );
 
@@ -207,7 +198,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
 
   return {
     matches,
-    isLoading: isLoading || isTransitioning, // Combined loading state to prevent flickering
+    isLoading,
     refreshMatches: debouncedFetchMatches
   };
 };

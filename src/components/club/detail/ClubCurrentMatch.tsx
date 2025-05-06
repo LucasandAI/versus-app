@@ -18,27 +18,17 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
 }) => {
   const { selectedClub } = useApp();
   const clubId = selectedClub?.id;
-  const [isLoadingFinished, setIsLoadingFinished] = useState(false);
   
   // Use the custom hook to fetch match data
   const { match, isLoading } = useClubMatchInfo(clubId);
-
-  // Set a timeout to mark loading as finished to avoid UI flicker
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoadingFinished(true);
-    }, 1000); // Wait 1 second before showing content to avoid flashing
-
-    return () => clearTimeout(timer);
-  }, []);
 
   // If club data isn't available yet
   if (!selectedClub) {
     return <LoadingSkeleton />;
   }
 
-  // Show loading state, but with a minimum duration to prevent flashing
-  if (isLoading || !isLoadingFinished) {
+  // Show loading state
+  if (isLoading) {
     return <LoadingSkeleton />;
   }
 
