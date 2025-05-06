@@ -11,6 +11,7 @@ export const useClubManagement = (
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const [isCreatingClub, setIsCreatingClub] = useState(false);
 
+  // Update the function signature to accept two parameters
   const createClub = async (name: string, logo: string = '/placeholder.svg'): Promise<Club | null> => {
     if (!currentUser) {
       toast({
@@ -40,7 +41,7 @@ export const useClubManagement = (
         .from('clubs')
         .insert({
           name,
-          logo,
+          logo, // Use the logo parameter
           division: 'bronze',
           tier: 5,
           elite_points: 0,

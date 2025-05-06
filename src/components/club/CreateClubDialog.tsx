@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Camera } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -81,8 +80,7 @@ const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
 
       console.log('[CreateClubDialog] Creating club with name:', name, 'and logo:', logoUrl);
       
-      // The issue is here - we're passing two arguments but TypeScript expects one
-      // Make sure we're passing both arguments correctly
+      // Ensure we're passing parameters that match the function signature
       const result = await createClub(name.trim(), logoUrl || '/placeholder.svg');
       
       if (result) {
