@@ -70,12 +70,13 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
       forceShowDetails
     });
     
+    // Always set forceShowDetails to true for club detail view
     return (
       <CurrentMatchCard
         match={match} 
         userClub={selectedClub} 
         onViewProfile={onViewProfile} 
-        forceShowDetails={forceShowDetails}
+        forceShowDetails={true}
       />
     );
   }

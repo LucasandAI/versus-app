@@ -783,10 +783,6 @@ export type Database = {
       }
     }
     Functions: {
-      end_expired_matches: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
       get_unread_club_messages_count: {
         Args: { user_id: string }
         Returns: number

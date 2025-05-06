@@ -26,10 +26,6 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
   onViewProfile,
   forceShowDetails = false
 }) => {
-  const [showMemberContributions, setShowMemberContributions] = useState(forceShowDetails);
-  const { navigateToClubDetail } = useNavigation();
-  const matchEndDateRef = useRef<Date | null>(match ? new Date(match.endDate) : null);
-
   // Ensure we have valid data to display
   if (!match || !match.homeClub || !match.awayClub) {
     console.error('[MatchDisplay] Invalid match data:', match);
@@ -43,6 +39,11 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
       </Card>
     );
   }
+
+  // Set initial state to respect forceShowDetails
+  const [showMemberContributions, setShowMemberContributions] = useState(forceShowDetails);
+  const { navigateToClubDetail } = useNavigation();
+  const matchEndDateRef = useRef<Date | null>(match ? new Date(match.endDate) : null);
 
   // Determine if user club is home or away
   const isHome = userClub && match.homeClub.id === userClub.id;
@@ -92,8 +93,9 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
       }
     }
 
-    // Update initial show state based on prop
+    // Update show state based on forceShowDetails prop
     if (forceShowDetails && !showMemberContributions) {
+      console.log('[MatchDisplay] Forcing show details to true');
       setShowMemberContributions(true);
     }
     

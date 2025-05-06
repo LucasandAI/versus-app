@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Club, Match, ClubMember } from '@/types';
 import { useClubDetails } from './useClubDetails';

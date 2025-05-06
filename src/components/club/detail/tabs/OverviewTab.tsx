@@ -37,7 +37,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       <ClubStats club={club} matchHistory={matchHistory} />
       
       <div>
-        {/* Always show member details in club view */}
+        {/* Always force details to be shown in club view */}
         <ClubCurrentMatch
           match={club.currentMatch}
           onViewProfile={onSelectUser}
