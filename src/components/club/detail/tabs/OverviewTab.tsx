@@ -40,6 +40,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
         <ClubCurrentMatch
           match={club.currentMatch}
           onViewProfile={onSelectUser}
+          forceShowDetails={true}  {/* Always show member details in club view */}
         />
       </div>
       

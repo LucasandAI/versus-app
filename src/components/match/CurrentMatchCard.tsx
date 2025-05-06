@@ -14,9 +14,9 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
   match,
   userClub,
   onViewProfile,
-  forceShowDetails
+  forceShowDetails = false
 }) => {
-  // Simple wrapper component to maintain API compatibility
+  // Pass all props including forceShowDetails to MatchDisplay
   return (
     <MatchDisplay
       match={match}

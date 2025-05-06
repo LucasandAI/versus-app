@@ -63,11 +63,13 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
   }
   
   // We have a match, use CurrentMatchCard which uses the shared MatchDisplay component
+  // Make sure we properly pass the forceShowDetails prop
   return (
     <CurrentMatchCard
       match={match!} 
       userClub={selectedClub!} 
       onViewProfile={onViewProfile} 
+      forceShowDetails={forceShowDetails}
     />
   );
 };
