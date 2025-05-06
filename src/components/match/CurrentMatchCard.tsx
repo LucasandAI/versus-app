@@ -9,8 +9,6 @@ import { useNavigation } from '@/hooks/useNavigation';
 import { supabase } from '@/integrations/supabase/client';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { formatLeague } from '@/utils/club/leagueUtils';
-import CountdownTimer from './CountdownTimer';
-import { getCurrentCycleInfo } from '@/utils/date/matchTiming';
 
 interface CurrentMatchCardProps {
   match: Match;
@@ -23,11 +21,11 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
   userClub: initialUserClub, 
   onViewProfile 
 }) => {
-  const [showDetails, setShowDetails] = useState(false);
+  const [showMemberContributions, setShowMemberContributions] = useState(false);
   const [match, setMatch] = useState(initialMatch);
   const [userClub, setUserClub] = useState(initialUserClub);
   const matchEndDateRef = useRef<Date>(new Date(initialMatch.endDate));
-  const [cycleInfo, setCycleInfo] = useState(getCurrentCycleInfo());
+  const [timeRemaining, setTimeRemaining] = useState<string>('');
   
   const { navigateToClubDetail } = useNavigation();
   
@@ -35,6 +33,41 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
   const isHome = match.homeClub.id === userClub.id;
   const userClubMatch = isHome ? match.homeClub : match.awayClub;
   const opponentClubMatch = isHome ? match.awayClub : match.homeClub;
+  
+  // Calculate time remaining for the match
+  useEffect(() => {
+    const calculateTimeRemaining = () => {
+      const now = new Date();
+      const endDate = new Date(match.endDate);
+      const timeDiff = endDate.getTime() - now.getTime();
+      
+      if (timeDiff <= 0) {
+        return '00:00:00';
+      }
+      
+      const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+      const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+      
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    };
+    
+    setTimeRemaining(calculateTimeRemaining());
+    
+    const timer = setInterval(() => {
+      const remaining = calculateTimeRemaining();
+      setTimeRemaining(remaining);
+      
+      if (remaining === '00:00:00') {
+        clearInterval(timer);
+        window.dispatchEvent(new CustomEvent('matchEnded', { 
+          detail: { matchId: match.id } 
+        }));
+      }
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [match.endDate, match.id]);
   
   // Handle real-time updates for match data
   useEffect(() => {
@@ -47,11 +80,6 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
     if (endDate.getTime() !== matchEndDateRef.current.getTime()) {
       matchEndDateRef.current = endDate;
     }
-
-    // Update cycle info periodically
-    const cycleTimer = setInterval(() => {
-      setCycleInfo(getCurrentCycleInfo());
-    }, 1000);
 
     // Subscribe to match distance contributions
     const distanceChannel = supabase
@@ -90,7 +118,6 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
     });
 
     return () => {
-      clearInterval(cycleTimer);
       supabase.removeChannel(distanceChannel);
       window.removeEventListener('matchDistanceUpdated', handleMatchUpdate as EventListener);
       window.removeEventListener('matchUpdated', handleMatchUpdate as EventListener);
@@ -101,7 +128,6 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
     };
   }, [initialMatch, initialUserClub]);
 
-  // Get member contribution data
   const handleMemberClick = (member: ClubMember) => {
     onViewProfile(member.id, member.name, member.avatar);
   };
@@ -109,139 +135,97 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
   const handleClubClick = (clubId: string, clubData: any) => {
     navigateToClubDetail(clubId, clubData);
   };
-
-  const handleCountdownComplete = () => {
-    console.log('[CurrentMatchCard] Countdown complete, match ended');
-    window.dispatchEvent(new CustomEvent('matchEnded', { 
-      detail: { matchId: match.id } 
-    }));
-  };
-  
-  // Calculate days remaining
-  const currentDate = new Date();
-  const endDate = new Date(match.endDate);
-  const daysLeft = Math.ceil((endDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
-  
-  // Check if it's in match phase - needed for proper UI rendering
-  const isInMatchPhase = cycleInfo.isInMatchPhase; 
   
   return (
     <Card className="mb-4 overflow-hidden border-0 shadow-md">
-      <CardContent className="p-0">
-        {/* Club Header */}
-        <div className="p-4 border-b border-gray-100">
-          <div className="flex items-center">
-            <UserAvatar 
-              name={userClub.name} 
-              image={userClub.logo} 
-              size="md"
-              className="mr-3 cursor-pointer"
-              onClick={() => handleClubClick(userClub.id, userClub)}
-            />
-            <div>
-              <h3 
-                className="font-semibold cursor-pointer hover:text-primary transition-colors" 
-                onClick={() => handleClubClick(userClub.id, userClub)}
+      <CardContent className="p-4">
+        {/* Match Content */}
+        <div className="mb-4">
+          {/* Match in Progress Notification */}
+          <div className="bg-amber-50 p-3 rounded-md mb-4">
+            <div className="flex justify-between items-center">
+              <h3 className="font-semibold">Match in progress</h3>
+              <div className="flex items-center text-amber-800 text-sm">
+                <Clock className="h-4 w-4 mr-1" />
+                <span>Time remaining: </span>
+                <span className="font-mono ml-1">{timeRemaining}</span>
+              </div>
+            </div>
+          </div>
+              
+          {/* Clubs Matchup */}
+          <div className="flex justify-between items-center mb-6">
+            {/* User Club (always on left) */}
+            <div className="text-center">
+              <div 
+                className="flex flex-col items-center cursor-pointer"
+                onClick={() => handleClubClick(userClubMatch.id, userClubMatch)}
               >
-                {userClub.name}
-              </h3>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600">
-                  {formatLeague(userClub.division, userClub.tier)}
+                <UserAvatar 
+                  name={userClubMatch.name}
+                  image={userClubMatch.logo} 
+                  size="md"
+                  className="mb-2"
+                />
+                <h4 className="font-medium text-sm hover:text-primary transition-colors">
+                  {userClubMatch.name}
+                </h4>
+                <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600 mt-1">
+                  {formatLeague(userClubMatch.division, userClubMatch.tier)}
                 </span>
-                <span className="text-xs text-gray-500">
-                  • {userClub.members.length} members
+              </div>
+            </div>
+                
+            <div className="text-center text-gray-500 font-medium">vs</div>
+                
+            {/* Opponent Club (always on right) */}
+            <div className="text-center">
+              <div 
+                className="flex flex-col items-center cursor-pointer"
+                onClick={() => handleClubClick(opponentClubMatch.id, opponentClubMatch)}
+              >
+                <UserAvatar 
+                  name={opponentClubMatch.name}
+                  image={opponentClubMatch.logo} 
+                  size="md"
+                  className="mb-2"
+                />
+                <h4 className="font-medium text-sm hover:text-primary transition-colors">
+                  {opponentClubMatch.name}
+                </h4>
+                <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600 mt-1">
+                  {formatLeague(opponentClubMatch.division, opponentClubMatch.tier)}
                 </span>
               </div>
             </div>
           </div>
+              
+          {/* Match Progress Bar */}
+          <MatchProgressBar
+            homeDistance={userClubMatch.totalDistance}
+            awayDistance={opponentClubMatch.totalDistance}
+            className="h-5"
+          />
+              
+          {/* Member Contributions Toggle Button */}
+          <Button 
+            variant="outline"
+            size="sm"
+            className="w-full mt-4 text-sm flex items-center justify-center bg-gray-50 hover:bg-gray-100 border-gray-200"
+            onClick={() => setShowMemberContributions(!showMemberContributions)}
+          >
+            {showMemberContributions ? 'Hide Member Contributions' : 'Show Member Contributions'} 
+            <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${showMemberContributions ? 'rotate-180' : ''}`} />
+          </Button>
         </div>
         
-        {/* Match Content */}
-        <div className="p-4">
-          {isInMatchPhase ? (
-            <>
-              {/* Match in Progress */}
-              <div className="bg-amber-50 p-3 rounded-md mb-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="font-semibold">Match in progress...</h3>
-                  <div className="flex items-center text-amber-800 text-sm">
-                    <Clock className="h-4 w-4 mr-1" />
-                    <span>Match ends in: </span>
-                    <CountdownTimer 
-                      useCurrentCycle={true} 
-                      className="font-mono ml-1" 
-                      onComplete={handleCountdownComplete}
-                      refreshInterval={500}
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              {/* Clubs Matchup */}
-              <div className="flex justify-between items-center mb-4">
-                <div className="text-center">
-                  <h4 className="font-medium">{userClubMatch.name}</h4>
-                  <p className="font-bold text-lg mt-1">{userClubMatch.totalDistance.toFixed(1)} km</p>
-                </div>
-                
-                <div className="text-center text-gray-500 font-medium">vs</div>
-                
-                <div className="text-center">
-                  <h4 
-                    className="font-medium cursor-pointer hover:text-primary transition-colors"
-                    onClick={() => handleClubClick(opponentClubMatch.id, opponentClubMatch)}
-                  >
-                    {opponentClubMatch.name}
-                  </h4>
-                  <p className="font-bold text-lg mt-1">{opponentClubMatch.totalDistance.toFixed(1)} km</p>
-                </div>
-              </div>
-              
-              {/* Match Progress Bar - This is the component we're adding to make it match the club detail view */}
-              <div className="mt-6">
-                <MatchProgressBar
-                  homeDistance={userClubMatch.totalDistance}
-                  awayDistance={opponentClubMatch.totalDistance}
-                  className="h-5 mb-4"
-                />
-              </div>
-              
-              {/* Details Toggle Button */}
-              <Button 
-                variant="outline"
-                size="sm"
-                className="w-full mt-2 mb-1 text-sm flex items-center justify-center bg-gray-50 hover:bg-gray-100 border-gray-200"
-                onClick={() => setShowDetails(!showDetails)}
-              >
-                {showDetails ? 'Hide Details' : 'Show Details'} 
-                <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${showDetails ? 'rotate-180' : ''}`} />
-              </Button>
-            </>
-          ) : (
-            /* Match Cooldown Period */
-            <div className="bg-blue-50 p-3 rounded-md text-center my-3">
-              <p className="text-sm font-medium text-blue-700 mb-1">Match cooldown period</p>
-              <p className="text-xs text-blue-600">
-                <CountdownTimer 
-                  useCurrentCycle={true}
-                  showPhaseLabel={true}
-                  className="inline" 
-                  onComplete={handleCountdownComplete}
-                  refreshInterval={500}
-                />
-              </p>
-            </div>
-          )}
-        </div>
-        
-        {/* Member Details Panel */}
-        {isInMatchPhase && showDetails && (
-          <div className="border-t border-gray-100">
-            <div className="grid grid-cols-2 divide-x">
-              {/* Home Club Members */}
-              <div className="p-4">
-                <h4 className="font-medium mb-3 text-sm">Home Club Members</h4>
+        {/* Member Contributions Panel - Only shown when toggled */}
+        {showMemberContributions && (
+          <div className="border-t border-gray-100 pt-4 mt-2">
+            <div className="grid grid-cols-2 gap-4">
+              {/* User Club Members */}
+              <div>
+                <h4 className="font-medium mb-3 text-sm">{userClubMatch.name}</h4>
                 <div className="space-y-3">
                   {userClubMatch.members.map(member => (
                     <div 
@@ -254,11 +238,6 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
                           name={member.name}
                           image={member.avatar} 
                           size="sm"
-                          className="cursor-pointer"
-                          onClick={(e) => {
-                            e && e.stopPropagation();
-                            handleMemberClick(member);
-                          }}
                         />
                         <span className="text-sm hover:text-primary transition-colors">{member.name}</span>
                       </div>
@@ -268,9 +247,9 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
                 </div>
               </div>
               
-              {/* Away Club Members */}
-              <div className="p-4">
-                <h4 className="font-medium mb-3 text-sm">Away Club Members</h4>
+              {/* Opponent Club Members */}
+              <div>
+                <h4 className="font-medium mb-3 text-sm">{opponentClubMatch.name}</h4>
                 <div className="space-y-3">
                   {opponentClubMatch.members.map(member => (
                     <div 
@@ -283,11 +262,6 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
                           name={member.name}
                           image={member.avatar} 
                           size="sm"
-                          className="cursor-pointer"
-                          onClick={(e) => {
-                            e && e.stopPropagation();
-                            handleMemberClick(member);
-                          }}
                         />
                         <span className="text-sm hover:text-primary transition-colors">{member.name}</span>
                       </div>
