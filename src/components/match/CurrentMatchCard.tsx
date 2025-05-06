@@ -1,12 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { Match, Club, ClubMember } from '@/types';
+import { Match, Club } from '@/types';
 import { ChevronDown, Clock } from 'lucide-react';
 import MatchProgressBar from '@/components/shared/MatchProgressBar';
 import { Button } from '@/components/ui/button';
 import { useNavigation } from '@/hooks/useNavigation';
-import { supabase } from '@/integrations/supabase/client';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { formatLeague } from '@/utils/club/leagueUtils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -19,102 +18,19 @@ interface CurrentMatchCardProps {
 }
 
 const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
-  match: initialMatch,
-  userClub: initialUserClub,
+  match,
+  userClub,
   onViewProfile
 }) => {
   const [showMemberContributions, setShowMemberContributions] = useState(false);
-  const [match, setMatch] = useState<Match>(initialMatch);
-  const [userClub, setUserClub] = useState<Club>(initialUserClub);
-  
-  const {
-    navigateToClubDetail
-  } = useNavigation();
+  const { navigateToClubDetail } = useNavigation();
 
   // Determine if user club is home or away
   const isHome = match.homeClub.id === userClub.id;
   const userClubMatch = isHome ? match.homeClub : match.awayClub;
   const opponentClubMatch = isHome ? match.awayClub : match.homeClub;
 
-  // Update state when props change
-  useEffect(() => {
-    setMatch(initialMatch);
-    setUserClub(initialUserClub);
-  }, [initialMatch, initialUserClub]);
-
-  // Set up real-time subscriptions
-  useEffect(() => {
-    console.log('[CurrentMatchCard] Setting up real-time subscriptions for match:', match.id);
-
-    // Subscribe to match updates
-    const matchesChannel = supabase
-      .channel(`match-updates-${match.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'matches',
-          filter: `id=eq.${match.id}`
-        },
-        payload => {
-          console.log(`[CurrentMatchCard] Match updated:`, payload);
-          window.dispatchEvent(new CustomEvent('matchUpdated', {
-            detail: {
-              matchId: match.id
-            }
-          }));
-        }
-      )
-      .subscribe();
-      
-    // Subscribe to match distance updates
-    const distanceChannel = supabase
-      .channel(`match-distances-${match.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'match_distances',
-          filter: `match_id=eq.${match.id}`
-        },
-        payload => {
-          console.log(`[CurrentMatchCard] Match distance updated:`, payload);
-          window.dispatchEvent(new CustomEvent('matchDistanceUpdated', {
-            detail: {
-              matchId: match.id
-            }
-          }));
-        }
-      )
-      .subscribe();
-      
-    return () => {
-      console.log('[CurrentMatchCard] Cleaning up subscriptions for match:', match.id);
-      supabase.removeChannel(matchesChannel);
-      supabase.removeChannel(distanceChannel);
-    };
-  }, [match.id]);
-
-  // Listen for match data updates via custom events
-  useEffect(() => {
-    const handleMatchUpdate = (event: CustomEvent) => {
-      if (event.detail?.matchId === match.id || event.detail?.clubId === userClub.id) {
-        console.log('[CurrentMatchCard] Match updated event received, will refresh data');
-      }
-    };
-    
-    window.addEventListener('matchDistanceUpdated', handleMatchUpdate as EventListener);
-    window.addEventListener('matchUpdated', handleMatchUpdate as EventListener);
-    
-    return () => {
-      window.removeEventListener('matchDistanceUpdated', handleMatchUpdate as EventListener);
-      window.removeEventListener('matchUpdated', handleMatchUpdate as EventListener);
-    };
-  }, [match.id, userClub.id]);
-
-  const handleMemberClick = (member: ClubMember) => {
+  const handleMemberClick = (member: any) => {
     onViewProfile(member.id, member.name, member.avatar);
   };
 

@@ -1,11 +1,16 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club, Match, MatchTeam, ClubMember } from '@/types';
 
 export const useMatchInfo = (userClubs: Club[]) => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Memoize club IDs to prevent unnecessary refetches
+  const clubIds = useMemo(() => {
+    return userClubs?.map(club => club?.id).filter(Boolean) || [];
+  }, [userClubs]);
 
   // Transform the raw match data from view_full_match_info to our Match type
   const transformMatchData = useCallback((rawMatches: any[]): Match[] => {
@@ -81,7 +86,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
 
   // Fetch matches for the user's clubs
   const fetchMatches = useCallback(async () => {
-    if (!userClubs || userClubs.length === 0) {
+    if (!clubIds.length) {
       setMatches([]);
       setIsLoading(false);
       return;
@@ -90,13 +95,14 @@ export const useMatchInfo = (userClubs: Club[]) => {
     setIsLoading(true);
     
     try {
-      const clubIds = userClubs.map(club => club.id);
+      // Create a condition for "club_id IN (clubId1, clubId2, ...)" using OR conditions
+      const clubConditions = clubIds.map(id => `home_club_id.eq.${id},away_club_id.eq.${id}`).join(',');
       
       // Query the view_full_match_info for active matches for the user's clubs
       const { data, error } = await supabase
         .from('view_full_match_info')
         .select('*')
-        .or(clubIds.map(id => `home_club_id.eq.${id},away_club_id.eq.${id}`).join(','))
+        .or(clubConditions)
         .eq('status', 'active');
 
       if (error) {
@@ -112,10 +118,13 @@ export const useMatchInfo = (userClubs: Club[]) => {
     } finally {
       setIsLoading(false);
     }
-  }, [userClubs, transformMatchData]);
+  }, [clubIds, transformMatchData]);
 
   useEffect(() => {
-    fetchMatches();
+    // Only fetch if we have clubs to query for
+    if (clubIds.length > 0) {
+      fetchMatches();
+    }
     
     // Set up a single realtime channel for all changes
     const channel = supabase
@@ -165,7 +174,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
       window.removeEventListener('matchEnded', handleMatchEvent);
       window.removeEventListener('matchDistanceUpdated', handleMatchEvent);
     };
-  }, [fetchMatches]);
+  }, [clubIds, fetchMatches]);
 
   return {
     matches,

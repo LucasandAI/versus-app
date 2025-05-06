@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { Match, Club } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { ChevronDown, Clock } from 'lucide-react';
@@ -13,6 +13,7 @@ import { getCurrentCycleInfo } from '@/utils/date/matchTiming';
 import { useApp } from '@/context/AppContext';
 import SearchOpponentButton from '@/components/match/SearchOpponentButton';
 import NeedMoreMembersCard from '@/components/match/NeedMoreMembersCard';
+import { useClubMatchInfo } from '@/hooks/match/useClubMatchInfo';
 
 interface ClubCurrentMatchProps {
   match?: Match;
@@ -21,125 +22,111 @@ interface ClubCurrentMatchProps {
 }
 
 const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
-  match,
+  match: propMatch,
   onViewProfile,
   forceShowDetails = false
 }) => {
-  console.log('[ClubCurrentMatch] Rendering with match data:', {
-    matchId: match?.id,
-    homeClub: match?.homeClub,
-    awayClub: match?.awayClub,
-    status: match?.status,
-    forceShowDetails
-  });
-
   const [showMemberContributions, setShowMemberContributions] = useState(forceShowDetails);
-  const [cycleInfo, setCycleInfo] = useState(getCurrentCycleInfo());
   const { navigateToClubDetail } = useNavigation();
-  const matchEndDateRef = useRef<Date | null>(null);
   const { selectedClub } = useApp();
+  const cycleInfo = getCurrentCycleInfo();
 
-  // Always set the matchEndDate ref
-  useEffect(() => {
-    if (match) {
-      matchEndDateRef.current = new Date(match.endDate);
-    }
-  }, [match]);
+  // Use the custom hook to fetch match data if not provided
+  const { match: fetchedMatch, isLoading } = useClubMatchInfo(
+    selectedClub?.id && !propMatch ? selectedClub.id : undefined
+  );
 
-  // Update cycle info periodically with a single timer
-  useEffect(() => {
-    const cycleTimer = setInterval(() => {
-      setCycleInfo(getCurrentCycleInfo());
-    }, 1000);
+  // Use prop match if provided, otherwise use fetched match
+  const match = propMatch || fetchedMatch;
+  
+  const clubId = selectedClub?.id;
 
-    // Update initial show state based on prop
-    if (forceShowDetails && !showMemberContributions) {
-      setShowMemberContributions(true);
-    }
-    
-    return () => {
-      clearInterval(cycleTimer);
-    };
-  }, [forceShowDetails, showMemberContributions]);
+  if (isLoading) {
+    return (
+      <Card className="shadow-sm">
+        <CardContent className="p-4">
+          <div className="h-40 bg-gray-100 animate-pulse rounded-md"></div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Handle match state and rendering logic
-  const renderContent = () => {
-    // No match and no selected club means we can't show anything
-    if (!match && !selectedClub) {
-      console.error('[ClubCurrentMatch] Missing both match and selectedClub data');
+  if (!match && !selectedClub) {
+    return (
+      <Card className="shadow-sm">
+        <CardContent className="p-4">
+          <div className="text-center py-4 text-gray-500">
+            Match data is unavailable
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // If no match but we have a club, show the appropriate state (search button or need more members)
+  if (!match && selectedClub) {
+    const hasEnoughMembers = selectedClub.members && selectedClub.members.length >= 5;
+
+    if (hasEnoughMembers) {
       return (
-        <Card className="shadow-sm">
+        <Card className="shadow-md">
           <CardContent className="p-4">
-            <div className="text-center py-4 text-gray-500">
-              Match data is unavailable
+            <div className="bg-blue-50 p-3 rounded-md text-center my-3">
+              <p className="font-medium mb-3">Ready to compete</p>
+              <SearchOpponentButton club={selectedClub} />
             </div>
           </CardContent>
         </Card>
       );
+    } else {
+      return <NeedMoreMembersCard club={selectedClub} hideHeader={true} />;
     }
-
-    // If no match but we have a club, show the appropriate state (search button or need more members)
-    if (!match && selectedClub) {
-      const hasEnoughMembers = selectedClub.members && selectedClub.members.length >= 5;
-
-      if (hasEnoughMembers) {
-        return (
-          <Card className="shadow-md">
-            <CardContent className="p-4">
-              <div className="bg-blue-50 p-3 rounded-md text-center my-3">
-                <p className="font-medium mb-3">Ready to compete</p>
-                <SearchOpponentButton club={selectedClub} />
-              </div>
-            </CardContent>
-          </Card>
-        );
-      } else {
-        return <NeedMoreMembersCard club={selectedClub} hideHeader={true} />;
-      }
-    }
+  }
   
-    // From here on, we know we have a match
-    if (!match || !match.homeClub || !match.awayClub) {
-      return null;
+  // From here on, we know we have a match
+  if (!match || !match.homeClub || !match.awayClub) {
+    return null;
+  }
+
+  // Determine if the current club is home or away
+  const isHomeClub = clubId === match.homeClub.id;
+  // Use safe fallbacks when determining current and opponent clubs
+  const currentClub = isHomeClub ? match.homeClub : match.awayClub;
+  const opponentClub = isHomeClub ? match.awayClub : match.homeClub;
+
+  const handleMemberClick = (member: any) => {
+    if (member && member.id) {
+      onViewProfile(member.id, member.name || 'Unknown', member.avatar);
     }
+  };
 
-    // Determine if the current club is home or away
-    const isHomeClub = selectedClub && selectedClub.id === match.homeClub.id;
-    // Use safe fallbacks when determining current and opponent clubs
-    const currentClub = isHomeClub ? match.homeClub : match.awayClub;
-    const opponentClub = isHomeClub ? match.awayClub : match.homeClub;
+  const handleClubClick = (club: any) => {
+    if (club && club.id) {
+      navigateToClubDetail(club.id, {
+        id: club.id,
+        name: club.name || 'Unknown Club',
+        logo: club.logo || '/placeholder.svg',
+        members: club.members || [],
+        matchHistory: []
+      });
+    }
+  };
 
-    const handleMemberClick = (member: any) => {
-      if (member && member.id) {
-        onViewProfile(member.id, member.name || 'Unknown', member.avatar);
+  const handleCountdownComplete = () => {
+    console.log('[ClubCurrentMatch] Match ended, refreshing data');
+    window.dispatchEvent(new CustomEvent('matchEnded', {
+      detail: {
+        matchId: match.id
       }
-    };
+    }));
+  };
 
-    const handleClubClick = (club: any) => {
-      if (club && club.id) {
-        navigateToClubDetail(club.id, {
-          id: club.id,
-          name: club.name || 'Unknown Club',
-          logo: club.logo || '/placeholder.svg',
-          members: club.members || [],
-          matchHistory: []
-        });
-      }
-    };
+  // Only show the match details during the match phase (UNLESS forceShowDetails is true)
+  const showMatch = forceShowDetails || cycleInfo.isInMatchPhase;
 
-    const handleCountdownComplete = () => {
-      console.log('[ClubCurrentMatch] Match ended, refreshing data');
-      window.dispatchEvent(new CustomEvent('matchEnded', {
-        detail: {
-          matchId: match.id
-        }
-      }));
-    };
-
-    // Only show the match details during the match phase (UNLESS forceShowDetails is true)
-    const showMatch = forceShowDetails || cycleInfo.isInMatchPhase;
-
-    return showMatch ? (
+  if (showMatch) {
+    return (
       <Card className="overflow-hidden border-0 shadow-md">
         <CardContent className="p-4">
           {/* Match in Progress Notification */}
@@ -149,14 +136,12 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
               <div className="flex items-center text-amber-800 text-sm">
                 <Clock className="h-4 w-4 mr-1" />
                 <span>Time remaining: </span>
-                {matchEndDateRef.current && (
-                  <CountdownTimer
-                    targetDate={matchEndDateRef.current}
-                    className="font-mono ml-1"
-                    onComplete={handleCountdownComplete}
-                    refreshInterval={500}
-                  />
-                )}
+                <CountdownTimer
+                  targetDate={new Date(match.endDate)}
+                  className="font-mono ml-1"
+                  onComplete={handleCountdownComplete}
+                  refreshInterval={500}
+                />
               </div>
             </div>
           </div>
@@ -246,7 +231,9 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
           </Collapsible>
         </CardContent>
       </Card>
-    ) : (
+    );
+  } else {
+    return (
       <Card className="overflow-hidden border-0 shadow-md">
         <CardContent>
           <div className="bg-blue-50 p-3 rounded-md text-center my-3">
@@ -262,7 +249,7 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
             </p>
             
             {/* Always show match details during cooldown if forceShowDetails is true */}
-            {forceShowDetails && (
+            {forceShowDetails && match && (
               <div className="mt-4 pt-4 border-t border-blue-100">
                 <div className="flex justify-between items-center mb-4">
                   <div className="text-center">
@@ -351,9 +338,7 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
         </CardContent>
       </Card>
     );
-  };
-
-  return renderContent();
+  }
 };
 
 export default ClubCurrentMatch;
