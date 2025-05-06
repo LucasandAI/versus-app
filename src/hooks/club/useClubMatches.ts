@@ -24,12 +24,12 @@ export const useClubMatches = () => {
       try {
         const isHomeTeam = matchData.home_club_id === clubId;
         
-        // Parse home members data
+        // Parse home members data directly using the new column
         const homeMembers: ClubMember[] = [];
-        if (matchData.home_member_contributions) {
-          const memberContributions = typeof matchData.home_member_contributions === 'string' 
-            ? JSON.parse(matchData.home_member_contributions) 
-            : matchData.home_member_contributions;
+        if (matchData.home_club_members) {
+          const memberContributions = typeof matchData.home_club_members === 'string' 
+            ? JSON.parse(matchData.home_club_members) 
+            : matchData.home_club_members;
             
           // Convert to array if it's an object
           const membersArray = Array.isArray(memberContributions) 
@@ -42,19 +42,19 @@ export const useClubMatches = () => {
                 id: member.user_id,
                 name: member.name || 'Unknown',
                 avatar: member.avatar || '/placeholder.svg',
-                isAdmin: member.is_admin || false,
+                isAdmin: false, // We don't have is_admin in view_full_match_info
                 distanceContribution: parseFloat(String(member.distance || '0'))
               });
             }
           });
         }
 
-        // Parse away members data
+        // Parse away members data directly using the new column
         const awayMembers: ClubMember[] = [];
-        if (matchData.away_member_contributions) {
-          const memberContributions = typeof matchData.away_member_contributions === 'string' 
-            ? JSON.parse(matchData.away_member_contributions) 
-            : matchData.away_member_contributions;
+        if (matchData.away_club_members) {
+          const memberContributions = typeof matchData.away_club_members === 'string' 
+            ? JSON.parse(matchData.away_club_members) 
+            : matchData.away_club_members;
             
           // Convert to array if it's an object
           const membersArray = Array.isArray(memberContributions) 
@@ -67,7 +67,7 @@ export const useClubMatches = () => {
                 id: member.user_id,
                 name: member.name || 'Unknown',
                 avatar: member.avatar || '/placeholder.svg',
-                isAdmin: member.is_admin || false,
+                isAdmin: false, // We don't have is_admin in view_full_match_info
                 distanceContribution: parseFloat(String(member.distance || '0'))
               });
             }
@@ -124,7 +124,7 @@ export const useClubMatches = () => {
             id: matchData.home_club_id,
             name: matchData.home_club_name || 'Unknown Team',
             logo: matchData.home_club_logo || '/placeholder.svg',
-            division: ensureDivision(matchData.home_division || 'bronze'),
+            division: ensureDivision(matchData.home_club_division || 'bronze'),
             tier: Number(matchData.home_tier || 1),
             totalDistance: parseFloat(String(matchData.home_total_distance || '0')),
             members: homeMembers
