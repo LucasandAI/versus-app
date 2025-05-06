@@ -9,6 +9,7 @@ export const useClubManagement = (
   setCurrentUser: (user: User | null | ((prev: User | null) => User | null)) => void
 ) => {
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
+  const [isCreatingClub, setIsCreatingClub] = useState(false);
 
   const createClub = async (name: string, logo: string = '/placeholder.svg'): Promise<Club | null> => {
     if (!currentUser) {
@@ -20,7 +21,20 @@ export const useClubManagement = (
       return null;
     }
     
+    // Prevent concurrent club creation
+    if (isCreatingClub) {
+      console.log('[useClubManagement] Club creation already in progress');
+      return null;
+    }
+    
+    setIsCreatingClub(true);
+    
     try {
+      console.log('[useClubManagement] Creating club:', name);
+      
+      // Create slug from club name
+      const slug = name.toLowerCase().replace(/\s+/g, '-');
+      
       // Insert the new club
       const { data: clubData, error: clubError } = await safeSupabase
         .from('clubs')
@@ -32,7 +46,7 @@ export const useClubManagement = (
           elite_points: 0,
           created_by: currentUser.id,
           bio: `Welcome to ${name}! We're a group of passionate runners looking to challenge ourselves and improve together.`,
-          slug: name.toLowerCase().replace(/\s+/g, '-')
+          slug
         })
         .select()
         .single();
@@ -40,6 +54,8 @@ export const useClubManagement = (
       if (clubError || !clubData) {
         throw new Error(clubError?.message || 'Error creating club');
       }
+
+      console.log('[useClubManagement] Club created:', clubData);
 
       // Add the creator as an admin member
       const { error: memberError } = await safeSupabase
@@ -63,7 +79,7 @@ export const useClubManagement = (
         division: clubData.division.toLowerCase() as Club['division'],
         tier: clubData.tier,
         elitePoints: clubData.elite_points || 0,
-        bio: clubData.bio,
+        bio: clubData.bio || '',
         members: [{
           id: currentUser.id,
           name: currentUser.name,
@@ -79,32 +95,32 @@ export const useClubManagement = (
         if (!prev) return prev;
         return {
           ...prev,
-          clubs: [...prev.clubs, newClub]
+          clubs: [...(prev.clubs || []), newClub]
         };
       });
 
       setSelectedClub(newClub);
       
-      toast({
-        title: "Club created",
-        description: `Successfully created ${name}!`
-      });
-
+      console.log('[useClubManagement] Club created successfully:', newClub);
+      
       return newClub;
     } catch (error) {
-      console.error('Error in createClub:', error);
+      console.error('[useClubManagement] Error in createClub:', error);
       toast({
         title: "Error creating club",
         description: error instanceof Error ? error.message : "An error occurred",
         variant: "destructive"
       });
       return null;
+    } finally {
+      setIsCreatingClub(false);
     }
   };
 
   return {
     selectedClub,
     setSelectedClub,
-    createClub
+    createClub,
+    isCreatingClub
   };
 };
