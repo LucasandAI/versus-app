@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Match, Club, ClubMember } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -12,14 +11,12 @@ import CountdownTimer from '@/components/match/CountdownTimer';
 import { getCurrentCycleInfo } from '@/utils/date/matchTiming';
 import { formatLeague } from '@/utils/club/leagueUtils';
 import { debounce } from 'lodash';
-
 interface MatchDisplayProps {
   match: Match;
   userClub: Club | null;
   onViewProfile: (userId: string, name: string, avatar?: string) => void;
   forceShowDetails?: boolean;
 }
-
 const MatchDisplay: React.FC<MatchDisplayProps> = ({
   match,
   userClub,
@@ -29,20 +26,20 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
   // Ensure we have valid data to display
   if (!match || !match.homeClub || !match.awayClub) {
     console.error('[MatchDisplay] Invalid match data:', match);
-    return (
-      <Card className="overflow-hidden border-0 shadow-md">
+    return <Card className="overflow-hidden border-0 shadow-md">
         <CardContent className="p-4">
           <div className="text-center py-4 text-gray-500">
             Match data is unavailable
           </div>
         </CardContent>
-      </Card>
-    );
+      </Card>;
   }
 
   // Initialize state with forceShowDetails value
   const [open, setOpen] = useState<boolean>(forceShowDetails);
-  const { navigateToClubDetail } = useNavigation();
+  const {
+    navigateToClubDetail
+  } = useNavigation();
   const matchEndDateRef = useRef<Date | null>(match ? new Date(match.endDate) : null);
   const initialRenderRef = useRef<boolean>(true);
 
@@ -57,7 +54,6 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
       onViewProfile(member.id, member.name || 'Unknown', member.avatar);
     }
   };
-
   const handleClubClick = (club: any) => {
     if (club && club.id) {
       navigateToClubDetail(club.id, {
@@ -71,15 +67,14 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
   };
 
   // Debounce the match ended event to prevent flickering
-  const debouncedDispatchMatchEnded = useRef(
-    debounce((matchId?: string) => {
-      console.log('[MatchDisplay] Dispatching debounced matchEnded event');
-      window.dispatchEvent(new CustomEvent('matchEnded', {
-        detail: { matchId }
-      }));
-    }, 500)
-  ).current;
-
+  const debouncedDispatchMatchEnded = useRef(debounce((matchId?: string) => {
+    console.log('[MatchDisplay] Dispatching debounced matchEnded event');
+    window.dispatchEvent(new CustomEvent('matchEnded', {
+      detail: {
+        matchId
+      }
+    }));
+  }, 500)).current;
   const handleCountdownComplete = () => {
     console.log('[MatchDisplay] Match ended, refreshing data');
     debouncedDispatchMatchEnded(match.id);
@@ -101,9 +96,7 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
       initialRenderRef.current = false;
     }
   }, [match, forceShowDetails]);
-  
-  return (
-    <Card className="overflow-hidden border-0 shadow-md">
+  return <Card className="overflow-hidden border-0 shadow-md">
       <CardContent className="p-4">
         {/* Match in Progress Notification */}
         <div className="p-3 rounded-md mb-4 bg-inherit">
@@ -112,12 +105,7 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
             <div className="flex items-center text-amber-800 text-sm">
               <Clock className="h-4 w-4 mr-1" />
               <span>Time remaining: </span>
-              <CountdownTimer
-                targetDate={matchEndDateRef.current!}
-                className="font-mono ml-1"
-                onComplete={handleCountdownComplete}
-                refreshInterval={500}
-              />
+              <CountdownTimer targetDate={matchEndDateRef.current!} className="font-mono ml-1" onComplete={handleCountdownComplete} refreshInterval={500} />
             </div>
           </div>
         </div>
@@ -132,8 +120,7 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
                 {currentClub.name}
               </h4>
               <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600 mt-1">
-                {currentClub.division && currentClub.tier && 
-                  formatLeague(currentClub.division, currentClub.tier)}
+                {currentClub.division && currentClub.tier && formatLeague(currentClub.division, currentClub.tier)}
               </span>
             </div>
           </div>
@@ -148,8 +135,7 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
                 {opponentClub.name}
               </h4>
               <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600 mt-1">
-                {opponentClub.division && opponentClub.tier && 
-                  formatLeague(opponentClub.division, opponentClub.tier)}
+                {opponentClub.division && opponentClub.tier && formatLeague(opponentClub.division, opponentClub.tier)}
               </span>
             </div>
           </div>
@@ -161,11 +147,7 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
         {/* Member Contributions Toggle Button */}
         <Collapsible open={open} onOpenChange={setOpen}>
           <CollapsibleTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full mt-4 text-sm flex items-center justify-center bg-gray-50 hover:bg-gray-100 border-gray-200"
-            >
+            <Button variant="outline" size="sm" className="w-full mt-4 text-sm flex items-center justify-center bg-gray-50 hover:bg-gray-100 border-gray-200">
               {open ? 'Hide Member Contributions' : 'Show Member Contributions'} 
               <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
             </Button>
@@ -178,39 +160,27 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
                 <div>
                   <h4 className="font-medium mb-3 text-sm">{currentClub.name}</h4>
                   <div className="space-y-3">
-                    {currentClub.members && currentClub.members.length > 0 ? (
-                      currentClub.members.map(member => (
-                        <div key={member.id} className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" onClick={() => handleMemberClick(member)}>
+                    {currentClub.members && currentClub.members.length > 0 ? currentClub.members.map(member => <div key={member.id} className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" onClick={() => handleMemberClick(member)}>
                           <div className="flex items-center gap-2">
                             <UserAvatar name={member.name} image={member.avatar} size="sm" />
                             <span className="text-sm hover:text-primary transition-colors">{member.name}</span>
                           </div>
                           <span className="text-sm font-medium">{member.distanceContribution?.toFixed(1) || "0.0"} km</span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-sm text-gray-500 py-2">No members found</div>
-                    )}
+                        </div>) : <div className="text-sm text-gray-500 py-2">No members found</div>}
                   </div>
                 </div>
                 
                 {/* Opponent Club Members */}
                 <div>
-                  <h4 className="font-medium mb-3 text-sm">{opponentClub.name}</h4>
+                  <h4 className="font-medium mb-3 text-sm text-right">{opponentClub.name}</h4>
                   <div className="space-y-3">
-                    {opponentClub && opponentClub.members && opponentClub.members.length > 0 ? (
-                      opponentClub.members.map(member => (
-                        <div key={member.id} className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" onClick={() => handleMemberClick(member)}>
+                    {opponentClub && opponentClub.members && opponentClub.members.length > 0 ? opponentClub.members.map(member => <div key={member.id} className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" onClick={() => handleMemberClick(member)}>
                           <div className="flex items-center gap-2">
                             <UserAvatar name={member.name} image={member.avatar} size="sm" />
                             <span className="text-sm hover:text-primary transition-colors">{member.name}</span>
                           </div>
                           <span className="text-sm font-medium">{member.distanceContribution?.toFixed(1) || "0.0"} km</span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-sm text-gray-500 py-2">No members found</div>
-                    )}
+                        </div>) : <div className="text-sm text-gray-500 py-2">No members found</div>}
                   </div>
                 </div>
               </div>
@@ -218,8 +188,6 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
           </CollapsibleContent>
         </Collapsible>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };
-
 export default MatchDisplay;
