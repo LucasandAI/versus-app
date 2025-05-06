@@ -18,13 +18,15 @@ interface MatchDisplayProps {
   userClub: Club | null;
   onViewProfile: (userId: string, name: string, avatar?: string) => void;
   forceShowDetails?: boolean;
+  onMatchEnd?: (matchId: string) => Promise<void>;
 }
 
 const MatchDisplay: React.FC<MatchDisplayProps> = ({
   match,
   userClub,
   onViewProfile,
-  forceShowDetails = false
+  forceShowDetails = false,
+  onMatchEnd
 }) => {
   // Ensure we have valid data to display
   if (!match || !match.homeClub || !match.awayClub) {
@@ -45,6 +47,7 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
   const { navigateToClubDetail } = useNavigation();
   const matchEndDateRef = useRef<Date | null>(match ? new Date(match.endDate) : null);
   const initialRenderRef = useRef<boolean>(true);
+  const matchEndedRef = useRef<boolean>(false);
 
   // Determine if user club is home or away
   const isHome = userClub && match.homeClub.id === userClub.id;
@@ -73,16 +76,27 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
   // Debounce the match ended event to prevent flickering
   const debouncedDispatchMatchEnded = useRef(
     debounce((matchId?: string) => {
+      if (matchEndedRef.current) return; // Prevent multiple endings
+      
       console.log('[MatchDisplay] Dispatching debounced matchEnded event');
+      matchEndedRef.current = true;
+      
       window.dispatchEvent(new CustomEvent('matchEnded', {
         detail: { matchId }
       }));
+      
+      // If we have a direct callback, use it
+      if (onMatchEnd && matchId) {
+        onMatchEnd(matchId);
+      }
     }, 500)
   ).current;
 
   const handleCountdownComplete = () => {
-    console.log('[MatchDisplay] Match ended, refreshing data');
-    debouncedDispatchMatchEnded(match.id);
+    console.log('[MatchDisplay] Match ended, notifying system');
+    if (match.id) {
+      debouncedDispatchMatchEnded(match.id);
+    }
   };
 
   // Update match end date and open state based on forceShowDetails prop
@@ -100,6 +114,10 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
       setOpen(forceShowDetails);
       initialRenderRef.current = false;
     }
+    
+    // Reset match ended state when match changes
+    matchEndedRef.current = false;
+    
   }, [match, forceShowDetails]);
   
   return (

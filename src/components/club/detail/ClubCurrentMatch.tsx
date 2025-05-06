@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Match, Club } from '@/types';
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import NeedMoreMembersCard from '@/components/match/NeedMoreMembersCard';
 import CurrentMatchCard from '@/components/match/CurrentMatchCard';
 import { supabase } from '@/integrations/supabase/client';
 import { ensureDivision } from '@/utils/club/leagueUtils';
+import { useToast } from '@/hooks/use-toast';
 
 interface ClubCurrentMatchProps {
   match?: Match;
@@ -24,6 +26,36 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
   const { selectedClub } = useApp();
   const [match, setMatch] = useState<Match | undefined>(initialMatch);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const { toast } = useToast();
+  
+  // Function to end a match by updating its status in Supabase
+  const endMatchRequest = async (matchId: string) => {
+    try {
+      console.log('[ClubCurrentMatch] Ending match:', matchId);
+      const { data, error } = await supabase
+        .from('matches')
+        .update({ status: 'completed' })
+        .eq('id', matchId);
+
+      if (error) {
+        console.error('[ClubCurrentMatch] Error ending match:', error);
+        toast({
+          title: "Error",
+          description: "Failed to end match. Please try again.",
+          variant: "destructive",
+        });
+      } else {
+        console.log('[ClubCurrentMatch] Match ended successfully');
+        toast({
+          title: "Match Complete",
+          description: "Match has been completed successfully!",
+        });
+        // Match is automatically refreshed via realtime subscription
+      }
+    } catch (error) {
+      console.error('[ClubCurrentMatch] Exception ending match:', error);
+    }
+  };
   
   // Fetch active match directly from view_full_match_info
   useEffect(() => {
@@ -165,9 +197,21 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
       )
       .subscribe();
       
+    // Listen for match ended event
+    const handleMatchEnded = (event: any) => {
+      const matchId = event.detail?.matchId;
+      if (matchId && match?.id === matchId) {
+        console.log(`[ClubCurrentMatch] Received matchEnded event for match ${matchId}`);
+        endMatchRequest(matchId);
+      }
+    };
+
+    window.addEventListener('matchEnded', handleMatchEnded);
+      
     return () => {
       supabase.removeChannel(channel);
       supabase.removeChannel(distancesChannel);
+      window.removeEventListener('matchEnded', handleMatchEnded);
     };
   }, [clubId, selectedClub?.id]);
 
@@ -242,6 +286,7 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
         userClub={selectedClub} 
         onViewProfile={onViewProfile} 
         forceShowDetails={true}
+        onMatchEnd={endMatchRequest}
       />
     );
   }
