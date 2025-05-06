@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { formatLeague } from '@/utils/club/leagueUtils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import CountdownTimer from '@/components/match/CountdownTimer';
 
 interface CurrentMatchCardProps {
   match: Match;
@@ -25,7 +26,6 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
   const [showMemberContributions, setShowMemberContributions] = useState(false);
   const [match, setMatch] = useState<Match>(initialMatch);
   const [userClub, setUserClub] = useState<Club>(initialUserClub);
-  const [timeRemaining, setTimeRemaining] = useState<string>('');
   
   const {
     navigateToClubDetail
@@ -36,50 +36,17 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
   const userClubMatch = isHome ? match.homeClub : match.awayClub;
   const opponentClubMatch = isHome ? match.awayClub : match.homeClub;
 
-  // Calculate time remaining for the match
-  useEffect(() => {
-    const calculateTimeRemaining = () => {
-      const now = new Date();
-      const endDate = new Date(match.endDate);
-      const timeDiff = endDate.getTime() - now.getTime();
-      if (timeDiff <= 0) {
-        return '00:00:00';
-      }
-      const hours = Math.floor(timeDiff / (1000 * 60 * 60));
-      const minutes = Math.floor(timeDiff % (1000 * 60 * 60) / (1000 * 60));
-      const seconds = Math.floor(timeDiff % (1000 * 60) / 1000);
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    };
-    
-    setTimeRemaining(calculateTimeRemaining());
-    
-    const timer = setInterval(() => {
-      const remaining = calculateTimeRemaining();
-      setTimeRemaining(remaining);
-      if (remaining === '00:00:00') {
-        clearInterval(timer);
-        window.dispatchEvent(new CustomEvent('matchEnded', {
-          detail: {
-            matchId: match.id
-          }
-        }));
-      }
-    }, 1000);
-    
-    return () => clearInterval(timer);
-  }, [match.endDate, match.id]);
-
   // Update state when props change
   useEffect(() => {
     setMatch(initialMatch);
     setUserClub(initialUserClub);
   }, [initialMatch, initialUserClub]);
 
-  // Handle real-time updates for match data
+  // Set up real-time subscriptions
   useEffect(() => {
     console.log('[CurrentMatchCard] Setting up real-time subscriptions for match:', match.id);
 
-    // Subscribe to both match updates and match distance changes
+    // Subscribe to match updates
     const matchesChannel = supabase
       .channel(`match-updates-${match.id}`)
       .on(
@@ -101,7 +68,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
       )
       .subscribe();
       
-    // Listen for match distance updates for this specific match
+    // Subscribe to match distance updates
     const distanceChannel = supabase
       .channel(`match-distances-${match.id}`)
       .on(
@@ -155,6 +122,18 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
     navigateToClubDetail(clubId, clubData);
   };
 
+  const handleCountdownComplete = () => {
+    console.log('[CurrentMatchCard] Match ended, refreshing data');
+    window.dispatchEvent(new CustomEvent('matchEnded', {
+      detail: {
+        matchId: match.id
+      }
+    }));
+  };
+
+  // Make sure the endDate is a valid Date object
+  const endDate = new Date(match.endDate);
+
   return (
     <Card className="overflow-hidden border-0 shadow-md">
       <CardContent className="p-4">
@@ -165,7 +144,12 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
             <div className="flex items-center text-amber-800 text-sm">
               <Clock className="h-4 w-4 mr-1" />
               <span>Time remaining: </span>
-              <span className="font-mono ml-1">{timeRemaining}</span>
+              <CountdownTimer
+                targetDate={endDate}
+                className="font-mono ml-1"
+                onComplete={handleCountdownComplete}
+                refreshInterval={500}
+              />
             </div>
           </div>
         </div>

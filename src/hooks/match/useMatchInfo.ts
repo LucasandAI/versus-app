@@ -9,7 +9,13 @@ export const useMatchInfo = (userClubs: Club[]) => {
 
   // Transform the raw match data from view_full_match_info to our Match type
   const transformMatchData = useCallback((rawMatches: any[]): Match[] => {
+    if (!Array.isArray(rawMatches) || rawMatches.length === 0) {
+      return [];
+    }
+    
     return rawMatches.map(match => {
+      if (!match) return null;
+      
       // Parse members data for both clubs
       const parseMembers = (membersJson: any): ClubMember[] => {
         if (!membersJson) return [];
@@ -70,7 +76,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
         leagueBeforeMatch: match.league_before_match,
         leagueAfterMatch: match.league_after_match
       };
-    });
+    }).filter(Boolean) as Match[]; // Filter out any null entries
   }, []);
 
   // Fetch matches for the user's clubs
@@ -111,9 +117,9 @@ export const useMatchInfo = (userClubs: Club[]) => {
   useEffect(() => {
     fetchMatches();
     
-    // Set up realtime subscription for matches
-    const matchChannel = supabase
-      .channel('matches-changes')
+    // Set up a single realtime channel for all changes
+    const channel = supabase
+      .channel('match-data-changes')
       .on(
         'postgres_changes',
         {
@@ -126,11 +132,6 @@ export const useMatchInfo = (userClubs: Club[]) => {
           fetchMatches();
         }
       )
-      .subscribe();
-    
-    // Listen for match distance updates
-    const distanceChannel = supabase
-      .channel('match-distances-changes')
       .on(
         'postgres_changes',
         {
@@ -144,7 +145,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
         }
       )
       .subscribe();
-
+    
     // Listen for custom events
     const handleMatchEvent = () => {
       console.log('[useMatchInfo] Match event received, refreshing data');
@@ -158,8 +159,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
       
     // Clean up
     return () => {
-      supabase.removeChannel(matchChannel);
-      supabase.removeChannel(distanceChannel);
+      supabase.removeChannel(channel);
       window.removeEventListener('matchCreated', handleMatchEvent);
       window.removeEventListener('matchUpdated', handleMatchEvent);
       window.removeEventListener('matchEnded', handleMatchEvent);
