@@ -1,11 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Club, Match } from '@/types';
 import ClubCurrentMatch from '../club/detail/ClubCurrentMatch';
 import WaitingForMatchCard from './WaitingForMatchCard';
 import NeedMoreMembersCard from './NeedMoreMembersCard';
-import { isActiveMatchWeek, getCurrentCycleInfo } from '@/utils/date/matchTiming';
-import { supabase } from '@/integrations/supabase/client';
+import { useMatchInfo } from '@/hooks/match/useMatchInfo';
 
 interface CurrentMatchesListProps {
   userClubs: Club[];
@@ -13,95 +12,20 @@ interface CurrentMatchesListProps {
 }
 
 const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
-  userClubs: initialClubs,
+  userClubs,
   onViewProfile
 }) => {
-  const [userClubs, setUserClubs] = useState<Club[]>(initialClubs);
-  const [cycleInfo, setCycleInfo] = useState(getCurrentCycleInfo());
+  const { matches, isLoading } = useMatchInfo(userClubs);
   
-  // Helper function to check if a club has an active match
-  const getActiveMatch = (club: Club): Match | null => {
-    if (!club) return null;
-    
-    const match = club.currentMatch || 
-           (club.matchHistory && Array.isArray(club.matchHistory) && club.matchHistory.find(m => m.status === 'active')) ||
-           null;
-    
-    console.log(`[CurrentMatchesList] Active match for club ${club.name}:`, {
-      hasCurrentMatch: !!club.currentMatch,
-      hasMatchHistory: !!club.matchHistory,
-      matchHistoryLength: club.matchHistory?.length,
-      foundMatch: match
-    });
-    
-    return match;
-  };
-
-  useEffect(() => {
-    // Update clubs when initial data changes
-    setUserClubs(initialClubs);
-    console.log('[CurrentMatchesList] Initial clubs received:', initialClubs.map(club => ({
-      id: club.id,
-      name: club.name,
-      hasCurrentMatch: !!club.currentMatch,
-      currentMatch: club.currentMatch,
-      matchHistoryLength: club.matchHistory?.length
-    })));
-    
-    // Update cycle info periodically
-    const cycleTimer = setInterval(() => {
-      const newCycleInfo = getCurrentCycleInfo();
-      setCycleInfo(newCycleInfo);
-    }, 1000);
-    
-    // Set up real-time listeners for match updates
-    const channels = initialClubs.map(club => {
-      // Subscribe to match changes for this club
-      return supabase
-        .channel(`club-matches-${club.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'matches',
-            filter: `home_club_id=eq.${club.id},away_club_id=eq.${club.id}`
-          },
-          (payload) => {
-            console.log(`[CurrentMatchesList] Match changed for club ${club.id}:`, payload);
-            window.dispatchEvent(new CustomEvent('matchUpdated', { detail: { clubId: club.id } }));
-          }
-        )
-        .subscribe();
-    });
-
-    // Listen for match data update events
-    const handleMatchUpdate = () => {
-      console.log('[CurrentMatchesList] Match updated event received');
-      setUserClubs(initialClubs);
-    };
-    
-    // Listen for member data update events
-    const handleMembershipChange = () => {
-      console.log('[CurrentMatchesList] Club membership changed event received');
-      setUserClubs(initialClubs);
-    };
-
-    window.addEventListener('matchUpdated', handleMatchUpdate as EventListener);
-    window.addEventListener('clubMembershipChanged', handleMembershipChange as EventListener);
-    window.addEventListener('userDataUpdated', () => setUserClubs(initialClubs));
-    window.addEventListener('newMatchWeekStarted', handleMatchUpdate as EventListener);
-    
-    // Clean up subscriptions
-    return () => {
-      clearInterval(cycleTimer);
-      channels.forEach(channel => supabase.removeChannel(channel));
-      window.removeEventListener('matchUpdated', handleMatchUpdate as EventListener);
-      window.removeEventListener('clubMembershipChanged', handleMembershipChange as EventListener);
-      window.removeEventListener('userDataUpdated', () => setUserClubs(initialClubs));
-      window.removeEventListener('newMatchWeekStarted', handleMatchUpdate as EventListener);
-    };
-  }, [initialClubs]);
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {[...Array(2)].map((_, i) => (
+          <div key={i} className="h-40 bg-gray-100 animate-pulse rounded-md"></div>
+        ))}
+      </div>
+    );
+  }
 
   if (!userClubs || userClubs.length === 0) {
     return (
@@ -116,12 +40,15 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
       {userClubs.map(club => {
         if (!club) return null;
         
-        // Check for active matches
-        const activeMatch = getActiveMatch(club);
+        // Find the active match for this club
+        const activeMatch = matches.find(match => 
+          (match.homeClub.id === club.id || match.awayClub.id === club.id) && 
+          match.status === 'active'
+        );
+        
         const hasEnoughMembers = club.members && club.members.length >= 5;
         
         if (activeMatch) {
-          console.log(`[CurrentMatchesList] Rendering active match for club: ${club.name}`);
           return (
             <div key={`${club.id}-match`} className="mb-6 bg-white rounded-lg shadow-sm overflow-hidden">
               <div className="p-4 border-b border-gray-100">

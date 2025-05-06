@@ -2,24 +2,23 @@
 import { createContext, useContext } from 'react';
 import { UnreadMessagesContextType } from './types';
 
-// Create the context with default values
+// Create a context with a default value
 const UnreadMessagesContext = createContext<UnreadMessagesContextType>({
-  unreadConversations: new Set(),
-  dmUnreadCount: 0,
-  unreadMessagesPerConversation: {},
-  unreadClubs: new Set(),
-  clubUnreadCount: 0,
-  unreadMessagesPerClub: {},
   totalUnreadCount: 0,
-  forceRefresh: () => {},
-  markConversationAsRead: async () => {},
-  markClubMessagesAsRead: async () => {},
-  markConversationAsUnread: () => {},
-  markClubAsUnread: () => {},
-  fetchUnreadCounts: async () => {},
+  clubUnreadCounts: {},
+  directMessageUnreadCounts: {},
+  refreshUnreadCounts: async () => {}
 });
 
-// Export the hook for consuming the context
-export const useUnreadMessages = () => useContext(UnreadMessagesContext);
+// Export a hook to use this context
+export const useUnreadMessages = () => {
+  const context = useContext(UnreadMessagesContext);
+  
+  if (!context) {
+    throw new Error('useUnreadMessages must be used within an UnreadMessagesProvider');
+  }
+  
+  return context;
+};
 
 export default UnreadMessagesContext;

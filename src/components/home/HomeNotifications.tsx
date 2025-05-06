@@ -1,6 +1,7 @@
 
 import React from 'react';
-import NotificationHandler from './NotificationHandler';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
+import { useChatNotifications } from '@/hooks/useChatNotifications';
 
 interface HomeNotificationsProps {
   setChatNotifications: (count: number) => void;
@@ -11,12 +12,13 @@ const HomeNotifications: React.FC<HomeNotificationsProps> = ({
   setChatNotifications,
   setNotifications
 }) => {
-  return (
-    <NotificationHandler 
-      setChatNotifications={setChatNotifications}
-      setNotifications={setNotifications}
-    />
-  );
+  // Use the unread messages context to get the total count
+  const { totalUnreadCount, clubUnreadCounts, directMessageUnreadCounts } = useUnreadMessages();
+  
+  // Update the chat notification count using our hook
+  useChatNotifications({ setChatNotifications });
+
+  return null; // This component doesn't render anything, it just handles state updates
 };
 
 export default HomeNotifications;

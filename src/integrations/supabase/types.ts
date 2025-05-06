@@ -67,6 +67,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "club_chat_messages_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["away_club_id"]
+          },
+          {
+            foreignKeyName: "club_chat_messages_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["home_club_id"]
+          },
+          {
             foreignKeyName: "club_chat_messages_sender_id_fkey"
             columns: ["sender_id"]
             isOneToOne: false
@@ -105,6 +119,20 @@ export type Database = {
             referencedRelation: "clubs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "club_invites_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["away_club_id"]
+          },
+          {
+            foreignKeyName: "club_invites_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["home_club_id"]
+          },
         ]
       }
       club_members: {
@@ -133,6 +161,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clubs"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "club_members_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["away_club_id"]
+          },
+          {
+            foreignKeyName: "club_members_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["home_club_id"]
           },
           {
             foreignKeyName: "club_members_user_id_fkey"
@@ -170,6 +212,20 @@ export type Database = {
             referencedRelation: "clubs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "club_messages_read_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["away_club_id"]
+          },
+          {
+            foreignKeyName: "club_messages_read_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["home_club_id"]
+          },
         ]
       }
       club_requests: {
@@ -201,6 +257,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clubs"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "club_requests_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["away_club_id"]
+          },
+          {
+            foreignKeyName: "club_requests_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["home_club_id"]
           },
         ]
       }
@@ -373,11 +443,32 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "match_distances_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["away_club_id"]
+          },
+          {
+            foreignKeyName: "match_distances_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["home_club_id"]
+          },
+          {
             foreignKeyName: "match_distances_match_id_fkey"
             columns: ["match_id"]
             isOneToOne: false
             referencedRelation: "matches"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_distances_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["match_id"]
           },
           {
             foreignKeyName: "match_distances_user_id_fkey"
@@ -434,11 +525,82 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "matches_away_club_id_fkey"
+            columns: ["away_club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["away_club_id"]
+          },
+          {
+            foreignKeyName: "matches_away_club_id_fkey"
+            columns: ["away_club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["home_club_id"]
+          },
+          {
             foreignKeyName: "matches_home_club_id_fkey"
             columns: ["home_club_id"]
             isOneToOne: false
             referencedRelation: "clubs"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_home_club_id_fkey"
+            columns: ["home_club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["away_club_id"]
+          },
+          {
+            foreignKeyName: "matches_home_club_id_fkey"
+            columns: ["home_club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["home_club_id"]
+          },
+        ]
+      }
+      matchmaking_queue: {
+        Row: {
+          club_id: string
+          division: string
+          queued_at: string | null
+          tier: number
+        }
+        Insert: {
+          club_id: string
+          division: string
+          queued_at?: string | null
+          tier: number
+        }
+        Update: {
+          club_id?: string
+          division?: string
+          queued_at?: string | null
+          tier?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matchmaking_queue_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: true
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matchmaking_queue_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: true
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["away_club_id"]
+          },
+          {
+            foreignKeyName: "matchmaking_queue_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: true
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["home_club_id"]
           },
         ]
       }
@@ -489,6 +651,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clubs"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["away_club_id"]
+          },
+          {
+            foreignKeyName: "notifications_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["home_club_id"]
           },
           {
             foreignKeyName: "notifications_user_id_fkey"
@@ -579,17 +755,29 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      view_full_match_info: {
+        Row: {
+          away_club_division: string | null
+          away_club_id: string | null
+          away_club_logo: string | null
+          away_club_name: string | null
+          away_club_tier: number | null
+          away_members: Json | null
+          end_date: string | null
+          home_club_division: string | null
+          home_club_id: string | null
+          home_club_logo: string | null
+          home_club_name: string | null
+          home_club_tier: number | null
+          home_members: Json | null
+          match_id: string | null
+          start_date: string | null
+          status: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      create_weekly_matches: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      end_expired_matches: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
       find_eligible_opponents: {
         Args: { p_club_id: string; p_division: string; p_tier: number }
         Returns: {
