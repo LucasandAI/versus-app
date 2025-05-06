@@ -778,6 +778,10 @@ export type Database = {
       }
     }
     Functions: {
+      end_expired_matches: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       find_eligible_opponents: {
         Args: { p_club_id: string; p_division: string; p_tier: number }
         Returns: {
