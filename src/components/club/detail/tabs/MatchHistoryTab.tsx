@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Club, Match } from '@/types';
 import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import MatchCard from './match-history/MatchCard';
@@ -18,23 +18,26 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
   const { navigateToUserProfile, navigateToClubDetail } = useNavigation();
   const { fetchClubMatches } = useClubMatches();
 
-  useEffect(() => {
-    const loadMatchHistory = async () => {
-      if (!club.id) return;
-      
-      setIsLoading(true);
-      try {
-        const matches = await fetchClubMatches(club.id);
-        setMatchHistory(matches);
-      } catch (error) {
-        console.error('Error loading match history:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Use useCallback to prevent unnecessary re-renders
+  const loadMatchHistory = useCallback(async () => {
+    if (!club?.id) return;
     
+    setIsLoading(true);
+    try {
+      console.log('[MatchHistoryTab] Loading match history for club:', club.id);
+      const matches = await fetchClubMatches(club.id);
+      setMatchHistory(matches);
+      console.log('[MatchHistoryTab] Loaded match history:', matches.length, 'matches');
+    } catch (error) {
+      console.error('Error loading match history:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [club.id, fetchClubMatches]);
+  
+  useEffect(() => {
     loadMatchHistory();
-  }, [club.id]);
+  }, [loadMatchHistory]);
 
   const handleViewMatchDetails = (matchId: string) => {
     setExpandedMatchId(expandedMatchId === matchId ? null : matchId);
@@ -49,6 +52,8 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
   };
 
   const handleSelectClub = (clubId: string, name: string, logo?: string) => {
+    if (clubId === club.id) return; // Don't navigate to the current club
+    
     console.log("Selecting club from match history:", clubId, name);
     navigateToClubDetail(clubId, { 
       id: clubId, 

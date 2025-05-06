@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Match, Club } from '@/types';
 import { ChevronDown, Clock } from 'lucide-react';
@@ -124,19 +124,23 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
                 <div>
                   <h4 className="font-medium mb-3 text-sm">{userClubMatch.name}</h4>
                   <div className="space-y-3">
-                    {userClubMatch.members.map(member => (
-                      <div 
-                        key={member.id} 
-                        className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" 
-                        onClick={() => handleMemberClick(member)}
-                      >
-                        <div className="flex items-center gap-2">
-                          <UserAvatar name={member.name} image={member.avatar} size="sm" />
-                          <span className="text-sm hover:text-primary transition-colors">{member.name}</span>
+                    {userClubMatch.members?.length > 0 ? (
+                      userClubMatch.members.map(member => (
+                        <div 
+                          key={member.id} 
+                          className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" 
+                          onClick={() => handleMemberClick(member)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <UserAvatar name={member.name} image={member.avatar} size="sm" />
+                            <span className="text-sm hover:text-primary transition-colors">{member.name}</span>
+                          </div>
+                          <span className="text-sm font-medium">{member.distanceContribution?.toFixed(1) || "0.0"} km</span>
                         </div>
-                        <span className="text-sm font-medium">{member.distanceContribution?.toFixed(1) || "0.0"} km</span>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500">No members found</div>
+                    )}
                   </div>
                 </div>
                 
@@ -144,19 +148,23 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
                 <div>
                   <h4 className="font-medium mb-3 text-sm">{opponentClubMatch.name}</h4>
                   <div className="space-y-3">
-                    {opponentClubMatch.members.map(member => (
-                      <div 
-                        key={member.id} 
-                        className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" 
-                        onClick={() => handleMemberClick(member)}
-                      >
-                        <div className="flex items-center gap-2">
-                          <UserAvatar name={member.name} image={member.avatar} size="sm" />
-                          <span className="text-sm hover:text-primary transition-colors">{member.name}</span>
+                    {opponentClubMatch.members?.length > 0 ? (
+                      opponentClubMatch.members.map(member => (
+                        <div 
+                          key={member.id} 
+                          className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" 
+                          onClick={() => handleMemberClick(member)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <UserAvatar name={member.name} image={member.avatar} size="sm" />
+                            <span className="text-sm hover:text-primary transition-colors">{member.name}</span>
+                          </div>
+                          <span className="text-sm font-medium">{member.distanceContribution?.toFixed(1) || "0.0"} km</span>
                         </div>
-                        <span className="text-sm font-medium">{member.distanceContribution?.toFixed(1) || "0.0"} km</span>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500">No members found</div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -168,4 +176,5 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
   );
 };
 
-export default CurrentMatchCard;
+// Memoize the component to prevent unnecessary re-renders
+export default memo(CurrentMatchCard);
