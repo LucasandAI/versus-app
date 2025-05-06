@@ -6,6 +6,7 @@ import { useClubMembers } from './useClubMembers';
 import { useClubMatches } from './useClubMatches';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
+import { ensureDivision } from '@/utils/club/leagueUtils';
 
 export const useClubData = (clubId: string | undefined) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -81,7 +82,7 @@ export const useClubData = (clubId: string | undefined) => {
           id: data.home_club_id,
           name: data.home_club_name || "Unknown Team",
           logo: data.home_club_logo || '/placeholder.svg',
-          division: data.home_club_division,
+          division: ensureDivision(data.home_club_division), // Use ensureDivision to get a valid Division type
           tier: Number(data.home_club_tier || 1),
           totalDistance: homeTotalDistance,
           members: homeMembers
@@ -90,7 +91,7 @@ export const useClubData = (clubId: string | undefined) => {
           id: data.away_club_id,
           name: data.away_club_name || "Unknown Team", 
           logo: data.away_club_logo || '/placeholder.svg',
-          division: data.away_club_division,
+          division: ensureDivision(data.away_club_division), // Use ensureDivision to get a valid Division type
           tier: Number(data.away_club_tier || 1),
           totalDistance: awayTotalDistance,
           members: awayMembers
