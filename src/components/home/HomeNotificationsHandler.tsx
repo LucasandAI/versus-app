@@ -20,11 +20,31 @@ const HomeNotificationsHandler: React.FC<HomeNotificationsHandlerProps> = ({
 }) => {
   const { currentUser } = useApp();
   const {
-    unreadMessages,
-    setUnreadMessages,
     notifications,
     setNotifications,
+    updateUnreadCount,
+    handleMarkAsRead,
+    handleDeclineInvite,
+    handleClearAllNotifications
   } = useHomeNotifications();
+
+  // Log user auth status
+  useEffect(() => {
+    const checkAuthUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      console.log("[HomeNotificationsHandler] Current authenticated user:", data.user?.id);
+      if (error) {
+        console.error("[HomeNotificationsHandler] Auth error:", error);
+      }
+    };
+    checkAuthUser();
+  }, []);
+
+  // Log notifications state
+  useEffect(() => {
+    console.log("[HomeNotificationsHandler] Current notifications state:", 
+      notifications.length, notifications);
+  }, [notifications]);
 
   // Listen for real-time chat messages
   useEffect(() => {
@@ -64,14 +84,13 @@ const HomeNotificationsHandler: React.FC<HomeNotificationsHandlerProps> = ({
   return (
     <>
       <HomeNotifications
-        setChatNotifications={setUnreadMessages}
+        setChatNotifications={updateUnreadCount}
         setNotifications={setNotifications}
       />
 
       <ChatDrawerHandler 
         userClubs={userClubs}
         onSelectUser={onSelectUser}
-        setUnreadMessages={setUnreadMessages}
       />
     </>
   );

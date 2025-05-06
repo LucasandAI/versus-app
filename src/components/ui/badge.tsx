@@ -16,6 +16,8 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
+        unread: "!border-transparent !bg-red-500 !text-white min-w-5 h-5 flex items-center justify-center !z-10",
+        dot: "!w-4 !h-4 !p-0 !border-0 !bg-red-500 !rounded-full !flex !items-center !justify-center !text-[10px] !text-white !z-10 !min-w-0"
       },
     },
     defaultVariants: {
@@ -30,7 +32,10 @@ export interface BadgeProps
 
 function Badge({ className, variant, ...props }: BadgeProps) {
   return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
+    <div 
+      className={cn(badgeVariants({ variant }), className)}
+      {...props} 
+    />
   )
 }
 

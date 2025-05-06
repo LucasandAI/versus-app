@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from '@/integrations/supabase/client';
 
 interface CreateClubDialogProps {
   open: boolean;
@@ -21,7 +22,7 @@ interface CreateClubDialogProps {
 }
 
 const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
-  const { createClub } = useApp();
+  const { createClub, currentUser } = useApp();
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
   const [image, setImage] = useState<string | null>(null);
@@ -36,10 +37,11 @@ const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
       return;
     }
 
-    createClub(
-      name.trim(),
-      image || '/placeholder.svg'
-    );
+    createClub({
+      name: name.trim(),
+      logo: image || '/placeholder.svg',
+      bio: bio.trim()
+    });
 
     toast({
       title: "Success",
@@ -51,6 +53,31 @@ const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
     setBio("");
     setImage(null);
     onOpenChange(false);
+  };
+
+  const handleLogoUpload = async (file: File) => {
+    if (!currentUser) return null;
+    
+    try {
+      console.log('[CreateClubDialog] Starting logo upload');
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${currentUser.id}-club-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('club-logos')
+        .upload(filePath, file);
+        
+      if (uploadError) {
+        throw uploadError;
+      }
+      
+      const { data } = supabase.storage.from('club-logos').getPublicUrl(filePath);
+      return data.publicUrl;
+    } catch (error) {
+      console.error('[CreateClubDialog] Error uploading logo:', error);
+      return null;
+    }
   };
 
   return (

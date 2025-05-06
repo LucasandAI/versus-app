@@ -80,21 +80,21 @@ export type Database = {
           club_id: string
           created_at: string
           id: string
-          status: Database["public"]["Enums"]["request_status"]
+          status: Database["public"]["Enums"]["request_status_old"]
           user_id: string
         }
         Insert: {
           club_id: string
           created_at?: string
           id?: string
-          status?: Database["public"]["Enums"]["request_status"]
+          status?: Database["public"]["Enums"]["request_status_old"]
           user_id: string
         }
         Update: {
           club_id?: string
           created_at?: string
           id?: string
-          status?: Database["public"]["Enums"]["request_status"]
+          status?: Database["public"]["Enums"]["request_status_old"]
           user_id?: string
         }
         Relationships: [
@@ -143,26 +143,55 @@ export type Database = {
           },
         ]
       }
+      club_messages_read: {
+        Row: {
+          club_id: string
+          id: string
+          last_read_timestamp: string
+          user_id: string
+        }
+        Insert: {
+          club_id: string
+          id?: string
+          last_read_timestamp?: string
+          user_id: string
+        }
+        Update: {
+          club_id?: string
+          id?: string
+          last_read_timestamp?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_messages_read_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       club_requests: {
         Row: {
           club_id: string
           created_at: string
           id: string
-          status: Database["public"]["Enums"]["request_status"]
+          status: "PENDING" | "SUCCESS" | "ERROR"
           user_id: string
         }
         Insert: {
           club_id: string
           created_at?: string
           id?: string
-          status?: Database["public"]["Enums"]["request_status"]
+          status?: "PENDING" | "SUCCESS" | "ERROR"
           user_id: string
         }
         Update: {
           club_id?: string
           created_at?: string
           id?: string
-          status?: Database["public"]["Enums"]["request_status"]
+          status?: "PENDING" | "SUCCESS" | "ERROR"
           user_id?: string
         }
         Relationships: [
@@ -274,6 +303,35 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "direct_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "direct_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direct_messages_read: {
+        Row: {
+          conversation_id: string
+          id: string
+          last_read_timestamp: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          id?: string
+          last_read_timestamp?: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          id?: string
+          last_read_timestamp?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_read_conversation_id_fkey"
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "direct_conversations"
@@ -441,77 +499,6 @@ export type Database = {
           },
         ]
       }
-      support_messages: {
-        Row: {
-          id: string
-          is_support: boolean | null
-          sender_id: string | null
-          text: string
-          ticket_id: string | null
-          timestamp: string
-        }
-        Insert: {
-          id?: string
-          is_support?: boolean | null
-          sender_id?: string | null
-          text: string
-          ticket_id?: string | null
-          timestamp?: string
-        }
-        Update: {
-          id?: string
-          is_support?: boolean | null
-          sender_id?: string | null
-          text?: string
-          ticket_id?: string | null
-          timestamp?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "support_messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "support_messages_ticket_id_fkey"
-            columns: ["ticket_id"]
-            isOneToOne: false
-            referencedRelation: "support_tickets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      support_tickets: {
-        Row: {
-          created_at: string
-          id: string
-          subject: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          subject: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          subject?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "support_tickets_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       user_achievements: {
         Row: {
           achievement_id: string
@@ -595,6 +582,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_weekly_matches: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      end_expired_matches: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      find_eligible_opponents: {
+        Args: { p_club_id: string; p_division: string; p_tier: number }
+        Returns: {
+          club_id: string
+          division_diff: number
+        }[]
+      }
+      get_unread_club_messages_count: {
+        Args: { user_id: string }
+        Returns: number
+      }
+      get_unread_dm_count: {
+        Args: { user_id: string }
+        Returns: number
+      }
       is_club_admin: {
         Args: { club_id: string; user_id: string }
         Returns: boolean
@@ -615,7 +625,11 @@ export type Database = {
         | "achievement"
         | "invitation"
         | "activity"
-      request_status: "pending" | "accepted" | "rejected"
+        | "incoming_request"
+        | "request_accepted"
+      request_status: "PENDING" | "SUCCESS" | "REJECTED"
+      request_status_legacy: "pending" | "accepted"
+      request_status_old: "pending" | "accepted" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -746,8 +760,12 @@ export const Constants = {
         "achievement",
         "invitation",
         "activity",
+        "incoming_request",
+        "request_accepted",
       ],
-      request_status: ["pending", "accepted", "rejected"],
+      request_status: ["PENDING", "SUCCESS", "REJECTED"],
+      request_status_legacy: ["pending", "accepted"],
+      request_status_old: ["pending", "accepted", "rejected"],
     },
   },
 } as const

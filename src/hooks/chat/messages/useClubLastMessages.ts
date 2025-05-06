@@ -5,9 +5,13 @@ import { Club } from '@/types';
 
 export const useClubLastMessages = (clubs: Club[]) => {
   const [lastMessages, setLastMessages] = useState<Record<string, any>>({});
+  const [sortedClubs, setSortedClubs] = useState<Club[]>([]);
 
   useEffect(() => {
-    if (!clubs.length) return;
+    if (!clubs.length) {
+      setSortedClubs([]);
+      return;
+    }
 
     const fetchLatestMessages = async () => {
       const clubIds = clubs.map(club => club.id);
@@ -38,6 +42,29 @@ export const useClubLastMessages = (clubs: Club[]) => {
       }, {});
 
       setLastMessages(latestMessages);
+      
+      // Sort clubs by most recent message timestamp - no memoization, direct sorting on every update
+      const clubsWithTimestamps = clubs.map(club => {
+        const lastMessage = latestMessages[club.id];
+        // Use the message timestamp or a default old date if no messages
+        const lastTimestamp = lastMessage ? 
+          new Date(lastMessage.timestamp).getTime() : 
+          0;
+        
+        return {
+          club,
+          lastTimestamp
+        };
+      });
+      
+      // Sort by timestamp (most recent first) - No memoization, direct sorting
+      const sorted = clubsWithTimestamps
+        .sort((a, b) => b.lastTimestamp - a.lastTimestamp)
+        .map(item => item.club);
+        
+      // Update sorted clubs directly
+      console.log('[useClubLastMessages] Setting sorted clubs:', sorted);
+      setSortedClubs(sorted);
     };
 
     fetchLatestMessages();
@@ -54,6 +81,7 @@ export const useClubLastMessages = (clubs: Club[]) => {
           filter: clubs.length > 0 ? `club_id=in.(${clubs.map(c => `'${c.id}'`).join(',')})` : undefined
         },
         () => {
+          console.log('[useClubLastMessages] Received realtime message update');
           fetchLatestMessages(); // Refresh messages when changes occur
         }
       )
@@ -64,5 +92,13 @@ export const useClubLastMessages = (clubs: Club[]) => {
     };
   }, [clubs]);
 
-  return lastMessages;
+  // Return without any memoization to ensure fresh data on each render
+  return { 
+    lastMessages, 
+    sortedClubs: sortedClubs.length > 0 ? sortedClubs : clubs,
+    _debug: { 
+      lastMessagesKeys: Object.keys(lastMessages),
+      sortedClubIds: sortedClubs.map(c => c.id) 
+    }
+  };
 };

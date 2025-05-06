@@ -1,9 +1,10 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { JoinRequest, Club, ClubMember } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { useApp } from '@/context/AppContext';
+import { acceptJoinRequest, denyJoinRequest } from '@/utils/joinRequestUtils';
 
 export const useJoinRequests = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -12,66 +13,50 @@ export const useJoinRequests = () => {
   const [requests, setRequests] = useState<JoinRequest[]>([]);
   const { setSelectedClub, currentUser, refreshCurrentUser } = useApp();
 
-  const handleAcceptRequest = async (request: JoinRequest, club: Club) => {
-    if (club.members.length >= 5) {
-      toast({
-        title: "Club is full",
-        description: "This club already has the maximum number of members (5)",
-        variant: "destructive"
-      });
-      return null;
-    }
+  // Listen for the userDataUpdated event to refresh data
+  useEffect(() => {
+    const handleUserDataUpdate = () => {
+      console.log('[useJoinRequests] User data update detected, refreshing user data');
+      if (refreshCurrentUser) {
+        refreshCurrentUser().catch(err => {
+          console.error('[useJoinRequests] Error refreshing user data:', err);
+        });
+      }
+    };
+
+    window.addEventListener('userDataUpdated', handleUserDataUpdate);
     
+    return () => {
+      window.removeEventListener('userDataUpdated', handleUserDataUpdate);
+    };
+  }, [refreshCurrentUser]);
+
+  const handleAcceptRequest = async (request: JoinRequest, club: Club) => {
     setProcessingRequests(prev => ({ ...prev, [request.id]: true }));
     
     try {
       setError(null);
+      
+      console.log('[useJoinRequests] Accepting request:', request.id);
 
-      // Begin transaction with Supabase
-      // 1. Add user to club_members
-      const { error: memberError } = await supabase
-        .from('club_members')
-        .insert([{
-          club_id: request.clubId,
-          user_id: request.userId,
-          is_admin: false
-        }]);
+      // Use the shared utility function to accept the request
+      const success = await acceptJoinRequest(request.userId, request.clubId, request.userName);
 
-      if (memberError) throw memberError;
-
-      // 2. Update request status to accepted
-      const { error: requestError } = await supabase
-        .from('club_requests')
-        .update({ status: 'accepted' })
-        .eq('id', request.id);
-
-      if (requestError) throw requestError;
-
-      // 3. Create notification for the user
-      try {
-        await supabase
-          .from('notifications')
-          .insert({
-            user_id: request.userId,
-            club_id: request.clubId,
-            type: 'join_request',
-            status: 'accepted',
-            message: `Your request to join ${club.name} has been accepted.`,
-            read: false
-          });
-      } catch (notificationError) {
-        console.error('Error creating notification:', notificationError);
-        // Continue even if notification creation fails
+      if (!success) {
+        throw new Error("Failed to accept request");
       }
-
-      // 4. Fetch the user's details to create a member object
+      
+      // Fetch the user's details to create a member object
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('name, avatar')
         .eq('id', request.userId)
         .single();
 
-      if (userError) throw userError;
+      if (userError) {
+        console.error('[useJoinRequests] Error fetching user data:', userError);
+        throw userError;
+      }
 
       // Create the new club member
       const newMember: ClubMember = {
@@ -84,11 +69,6 @@ export const useJoinRequests = () => {
 
       // Optimistically update the UI - remove the request
       setRequests(prevRequests => prevRequests.filter(r => r.id !== request.id));
-      
-      toast({
-        title: "Request accepted",
-        description: `${request.userName} has been added to the club`,
-      });
 
       // Create updated club object with the new member
       const updatedClub = {
@@ -98,11 +78,6 @@ export const useJoinRequests = () => {
 
       // Update the club in the global context
       setSelectedClub(updatedClub);
-      
-      // Refresh current user to update their clubs
-      if (currentUser) {
-        await refreshCurrentUser();
-      }
 
       return updatedClub;
     } catch (error) {
@@ -125,38 +100,15 @@ export const useJoinRequests = () => {
     try {
       setError(null);
 
-      // 1. Update request status to rejected
-      const { error: requestError } = await supabase
-        .from('club_requests')
-        .update({ status: 'rejected' })
-        .eq('id', request.id);
-
-      if (requestError) throw requestError;
-
-      // 2. Create notification for the user
-      try {
-        await supabase
-          .from('notifications')
-          .insert({
-            user_id: request.userId,
-            club_id: request.clubId,
-            type: 'join_request',
-            status: 'rejected',
-            message: `Your request to join the club has been declined.`,
-            read: false
-          });
-      } catch (notificationError) {
-        console.error('Error creating notification:', notificationError);
-        // Continue even if notification creation fails
+      // Use the shared utility function to deny the request
+      const success = await denyJoinRequest(request.userId, request.clubId);
+      
+      if (!success) {
+        throw new Error("Failed to decline request");
       }
 
       // Optimistically update the UI
       setRequests(prevRequests => prevRequests.filter(r => r.id !== request.id));
-      
-      toast({
-        title: "Request declined",
-        description: `Join request from ${request.userName} has been declined`,
-      });
       
       return true;
     } catch (error) {
@@ -180,12 +132,12 @@ export const useJoinRequests = () => {
     try {
       console.log('[useJoinRequests] Fetching club requests for club:', clubId);
       
-      // First, let's query club requests with a separate query for safety
+      // Query club_requests table directly, but only fetch pending requests
       const { data: requestsData, error: requestsError } = await supabase
         .from('club_requests')
-        .select('id, user_id, club_id, status, created_at')
+        .select('id, user_id, club_id, created_at, status')
         .eq('club_id', clubId)
-        .eq('status', 'pending');
+        .eq('status', 'PENDING');
 
       if (requestsError) {
         console.error('[useJoinRequests] Error fetching club requests:', requestsError);
@@ -219,7 +171,8 @@ export const useJoinRequests = () => {
             clubId: request.club_id,
             userName: 'Unknown User',
             userAvatar: '',
-            createdAt: request.created_at
+            createdAt: request.created_at,
+            status: request.status
           });
         } else {
           formattedRequests.push({
@@ -228,7 +181,8 @@ export const useJoinRequests = () => {
             clubId: request.club_id,
             userName: userData.name || 'Unknown',
             userAvatar: userData.avatar || '',
-            createdAt: request.created_at
+            createdAt: request.created_at,
+            status: request.status
           });
         }
       }

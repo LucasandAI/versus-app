@@ -20,6 +20,7 @@ interface ChatSidebarProps {
   onSelectClub: (club: Club) => void;
   onDeleteChat?: (chatId: string) => void;
   unreadCounts?: Record<string, number>;
+  unreadClubs?: Set<string>;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   activeTab?: "clubs" | "dm";
   clubMessages?: Record<string, any[]>;
@@ -31,6 +32,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onSelectClub,
   onDeleteChat,
   unreadCounts = {},
+  unreadClubs = new Set(),
   onSelectUser,
   activeTab = "clubs",
   clubMessages = {}
@@ -44,16 +46,21 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
       setChatToDelete(null);
     }
   };
+  
+  // Create a key for forced re-renders
+  const unreadKey = JSON.stringify([...unreadClubs].sort());
 
   return (
-    <div className="w-[240px] border-r overflow-auto">
+    <div className="flex-1 overflow-auto bg-white">
       {/* Only show clubs when the clubs tab is active */}
       {activeTab === "clubs" && (
         <ClubsList
+          key={`clubs-list-${unreadKey}`}
           clubs={clubs}
           selectedClub={selectedClub}
           onSelectClub={onSelectClub}
           unreadCounts={unreadCounts}
+          unreadClubs={unreadClubs}
           onSelectUser={onSelectUser}
           setChatToDelete={setChatToDelete}
         />

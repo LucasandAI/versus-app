@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { AppProvider, useApp } from '@/context/AppContext';
+import { useApp } from '@/context/AppContext';
 import ConnectScreen from '@/components/ConnectScreen';
 import HomeView from '@/components/home/HomeView';
 import ClubDetail from '@/components/ClubDetail';
@@ -10,82 +10,38 @@ import Navigation from '@/components/Navigation';
 import { Toaster } from '@/components/ui/toaster';
 import ChatDrawer from '@/components/chat/ChatDrawer';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 
-const AppContent: React.FC = () => {
-  const { currentView, currentUser } = useApp();
-  const [chatNotifications, setChatNotifications] = React.useState(0);
+const Index: React.FC = () => {
+  const { currentView, currentUser, needsProfileCompletion } = useApp();
+  const { totalUnreadCount } = useUnreadMessages();
   const { isOpen: chatDrawerOpen, open: openChatDrawer, close: closeChatDrawer } = useChatDrawerGlobal();
 
-  useEffect(() => {
-    console.log('[Index] Current view:', currentView, 'Current user:', currentUser ? currentUser.id : 'null');
-  }, [currentView, currentUser]);
-
-  React.useEffect(() => {
-    const loadUnreadCounts = () => {
-      const unreadMessages = localStorage.getItem('unreadMessages');
-      if (unreadMessages) {
-        try {
-          const unreadMap = JSON.parse(unreadMessages);
-          const totalUnread = Object.values(unreadMap).reduce(
-            (sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 
-            0
-          );
-          setChatNotifications(Number(totalUnread));
-        } catch (error) {
-          console.error("[Index] Error parsing unread messages:", error);
-          setChatNotifications(0);
-        }
-      } else {
-        setChatNotifications(0);
-      }
-    };
-    
-    loadUnreadCounts();
-    
-    const handleUnreadMessagesUpdated = () => {
-      loadUnreadCounts();
-    };
-    
-    const handleSupportTicketCreated = (event: CustomEvent) => {
-      if (event.detail && event.detail.count) {
-        setChatNotifications(prev => prev + event.detail.count);
-      } else {
-        loadUnreadCounts();
-      }
-    };
-    
-    window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
-    window.addEventListener('supportTicketCreated', handleSupportTicketCreated as EventListener);
-    window.addEventListener('chatDrawerClosed', handleUnreadMessagesUpdated);
-    window.addEventListener('focus', handleUnreadMessagesUpdated);
-    window.addEventListener('notificationsUpdated', handleUnreadMessagesUpdated);
-    
-    return () => {
-      window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
-      window.removeEventListener('supportTicketCreated', handleSupportTicketCreated as EventListener);
-      window.removeEventListener('chatDrawerClosed', handleUnreadMessagesUpdated);
-      window.removeEventListener('focus', handleUnreadMessagesUpdated);
-      window.removeEventListener('notificationsUpdated', handleUnreadMessagesUpdated);
-    };
-  }, []);
-
-  console.log('[Index] renderView called with currentView:', currentView);
+  console.log('[Index] Current view:', currentView, 'Current user:', currentUser ? currentUser.id : 'null');
+  console.log('[Index] Needs profile completion:', needsProfileCompletion);
 
   const renderView = () => {
-    // If there's no user, always show the connect screen regardless of currentView
+    // If there's no user, always show the connect screen
     if (!currentUser) {
       console.log('[Index] No user detected, rendering ConnectScreen');
       return <ConnectScreen />;
     }
 
-    // Only render other views if user is authenticated
+    // If user needs to complete their profile, show the ConnectScreen (which contains LoginForm)
+    // The LoginForm will detect this state and show the profile completion form
+    if (needsProfileCompletion) {
+      console.log('[Index] User needs to complete profile, rendering ConnectScreen');
+      return <ConnectScreen />;
+    }
+
+    // Only render other views if user is authenticated and profile is completed
     switch (currentView) {
       case 'connect':
         console.log('[Index] Rendering ConnectScreen');
         return <ConnectScreen />;
       case 'home':
         console.log('[Index] Rendering HomeView');
-        return <HomeView chatNotifications={chatNotifications} />;
+        return <HomeView chatNotifications={totalUnreadCount} />;
       case 'clubDetail':
         console.log('[Index] Rendering ClubDetail');
         return <ClubDetail />;
@@ -102,10 +58,10 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <>
+    <div className="min-h-screen bg-gray-50">
       {renderView()}
-      {currentUser && currentView !== 'connect' && <Navigation />}
-      {currentUser && (
+      {currentUser && !needsProfileCompletion && currentView !== 'connect' && <Navigation />}
+      {currentUser && !needsProfileCompletion && (
         <ChatDrawer 
           open={chatDrawerOpen} 
           onOpenChange={open => open ? openChatDrawer() : closeChatDrawer()}
@@ -113,18 +69,7 @@ const AppContent: React.FC = () => {
         />
       )}
       <Toaster />
-    </>
-  );
-};
-
-const Index: React.FC = () => {
-  console.log('[Index] Index component rendering');
-  return (
-    <AppProvider>
-      <div className="min-h-screen bg-gray-50">
-        <AppContent />
-      </div>
-    </AppProvider>
+    </div>
   );
 };
 

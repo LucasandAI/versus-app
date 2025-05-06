@@ -9,31 +9,32 @@ interface UseNotificationsProps {
 
 export const useNotifications = ({ setNotifications }: UseNotificationsProps) => {
   useEffect(() => {
+    // Function to load notifications from localStorage
     const loadNotificationsFromStorage = () => {
-      console.log("Loading notifications from storage");
+      console.log("[useNotifications] Loading notifications from storage");
       const notifications = getNotificationsFromStorage();
-      console.log("Loaded notifications:", notifications);
-      setNotifications(notifications);
+      console.log("[useNotifications] Loaded notifications:", notifications.length, notifications);
+      if (notifications.length > 0) {
+        setNotifications(notifications);
+      } else {
+        console.log("[useNotifications] No notifications found in storage or empty array");
+      }
     };
-
-    // Load notifications immediately
-    loadNotificationsFromStorage();
 
     // Listen for notification updates
     const handleNotificationsUpdated = () => {
-      console.log("Notification update event received");
+      console.log("[useNotifications] Notification update event received");
       loadNotificationsFromStorage();
     };
     
     // Add event listeners for updates
     window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
     
-    // Also reload notifications on window focus to catch any new ones
-    window.addEventListener('focus', loadNotificationsFromStorage);
-
+    // Initial load from storage
+    loadNotificationsFromStorage();
+    
     return () => {
       window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
-      window.removeEventListener('focus', loadNotificationsFromStorage);
     };
   }, [setNotifications]);
 };

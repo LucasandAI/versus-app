@@ -1,7 +1,5 @@
 
 import React from 'react';
-import { useNotifications } from '@/hooks/useNotifications';
-import { useChatNotifications } from '@/hooks/useChatNotifications';
 import NotificationHandler from './NotificationHandler';
 
 interface HomeNotificationsProps {
@@ -13,9 +11,6 @@ const HomeNotifications: React.FC<HomeNotificationsProps> = ({
   setChatNotifications,
   setNotifications
 }) => {
-  useNotifications({ setNotifications });
-  useChatNotifications({ setChatNotifications });
-
   return (
     <NotificationHandler 
       setChatNotifications={setChatNotifications}

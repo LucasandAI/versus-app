@@ -11,6 +11,7 @@ export interface ChatMessage {
   };
   timestamp: string;
   isSupport?: boolean;
+  optimistic?: boolean;
 }
 
 export interface DirectMessage {

@@ -17,15 +17,13 @@ export const useClubRequests = (clubId: string) => {
           id,
           user_id,
           club_id,
-          status,
           created_at,
           users:user_id (
             name,
             avatar
           )
         `)
-        .eq('club_id', clubId)
-        .eq('status', 'pending');
+        .eq('club_id', clubId);
 
       if (error) throw error;
 
@@ -33,7 +31,6 @@ export const useClubRequests = (clubId: string) => {
         id: request.id,
         userId: request.user_id,
         clubId: request.club_id,
-        status: request.status,
         createdAt: request.created_at
       })));
     } catch (error) {
