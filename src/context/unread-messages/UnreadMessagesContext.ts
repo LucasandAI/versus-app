@@ -7,7 +7,14 @@ const UnreadMessagesContext = createContext<UnreadMessagesContextType>({
   totalUnreadCount: 0,
   clubUnreadCounts: {},
   directMessageUnreadCounts: {},
-  refreshUnreadCounts: async () => {}
+  refreshUnreadCounts: async () => {},
+  
+  // Add default values for the new properties
+  unreadConversations: new Set<string>(),
+  unreadClubs: new Set<string>(),
+  markClubMessagesAsRead: async () => {},
+  markConversationAsRead: async () => {},
+  fetchUnreadCounts: async () => {}
 });
 
 // Export a hook to use this context
