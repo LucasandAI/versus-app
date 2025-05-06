@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useMatchmaking } from '@/hooks/match/useMatchmaking';
 import { Club } from '@/types';
 import { useApp } from '@/context/AppContext';
-import { SearchIcon } from 'lucide-react';
+import { SearchIcon, InfoIcon } from 'lucide-react';
 
 interface SearchOpponentButtonProps {
   club: Club;
@@ -18,9 +18,14 @@ const SearchOpponentButton: React.FC<SearchOpponentButtonProps> = ({ club }) => 
     await searchForOpponent(club.id, club.division, club.tier);
   };
   
-  // Only show the button to admins
+  // Display different content based on admin status
   if (!isClubAdmin(club.id)) {
-    return null;
+    return (
+      <div className="flex items-center justify-center gap-2 p-2 bg-gray-50 rounded-md text-sm text-gray-600">
+        <InfoIcon className="w-4 h-4 text-gray-500" />
+        <span>Only club admins can search for opponents</span>
+      </div>
+    );
   }
   
   return (
