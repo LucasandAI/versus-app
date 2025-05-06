@@ -6,6 +6,10 @@ import { useApp } from '@/context/AppContext';
 import CurrentMatchesList from '../match/CurrentMatchesList';
 import { supabase } from '@/integrations/supabase/client';
 import { transformRawMatchesToMatchType } from '@/utils/club/matchHistoryUtils';
+import { ensureMemberDistances } from '@/utils/club/memberDistanceUtils';
+import { Link } from 'react-router-dom';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface HomeClubsSectionProps {
   userClubs: Club[];
@@ -40,6 +44,44 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
     try {
       const hydratedClubs = await Promise.all(
         initialUserClubs.map(async (club) => {
+          // Fetch club details (name, logo)
+          const { data: clubDetails, error: clubError } = await supabase
+            .from('clubs')
+            .select('name, logo')
+            .eq('id', club.id)
+            .single();
+            
+          if (clubError) {
+            console.error(`[HomeClubsSection] Error fetching club details for club ${club.id}:`, clubError);
+          }
+
+          // Fetch club members
+          const { data: membersData, error: membersError } = await supabase
+            .from('club_members')
+            .select(`
+              user_id,
+              users:user_id (
+                id,
+                name,
+                avatar
+              ),
+              is_admin
+            `)
+            .eq('club_id', club.id);
+            
+          if (membersError) {
+            console.error(`[HomeClubsSection] Error fetching members for club ${club.id}:`, membersError);
+          }
+          
+          // Process members data with default 0 km contribution
+          const processedMembers = (membersData || []).map(member => ({
+            id: member.user_id,
+            name: member.users?.name || 'Unknown',
+            avatar: member.users?.avatar || '/placeholder.svg',
+            isAdmin: member.is_admin,
+            distanceContribution: 0 // Default contribution is 0 km
+          }));
+
           // Fetch match history for the club
           const { data: matchHistory, error: matchError } = await supabase
             .from('matches')
@@ -49,7 +91,12 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
             
           if (matchError) {
             console.error(`[HomeClubsSection] Error fetching matches for club ${club.id}:`, matchError);
-            return club;
+            return {
+              ...club,
+              name: clubDetails?.name || club.name,
+              logo: clubDetails?.logo || club.logo,
+              members: ensureMemberDistances(processedMembers)
+            };
           }
           
           // Transform raw match data into Match type
@@ -61,6 +108,9 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
           // Return hydrated club with properly transformed data
           return {
             ...club,
+            name: clubDetails?.name || club.name,
+            logo: clubDetails?.logo || club.logo,
+            members: ensureMemberDistances(processedMembers),
             matchHistory: transformedMatches,
             currentMatch: currentMatch
           };
@@ -71,6 +121,8 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
       setUserClubs(hydratedClubs);
     } catch (error) {
       console.error('[HomeClubsSection] Error hydrating clubs with match data:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, [initialUserClubs]);
 
@@ -220,14 +272,62 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
 
   const isAtClubCapacity = processedUserClubs.length >= 3;
 
+  const handleClubClick = (club: Club) => {
+    onSelectClub(club);
+  };
+
+  // Club card component for clickable clubs
+  const ClubCard = ({ club }: { club: Club }) => (
+    <Card 
+      className="cursor-pointer hover:shadow-md transition-shadow mb-4"
+      onClick={() => handleClubClick(club)}
+    >
+      <CardContent className="p-4 flex items-center">
+        <div className="h-12 w-12 rounded-full overflow-hidden mr-4">
+          <img 
+            src={club.logo || '/placeholder.svg'} 
+            alt={`${club.name} logo`}
+            className="h-full w-full object-cover"
+          />
+        </div>
+        <div>
+          <h3 className="font-medium text-lg">{club.name || 'Unnamed Club'}</h3>
+          <p className="text-sm text-gray-500">
+            {club.members?.length || 0} members
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <>
+      <h2 className="text-xl font-bold mt-6 mb-4">Your Clubs</h2>
+      
+      {isLoading ? (
+        <div className="space-y-3">
+          {[...Array(2)].map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full" />
+          ))}
+        </div>
+      ) : processedUserClubs.length > 0 ? (
+        <div className="space-y-2 mb-6">
+          {processedUserClubs.map(club => (
+            <ClubCard key={club.id} club={club} />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center p-4 bg-gray-50 rounded-lg mb-6">
+          <p className="text-gray-500">You haven't joined any clubs yet.</p>
+        </div>
+      )}
+
       <h2 className="text-xl font-bold mt-6 mb-4">Current Matches</h2>
       
       {isLoading ? (
         <div className="space-y-3">
           {[...Array(2)].map((_, i) => (
-            <div key={i} className="h-40 bg-gray-100 animate-pulse rounded-md"></div>
+            <Skeleton key={i} className="h-40 w-full" />
           ))}
         </div>
       ) : (
