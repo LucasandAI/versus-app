@@ -1,17 +1,11 @@
 
 import React from 'react';
-import { ClubMember } from '@/types';
+import { ClubMember, MatchTeam } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
 
 interface MatchDetailsProps {
-  homeTeam: {
-    name: string;
-    members: ClubMember[];
-  };
-  awayTeam: {
-    name: string;
-    members: ClubMember[];
-  };
+  homeTeam: MatchTeam;
+  awayTeam: MatchTeam;
   onSelectUser?: (userId: string, name: string, avatar?: string) => void;
 }
 
@@ -37,7 +31,8 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({
       }
     }
     
-    return result;
+    // Sort by distance contributed, descending
+    return result.sort((a, b) => (b.distanceContribution || 0) - (a.distanceContribution || 0));
   };
 
   const homeMembers = ensureTeamSize(homeTeam.members || [], homeTeam.name);
@@ -64,7 +59,7 @@ const MatchDetails: React.FC<MatchDetailsProps> = ({
             name={member.name} 
             image={member.avatar} 
             size="xs" 
-            className={isRealMember ? 'cursor-pointer' : ''}
+            className={isRealMember ? 'cursor-pointer' : 'opacity-50'}
             onClick={(e) => {
               e && e.stopPropagation();
               isRealMember && handleUserClick(member);

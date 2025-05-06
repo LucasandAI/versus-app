@@ -757,19 +757,23 @@ export type Database = {
     Views: {
       view_full_match_info: {
         Row: {
-          away_club_division: string | null
           away_club_id: string | null
           away_club_logo: string | null
           away_club_name: string | null
-          away_club_tier: number | null
-          away_members: Json | null
+          away_division: string | null
+          away_member_contributions: Json | null
+          away_tier: number | null
+          away_total_distance: number | null
           end_date: string | null
-          home_club_division: string | null
           home_club_id: string | null
           home_club_logo: string | null
           home_club_name: string | null
-          home_club_tier: number | null
-          home_members: Json | null
+          home_division: string | null
+          home_member_contributions: Json | null
+          home_tier: number | null
+          home_total_distance: number | null
+          league_after_match: Json | null
+          league_before_match: Json | null
           match_id: string | null
           start_date: string | null
           status: string | null

@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
-import { Club } from '@/types';
+import React, { useState, useEffect } from 'react';
+import { Club, Match } from '@/types';
 import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import MatchCard from './match-history/MatchCard';
 import { useNavigation } from '@/hooks/useNavigation';
+import { useClubMatches } from '@/hooks/club/useClubMatches';
 
 interface MatchHistoryTabProps {
   club: Club;
@@ -12,7 +13,28 @@ interface MatchHistoryTabProps {
 const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
   const [showAllMatches, setShowAllMatches] = useState(false);
+  const [matchHistory, setMatchHistory] = useState<Match[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { navigateToUserProfile, navigateToClubDetail } = useNavigation();
+  const { fetchClubMatches } = useClubMatches();
+
+  useEffect(() => {
+    const loadMatchHistory = async () => {
+      if (!club.id) return;
+      
+      setIsLoading(true);
+      try {
+        const matches = await fetchClubMatches(club.id);
+        setMatchHistory(matches);
+      } catch (error) {
+        console.error('Error loading match history:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadMatchHistory();
+  }, [club.id]);
 
   const handleViewMatchDetails = (matchId: string) => {
     setExpandedMatchId(expandedMatchId === matchId ? null : matchId);
@@ -36,8 +58,8 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
   };
 
   // Filter out current matches, only show completed ones
-  const completedMatches = club.matchHistory 
-    ? club.matchHistory.filter(match => match.status === 'completed')
+  const completedMatches = matchHistory
+    ? matchHistory.filter(match => match.status === 'completed')
     : [];
     
   // Sort by date (newest first)
@@ -56,7 +78,11 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
         <h2 className="text-lg font-semibold">Match History</h2>
       </div>
 
-      {sortedMatches.length > 0 ? (
+      {isLoading ? (
+        <div className="text-center py-4">
+          <p className="text-gray-500 text-sm">Loading match history...</p>
+        </div>
+      ) : sortedMatches.length > 0 ? (
         <div className="space-y-4">
           {displayedMatches.map((match) => (
             <MatchCard

@@ -1,168 +1,154 @@
 
-import { Match } from '@/types';
+import { Match, ClubMember } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
-import { transformMatchData } from '@/utils/club/matchHistoryUtils';
 import { ensureDivision } from '@/utils/club/leagueUtils';
 import { Json } from '@/integrations/supabase/types';
 
-// Helper function to safely access JSON object properties
-const getJsonObjectProperty = (json: Json | null, property: string, defaultValue: any): any => {
-  if (!json || typeof json !== 'object' || Array.isArray(json)) {
-    return defaultValue;
-  }
-  
-  // Now TypeScript knows json is a non-array object
-  return (json as Record<string, Json>)[property] ?? defaultValue;
-};
-
 export const useClubMatches = () => {
   const fetchClubMatches = async (clubId: string): Promise<Match[]> => {
-    const { data: matchHistory, error: matchError } = await supabase
-      .from('matches')
+    // Fetch match history data from view_full_match_info
+    const { data: matchesData, error: matchesError } = await supabase
+      .from('view_full_match_info')
       .select('*')
       .or(`home_club_id.eq.${clubId},away_club_id.eq.${clubId}`)
       .order('end_date', { ascending: false });
       
-    if (matchError) {
-      throw new Error('Error fetching match history: ' + matchError.message);
+    if (matchesError) {
+      console.error('Error fetching match history:', matchesError);
+      throw new Error('Error fetching match history: ' + matchesError.message);
     }
 
     const enhancedMatches: Match[] = [];
     
-    for (const match of matchHistory || []) {
+    for (const matchData of matchesData || []) {
       try {
-        const homeClubData = await supabase
-          .from('clubs')
-          .select('id, name, logo')
-          .eq('id', match.home_club_id)
-          .single();
-          
-        const awayClubData = await supabase
-          .from('clubs')
-          .select('id, name, logo')
-          .eq('id', match.away_club_id)
-          .single();
-          
-        if (!homeClubData.data || !awayClubData.data) continue;
+        const isHomeTeam = matchData.home_club_id === clubId;
+        
+        // Parse home members data
+        const homeMembers: ClubMember[] = [];
+        if (matchData.home_member_contributions) {
+          const memberContributions = typeof matchData.home_member_contributions === 'string' 
+            ? JSON.parse(matchData.home_member_contributions) 
+            : matchData.home_member_contributions;
+            
+          // Convert to array if it's an object
+          const membersArray = Array.isArray(memberContributions) 
+            ? memberContributions 
+            : Object.values(memberContributions);
+            
+          membersArray.forEach((member: any) => {
+            if (member && member.user_id) {
+              homeMembers.push({
+                id: member.user_id,
+                name: member.name || 'Unknown',
+                avatar: member.avatar || '/placeholder.svg',
+                isAdmin: member.is_admin || false,
+                distanceContribution: parseFloat(member.distance || '0')
+              });
+            }
+          });
+        }
 
-        const { data: distances } = await supabase
-          .from('match_distances')
-          .select('user_id, club_id, distance_contributed')
-          .eq('match_id', match.id);
-
-        const matchStatus = new Date(match.end_date) > new Date() ? 'active' : 'completed';
+        // Parse away members data
+        const awayMembers: ClubMember[] = [];
+        if (matchData.away_member_contributions) {
+          const memberContributions = typeof matchData.away_member_contributions === 'string' 
+            ? JSON.parse(matchData.away_member_contributions) 
+            : matchData.away_member_contributions;
+            
+          // Convert to array if it's an object
+          const membersArray = Array.isArray(memberContributions) 
+            ? memberContributions 
+            : Object.values(memberContributions);
+            
+          membersArray.forEach((member: any) => {
+            if (member && member.user_id) {
+              awayMembers.push({
+                id: member.user_id,
+                name: member.name || 'Unknown',
+                avatar: member.avatar || '/placeholder.svg',
+                isAdmin: member.is_admin || false,
+                distanceContribution: parseFloat(member.distance || '0')
+              });
+            }
+          });
+        }
 
         // Process league data into the new format
-        let leagueBeforeMatch = undefined;
-        let leagueAfterMatch = undefined;
-        
-        if (match.league_before_match) {
+        const parseLeagueData = (leagueData: any) => {
+          if (!leagueData) return undefined;
+          
           try {
-            const rawLeagueData = typeof match.league_before_match === 'string' 
-              ? JSON.parse(match.league_before_match) 
-              : match.league_before_match;
+            const parsedData = typeof leagueData === 'string' 
+              ? JSON.parse(leagueData) 
+              : leagueData;
               
             // Check if it already has home/away structure
-            if (rawLeagueData.home && rawLeagueData.away) {
-              leagueBeforeMatch = {
+            if (parsedData.home && parsedData.away) {
+              return {
                 home: {
-                  division: ensureDivision(rawLeagueData.home.division || 'bronze'),
-                  tier: Number(rawLeagueData.home.tier || 1),
-                  elitePoints: Number(rawLeagueData.home.elite_points || rawLeagueData.home.elitePoints || 0)
+                  division: ensureDivision(parsedData.home.division || 'bronze'),
+                  tier: Number(parsedData.home.tier || 1),
+                  elitePoints: Number(parsedData.home.elite_points || parsedData.home.elitePoints || 0)
                 },
                 away: {
-                  division: ensureDivision(rawLeagueData.away.division || 'bronze'),
-                  tier: Number(rawLeagueData.away.tier || 1),
-                  elitePoints: Number(rawLeagueData.away.elite_points || rawLeagueData.away.elitePoints || 0)
+                  division: ensureDivision(parsedData.away.division || 'bronze'),
+                  tier: Number(parsedData.away.tier || 1),
+                  elitePoints: Number(parsedData.away.elite_points || parsedData.away.elitePoints || 0)
                 }
               };
-            } else {
-              // Old format - convert to new format
-              leagueBeforeMatch = {
-                home: {
-                  division: ensureDivision(rawLeagueData.division || 'bronze'),
-                  tier: Number(rawLeagueData.tier || 1),
-                  elitePoints: Number(rawLeagueData.elite_points || rawLeagueData.elitePoints || 0)
-                },
-                away: {
-                  division: ensureDivision(rawLeagueData.division || 'bronze'),
-                  tier: Number(rawLeagueData.tier || 1),
-                  elitePoints: Number(rawLeagueData.elite_points || rawLeagueData.elitePoints || 0)
-                }
-              };
-            }
+            } 
+            
+            // Old format - convert to new format
+            return {
+              home: {
+                division: ensureDivision(parsedData.division || 'bronze'),
+                tier: Number(parsedData.tier || 1),
+                elitePoints: Number(parsedData.elite_points || parsedData.elitePoints || 0)
+              },
+              away: {
+                division: ensureDivision(parsedData.division || 'bronze'),
+                tier: Number(parsedData.tier || 1),
+                elitePoints: Number(parsedData.elite_points || parsedData.elitePoints || 0)
+              }
+            };
           } catch (e) {
-            console.error('Error parsing league_before_match:', e);
+            console.error('Error parsing league data:', e);
+            return undefined;
           }
-        }
-        
-        if (match.league_after_match) {
-          try {
-            const rawLeagueData = typeof match.league_after_match === 'string' 
-              ? JSON.parse(match.league_after_match) 
-              : match.league_after_match;
-              
-            // Check if it already has home/away structure
-            if (rawLeagueData.home && rawLeagueData.away) {
-              leagueAfterMatch = {
-                home: {
-                  division: ensureDivision(rawLeagueData.home.division || 'bronze'),
-                  tier: Number(rawLeagueData.home.tier || 1),
-                  elitePoints: Number(rawLeagueData.home.elite_points || rawLeagueData.home.elitePoints || 0)
-                },
-                away: {
-                  division: ensureDivision(rawLeagueData.away.division || 'bronze'),
-                  tier: Number(rawLeagueData.away.tier || 1),
-                  elitePoints: Number(rawLeagueData.away.elite_points || rawLeagueData.away.elitePoints || 0)
-                }
-              };
-            } else {
-              // Old format - convert to new format
-              leagueAfterMatch = {
-                home: {
-                  division: ensureDivision(rawLeagueData.division || 'bronze'),
-                  tier: Number(rawLeagueData.tier || 1),
-                  elitePoints: Number(rawLeagueData.elite_points || rawLeagueData.elitePoints || 0)
-                },
-                away: {
-                  division: ensureDivision(rawLeagueData.division || 'bronze'),
-                  tier: Number(rawLeagueData.tier || 1),
-                  elitePoints: Number(rawLeagueData.elite_points || rawLeagueData.elitePoints || 0)
-                }
-              };
-            }
-          } catch (e) {
-            console.error('Error parsing league_after_match:', e);
-          }
-        }
-
-        const enhancedMatch = {
-          id: match.id,
-          homeClub: {
-            id: homeClubData.data.id,
-            name: homeClubData.data.name,
-            logo: homeClubData.data.logo || '/placeholder.svg',
-            totalDistance: 0,
-            members: []
-          },
-          awayClub: {
-            id: awayClubData.data.id,
-            name: awayClubData.data.name,
-            logo: awayClubData.data.logo || '/placeholder.svg',
-            totalDistance: 0,
-            members: []
-          },
-          startDate: match.start_date,
-          endDate: match.end_date,
-          status: matchStatus as 'active' | 'completed',
-          winner: match.winner as 'home' | 'away' | 'draw' | undefined,
-          leagueBeforeMatch,
-          leagueAfterMatch
         };
 
-        enhancedMatches.push(enhancedMatch);
+        const match: Match = {
+          id: matchData.match_id,
+          homeClub: {
+            id: matchData.home_club_id,
+            name: matchData.home_club_name || 'Unknown Team',
+            logo: matchData.home_club_logo || '/placeholder.svg',
+            division: ensureDivision(matchData.home_division || 'bronze'),
+            tier: Number(matchData.home_tier || 1),
+            totalDistance: parseFloat(matchData.home_total_distance || '0'),
+            members: homeMembers
+          },
+          awayClub: {
+            id: matchData.away_club_id,
+            name: matchData.away_club_name || 'Unknown Team',
+            logo: matchData.away_club_logo || '/placeholder.svg',
+            division: ensureDivision(matchData.away_division || 'bronze'),
+            tier: Number(matchData.away_tier || 1),
+            totalDistance: parseFloat(matchData.away_total_distance || '0'),
+            members: awayMembers
+          },
+          startDate: matchData.start_date,
+          endDate: matchData.end_date,
+          status: matchData.status as 'active' | 'completed',
+          winner: matchData.winner as 'home' | 'away' | 'draw' | undefined,
+          leagueBeforeMatch: parseLeagueData(matchData.league_before_match),
+          leagueAfterMatch: parseLeagueData(matchData.league_after_match)
+        };
+
+        enhancedMatches.push(match);
       } catch (error) {
-        console.error('Error processing match:', error);
+        console.error('Error processing match data:', error);
       }
     }
     
