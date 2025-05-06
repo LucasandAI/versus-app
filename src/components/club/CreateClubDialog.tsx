@@ -26,36 +26,10 @@ const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
   const [image, setImage] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
-  const handleCreateClub = () => {
-    if (!name.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a club name",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    createClub({
-      name: name.trim(),
-      logo: image || '/placeholder.svg',
-      bio: bio.trim()
-    });
-
-    toast({
-      title: "Success",
-      description: "Your club has been created",
-    });
-
-    // Reset form
-    setName("");
-    setBio("");
-    setImage(null);
-    onOpenChange(false);
-  };
-
-  const handleLogoUpload = async (file: File) => {
+  const handleLogoUpload = async (file: File): Promise<string | null> => {
     if (!currentUser) return null;
     
     try {
@@ -69,15 +43,78 @@ const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
         .upload(filePath, file);
         
       if (uploadError) {
+        console.error('[CreateClubDialog] Logo upload error:', uploadError);
         throw uploadError;
       }
       
       const { data } = supabase.storage.from('club-logos').getPublicUrl(filePath);
+      console.log('[CreateClubDialog] Logo uploaded successfully:', data.publicUrl);
       return data.publicUrl;
     } catch (error) {
       console.error('[CreateClubDialog] Error uploading logo:', error);
       return null;
     }
+  };
+
+  const handleCreateClub = async () => {
+    if (!name.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a club name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCreating(true);
+
+    try {
+      let logoUrl = image;
+      
+      // If there's a new image file, upload it
+      if (imageFile) {
+        logoUrl = await handleLogoUpload(imageFile);
+        if (!logoUrl) {
+          throw new Error('Failed to upload club logo');
+        }
+      }
+
+      console.log('[CreateClubDialog] Creating club with name:', name, 'and logo:', logoUrl);
+      
+      const result = await createClub(name.trim(), logoUrl || '/placeholder.svg');
+      
+      if (result) {
+        toast({
+          title: "Success",
+          description: `Your club "${name}" has been created`,
+        });
+        
+        // Reset form
+        setName("");
+        setBio("");
+        setImage(null);
+        setImageFile(null);
+        onOpenChange(false);
+      } else {
+        throw new Error('Failed to create club');
+      }
+    } catch (error) {
+      console.error('[CreateClubDialog] Error creating club:', error);
+      toast({
+        title: "Error creating club",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleImageSelect = (file: File) => {
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => setImage(e.target?.result as string);
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -110,9 +147,7 @@ const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) {
-                  const reader = new FileReader();
-                  reader.onload = (e) => setImage(e.target?.result as string);
-                  reader.readAsDataURL(file);
+                  handleImageSelect(file);
                 }
               }}
             />
@@ -147,11 +182,11 @@ const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isCreating}>
             Cancel
           </Button>
-          <Button onClick={handleCreateClub}>
-            Create Club
+          <Button onClick={handleCreateClub} disabled={isCreating}>
+            {isCreating ? 'Creating...' : 'Create Club'}
           </Button>
         </DialogFooter>
       </DialogContent>
