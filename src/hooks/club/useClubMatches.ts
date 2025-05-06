@@ -6,6 +6,8 @@ import { Json } from '@/integrations/supabase/types';
 
 export const useClubMatches = () => {
   const fetchClubMatches = async (clubId: string): Promise<Match[]> => {
+    console.log('[useClubMatches] Fetching matches for club:', clubId);
+    
     // Fetch match history data from view_full_match_info
     const { data: matchesData, error: matchesError } = await supabase
       .from('view_full_match_info')
@@ -14,10 +16,12 @@ export const useClubMatches = () => {
       .order('end_date', { ascending: false });
       
     if (matchesError) {
-      console.error('Error fetching match history:', matchesError);
+      console.error('[useClubMatches] Error fetching match history:', matchesError);
       throw new Error('Error fetching match history: ' + matchesError.message);
     }
 
+    console.log('[useClubMatches] Raw matches data:', matchesData?.length || 0, 'matches found');
+    
     const enhancedMatches: Match[] = [];
     
     for (const matchData of matchesData || []) {
@@ -118,6 +122,22 @@ export const useClubMatches = () => {
           }
         };
 
+        // Add explicit winner determination if not present in data
+        const determineWinnerFromData = () => {
+          if (matchData.winner && 
+             (matchData.winner === 'home' || matchData.winner === 'away' || matchData.winner === 'draw')) {
+            return matchData.winner;
+          }
+          
+          // Calculate based on distance if winner not explicitly set
+          const homeDistance = parseFloat(String(matchData.home_total_distance || '0'));
+          const awayDistance = parseFloat(String(matchData.away_total_distance || '0'));
+          
+          if (homeDistance > awayDistance) return 'home';
+          if (awayDistance > homeDistance) return 'away';
+          return 'draw';
+        };
+
         const match: Match = {
           id: matchData.match_id,
           homeClub: {
@@ -141,21 +161,18 @@ export const useClubMatches = () => {
           startDate: matchData.start_date,
           endDate: matchData.end_date,
           status: matchData.status as 'active' | 'completed',
-          // Use matchData winner if it exists, otherwise determine based on distances
-          winner: determineWinner(
-            parseFloat(String(matchData.home_total_distance || '0')), 
-            parseFloat(String(matchData.away_total_distance || '0'))
-          ),
+          winner: determineWinnerFromData(),
           leagueBeforeMatch: parseLeagueData(matchData.league_before_match),
           leagueAfterMatch: parseLeagueData(matchData.league_after_match)
         };
 
         enhancedMatches.push(match);
       } catch (error) {
-        console.error('Error processing match data:', error);
+        console.error('[useClubMatches] Error processing match data:', error);
       }
     }
     
+    console.log('[useClubMatches] Processed', enhancedMatches.length, 'matches successfully');
     return enhancedMatches;
   };
 
