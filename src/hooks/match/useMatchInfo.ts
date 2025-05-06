@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club, Match, MatchTeam, ClubMember } from '@/types';
+import { debounce } from 'lodash';
 
 export const useMatchInfo = (userClubs: Club[]) => {
   const [matches, setMatches] = useState<Match[]>([]);
@@ -120,10 +121,19 @@ export const useMatchInfo = (userClubs: Club[]) => {
     }
   }, [clubIds, transformMatchData]);
 
+  // Debounce the fetch operation to prevent too many rapid updates
+  const debouncedFetchMatches = useMemo(() => 
+    debounce(fetchMatches, 300, { leading: true, trailing: true }),
+    [fetchMatches]
+  );
+
   useEffect(() => {
     // Only fetch if we have clubs to query for
     if (clubIds.length > 0) {
-      fetchMatches();
+      debouncedFetchMatches();
+    } else {
+      setIsLoading(false);
+      setMatches([]);
     }
     
     // Set up a single realtime channel for all changes
@@ -138,7 +148,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
         },
         () => {
           console.log('[useMatchInfo] Match table updated, refreshing data');
-          fetchMatches();
+          debouncedFetchMatches();
         }
       )
       .on(
@@ -150,7 +160,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
         },
         () => {
           console.log('[useMatchInfo] Match distances updated, refreshing data');
-          fetchMatches();
+          debouncedFetchMatches();
         }
       )
       .subscribe();
@@ -158,7 +168,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
     // Listen for custom events
     const handleMatchEvent = () => {
       console.log('[useMatchInfo] Match event received, refreshing data');
-      fetchMatches();
+      debouncedFetchMatches();
     };
 
     window.addEventListener('matchCreated', handleMatchEvent);
@@ -168,17 +178,18 @@ export const useMatchInfo = (userClubs: Club[]) => {
       
     // Clean up
     return () => {
+      debouncedFetchMatches.cancel();
       supabase.removeChannel(channel);
       window.removeEventListener('matchCreated', handleMatchEvent);
       window.removeEventListener('matchUpdated', handleMatchEvent);
       window.removeEventListener('matchEnded', handleMatchEvent);
       window.removeEventListener('matchDistanceUpdated', handleMatchEvent);
     };
-  }, [clubIds, fetchMatches]);
+  }, [clubIds, debouncedFetchMatches]);
 
   return {
     matches,
     isLoading,
-    refreshMatches: fetchMatches
+    refreshMatches: debouncedFetchMatches
   };
 };

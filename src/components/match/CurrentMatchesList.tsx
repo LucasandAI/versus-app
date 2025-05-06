@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Club, Match } from '@/types';
 import CurrentMatchCard from './CurrentMatchCard';
 import WaitingForMatchCard from './WaitingForMatchCard';
@@ -17,6 +17,29 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
 }) => {
   const { matches, isLoading } = useMatchInfo(userClubs);
   
+  // Memoize the clubs/matches mapping to prevent unnecessary recalculations
+  const clubsWithMatchStatus = useMemo(() => {
+    if (!userClubs || !matches) return [];
+    
+    return userClubs.map(club => {
+      if (!club) return null;
+      
+      // Find the active match for this club
+      const activeMatch = matches.find(match => 
+        (match.homeClub.id === club.id || match.awayClub.id === club.id) && 
+        match.status === 'active'
+      );
+      
+      const hasEnoughMembers = club.members && club.members.length >= 5;
+      
+      return {
+        club,
+        activeMatch,
+        hasEnoughMembers
+      };
+    }).filter(Boolean);
+  }, [userClubs, matches]);
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -37,16 +60,9 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
 
   return (
     <div>
-      {userClubs.map(club => {
-        if (!club) return null;
-        
-        // Find the active match for this club
-        const activeMatch = matches.find(match => 
-          (match.homeClub.id === club.id || match.awayClub.id === club.id) && 
-          match.status === 'active'
-        );
-        
-        const hasEnoughMembers = club.members && club.members.length >= 5;
+      {clubsWithMatchStatus.map(item => {
+        if (!item) return null;
+        const { club, activeMatch, hasEnoughMembers } = item;
         
         if (activeMatch) {
           return (

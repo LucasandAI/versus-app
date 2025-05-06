@@ -1,7 +1,8 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Match, MatchTeam, ClubMember } from '@/types';
+import { debounce } from 'lodash';
 
 export const useClubMatchInfo = (clubId: string | undefined) => {
   const [match, setMatch] = useState<Match | null>(null);
@@ -107,8 +108,19 @@ export const useClubMatchInfo = (clubId: string | undefined) => {
     }
   }, [clubId, transformMatchData]);
 
+  // Debounce the fetch operation to prevent too many rapid updates
+  const debouncedFetchClubMatch = useMemo(() => 
+    debounce(fetchClubMatch, 300, { leading: true, trailing: true }),
+    [fetchClubMatch]
+  );
+
   useEffect(() => {
-    fetchClubMatch();
+    if (clubId) {
+      debouncedFetchClubMatch();
+    } else {
+      setIsLoading(false);
+      setMatch(null);
+    }
     
     // Set up realtime subscriptions
     const channel = supabase
@@ -123,7 +135,7 @@ export const useClubMatchInfo = (clubId: string | undefined) => {
         },
         () => {
           console.log('[useClubMatchInfo] Home club match updated, refreshing data');
-          fetchClubMatch();
+          debouncedFetchClubMatch();
         }
       )
       .on(
@@ -136,7 +148,7 @@ export const useClubMatchInfo = (clubId: string | undefined) => {
         },
         () => {
           console.log('[useClubMatchInfo] Away club match updated, refreshing data');
-          fetchClubMatch();
+          debouncedFetchClubMatch();
         }
       )
       .on(
@@ -149,7 +161,7 @@ export const useClubMatchInfo = (clubId: string | undefined) => {
         },
         () => {
           console.log('[useClubMatchInfo] Match distances updated, refreshing data');
-          fetchClubMatch();
+          debouncedFetchClubMatch();
         }
       )
       .subscribe();
@@ -163,7 +175,7 @@ export const useClubMatchInfo = (clubId: string | undefined) => {
         customEvent.detail.clubId === clubId
       ) {
         console.log('[useClubMatchInfo] Match event received, refreshing data');
-        fetchClubMatch();
+        debouncedFetchClubMatch();
       }
     };
 
@@ -174,17 +186,18 @@ export const useClubMatchInfo = (clubId: string | undefined) => {
       
     // Clean up
     return () => {
+      debouncedFetchClubMatch.cancel();
       supabase.removeChannel(channel);
       window.removeEventListener('matchCreated', handleMatchEvent);
       window.removeEventListener('matchUpdated', handleMatchEvent);
       window.removeEventListener('matchEnded', handleMatchEvent);
       window.removeEventListener('matchDistanceUpdated', handleMatchEvent);
     };
-  }, [clubId, fetchClubMatch]);
+  }, [clubId, debouncedFetchClubMatch]);
 
   return {
     match,
     isLoading,
-    refreshMatch: fetchClubMatch
+    refreshMatch: debouncedFetchClubMatch
   };
 };

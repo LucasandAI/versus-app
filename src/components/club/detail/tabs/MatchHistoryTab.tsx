@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Club, Match } from '@/types';
 import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import MatchCard from './match-history/MatchCard';
@@ -34,7 +34,7 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
     };
     
     loadMatchHistory();
-  }, [club.id]);
+  }, [club.id, fetchClubMatches]);
 
   const handleViewMatchDetails = (matchId: string) => {
     setExpandedMatchId(expandedMatchId === matchId ? null : matchId);
@@ -57,19 +57,26 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
     });
   };
 
-  // Filter out current matches, only show completed ones
-  const completedMatches = matchHistory
-    ? matchHistory.filter(match => match.status === 'completed')
-    : [];
-    
-  // Sort by date (newest first)
-  const sortedMatches = [...completedMatches].sort((a, b) => 
-    new Date(b.endDate).getTime() - new Date(a.endDate).getTime()
-  );
+  // Memoize the sorted and filtered matches to prevent unnecessary recalculations
+  const displayedMatches = useMemo(() => {
+    // Filter out current matches, only show completed ones
+    const completedMatches = matchHistory
+      ? matchHistory.filter(match => match.status === 'completed')
+      : [];
+      
+    // Sort by date (newest first)
+    const sortedMatches = [...completedMatches].sort((a, b) => 
+      new Date(b.endDate).getTime() - new Date(a.endDate).getTime()
+    );
 
-  const displayedMatches = showAllMatches 
-    ? sortedMatches 
-    : sortedMatches.slice(0, 3);
+    return showAllMatches 
+      ? sortedMatches 
+      : sortedMatches.slice(0, 3);
+  }, [matchHistory, showAllMatches]);
+
+  const totalMatchCount = useMemo(() => {
+    return matchHistory?.filter(match => match.status === 'completed').length || 0;
+  }, [matchHistory]);
 
   return (
     <div className="bg-white rounded-lg shadow p-3 sm:p-4">
@@ -82,7 +89,7 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
         <div className="text-center py-4">
           <p className="text-gray-500 text-sm">Loading match history...</p>
         </div>
-      ) : sortedMatches.length > 0 ? (
+      ) : totalMatchCount > 0 ? (
         <div className="space-y-4">
           {displayedMatches.map((match) => (
             <MatchCard
@@ -96,7 +103,7 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
             />
           ))}
 
-          {sortedMatches.length > 3 && (
+          {totalMatchCount > 3 && (
             <button
               className="w-full text-primary hover:text-primary/80 text-xs py-1 flex items-center justify-center gap-1"
               onClick={handleViewAllHistory}
@@ -109,7 +116,7 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
               ) : (
                 <>
                   <ChevronDown className="h-3 w-3" />
-                  View All Match History ({sortedMatches.length - 3} more)
+                  View All Match History ({totalMatchCount - 3} more)
                 </>
               )}
             </button>
