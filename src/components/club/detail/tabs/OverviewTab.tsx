@@ -38,7 +38,6 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       
       <div>
         <ClubCurrentMatch
-          match={club.currentMatch}
           onViewProfile={onSelectUser}
         />
       </div>

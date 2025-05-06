@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Club } from '@/types';
+import { Club, Match } from '@/types';
 import { useApp } from '@/context/AppContext';
 import { useClubMatchInfo } from '@/hooks/match/useClubMatchInfo';
 import CurrentMatchCard from '@/components/match/CurrentMatchCard';
