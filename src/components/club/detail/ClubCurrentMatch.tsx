@@ -5,12 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useApp } from '@/context/AppContext';
 import SearchOpponentButton from '@/components/match/SearchOpponentButton';
 import NeedMoreMembersCard from '@/components/match/NeedMoreMembersCard';
-import MatchDisplay from '@/components/match/MatchDisplay';
+import CurrentMatchCard from '@/components/match/CurrentMatchCard';
 
 interface ClubCurrentMatchProps {
   match?: Match;
   onViewProfile: (userId: string, name: string, avatar?: string) => void;
-  forceShowDetails?: boolean; // Prop to force showing details
+  forceShowDetails?: boolean;
 }
 
 const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
@@ -62,13 +62,12 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
     }
   }
   
-  // We have a match, use the shared MatchDisplay component
+  // We have a match, use CurrentMatchCard which uses the shared MatchDisplay component
   return (
-    <MatchDisplay 
+    <CurrentMatchCard
       match={match!} 
-      userClub={selectedClub} 
+      userClub={selectedClub!} 
       onViewProfile={onViewProfile} 
-      forceShowDetails={forceShowDetails} 
     />
   );
 };

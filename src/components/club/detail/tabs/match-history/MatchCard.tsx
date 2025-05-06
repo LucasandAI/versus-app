@@ -24,6 +24,11 @@ const MatchCard: React.FC<MatchCardProps> = ({
   onSelectUser,
   onSelectClub
 }) => {
+  // Skip active matches in the match history tab
+  if (match.status === 'active') {
+    return null;
+  }
+  
   const isHomeTeam = match.homeClub.id === clubId;
   const ourTeam = isHomeTeam ? match.homeClub : match.awayClub;
   const theirTeam = isHomeTeam ? match.awayClub : match.homeClub;

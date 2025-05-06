@@ -7,12 +7,14 @@ interface CurrentMatchCardProps {
   match: Match;
   userClub: Club;
   onViewProfile: (userId: string, name: string, avatar?: string) => void;
+  forceShowDetails?: boolean;
 }
 
 const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
   match,
   userClub,
-  onViewProfile
+  onViewProfile,
+  forceShowDetails
 }) => {
   // Simple wrapper component to maintain API compatibility
   return (
@@ -20,6 +22,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
       match={match}
       userClub={userClub}
       onViewProfile={onViewProfile}
+      forceShowDetails={forceShowDetails}
     />
   );
 };
