@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { Club, Match } from '@/types';
+import { Club, Match, ClubMember } from '@/types';
 import { useClubDetails } from './useClubDetails';
 import { useClubMembers } from './useClubMembers';
 import { useClubMatches } from './useClubMatches';
@@ -21,6 +21,7 @@ export const useClubData = (clubId: string | undefined) => {
   // Fetch active match separately
   const fetchActiveMatch = async (clubId: string): Promise<Match | null> => {
     try {
+      console.log('[fetchActiveMatch] Fetching active match for club:', clubId);
       const { data, error } = await supabase
         .from('view_full_match_info')
         .select('*')
@@ -34,8 +35,11 @@ export const useClubData = (clubId: string | undefined) => {
       }
       
       if (!data) {
+        console.log('[fetchActiveMatch] No active match found');
         return null;
       }
+
+      console.log('[fetchActiveMatch] Raw match data:', data);
 
       // Use same parsing logic as in useMatchInfo
       const isHomeTeam = data.home_club_id === clubId;
@@ -102,6 +106,7 @@ export const useClubData = (clubId: string | undefined) => {
         winner: data.winner as 'home' | 'away' | 'draw' | undefined
       };
       
+      console.log('[fetchActiveMatch] Processed match data:', match);
       return match;
     } catch (error) {
       console.error('[fetchActiveMatch] Error:', error);
@@ -221,12 +226,30 @@ export const useClubData = (clubId: string | undefined) => {
       )
       .subscribe();
     
+    // Set up Supabase realtime subscription for match_distances table
+    const distancesChannel = supabase
+      .channel('club-data-distances-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'match_distances'
+        },
+        (payload) => {
+          console.log('[useClubData] Realtime update detected for distances:', payload);
+          loadClubData();
+        }
+      )
+      .subscribe();
+    
     return () => {
       window.removeEventListener('userDataUpdated', handleDataUpdate);
       window.removeEventListener('clubMembershipChanged', handleClubMembershipChange as EventListener);
       window.removeEventListener('matchEnded', handleMatchEnded);
       supabase.removeChannel(clubMembershipChannel);
       supabase.removeChannel(matchesChannel);
+      supabase.removeChannel(distancesChannel);
     };
   }, [loadClubData, clubId]);
 

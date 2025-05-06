@@ -30,6 +30,20 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
   const { navigateToClubDetail } = useNavigation();
   const matchEndDateRef = useRef<Date | null>(match ? new Date(match.endDate) : null);
 
+  // Ensure we have valid data to display
+  if (!match || !match.homeClub || !match.awayClub) {
+    console.error('[MatchDisplay] Invalid match data:', match);
+    return (
+      <Card className="overflow-hidden border-0 shadow-md">
+        <CardContent className="p-4">
+          <div className="text-center py-4 text-gray-500">
+            Match data is unavailable
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Determine if user club is home or away
   const isHome = userClub && match.homeClub.id === userClub.id;
   const currentClub = isHome ? match.homeClub : match.awayClub;
@@ -69,7 +83,7 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
     debouncedDispatchMatchEnded(match.id);
   };
 
-  // Update match end date
+  // Update match end date and initial show state
   useEffect(() => {
     if (match) {
       const endDate = new Date(match.endDate);
@@ -88,20 +102,6 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
     };
   }, [match, forceShowDetails, showMemberContributions]);
   
-  // Ensure we have valid data to display
-  if (!match || !match.homeClub || !match.awayClub) {
-    console.error('[MatchDisplay] Invalid match data:', match);
-    return (
-      <Card className="overflow-hidden border-0 shadow-md">
-        <CardContent className="p-4">
-          <div className="text-center py-4 text-gray-500">
-            Match data is unavailable
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   // Log the full match data to help debug
   console.log('[MatchDisplay] Rendering match with full data:', {
     matchId: match.id,

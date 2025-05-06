@@ -63,11 +63,10 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
   }
   
   // We have a match, use CurrentMatchCard which uses the shared MatchDisplay component
-  // Make sure we properly pass the forceShowDetails prop
   if (match && selectedClub) {
     console.log('[ClubCurrentMatch] Rendering match with club data:', {
-      match: match.id,
-      club: selectedClub.id,
+      matchId: match.id,
+      clubId: selectedClub.id,
       forceShowDetails
     });
     
