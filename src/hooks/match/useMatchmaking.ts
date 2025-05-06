@@ -83,14 +83,7 @@ export const useMatchmaking = (currentUser: any) => {
 
       if (error) {
         console.error('[useMatchmaking] Error adding to matchmaking queue:', error);
-        
-        // Handle the specific error for members already in queue
-        if (error.message.includes('member of this club is already in queue')) {
-          toast.error("A member of this club is already in queue with another club");
-        } else {
-          toast.error("Failed to search for opponent");
-        }
-        
+        toast.error("Failed to search for opponent");
         setIsSearching(false);
         return false;
       }

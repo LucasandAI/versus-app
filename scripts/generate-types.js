@@ -1,3 +1,4 @@
+
 // This script can be used to regenerate the Supabase types after database changes
 // You'll need to run this manually using Node.js after any database schema updates
 
