@@ -16,6 +16,13 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
   onViewProfile,
   forceShowDetails = false
 }) => {
+  // Log the data being passed to help with debugging
+  console.log('[CurrentMatchCard] Rendering with data:', {
+    matchId: match?.id,
+    userClubId: userClub?.id,
+    forceShowDetails
+  });
+  
   // Pass all props including forceShowDetails to MatchDisplay
   return (
     <MatchDisplay

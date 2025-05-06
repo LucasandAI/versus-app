@@ -64,13 +64,32 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
   
   // We have a match, use CurrentMatchCard which uses the shared MatchDisplay component
   // Make sure we properly pass the forceShowDetails prop
+  if (match && selectedClub) {
+    console.log('[ClubCurrentMatch] Rendering match with club data:', {
+      match: match.id,
+      club: selectedClub.id,
+      forceShowDetails
+    });
+    
+    return (
+      <CurrentMatchCard
+        match={match} 
+        userClub={selectedClub} 
+        onViewProfile={onViewProfile} 
+        forceShowDetails={forceShowDetails}
+      />
+    );
+  }
+  
+  // Fallback case - should not reach here
   return (
-    <CurrentMatchCard
-      match={match!} 
-      userClub={selectedClub!} 
-      onViewProfile={onViewProfile} 
-      forceShowDetails={forceShowDetails}
-    />
+    <Card className="shadow-sm">
+      <CardContent className="p-4">
+        <div className="text-center py-4 text-gray-500">
+          Unable to render match information
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

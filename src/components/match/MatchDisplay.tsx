@@ -88,6 +88,33 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
     };
   }, [match, forceShowDetails, showMemberContributions]);
   
+  // Ensure we have valid data to display
+  if (!match || !match.homeClub || !match.awayClub) {
+    console.error('[MatchDisplay] Invalid match data:', match);
+    return (
+      <Card className="overflow-hidden border-0 shadow-md">
+        <CardContent className="p-4">
+          <div className="text-center py-4 text-gray-500">
+            Match data is unavailable
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Log the full match data to help debug
+  console.log('[MatchDisplay] Rendering match with full data:', {
+    matchId: match.id,
+    homeClub: match.homeClub,
+    awayClub: match.awayClub,
+    currentClub,
+    opponentClub,
+    userClub,
+    isHome,
+    forceShowDetails,
+    showMemberContributions
+  });
+  
   return (
     <Card className="overflow-hidden border-0 shadow-md">
       <CardContent className="p-4">
