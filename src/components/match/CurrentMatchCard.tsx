@@ -1,100 +1,128 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { Match, Club } from '@/types';
+import { Match, Club, ClubMember } from '@/types';
 import { ChevronDown, Clock } from 'lucide-react';
 import MatchProgressBar from '@/components/shared/MatchProgressBar';
 import { Button } from '@/components/ui/button';
 import { useNavigation } from '@/hooks/useNavigation';
+import { supabase } from '@/integrations/supabase/client';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { formatLeague } from '@/utils/club/leagueUtils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import CountdownTimer from '@/components/match/CountdownTimer';
-
 interface CurrentMatchCardProps {
   match: Match;
   userClub: Club;
   onViewProfile: (userId: string, name: string, avatar?: string) => void;
 }
-
 const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
-  match,
-  userClub,
+  match: initialMatch,
+  userClub: initialUserClub,
   onViewProfile
 }) => {
   const [showMemberContributions, setShowMemberContributions] = useState(false);
-  const [isExpired, setIsExpired] = useState(false);
-  const { navigateToClubDetail } = useNavigation();
+  const [match, setMatch] = useState(initialMatch);
+  const [userClub, setUserClub] = useState(initialUserClub);
+  const [timeRemaining, setTimeRemaining] = useState<string>('');
+  const {
+    navigateToClubDetail
+  } = useNavigation();
 
   // Determine if user club is home or away
   const isHome = match.homeClub.id === userClub.id;
   const userClubMatch = isHome ? match.homeClub : match.awayClub;
   const opponentClubMatch = isHome ? match.awayClub : match.homeClub;
 
-  // Check if the match has expired on component mount
+  // Calculate time remaining for the match
   useEffect(() => {
-    const checkExpired = () => {
+    const calculateTimeRemaining = () => {
       const now = new Date();
       const endDate = new Date(match.endDate);
-      setIsExpired(now > endDate);
+      const timeDiff = endDate.getTime() - now.getTime();
+      if (timeDiff <= 0) {
+        return '00:00:00';
+      }
+      const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+      const minutes = Math.floor(timeDiff % (1000 * 60 * 60) / (1000 * 60));
+      const seconds = Math.floor(timeDiff % (1000 * 60) / 1000);
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     };
-    
-    checkExpired();
-    const timer = setInterval(checkExpired, 10000); // Check every 10 seconds
-    
+    setTimeRemaining(calculateTimeRemaining());
+    const timer = setInterval(() => {
+      const remaining = calculateTimeRemaining();
+      setTimeRemaining(remaining);
+      if (remaining === '00:00:00') {
+        clearInterval(timer);
+        window.dispatchEvent(new CustomEvent('matchEnded', {
+          detail: {
+            matchId: match.id
+          }
+        }));
+      }
+    }, 1000);
     return () => clearInterval(timer);
-  }, [match.endDate]);
+  }, [match.endDate, match.id]);
 
-  const handleMemberClick = (member: any) => {
+  // Handle real-time updates for match data
+  useEffect(() => {
+    // Update state when props change
+    setMatch(initialMatch);
+    setUserClub(initialUserClub);
+
+    // Subscribe to match distance contributions
+    const distanceChannel = supabase.channel(`match-distances-${initialMatch.id}`).on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'match_distances',
+      filter: `match_id=eq.${initialMatch.id}`
+    }, payload => {
+      console.log(`[CurrentMatchCard] Match distance updated for ${initialMatch.id}:`, payload);
+      window.dispatchEvent(new CustomEvent('matchDistanceUpdated', {
+        detail: {
+          matchId: initialMatch.id
+        }
+      }));
+    }).subscribe();
+
+    // Listen for match data updates
+    const handleMatchUpdate = (event: CustomEvent) => {
+      if (event.detail?.matchId === initialMatch.id || event.detail?.clubId === initialUserClub.id) {
+        console.log('[CurrentMatchCard] Match updated, refreshing data');
+        setMatch(initialMatch);
+        setUserClub(initialUserClub);
+      }
+    };
+    window.addEventListener('matchDistanceUpdated', handleMatchUpdate as EventListener);
+    window.addEventListener('matchUpdated', handleMatchUpdate as EventListener);
+    window.addEventListener('userDataUpdated', () => {
+      setMatch(initialMatch);
+      setUserClub(initialUserClub);
+    });
+    return () => {
+      supabase.removeChannel(distanceChannel);
+      window.removeEventListener('matchDistanceUpdated', handleMatchUpdate as EventListener);
+      window.removeEventListener('matchUpdated', handleMatchUpdate as EventListener);
+      window.removeEventListener('userDataUpdated', () => {
+        setMatch(initialMatch);
+        setUserClub(initialUserClub);
+      });
+    };
+  }, [initialMatch, initialUserClub]);
+  const handleMemberClick = (member: ClubMember) => {
     onViewProfile(member.id, member.name, member.avatar);
   };
-
   const handleClubClick = (clubId: string, clubData: any) => {
     navigateToClubDetail(clubId, clubData);
   };
-
-  const handleCountdownComplete = () => {
-    console.log('[CurrentMatchCard] Match ended, refreshing data');
-    setIsExpired(true);
-    
-    // Use a small delay to avoid UI flickering
-    setTimeout(() => {
-      window.dispatchEvent(new CustomEvent('matchEnded', {
-        detail: {
-          matchId: match.id,
-          clubId: userClub.id
-        }
-      }));
-    }, 500);
-  };
-
-  // Make sure the endDate is a valid Date object
-  const endDate = new Date(match.endDate);
-  
-  // If the match is already expired but hasn't been updated in the database yet,
-  // we should still show it but with a different message
-  const isMatchActive = match.status === 'active' && !isExpired;
-
-  return (
-    <Card className="overflow-hidden border-0 shadow-md mb-4">
+  return <Card className="overflow-hidden border-0 shadow-md">
       <CardContent className="p-4">
-        {/* Match Status Notification */}
+        {/* Match in Progress Notification */}
         <div className="p-3 rounded-md mb-4 bg-inherit">
           <div className="flex justify-between items-center">
-            <h3 className="font-semibold">
-              {isMatchActive ? 'Match in progress' : 'Calculating results...'}
-            </h3>
+            <h3 className="font-semibold">Match in progress</h3>
             <div className="flex items-center text-amber-800 text-sm">
               <Clock className="h-4 w-4 mr-1" />
-              <span>
-                {isMatchActive ? 'Time remaining: ' : 'Finalizing: '}
-              </span>
-              <CountdownTimer
-                targetDate={endDate}
-                className="font-mono ml-1"
-                onComplete={handleCountdownComplete}
-                refreshInterval={500}
-              />
+              <span>Time remaining: </span>
+              <span className="font-mono ml-1">{timeRemaining}</span>
             </div>
           </div>
         </div>
@@ -131,11 +159,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
         </div>
               
         {/* Match Progress Bar */}
-        <MatchProgressBar 
-          homeDistance={userClubMatch.totalDistance} 
-          awayDistance={opponentClubMatch.totalDistance} 
-          className="h-5" 
-        />
+        <MatchProgressBar homeDistance={userClubMatch.totalDistance} awayDistance={opponentClubMatch.totalDistance} className="h-5" />
               
         {/* Member Contributions Toggle Button */}
         <Collapsible open={showMemberContributions} onOpenChange={setShowMemberContributions}>
@@ -153,19 +177,13 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
                 <div>
                   <h4 className="font-medium mb-3 text-sm">{userClubMatch.name}</h4>
                   <div className="space-y-3">
-                    {userClubMatch.members.map(member => (
-                      <div 
-                        key={member.id} 
-                        className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" 
-                        onClick={() => handleMemberClick(member)}
-                      >
+                    {userClubMatch.members.map(member => <div key={member.id} className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" onClick={() => handleMemberClick(member)}>
                         <div className="flex items-center gap-2">
                           <UserAvatar name={member.name} image={member.avatar} size="sm" />
                           <span className="text-sm hover:text-primary transition-colors">{member.name}</span>
                         </div>
                         <span className="text-sm font-medium">{member.distanceContribution?.toFixed(1) || "0.0"} km</span>
-                      </div>
-                    ))}
+                      </div>)}
                   </div>
                 </div>
                 
@@ -173,19 +191,13 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
                 <div>
                   <h4 className="font-medium mb-3 text-sm">{opponentClubMatch.name}</h4>
                   <div className="space-y-3">
-                    {opponentClubMatch.members.map(member => (
-                      <div 
-                        key={member.id} 
-                        className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" 
-                        onClick={() => handleMemberClick(member)}
-                      >
+                    {opponentClubMatch.members.map(member => <div key={member.id} className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" onClick={() => handleMemberClick(member)}>
                         <div className="flex items-center gap-2">
                           <UserAvatar name={member.name} image={member.avatar} size="sm" />
                           <span className="text-sm hover:text-primary transition-colors">{member.name}</span>
                         </div>
                         <span className="text-sm font-medium">{member.distanceContribution?.toFixed(1) || "0.0"} km</span>
-                      </div>
-                    ))}
+                      </div>)}
                   </div>
                 </div>
               </div>
@@ -193,8 +205,6 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
           </CollapsibleContent>
         </Collapsible>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };
-
 export default CurrentMatchCard;

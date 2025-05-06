@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import FindClubsSection from './FindClubsSection';
 import { useApp } from '@/context/AppContext';
@@ -29,23 +29,10 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
   const { currentUser } = useApp();
   const [isLoading, setIsLoading] = useState(true);
   
-  // Memoize the processed clubs to avoid unnecessary re-renders
-  const processedUserClubs = useMemo(() => {
-    return userClubs
-      .filter(club => club && club.name) // Only include clubs with name
-      .map(club => ({
-        ...club,
-        // Ensure the members array exists
-        members: club.members || []
-      }));
-  }, [userClubs]);
-  
-  const isAtClubCapacity = processedUserClubs.length >= 3;
-
   // Track loading state based on initial render and clubs data quality
   useEffect(() => {
     // Define what makes a club "fully loaded"
-    const areClubsReady = processedUserClubs.every(club => 
+    const areClubsReady = userClubs.every(club => 
       club && 
       club.name && 
       club.logo && 
@@ -61,14 +48,25 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
         // Add a small delay to ensure everything renders correctly
         const timer = setTimeout(() => {
           setIsLoading(false);
-        }, 300);
+        }, 100);
         
         return () => clearTimeout(timer);
       }
     } else {
       setIsLoading(true);
     }
-  }, [currentUser, processedUserClubs, clubsLoading]);
+  }, [currentUser, userClubs, clubsLoading]);
+
+  // Process clubs to ensure they have the necessary properties
+  const processedUserClubs = userClubs
+    .filter(club => club && club.name) // Only include clubs with name
+    .map(club => ({
+      ...club,
+      // Ensure the members array exists
+      members: club.members || []
+    }));
+
+  const isAtClubCapacity = processedUserClubs.length >= 3;
 
   return (
     <>

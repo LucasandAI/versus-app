@@ -20,27 +20,24 @@ const ClubStats: React.FC<ClubStatsProps> = ({ club, matchHistory }) => {
   // Safely handle potentially undefined matchHistory
   const safeMatchHistory = Array.isArray(matchHistory) ? matchHistory : [];
   
-  // Filter out active matches - only count completed matches for the record
-  const completedMatches = safeMatchHistory.filter(match => match && match.status === 'completed');
-  
   // Calculate win/loss/tie record from match history
-  const wins = completedMatches.filter(match => {
+  const wins = safeMatchHistory.filter(match => {
     if (!match || !match.homeClub?.id || !match.winner) return false;
     const isHomeTeam = match.homeClub.id === club.id;
     return (isHomeTeam && match.winner === 'home') || (!isHomeTeam && match.winner === 'away');
   }).length;
   
-  const ties = completedMatches.filter(match => {
+  const ties = safeMatchHistory.filter(match => {
     return match && match.winner === 'draw';
   }).length;
   
-  const losses = completedMatches.length - wins - ties;
+  const losses = safeMatchHistory.length - wins - ties;
   
   // Calculate win streak
   const winStreak = calculateWinStreak(safeMatchHistory, club.id);
   
   // Calculate total and average distance
-  const totalDistance = completedMatches.reduce((sum, match) => {
+  const totalDistance = safeMatchHistory.reduce((sum, match) => {
     if (!match?.homeClub?.id) return sum;
     const isHomeTeam = match.homeClub.id === club.id;
     const clubInMatch = isHomeTeam ? match.homeClub : match.awayClub;
@@ -73,7 +70,7 @@ const ClubStats: React.FC<ClubStatsProps> = ({ club, matchHistory }) => {
           <div className="bg-gray-50 p-3 rounded-md">
             <p className="text-xs text-gray-500">Match Record</p>
             <p className="font-medium">
-              {completedMatches.length > 0 
+              {safeMatchHistory.length > 0 
                 ? `${wins}W - ${losses}L${ties > 0 ? ` - ${ties}T` : ''}` 
                 : 'No matches yet'}
             </p>
@@ -117,11 +114,8 @@ const StatsLoadingSkeleton = () => {
 const calculateWinStreak = (matches: Match[] | undefined, clubId: string): number => {
   if (!Array.isArray(matches) || !matches.length || !clubId) return 0;
   
-  // Filter to completed matches only
-  const completedMatches = matches.filter(match => match && match.status === 'completed');
-  
   // Sort by most recent first
-  const sortedMatches = [...completedMatches].sort((a, b) => {
+  const sortedMatches = [...matches].sort((a, b) => {
     if (!a || !a.endDate || !b || !b.endDate) return 0;
     return new Date(b.endDate).getTime() - new Date(a.endDate).getTime();
   });

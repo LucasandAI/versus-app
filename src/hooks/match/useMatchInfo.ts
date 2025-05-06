@@ -1,26 +1,21 @@
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club, Match, MatchTeam, ClubMember } from '@/types';
-import { debounce } from 'lodash';
 
 export const useMatchInfo = (userClubs: Club[]) => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Memoize club IDs to prevent unnecessary refetches
-  const clubIds = useMemo(() => {
-    return userClubs?.map(club => club?.id).filter(Boolean) || [];
-  }, [userClubs]);
-
   // Transform the raw match data from view_full_match_info to our Match type
-  const transformMatchData = useCallback((rawMatches: any[]): Match[] => {
-    if (!Array.isArray(rawMatches) || rawMatches.length === 0) {
-      return [];
-    }
-    
+  const transformMatchData = (rawMatches: any[]): Match[] => {
     return rawMatches.map(match => {
-      if (!match) return null;
+      // Determine if the user's club is home or away
+      const userClubId = userClubs.find(club => 
+        club.id === match.home_club_id || club.id === match.away_club_id
+      )?.id;
+      
+      const isUserClubHome = userClubId === match.home_club_id;
       
       // Parse members data for both clubs
       const parseMembers = (membersJson: any): ClubMember[] => {
@@ -40,10 +35,14 @@ export const useMatchInfo = (userClubs: Club[]) => {
         }
       };
       
+      // Calculate total distance for each team
+      const calculateTotalDistance = (members: ClubMember[]): number => {
+        return members.reduce((sum, member) => sum + (member.distanceContribution || 0), 0);
+      };
+      
       // Create home team data
-      const homeMembers = parseMembers(match.home_club_members);
-      const homeTotalDistance = match.home_total_distance ? 
-        parseFloat(match.home_total_distance.toString()) : 0;
+      const homeMembers = parseMembers(match.home_members);
+      const homeTotalDistance = calculateTotalDistance(homeMembers);
       
       const homeTeam: MatchTeam = {
         id: match.home_club_id,
@@ -56,9 +55,8 @@ export const useMatchInfo = (userClubs: Club[]) => {
       };
       
       // Create away team data
-      const awayMembers = parseMembers(match.away_club_members);
-      const awayTotalDistance = match.away_total_distance ? 
-        parseFloat(match.away_total_distance.toString()) : 0;
+      const awayMembers = parseMembers(match.away_members);
+      const awayTotalDistance = calculateTotalDistance(awayMembers);
       
       const awayTeam: MatchTeam = {
         id: match.away_club_id,
@@ -70,18 +68,6 @@ export const useMatchInfo = (userClubs: Club[]) => {
         members: awayMembers
       };
 
-      // Get winner from database, with fallback to calculation if not available
-      const getWinner = (): 'home' | 'away' | 'draw' => {
-        if (match.winner && ['home', 'away', 'draw'].includes(match.winner)) {
-          return match.winner as 'home' | 'away' | 'draw';
-        }
-        
-        // Calculate based on distance as fallback
-        if (homeTotalDistance > awayTotalDistance) return 'home';
-        if (awayTotalDistance > homeTotalDistance) return 'away';
-        return 'draw';
-      };
-
       // Create the full match object
       return {
         id: match.match_id,
@@ -90,64 +76,52 @@ export const useMatchInfo = (userClubs: Club[]) => {
         startDate: match.start_date,
         endDate: match.end_date,
         status: match.status as 'active' | 'completed',
-        winner: getWinner(),
-        leagueBeforeMatch: match.league_before_match,
-        leagueAfterMatch: match.league_after_match
+        winner: match.winner as 'home' | 'away' | 'draw' | undefined
       };
-    }).filter(Boolean) as Match[]; // Filter out any null entries
-  }, []);
+    });
+  };
 
-  // Fetch matches for the user's clubs with improved error handling
-  const fetchMatches = useCallback(async () => {
-    if (!clubIds.length) {
+  // Fetch matches for the user's clubs
+  const fetchMatches = async () => {
+    if (!userClubs || userClubs.length === 0) {
       setMatches([]);
       setIsLoading(false);
       return;
     }
 
+    setIsLoading(true);
+    
     try {
-      // Create a condition for "club_id IN (clubId1, clubId2, ...)" using OR conditions
-      const clubConditions = clubIds.map(id => `home_club_id.eq.${id},away_club_id.eq.${id}`).join(',');
+      const clubIds = userClubs.map(club => club.id);
       
       // Query the view_full_match_info for active matches for the user's clubs
       const { data, error } = await supabase
         .from('view_full_match_info')
         .select('*')
-        .or(clubConditions)
+        .or(clubIds.map(id => `home_club_id.eq.${id},away_club_id.eq.${id}`).join(','))
         .eq('status', 'active');
 
       if (error) {
         console.error('Error fetching matches:', error);
+        setIsLoading(false);
         return;
       }
 
       const transformedMatches = transformMatchData(data || []);
       setMatches(transformedMatches);
-      setIsLoading(false);
     } catch (error) {
       console.error('Error processing matches:', error);
+    } finally {
       setIsLoading(false);
     }
-  }, [clubIds, transformMatchData]);
-
-  // Debounce the fetch operation with a shorter delay to improve responsiveness
-  const debouncedFetchMatches = useMemo(() => 
-    debounce(fetchMatches, 150, { leading: true, trailing: true }),
-    [fetchMatches]
-  );
+  };
 
   useEffect(() => {
-    // Only fetch if we have clubs to query for
-    if (clubIds.length > 0) {
-      debouncedFetchMatches();
-    } else {
-      setIsLoading(false);
-      setMatches([]);
-    }
+    fetchMatches();
     
-    // Set up a single realtime channel for all changes
-    const channel = supabase
-      .channel('match-data-changes')
+    // Set up realtime subscription for matches
+    const matchChannel = supabase
+      .channel('matches-changes')
       .on(
         'postgres_changes',
         {
@@ -156,10 +130,14 @@ export const useMatchInfo = (userClubs: Club[]) => {
           table: 'matches'
         },
         () => {
-          console.log('[useMatchInfo] Match table updated, refreshing data');
-          debouncedFetchMatches();
+          fetchMatches();
         }
       )
+      .subscribe();
+    
+    // Listen for match distance updates
+    const distanceChannel = supabase
+      .channel('match-distances-changes')
       .on(
         'postgres_changes',
         {
@@ -168,37 +146,33 @@ export const useMatchInfo = (userClubs: Club[]) => {
           table: 'match_distances'
         },
         () => {
-          console.log('[useMatchInfo] Match distances updated, refreshing data');
-          debouncedFetchMatches();
+          fetchMatches();
         }
       )
       .subscribe();
-    
+
     // Listen for custom events
     const handleMatchEvent = () => {
-      console.log('[useMatchInfo] Match event received, refreshing data');
-      debouncedFetchMatches();
+      fetchMatches();
     };
 
     window.addEventListener('matchCreated', handleMatchEvent);
     window.addEventListener('matchUpdated', handleMatchEvent);
     window.addEventListener('matchEnded', handleMatchEvent);
-    window.addEventListener('matchDistanceUpdated', handleMatchEvent);
       
     // Clean up
     return () => {
-      debouncedFetchMatches.cancel();
-      supabase.removeChannel(channel);
+      supabase.removeChannel(matchChannel);
+      supabase.removeChannel(distanceChannel);
       window.removeEventListener('matchCreated', handleMatchEvent);
       window.removeEventListener('matchUpdated', handleMatchEvent);
       window.removeEventListener('matchEnded', handleMatchEvent);
-      window.removeEventListener('matchDistanceUpdated', handleMatchEvent);
     };
-  }, [clubIds, debouncedFetchMatches]);
+  }, [JSON.stringify(userClubs)]);
 
   return {
     matches,
     isLoading,
-    refreshMatches: debouncedFetchMatches
+    refreshMatches: fetchMatches
   };
 };
