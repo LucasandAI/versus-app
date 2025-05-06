@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club, Match, MatchTeam, ClubMember } from '@/types';
+import { debounce } from 'lodash';
 
 export const useMatchInfo = (userClubs: Club[]) => {
   const [matches, setMatches] = useState<Match[]>([]);
@@ -17,17 +18,27 @@ export const useMatchInfo = (userClubs: Club[]) => {
       
       const isUserClubHome = userClubId === match.home_club_id;
       
-      // Parse members data for both clubs
+      // Parse members data for both clubs - using standardized approach for both components
       const parseMembers = (membersJson: any): ClubMember[] => {
         if (!membersJson) return [];
         
         try {
-          return Object.values(membersJson).map((member: any) => ({
+          // Handle both string and object formats
+          const parsedMembers = typeof membersJson === 'string' 
+            ? JSON.parse(membersJson) 
+            : membersJson;
+            
+          // Handle both array and object formats
+          const membersArray = Array.isArray(parsedMembers) 
+            ? parsedMembers 
+            : Object.values(parsedMembers);
+          
+          return membersArray.map((member: any) => ({
             id: member.user_id,
-            name: member.name,
+            name: member.name || 'Unknown',
             avatar: member.avatar || '/placeholder.svg',
             isAdmin: member.is_admin || false,
-            distanceContribution: parseFloat(member.distance || '0')
+            distanceContribution: parseFloat(String(member.distance || '0'))
           }));
         } catch (error) {
           console.error('Error parsing members JSON:', error);
@@ -41,7 +52,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
       };
       
       // Create home team data
-      const homeMembers = parseMembers(match.home_members);
+      const homeMembers = parseMembers(match.home_club_members);
       const homeTotalDistance = calculateTotalDistance(homeMembers);
       
       const homeTeam: MatchTeam = {
@@ -55,7 +66,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
       };
       
       // Create away team data
-      const awayMembers = parseMembers(match.away_members);
+      const awayMembers = parseMembers(match.away_club_members);
       const awayTotalDistance = calculateTotalDistance(awayMembers);
       
       const awayTeam: MatchTeam = {
@@ -81,8 +92,8 @@ export const useMatchInfo = (userClubs: Club[]) => {
     });
   };
 
-  // Fetch matches for the user's clubs
-  const fetchMatches = async () => {
+  // Fetch matches for the user's clubs with debounce to prevent flickering
+  const fetchMatches = debounce(async () => {
     if (!userClubs || userClubs.length === 0) {
       setMatches([]);
       setIsLoading(false);
@@ -114,7 +125,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, 300);
 
   useEffect(() => {
     fetchMatches();
@@ -151,10 +162,10 @@ export const useMatchInfo = (userClubs: Club[]) => {
       )
       .subscribe();
 
-    // Listen for custom events
-    const handleMatchEvent = () => {
+    // Listen for custom events with debounce to prevent flickering
+    const handleMatchEvent = debounce(() => {
       fetchMatches();
-    };
+    }, 300);
 
     window.addEventListener('matchCreated', handleMatchEvent);
     window.addEventListener('matchUpdated', handleMatchEvent);

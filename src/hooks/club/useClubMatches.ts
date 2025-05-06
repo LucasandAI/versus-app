@@ -2,7 +2,7 @@
 import { Match, ClubMember } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { ensureDivision } from '@/utils/club/leagueUtils';
-import { Json } from '@/integrations/supabase/types';
+import { debounce } from 'lodash';
 
 export const useClubMatches = () => {
   const fetchClubMatches = async (clubId: string): Promise<Match[]> => {
@@ -24,55 +24,44 @@ export const useClubMatches = () => {
       try {
         const isHomeTeam = matchData.home_club_id === clubId;
         
-        // Parse home members data directly using the new column
-        const homeMembers: ClubMember[] = [];
-        if (matchData.home_club_members) {
-          const memberContributions = typeof matchData.home_club_members === 'string' 
-            ? JSON.parse(matchData.home_club_members) 
-            : matchData.home_club_members;
+        // Parse members data - using standardized approach
+        const parseMembers = (membersJson: any): ClubMember[] => {
+          if (!membersJson) return [];
+          
+          try {
+            // Handle both string and object formats
+            const parsedMembers = typeof membersJson === 'string' 
+              ? JSON.parse(membersJson) 
+              : membersJson;
+              
+            // Handle both array and object formats
+            const membersArray = Array.isArray(parsedMembers) 
+              ? parsedMembers 
+              : Object.values(parsedMembers);
             
-          // Convert to array if it's an object
-          const membersArray = Array.isArray(memberContributions) 
-            ? memberContributions 
-            : Object.values(memberContributions);
-            
-          membersArray.forEach((member: any) => {
-            if (member && member.user_id) {
-              homeMembers.push({
-                id: member.user_id,
-                name: member.name || 'Unknown',
-                avatar: member.avatar || '/placeholder.svg',
-                isAdmin: false, // We don't have is_admin in view_full_match_info
-                distanceContribution: parseFloat(String(member.distance || '0'))
-              });
-            }
-          });
-        }
+            return membersArray.map((member: any) => ({
+              id: member.user_id,
+              name: member.name || 'Unknown',
+              avatar: member.avatar || '/placeholder.svg',
+              isAdmin: member.is_admin || false,
+              distanceContribution: parseFloat(String(member.distance || '0'))
+            }));
+          } catch (error) {
+            console.error('Error parsing members JSON:', error);
+            return [];
+          }
+        };
 
-        // Parse away members data directly using the new column
-        const awayMembers: ClubMember[] = [];
-        if (matchData.away_club_members) {
-          const memberContributions = typeof matchData.away_club_members === 'string' 
-            ? JSON.parse(matchData.away_club_members) 
-            : matchData.away_club_members;
-            
-          // Convert to array if it's an object
-          const membersArray = Array.isArray(memberContributions) 
-            ? memberContributions 
-            : Object.values(memberContributions);
-            
-          membersArray.forEach((member: any) => {
-            if (member && member.user_id) {
-              awayMembers.push({
-                id: member.user_id,
-                name: member.name || 'Unknown',
-                avatar: member.avatar || '/placeholder.svg',
-                isAdmin: false, // We don't have is_admin in view_full_match_info
-                distanceContribution: parseFloat(String(member.distance || '0'))
-              });
-            }
-          });
-        }
+        // Parse home and away members using the standardized function
+        const homeMembers = parseMembers(matchData.home_club_members);
+        const awayMembers = parseMembers(matchData.away_club_members);
+
+        // Calculate total distances based on member contributions
+        const homeTotalDistance = homeMembers.reduce((sum, member) => 
+          sum + (member.distanceContribution || 0), 0);
+          
+        const awayTotalDistance = awayMembers.reduce((sum, member) => 
+          sum + (member.distanceContribution || 0), 0);
 
         // Process league data into the new format
         const parseLeagueData = (leagueData: any) => {
@@ -126,7 +115,8 @@ export const useClubMatches = () => {
             logo: matchData.home_club_logo || '/placeholder.svg',
             division: ensureDivision(matchData.home_club_division || 'bronze'),
             tier: Number(matchData.home_club_tier || 1),
-            totalDistance: parseFloat(String(matchData.home_total_distance || '0')),
+            totalDistance: matchData.home_total_distance !== null ? 
+              parseFloat(String(matchData.home_total_distance)) : homeTotalDistance,
             members: homeMembers
           },
           awayClub: {
@@ -135,16 +125,19 @@ export const useClubMatches = () => {
             logo: matchData.away_club_logo || '/placeholder.svg',
             division: ensureDivision(matchData.away_club_division || 'bronze'),
             tier: Number(matchData.away_club_tier || 1),
-            totalDistance: parseFloat(String(matchData.away_total_distance || '0')),
+            totalDistance: matchData.away_total_distance !== null ? 
+              parseFloat(String(matchData.away_total_distance)) : awayTotalDistance,
             members: awayMembers
           },
           startDate: matchData.start_date,
           endDate: matchData.end_date,
           status: matchData.status as 'active' | 'completed',
           // Use matchData winner if it exists, otherwise determine based on distances
-          winner: determineWinner(
-            parseFloat(String(matchData.home_total_distance || '0')), 
-            parseFloat(String(matchData.away_total_distance || '0'))
+          winner: matchData.winner || determineWinner(
+            matchData.home_total_distance !== null ? 
+              parseFloat(String(matchData.home_total_distance)) : homeTotalDistance,
+            matchData.away_total_distance !== null ? 
+              parseFloat(String(matchData.away_total_distance)) : awayTotalDistance
           ),
           leagueBeforeMatch: parseLeagueData(matchData.league_before_match),
           leagueAfterMatch: parseLeagueData(matchData.league_after_match)
