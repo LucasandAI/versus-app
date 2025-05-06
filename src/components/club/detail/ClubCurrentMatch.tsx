@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Match, Club } from '@/types';
 import { Card, CardContent } from "@/components/ui/card";
@@ -233,10 +232,10 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
     console.log('[ClubCurrentMatch] Rendering match with club data:', {
       matchId: match.id,
       clubId: selectedClub.id,
-      forceShowDetails
+      forceShowDetails: true
     });
     
-    // Always set forceShowDetails to true for club detail view
+    // Always force details to be shown on club detail view
     return (
       <CurrentMatchCard
         match={match} 

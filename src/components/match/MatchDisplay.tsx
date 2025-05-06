@@ -44,6 +44,7 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
   const [open, setOpen] = useState<boolean>(forceShowDetails);
   const { navigateToClubDetail } = useNavigation();
   const matchEndDateRef = useRef<Date | null>(match ? new Date(match.endDate) : null);
+  const initialRenderRef = useRef<boolean>(true);
 
   // Determine if user club is home or away
   const isHome = userClub && match.homeClub.id === userClub.id;
@@ -84,7 +85,7 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
     debouncedDispatchMatchEnded(match.id);
   };
 
-  // Update match end date and open state
+  // Update match end date and open state based on forceShowDetails prop
   useEffect(() => {
     if (match) {
       const endDate = new Date(match.endDate);
@@ -93,18 +94,13 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
       }
     }
 
-    // Update open state based on forceShowDetails prop
-    if (forceShowDetails && !open) {
-      console.log('[MatchDisplay] Forcing show details to true');
-      setOpen(true);
+    // Only update open state on mount or when forceShowDetails changes
+    if (initialRenderRef.current || forceShowDetails !== open) {
+      console.log('[MatchDisplay] Setting open state to match forceShowDetails:', forceShowDetails);
+      setOpen(forceShowDetails);
+      initialRenderRef.current = false;
     }
-  }, [match, forceShowDetails, open]);
-  
-  // Handle toggle
-  const handleToggle = () => {
-    console.log('[MatchDisplay] Toggling details visibility from', open, 'to', !open);
-    setOpen(!open);
-  };
+  }, [match, forceShowDetails]);
   
   return (
     <Card className="overflow-hidden border-0 shadow-md">
@@ -169,7 +165,6 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
               variant="outline" 
               size="sm" 
               className="w-full mt-4 text-sm flex items-center justify-center bg-gray-50 hover:bg-gray-100 border-gray-200"
-              onClick={handleToggle}
             >
               {open ? 'Hide Member Contributions' : 'Show Member Contributions'} 
               <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
