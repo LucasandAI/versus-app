@@ -1,12 +1,11 @@
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Match, MatchTeam, ClubMember } from '@/types';
 
 export const useClubMatchInfo = (clubId: string | undefined) => {
   const [match, setMatch] = useState<Match | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [lastFetchTime, setLastFetchTime] = useState(0);
 
   // Transform the raw match data from view_full_match_info to our Match type
   const transformMatchData = useCallback((rawMatch: any): Match | null => {
@@ -75,13 +74,6 @@ export const useClubMatchInfo = (clubId: string | undefined) => {
   }, []);
 
   const fetchClubMatch = useCallback(async () => {
-    // Debounce fetches that happen too quickly
-    const now = Date.now();
-    if (now - lastFetchTime < 500) {
-      console.log('[useClubMatchInfo] Skipping fetch, too soon since last fetch');
-      return;
-    }
-
     if (!clubId) {
       setMatch(null);
       setIsLoading(false);
@@ -89,11 +81,8 @@ export const useClubMatchInfo = (clubId: string | undefined) => {
     }
 
     setIsLoading(true);
-    setLastFetchTime(now);
     
     try {
-      console.log('[useClubMatchInfo] Fetching match for club:', clubId);
-      
       // Query the view_full_match_info for active matches for this club
       const { data, error } = await supabase
         .from('view_full_match_info')
@@ -101,14 +90,13 @@ export const useClubMatchInfo = (clubId: string | undefined) => {
         .or(`home_club_id.eq.${clubId},away_club_id.eq.${clubId}`)
         .eq('status', 'active')
         .limit(1)
-        .maybeSingle();
+        .single();
 
-      if (error) {
+      if (error && error.code !== 'PGRST116') { // PGRST116 is the "no rows returned" error
         console.error('Error fetching club match:', error);
         setMatch(null);
       } else {
         const transformedMatch = data ? transformMatchData(data) : null;
-        console.log('[useClubMatchInfo] Fetched match:', transformedMatch);
         setMatch(transformedMatch);
       }
     } catch (error) {
@@ -117,91 +105,86 @@ export const useClubMatchInfo = (clubId: string | undefined) => {
     } finally {
       setIsLoading(false);
     }
-  }, [clubId, transformMatchData, lastFetchTime]);
+  }, [clubId, transformMatchData]);
 
   useEffect(() => {
-    if (clubId) {
-      fetchClubMatch();
+    fetchClubMatch();
     
-      // Set up realtime subscriptions
-      const channel = supabase
-        .channel(`club-match-changes-${clubId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'matches',
-            filter: `home_club_id=eq.${clubId}`
-          },
-          () => {
-            console.log('[useClubMatchInfo] Home club match updated, refreshing data');
-            fetchClubMatch();
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'matches',
-            filter: `away_club_id=eq.${clubId}`
-          },
-          () => {
-            console.log('[useClubMatchInfo] Away club match updated, refreshing data');
-            fetchClubMatch();
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'match_distances',
-            filter: `club_id=eq.${clubId}`
-          },
-          () => {
-            console.log('[useClubMatchInfo] Match distances updated, refreshing data');
-            fetchClubMatch();
-          }
-        )
-        .subscribe();
-      
-      // Use a single event listener with debouncing for all match events
-      const handleMatchEvent = (event: Event) => {
-        const customEvent = event as CustomEvent;
-        if (
-          !customEvent.detail || 
-          !customEvent.detail.clubId || 
-          customEvent.detail.clubId === clubId
-        ) {
-          console.log('[useClubMatchInfo] Match event received, refreshing data');
+    // Set up realtime subscriptions
+    const channel = supabase
+      .channel(`club-match-changes-${clubId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'matches',
+          filter: `home_club_id=eq.${clubId}`
+        },
+        () => {
+          console.log('[useClubMatchInfo] Home club match updated, refreshing data');
           fetchClubMatch();
         }
-      };
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'matches',
+          filter: `away_club_id=eq.${clubId}`
+        },
+        () => {
+          console.log('[useClubMatchInfo] Away club match updated, refreshing data');
+          fetchClubMatch();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'match_distances',
+          filter: `club_id=eq.${clubId}`
+        },
+        () => {
+          console.log('[useClubMatchInfo] Match distances updated, refreshing data');
+          fetchClubMatch();
+        }
+      )
+      .subscribe();
+    
+    // Listen for custom events
+    const handleMatchEvent = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (
+        !customEvent.detail || 
+        !customEvent.detail.clubId || 
+        customEvent.detail.clubId === clubId
+      ) {
+        console.log('[useClubMatchInfo] Match event received, refreshing data');
+        fetchClubMatch();
+      }
+    };
 
-      window.addEventListener('matchCreated', handleMatchEvent);
-      window.addEventListener('matchUpdated', handleMatchEvent);
-      window.addEventListener('matchEnded', handleMatchEvent);
-      window.addEventListener('matchDistanceUpdated', handleMatchEvent);
-        
-      // Clean up
-      return () => {
-        supabase.removeChannel(channel);
-        window.removeEventListener('matchCreated', handleMatchEvent);
-        window.removeEventListener('matchUpdated', handleMatchEvent);
-        window.removeEventListener('matchEnded', handleMatchEvent);
-        window.removeEventListener('matchDistanceUpdated', handleMatchEvent);
-      };
-    }
+    window.addEventListener('matchCreated', handleMatchEvent);
+    window.addEventListener('matchUpdated', handleMatchEvent);
+    window.addEventListener('matchEnded', handleMatchEvent);
+    window.addEventListener('matchDistanceUpdated', handleMatchEvent);
+      
+    // Clean up
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('matchCreated', handleMatchEvent);
+      window.removeEventListener('matchUpdated', handleMatchEvent);
+      window.removeEventListener('matchEnded', handleMatchEvent);
+      window.removeEventListener('matchDistanceUpdated', handleMatchEvent);
+    };
   }, [clubId, fetchClubMatch]);
 
-  // Memoize the return value to prevent unnecessary rerenders
-  const returnValue = useMemo(() => ({
+  return {
     match,
     isLoading,
     refreshMatch: fetchClubMatch
-  }), [match, isLoading, fetchClubMatch]);
-
-  return returnValue;
+  };
 };

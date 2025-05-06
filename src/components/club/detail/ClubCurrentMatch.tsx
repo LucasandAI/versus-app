@@ -1,5 +1,5 @@
 
-import React, { useState, memo } from 'react';
+import React, { useState } from 'react';
 import { Match, Club } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { ChevronDown, Clock } from 'lucide-react';
@@ -341,5 +341,4 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
   }
 };
 
-// Memoize the component to prevent unnecessary re-renders
-export default memo(ClubCurrentMatch);
+export default ClubCurrentMatch;

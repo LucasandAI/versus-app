@@ -1,5 +1,5 @@
 
-import React, { memo } from 'react';
+import React from 'react';
 import { Club, Match } from '@/types';
 import CurrentMatchCard from './CurrentMatchCard';
 import WaitingForMatchCard from './WaitingForMatchCard';
@@ -42,7 +42,7 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
         
         // Find the active match for this club
         const activeMatch = matches.find(match => 
-          (match.homeClub?.id === club.id || match.awayClub?.id === club.id) && 
+          (match.homeClub.id === club.id || match.awayClub.id === club.id) && 
           match.status === 'active'
         );
         
@@ -68,5 +68,4 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
   );
 };
 
-// Memoize the component to prevent unnecessary re-renders
-export default memo(CurrentMatchesList);
+export default CurrentMatchesList;

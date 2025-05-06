@@ -6,7 +6,6 @@ import { Club, Match, MatchTeam, ClubMember } from '@/types';
 export const useMatchInfo = (userClubs: Club[]) => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [lastFetchTime, setLastFetchTime] = useState(0);
 
   // Memoize club IDs to prevent unnecessary refetches
   const clubIds = useMemo(() => {
@@ -87,13 +86,6 @@ export const useMatchInfo = (userClubs: Club[]) => {
 
   // Fetch matches for the user's clubs
   const fetchMatches = useCallback(async () => {
-    // Debounce fetches that happen too quickly (within 500ms)
-    const now = Date.now();
-    if (now - lastFetchTime < 500) {
-      console.log('[useMatchInfo] Skipping fetch, too soon since last fetch');
-      return;
-    }
-    
     if (!clubIds.length) {
       setMatches([]);
       setIsLoading(false);
@@ -101,11 +93,8 @@ export const useMatchInfo = (userClubs: Club[]) => {
     }
 
     setIsLoading(true);
-    setLastFetchTime(now);
     
     try {
-      console.log('[useMatchInfo] Fetching matches for clubs:', clubIds);
-      
       // Create a condition for "club_id IN (clubId1, clubId2, ...)" using OR conditions
       const clubConditions = clubIds.map(id => `home_club_id.eq.${id},away_club_id.eq.${id}`).join(',');
       
@@ -123,14 +112,13 @@ export const useMatchInfo = (userClubs: Club[]) => {
       }
 
       const transformedMatches = transformMatchData(data || []);
-      console.log('[useMatchInfo] Fetched and transformed matches:', transformedMatches.length);
       setMatches(transformedMatches);
     } catch (error) {
       console.error('Error processing matches:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [clubIds, transformMatchData, lastFetchTime]);
+  }, [clubIds, transformMatchData]);
 
   useEffect(() => {
     // Only fetch if we have clubs to query for
@@ -167,7 +155,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
       )
       .subscribe();
     
-    // Use a single event listener for all match-related events
+    // Listen for custom events
     const handleMatchEvent = () => {
       console.log('[useMatchInfo] Match event received, refreshing data');
       fetchMatches();
@@ -188,12 +176,9 @@ export const useMatchInfo = (userClubs: Club[]) => {
     };
   }, [clubIds, fetchMatches]);
 
-  // Memoize the return value to prevent unnecessary rerenders
-  const returnValue = useMemo(() => ({
+  return {
     matches,
     isLoading,
     refreshMatches: fetchMatches
-  }), [matches, isLoading, fetchMatches]);
-
-  return returnValue;
+  };
 };
