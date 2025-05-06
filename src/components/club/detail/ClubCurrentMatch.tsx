@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Match, Club } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -69,7 +68,7 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
         </Card>
       );
     } else {
-      return <NeedMoreMembersCard club={selectedClub} />;
+      return <NeedMoreMembersCard club={selectedClub} hideHeader={true} />;
     }
   }
   
