@@ -40,8 +40,8 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
     );
   }
 
-  // Set initial state to respect forceShowDetails
-  const [showMemberContributions, setShowMemberContributions] = useState(forceShowDetails);
+  // Initialize state with forceShowDetails value
+  const [open, setOpen] = useState<boolean>(forceShowDetails);
   const { navigateToClubDetail } = useNavigation();
   const matchEndDateRef = useRef<Date | null>(match ? new Date(match.endDate) : null);
 
@@ -84,7 +84,7 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
     debouncedDispatchMatchEnded(match.id);
   };
 
-  // Update match end date and initial show state
+  // Update match end date and open state
   useEffect(() => {
     if (match) {
       const endDate = new Date(match.endDate);
@@ -93,29 +93,18 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
       }
     }
 
-    // Update show state based on forceShowDetails prop
-    if (forceShowDetails && !showMemberContributions) {
+    // Update open state based on forceShowDetails prop
+    if (forceShowDetails && !open) {
       console.log('[MatchDisplay] Forcing show details to true');
-      setShowMemberContributions(true);
+      setOpen(true);
     }
-    
-    return () => {
-      // Cleanup if needed
-    };
-  }, [match, forceShowDetails, showMemberContributions]);
+  }, [match, forceShowDetails, open]);
   
-  // Log the full match data to help debug
-  console.log('[MatchDisplay] Rendering match with full data:', {
-    matchId: match.id,
-    homeClub: match.homeClub,
-    awayClub: match.awayClub,
-    currentClub,
-    opponentClub,
-    userClub,
-    isHome,
-    forceShowDetails,
-    showMemberContributions
-  });
+  // Handle toggle
+  const handleToggle = () => {
+    console.log('[MatchDisplay] Toggling details visibility from', open, 'to', !open);
+    setOpen(!open);
+  };
   
   return (
     <Card className="overflow-hidden border-0 shadow-md">
@@ -174,11 +163,16 @@ const MatchDisplay: React.FC<MatchDisplayProps> = ({
         <MatchProgressBar homeDistance={currentClub.totalDistance} awayDistance={opponentClub.totalDistance} className="h-5" />
         
         {/* Member Contributions Toggle Button */}
-        <Collapsible open={showMemberContributions} onOpenChange={setShowMemberContributions}>
+        <Collapsible open={open} onOpenChange={setOpen}>
           <CollapsibleTrigger asChild>
-            <Button variant="outline" size="sm" className="w-full mt-4 text-sm flex items-center justify-center bg-gray-50 hover:bg-gray-100 border-gray-200">
-              {showMemberContributions ? 'Hide Member Contributions' : 'Show Member Contributions'} 
-              <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${showMemberContributions ? 'rotate-180' : ''}`} />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full mt-4 text-sm flex items-center justify-center bg-gray-50 hover:bg-gray-100 border-gray-200"
+              onClick={handleToggle}
+            >
+              {open ? 'Hide Member Contributions' : 'Show Member Contributions'} 
+              <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
             </Button>
           </CollapsibleTrigger>
           
