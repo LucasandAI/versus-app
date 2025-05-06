@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Match, Club, ClubMember } from '@/types';
@@ -9,11 +10,13 @@ import { supabase } from '@/integrations/supabase/client';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { formatLeague } from '@/utils/club/leagueUtils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+
 interface CurrentMatchCardProps {
   match: Match;
   userClub: Club;
   onViewProfile: (userId: string, name: string, avatar?: string) => void;
 }
+
 const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
   match: initialMatch,
   userClub: initialUserClub,
@@ -23,6 +26,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
   const [match, setMatch] = useState(initialMatch);
   const [userClub, setUserClub] = useState(initialUserClub);
   const [timeRemaining, setTimeRemaining] = useState<string>('');
+  
   const {
     navigateToClubDetail
   } = useNavigation();
@@ -46,7 +50,9 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
       const seconds = Math.floor(timeDiff % (1000 * 60) / 1000);
       return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     };
+    
     setTimeRemaining(calculateTimeRemaining());
+    
     const timer = setInterval(() => {
       const remaining = calculateTimeRemaining();
       setTimeRemaining(remaining);
@@ -59,6 +65,7 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
         }));
       }
     }, 1000);
+    
     return () => clearInterval(timer);
   }, [match.endDate, match.id]);
 
@@ -68,36 +75,70 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
     setMatch(initialMatch);
     setUserClub(initialUserClub);
 
-    // Subscribe to match distance contributions
-    const distanceChannel = supabase.channel(`match-distances-${initialMatch.id}`).on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'match_distances',
-      filter: `match_id=eq.${initialMatch.id}`
-    }, payload => {
-      console.log(`[CurrentMatchCard] Match distance updated for ${initialMatch.id}:`, payload);
-      window.dispatchEvent(new CustomEvent('matchDistanceUpdated', {
-        detail: {
-          matchId: initialMatch.id
+    console.log('[CurrentMatchCard] Match data updated:', initialMatch);
+
+    // Subscribe to both match updates and match distance changes
+    const matchesChannel = supabase
+      .channel(`match-updates-${initialMatch.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'matches',
+          filter: `id=eq.${initialMatch.id}`
+        },
+        payload => {
+          console.log(`[CurrentMatchCard] Match updated:`, payload);
+          window.dispatchEvent(new CustomEvent('matchUpdated', {
+            detail: {
+              matchId: initialMatch.id
+            }
+          }));
         }
-      }));
-    }).subscribe();
+      )
+      .subscribe();
+      
+    // Listen for match distance updates for this specific match
+    const distanceChannel = supabase
+      .channel(`match-distances-${initialMatch.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'match_distances',
+          filter: `match_id=eq.${initialMatch.id}`
+        },
+        payload => {
+          console.log(`[CurrentMatchCard] Match distance updated:`, payload);
+          window.dispatchEvent(new CustomEvent('matchDistanceUpdated', {
+            detail: {
+              matchId: initialMatch.id
+            }
+          }));
+        }
+      )
+      .subscribe();
 
     // Listen for match data updates
     const handleMatchUpdate = (event: CustomEvent) => {
       if (event.detail?.matchId === initialMatch.id || event.detail?.clubId === initialUserClub.id) {
-        console.log('[CurrentMatchCard] Match updated, refreshing data');
-        setMatch(initialMatch);
+        console.log('[CurrentMatchCard] Match updated event received, updating UI');
+        setMatch(prevMatch => ({...prevMatch, ...initialMatch}));
         setUserClub(initialUserClub);
       }
     };
+    
     window.addEventListener('matchDistanceUpdated', handleMatchUpdate as EventListener);
     window.addEventListener('matchUpdated', handleMatchUpdate as EventListener);
     window.addEventListener('userDataUpdated', () => {
       setMatch(initialMatch);
       setUserClub(initialUserClub);
     });
+    
     return () => {
+      supabase.removeChannel(matchesChannel);
       supabase.removeChannel(distanceChannel);
       window.removeEventListener('matchDistanceUpdated', handleMatchUpdate as EventListener);
       window.removeEventListener('matchUpdated', handleMatchUpdate as EventListener);
@@ -107,13 +148,17 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
       });
     };
   }, [initialMatch, initialUserClub]);
+
   const handleMemberClick = (member: ClubMember) => {
     onViewProfile(member.id, member.name, member.avatar);
   };
+
   const handleClubClick = (clubId: string, clubData: any) => {
     navigateToClubDetail(clubId, clubData);
   };
-  return <Card className="overflow-hidden border-0 shadow-md">
+
+  return (
+    <Card className="overflow-hidden border-0 shadow-md">
       <CardContent className="p-4">
         {/* Match in Progress Notification */}
         <div className="p-3 rounded-md mb-4 bg-inherit">
@@ -159,7 +204,11 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
         </div>
               
         {/* Match Progress Bar */}
-        <MatchProgressBar homeDistance={userClubMatch.totalDistance} awayDistance={opponentClubMatch.totalDistance} className="h-5" />
+        <MatchProgressBar 
+          homeDistance={userClubMatch.totalDistance} 
+          awayDistance={opponentClubMatch.totalDistance} 
+          className="h-5" 
+        />
               
         {/* Member Contributions Toggle Button */}
         <Collapsible open={showMemberContributions} onOpenChange={setShowMemberContributions}>
@@ -177,13 +226,19 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
                 <div>
                   <h4 className="font-medium mb-3 text-sm">{userClubMatch.name}</h4>
                   <div className="space-y-3">
-                    {userClubMatch.members.map(member => <div key={member.id} className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" onClick={() => handleMemberClick(member)}>
+                    {userClubMatch.members.map(member => (
+                      <div 
+                        key={member.id} 
+                        className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" 
+                        onClick={() => handleMemberClick(member)}
+                      >
                         <div className="flex items-center gap-2">
                           <UserAvatar name={member.name} image={member.avatar} size="sm" />
                           <span className="text-sm hover:text-primary transition-colors">{member.name}</span>
                         </div>
                         <span className="text-sm font-medium">{member.distanceContribution?.toFixed(1) || "0.0"} km</span>
-                      </div>)}
+                      </div>
+                    ))}
                   </div>
                 </div>
                 
@@ -191,13 +246,19 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
                 <div>
                   <h4 className="font-medium mb-3 text-sm">{opponentClubMatch.name}</h4>
                   <div className="space-y-3">
-                    {opponentClubMatch.members.map(member => <div key={member.id} className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" onClick={() => handleMemberClick(member)}>
+                    {opponentClubMatch.members.map(member => (
+                      <div 
+                        key={member.id} 
+                        className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded p-1" 
+                        onClick={() => handleMemberClick(member)}
+                      >
                         <div className="flex items-center gap-2">
                           <UserAvatar name={member.name} image={member.avatar} size="sm" />
                           <span className="text-sm hover:text-primary transition-colors">{member.name}</span>
                         </div>
                         <span className="text-sm font-medium">{member.distanceContribution?.toFixed(1) || "0.0"} km</span>
-                      </div>)}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -205,6 +266,8 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
           </CollapsibleContent>
         </Collapsible>
       </CardContent>
-    </Card>;
+    </Card>
+  );
 };
+
 export default CurrentMatchCard;

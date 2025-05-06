@@ -10,13 +10,6 @@ export const useMatchInfo = (userClubs: Club[]) => {
   // Transform the raw match data from view_full_match_info to our Match type
   const transformMatchData = (rawMatches: any[]): Match[] => {
     return rawMatches.map(match => {
-      // Determine if the user's club is home or away
-      const userClubId = userClubs.find(club => 
-        club.id === match.home_club_id || club.id === match.away_club_id
-      )?.id;
-      
-      const isUserClubHome = userClubId === match.home_club_id;
-      
       // Parse members data for both clubs
       const parseMembers = (membersJson: any): ClubMember[] => {
         if (!membersJson) return [];
@@ -35,14 +28,10 @@ export const useMatchInfo = (userClubs: Club[]) => {
         }
       };
       
-      // Calculate total distance for each team
-      const calculateTotalDistance = (members: ClubMember[]): number => {
-        return members.reduce((sum, member) => sum + (member.distanceContribution || 0), 0);
-      };
-      
       // Create home team data
-      const homeMembers = parseMembers(match.home_members);
-      const homeTotalDistance = calculateTotalDistance(homeMembers);
+      const homeMembers = parseMembers(match.home_club_members);
+      const homeTotalDistance = match.home_total_distance ? 
+        parseFloat(match.home_total_distance.toString()) : 0;
       
       const homeTeam: MatchTeam = {
         id: match.home_club_id,
@@ -55,8 +44,9 @@ export const useMatchInfo = (userClubs: Club[]) => {
       };
       
       // Create away team data
-      const awayMembers = parseMembers(match.away_members);
-      const awayTotalDistance = calculateTotalDistance(awayMembers);
+      const awayMembers = parseMembers(match.away_club_members);
+      const awayTotalDistance = match.away_total_distance ? 
+        parseFloat(match.away_total_distance.toString()) : 0;
       
       const awayTeam: MatchTeam = {
         id: match.away_club_id,
@@ -76,7 +66,9 @@ export const useMatchInfo = (userClubs: Club[]) => {
         startDate: match.start_date,
         endDate: match.end_date,
         status: match.status as 'active' | 'completed',
-        winner: match.winner as 'home' | 'away' | 'draw' | undefined
+        winner: match.winner as 'home' | 'away' | 'draw' | undefined,
+        leagueBeforeMatch: match.league_before_match,
+        leagueAfterMatch: match.league_after_match
       };
     });
   };
@@ -130,6 +122,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
           table: 'matches'
         },
         () => {
+          console.log('[useMatchInfo] Match table updated, refreshing data');
           fetchMatches();
         }
       )
@@ -146,6 +139,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
           table: 'match_distances'
         },
         () => {
+          console.log('[useMatchInfo] Match distances updated, refreshing data');
           fetchMatches();
         }
       )
@@ -153,12 +147,14 @@ export const useMatchInfo = (userClubs: Club[]) => {
 
     // Listen for custom events
     const handleMatchEvent = () => {
+      console.log('[useMatchInfo] Match event received, refreshing data');
       fetchMatches();
     };
 
     window.addEventListener('matchCreated', handleMatchEvent);
     window.addEventListener('matchUpdated', handleMatchEvent);
     window.addEventListener('matchEnded', handleMatchEvent);
+    window.addEventListener('matchDistanceUpdated', handleMatchEvent);
       
     // Clean up
     return () => {
@@ -167,6 +163,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
       window.removeEventListener('matchCreated', handleMatchEvent);
       window.removeEventListener('matchUpdated', handleMatchEvent);
       window.removeEventListener('matchEnded', handleMatchEvent);
+      window.removeEventListener('matchDistanceUpdated', handleMatchEvent);
     };
   }, [JSON.stringify(userClubs)]);
 

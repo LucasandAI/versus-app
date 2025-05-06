@@ -25,15 +25,15 @@ export const useMatchmaking = (currentUser: any) => {
       .from('matchmaking_queue')
       .select('club_id')
       .eq('club_id', clubId)
-      .single();
+      .maybeSingle();
       
     return !!data;
   };
 
   const hasActiveMatch = async (clubId: string): Promise<boolean> => {
     const { data } = await supabase
-      .from('view_full_match_info')
-      .select('match_id')
+      .from('matches')
+      .select('id')
       .or(`home_club_id.eq.${clubId},away_club_id.eq.${clubId}`)
       .eq('status', 'active')
       .maybeSingle();
@@ -72,17 +72,25 @@ export const useMatchmaking = (currentUser: any) => {
       }
 
       // Add club to matchmaking queue
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('matchmaking_queue')
         .insert({
           club_id: clubId,
           division: division,
           tier: tier
-        });
+        })
+        .select('*');
 
       if (error) {
-        console.error('Error adding to matchmaking queue:', error);
-        toast.error("Failed to search for opponent");
+        console.error('[useMatchmaking] Error adding to matchmaking queue:', error);
+        
+        // Handle the specific error for members already in queue
+        if (error.message.includes('member of this club is already in queue')) {
+          toast.error("A member of this club is already in queue with another club");
+        } else {
+          toast.error("Failed to search for opponent");
+        }
+        
         setIsSearching(false);
         return false;
       }
@@ -95,12 +103,30 @@ export const useMatchmaking = (currentUser: any) => {
         .on(
           'postgres_changes',
           {
-            event: '*',
+            event: 'INSERT',
             schema: 'public',
             table: 'matches',
-            filter: `home_club_id=eq.${clubId},away_club_id=eq.${clubId}`
+            filter: `home_club_id=eq.${clubId}`,
           },
           (payload) => {
+            console.log('[useMatchmaking] Match created as home club:', payload);
+            if (payload.new) {
+              toast.success("Match found! Preparing the match...");
+              setIsSearching(false);
+              window.dispatchEvent(new CustomEvent('matchCreated'));
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'matches',
+            filter: `away_club_id=eq.${clubId}`,
+          },
+          (payload) => {
+            console.log('[useMatchmaking] Match created as away club:', payload);
             if (payload.new) {
               toast.success("Match found! Preparing the match...");
               setIsSearching(false);
@@ -114,11 +140,25 @@ export const useMatchmaking = (currentUser: any) => {
       setTimeout(() => {
         supabase.removeChannel(matchSubscription);
         setIsSearching(false);
+        
+        // Check if still in queue after timeout
+        isAlreadyInQueue(clubId).then(stillInQueue => {
+          if (stillInQueue) {
+            // Remove from queue if still there after timeout
+            supabase
+              .from('matchmaking_queue')
+              .delete()
+              .eq('club_id', clubId)
+              .then(() => {
+                toast.info("No opponent found. Try again later.");
+              });
+          }
+        });
       }, 60000);
       
       return true;
     } catch (error) {
-      console.error('Error searching for opponent:', error);
+      console.error('[useMatchmaking] Error searching for opponent:', error);
       toast.error("An error occurred while searching for an opponent");
       setIsSearching(false);
       return false;
