@@ -122,14 +122,9 @@ export const useClubMatches = () => {
           }
         };
 
-        // Add explicit winner determination if not present in data
-        const determineWinnerFromData = () => {
-          if (matchData.winner && 
-             (matchData.winner === 'home' || matchData.winner === 'away' || matchData.winner === 'draw')) {
-            return matchData.winner;
-          }
-          
-          // Calculate based on distance if winner not explicitly set
+        // Determine winner based on distance totals
+        const determineWinnerFromData = (): 'home' | 'away' | 'draw' => {
+          // Calculate based on distance
           const homeDistance = parseFloat(String(matchData.home_total_distance || '0'));
           const awayDistance = parseFloat(String(matchData.away_total_distance || '0'));
           
