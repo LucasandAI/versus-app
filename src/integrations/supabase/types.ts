@@ -777,6 +777,7 @@ export type Database = {
           match_id: string | null
           start_date: string | null
           status: string | null
+          winner: string | null
         }
         Relationships: []
       }

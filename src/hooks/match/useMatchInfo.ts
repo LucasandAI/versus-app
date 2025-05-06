@@ -7,6 +7,7 @@ import { debounce } from 'lodash';
 export const useMatchInfo = (userClubs: Club[]) => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Memoize club IDs to prevent unnecessary refetches
   const clubIds = useMemo(() => {
@@ -70,6 +71,18 @@ export const useMatchInfo = (userClubs: Club[]) => {
         members: awayMembers
       };
 
+      // Get winner from database, with fallback to calculation if not available
+      const getWinner = (): 'home' | 'away' | 'draw' => {
+        if (match.winner && ['home', 'away', 'draw'].includes(match.winner)) {
+          return match.winner as 'home' | 'away' | 'draw';
+        }
+        
+        // Calculate based on distance as fallback
+        if (homeTotalDistance > awayTotalDistance) return 'home';
+        if (awayTotalDistance > homeTotalDistance) return 'away';
+        return 'draw';
+      };
+
       // Create the full match object
       return {
         id: match.match_id,
@@ -78,14 +91,14 @@ export const useMatchInfo = (userClubs: Club[]) => {
         startDate: match.start_date,
         endDate: match.end_date,
         status: match.status as 'active' | 'completed',
-        winner: match.winner as 'home' | 'away' | 'draw' | undefined,
+        winner: getWinner(),
         leagueBeforeMatch: match.league_before_match,
         leagueAfterMatch: match.league_after_match
       };
     }).filter(Boolean) as Match[]; // Filter out any null entries
   }, []);
 
-  // Fetch matches for the user's clubs
+  // Fetch matches for the user's clubs with improved error handling
   const fetchMatches = useCallback(async () => {
     if (!clubIds.length) {
       setMatches([]);
@@ -93,9 +106,9 @@ export const useMatchInfo = (userClubs: Club[]) => {
       return;
     }
 
-    setIsLoading(true);
-    
     try {
+      setIsTransitioning(true);
+      
       // Create a condition for "club_id IN (clubId1, clubId2, ...)" using OR conditions
       const clubConditions = clubIds.map(id => `home_club_id.eq.${id},away_club_id.eq.${id}`).join(',');
       
@@ -108,22 +121,27 @@ export const useMatchInfo = (userClubs: Club[]) => {
 
       if (error) {
         console.error('Error fetching matches:', error);
-        setIsLoading(false);
         return;
       }
 
       const transformedMatches = transformMatchData(data || []);
-      setMatches(transformedMatches);
+      
+      // Add a small delay before updating the state to avoid flickering
+      setTimeout(() => {
+        setMatches(transformedMatches);
+        setIsTransitioning(false);
+        setIsLoading(false);
+      }, 300);
     } catch (error) {
       console.error('Error processing matches:', error);
-    } finally {
+      setIsTransitioning(false);
       setIsLoading(false);
     }
   }, [clubIds, transformMatchData]);
 
   // Debounce the fetch operation to prevent too many rapid updates
   const debouncedFetchMatches = useMemo(() => 
-    debounce(fetchMatches, 300, { leading: true, trailing: true }),
+    debounce(fetchMatches, 500, { leading: true, trailing: true, maxWait: 1000 }),
     [fetchMatches]
   );
 
@@ -189,7 +207,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
 
   return {
     matches,
-    isLoading,
+    isLoading: isLoading || isTransitioning, // Combined loading state to prevent flickering
     refreshMatches: debouncedFetchMatches
   };
 };

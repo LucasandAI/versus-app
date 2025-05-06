@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Match, Club } from '@/types';
 import { ChevronDown, Clock } from 'lucide-react';
@@ -23,12 +23,27 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
   onViewProfile
 }) => {
   const [showMemberContributions, setShowMemberContributions] = useState(false);
+  const [isExpired, setIsExpired] = useState(false);
   const { navigateToClubDetail } = useNavigation();
 
   // Determine if user club is home or away
   const isHome = match.homeClub.id === userClub.id;
   const userClubMatch = isHome ? match.homeClub : match.awayClub;
   const opponentClubMatch = isHome ? match.awayClub : match.homeClub;
+
+  // Check if the match has expired on component mount
+  useEffect(() => {
+    const checkExpired = () => {
+      const now = new Date();
+      const endDate = new Date(match.endDate);
+      setIsExpired(now > endDate);
+    };
+    
+    checkExpired();
+    const timer = setInterval(checkExpired, 10000); // Check every 10 seconds
+    
+    return () => clearInterval(timer);
+  }, [match.endDate]);
 
   const handleMemberClick = (member: any) => {
     onViewProfile(member.id, member.name, member.avatar);
@@ -40,26 +55,40 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
 
   const handleCountdownComplete = () => {
     console.log('[CurrentMatchCard] Match ended, refreshing data');
-    window.dispatchEvent(new CustomEvent('matchEnded', {
-      detail: {
-        matchId: match.id
-      }
-    }));
+    setIsExpired(true);
+    
+    // Use a small delay to avoid UI flickering
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('matchEnded', {
+        detail: {
+          matchId: match.id,
+          clubId: userClub.id
+        }
+      }));
+    }, 500);
   };
 
   // Make sure the endDate is a valid Date object
   const endDate = new Date(match.endDate);
+  
+  // If the match is already expired but hasn't been updated in the database yet,
+  // we should still show it but with a different message
+  const isMatchActive = match.status === 'active' && !isExpired;
 
   return (
-    <Card className="overflow-hidden border-0 shadow-md">
+    <Card className="overflow-hidden border-0 shadow-md mb-4">
       <CardContent className="p-4">
-        {/* Match in Progress Notification */}
+        {/* Match Status Notification */}
         <div className="p-3 rounded-md mb-4 bg-inherit">
           <div className="flex justify-between items-center">
-            <h3 className="font-semibold">Match in progress</h3>
+            <h3 className="font-semibold">
+              {isMatchActive ? 'Match in progress' : 'Calculating results...'}
+            </h3>
             <div className="flex items-center text-amber-800 text-sm">
               <Clock className="h-4 w-4 mr-1" />
-              <span>Time remaining: </span>
+              <span>
+                {isMatchActive ? 'Time remaining: ' : 'Finalizing: '}
+              </span>
               <CountdownTimer
                 targetDate={endDate}
                 className="font-mono ml-1"

@@ -5,6 +5,7 @@ import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import MatchCard from './match-history/MatchCard';
 import { useNavigation } from '@/hooks/useNavigation';
 import { useClubMatches } from '@/hooks/club/useClubMatches';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface MatchHistoryTabProps {
   club: Club;
@@ -24,12 +25,17 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
       
       setIsLoading(true);
       try {
+        console.log('[MatchHistoryTab] Loading match history for club:', club.id);
         const matches = await fetchClubMatches(club.id);
+        console.log('[MatchHistoryTab] Loaded matches:', matches.length);
         setMatchHistory(matches);
       } catch (error) {
-        console.error('Error loading match history:', error);
+        console.error('[MatchHistoryTab] Error loading match history:', error);
       } finally {
-        setIsLoading(false);
+        // Add a small delay to avoid UI flicker
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 300);
       }
     };
     
@@ -49,7 +55,7 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
   };
 
   const handleSelectClub = (clubId: string, name: string, logo?: string) => {
-    console.log("Selecting club from match history:", clubId, name);
+    console.log("[MatchHistoryTab] Selecting club from match history:", clubId, name);
     navigateToClubDetail(clubId, { 
       id: clubId, 
       name,
@@ -78,6 +84,10 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
     return matchHistory?.filter(match => match.status === 'completed').length || 0;
   }, [matchHistory]);
 
+  if (isLoading) {
+    return <LoadingSkeleton />;
+  }
+
   return (
     <div className="bg-white rounded-lg shadow p-3 sm:p-4">
       <div className="flex items-center gap-2 mb-3">
@@ -85,11 +95,7 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
         <h2 className="text-lg font-semibold">Match History</h2>
       </div>
 
-      {isLoading ? (
-        <div className="text-center py-4">
-          <p className="text-gray-500 text-sm">Loading match history...</p>
-        </div>
-      ) : totalMatchCount > 0 ? (
+      {totalMatchCount > 0 ? (
         <div className="space-y-4">
           {displayedMatches.map((match) => (
             <MatchCard
@@ -128,6 +134,23 @@ const MatchHistoryTab: React.FC<MatchHistoryTabProps> = ({ club }) => {
           <p className="text-xs text-gray-400">Completed matches will appear here.</p>
         </div>
       )}
+    </div>
+  );
+};
+
+// Loading skeleton for match history
+const LoadingSkeleton = () => {
+  return (
+    <div className="bg-white rounded-lg shadow p-3 sm:p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Calendar className="text-primary h-4 w-4" />
+        <h2 className="text-lg font-semibold">Match History</h2>
+      </div>
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => (
+          <Skeleton key={i} className="h-24 w-full" />
+        ))}
+      </div>
     </div>
   );
 };

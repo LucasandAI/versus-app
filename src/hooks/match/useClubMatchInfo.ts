@@ -7,6 +7,7 @@ import { debounce } from 'lodash';
 export const useClubMatchInfo = (clubId: string | undefined) => {
   const [match, setMatch] = useState<Match | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Transform the raw match data from view_full_match_info to our Match type
   const transformMatchData = useCallback((rawMatch: any): Match | null => {
@@ -60,6 +61,18 @@ export const useClubMatchInfo = (clubId: string | undefined) => {
       members: awayMembers
     };
 
+    // Get winner from database, with fallback to calculation if not available
+    const getWinner = (): 'home' | 'away' | 'draw' => {
+      if (rawMatch.winner && ['home', 'away', 'draw'].includes(rawMatch.winner)) {
+        return rawMatch.winner as 'home' | 'away' | 'draw';
+      }
+      
+      // Calculate based on distance as fallback
+      if (homeTotalDistance > awayTotalDistance) return 'home';
+      if (awayTotalDistance > homeTotalDistance) return 'away';
+      return 'draw';
+    };
+
     // Create the full match object
     return {
       id: rawMatch.match_id,
@@ -68,7 +81,7 @@ export const useClubMatchInfo = (clubId: string | undefined) => {
       startDate: rawMatch.start_date,
       endDate: rawMatch.end_date,
       status: rawMatch.status as 'active' | 'completed',
-      winner: rawMatch.winner as 'home' | 'away' | 'draw' | undefined,
+      winner: getWinner(),
       leagueBeforeMatch: rawMatch.league_before_match,
       leagueAfterMatch: rawMatch.league_after_match
     };
@@ -81,9 +94,9 @@ export const useClubMatchInfo = (clubId: string | undefined) => {
       return;
     }
 
-    setIsLoading(true);
-    
     try {
+      setIsTransitioning(true);
+      
       // Query the view_full_match_info for active matches for this club
       const { data, error } = await supabase
         .from('view_full_match_info')
@@ -91,26 +104,32 @@ export const useClubMatchInfo = (clubId: string | undefined) => {
         .or(`home_club_id.eq.${clubId},away_club_id.eq.${clubId}`)
         .eq('status', 'active')
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 is the "no rows returned" error
         console.error('Error fetching club match:', error);
         setMatch(null);
       } else {
         const transformedMatch = data ? transformMatchData(data) : null;
-        setMatch(transformedMatch);
+        
+        // Add a small delay before updating the state to avoid flickering
+        setTimeout(() => {
+          setMatch(transformedMatch);
+          setIsTransitioning(false);
+          setIsLoading(false);
+        }, 300);
       }
     } catch (error) {
       console.error('Error processing club match:', error);
       setMatch(null);
-    } finally {
+      setIsTransitioning(false);
       setIsLoading(false);
     }
   }, [clubId, transformMatchData]);
 
   // Debounce the fetch operation to prevent too many rapid updates
   const debouncedFetchClubMatch = useMemo(() => 
-    debounce(fetchClubMatch, 300, { leading: true, trailing: true }),
+    debounce(fetchClubMatch, 500, { leading: true, trailing: true, maxWait: 1000 }),
     [fetchClubMatch]
   );
 
@@ -166,7 +185,7 @@ export const useClubMatchInfo = (clubId: string | undefined) => {
       )
       .subscribe();
     
-    // Listen for custom events
+    // Listen for custom events with safeguards
     const handleMatchEvent = (event: Event) => {
       const customEvent = event as CustomEvent;
       if (
@@ -197,7 +216,7 @@ export const useClubMatchInfo = (clubId: string | undefined) => {
 
   return {
     match,
-    isLoading,
+    isLoading: isLoading || isTransitioning, // Combined loading state to prevent flickering
     refreshMatch: debouncedFetchClubMatch
   };
 };

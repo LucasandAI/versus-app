@@ -122,9 +122,17 @@ export const useClubMatches = () => {
           }
         };
 
-        // Determine winner based on distance totals
-        const determineWinnerFromData = (): 'home' | 'away' | 'draw' => {
-          // Calculate based on distance
+        // Use winner directly from database, with fallback to calculation if not available
+        const getWinner = (): 'home' | 'away' | 'draw' => {
+          // First check if winner is already set in the database
+          if (matchData.winner) {
+            console.log(`[useClubMatches] Using winner from database: ${matchData.winner}`);
+            if (matchData.winner === 'home' || matchData.winner === 'away' || matchData.winner === 'draw') {
+              return matchData.winner as 'home' | 'away' | 'draw';
+            }
+          }
+          
+          // Calculate based on distance as fallback
           const homeDistance = parseFloat(String(matchData.home_total_distance || '0'));
           const awayDistance = parseFloat(String(matchData.away_total_distance || '0'));
           
@@ -156,7 +164,7 @@ export const useClubMatches = () => {
           startDate: matchData.start_date,
           endDate: matchData.end_date,
           status: matchData.status as 'active' | 'completed',
-          winner: determineWinnerFromData(),
+          winner: getWinner(),
           leagueBeforeMatch: parseLeagueData(matchData.league_before_match),
           leagueAfterMatch: parseLeagueData(matchData.league_after_match)
         };
