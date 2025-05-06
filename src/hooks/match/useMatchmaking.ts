@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -109,13 +108,7 @@ export const useMatchmaking = (currentUser: any) => {
           }
         )
         .subscribe();
-        
-      // Clean up subscription after 1 minute if no match is found
-      setTimeout(() => {
-        supabase.removeChannel(matchSubscription);
-        setIsSearching(false);
-      }, 60000);
-      
+
       return true;
     } catch (error) {
       console.error('Error searching for opponent:', error);
