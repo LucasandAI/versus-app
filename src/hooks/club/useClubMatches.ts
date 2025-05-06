@@ -107,6 +107,21 @@ export const useClubMatches = () => {
           }
         };
 
+        // Ensure winner value is one of the allowed literal types
+        const getWinnerValue = (winnerStr: string | null): 'home' | 'away' | 'draw' | undefined => {
+          if (winnerStr === 'home' || winnerStr === 'away' || winnerStr === 'draw') {
+            return winnerStr;
+          }
+          
+          // If winner is not a valid value, determine based on distances
+          return determineWinner(
+            matchData.home_total_distance !== null ?
+              parseFloat(String(matchData.home_total_distance)) : homeTotalDistance,
+            matchData.away_total_distance !== null ?
+              parseFloat(String(matchData.away_total_distance)) : awayTotalDistance
+          );
+        };
+
         const match: Match = {
           id: matchData.match_id,
           homeClub: {
@@ -132,13 +147,8 @@ export const useClubMatches = () => {
           startDate: matchData.start_date,
           endDate: matchData.end_date,
           status: matchData.status as 'active' | 'completed',
-          // Use matchData winner if it exists, otherwise determine based on distances
-          winner: matchData.winner || determineWinner(
-            matchData.home_total_distance !== null ? 
-              parseFloat(String(matchData.home_total_distance)) : homeTotalDistance,
-            matchData.away_total_distance !== null ? 
-              parseFloat(String(matchData.away_total_distance)) : awayTotalDistance
-          ),
+          // Use our safe getter function to ensure type safety
+          winner: getWinnerValue(matchData.winner),
           leagueBeforeMatch: parseLeagueData(matchData.league_before_match),
           leagueAfterMatch: parseLeagueData(matchData.league_after_match)
         };
@@ -161,3 +171,4 @@ export const useClubMatches = () => {
 
   return { fetchClubMatches };
 };
+
