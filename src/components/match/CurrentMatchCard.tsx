@@ -8,15 +8,13 @@ interface CurrentMatchCardProps {
   userClub: Club;
   onViewProfile: (userId: string, name: string, avatar?: string) => void;
   forceShowDetails?: boolean;
-  onMatchEnd?: (matchId: string) => Promise<void>;
 }
 
 const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
   match,
   userClub,
   onViewProfile,
-  forceShowDetails = false,
-  onMatchEnd
+  forceShowDetails = false
 }) => {
   // Log the data being passed to help with debugging
   console.log('[CurrentMatchCard] Rendering with data:', {
@@ -32,7 +30,6 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
       userClub={userClub}
       onViewProfile={onViewProfile}
       forceShowDetails={forceShowDetails}
-      onMatchEnd={onMatchEnd}
     />
   );
 };
