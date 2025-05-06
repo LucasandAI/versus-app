@@ -43,7 +43,7 @@ export const useClubMatches = () => {
                 name: member.name || 'Unknown',
                 avatar: member.avatar || '/placeholder.svg',
                 isAdmin: member.is_admin || false,
-                distanceContribution: parseFloat(member.distance || '0')
+                distanceContribution: parseFloat(String(member.distance || '0'))
               });
             }
           });
@@ -68,7 +68,7 @@ export const useClubMatches = () => {
                 name: member.name || 'Unknown',
                 avatar: member.avatar || '/placeholder.svg',
                 isAdmin: member.is_admin || false,
-                distanceContribution: parseFloat(member.distance || '0')
+                distanceContribution: parseFloat(String(member.distance || '0'))
               });
             }
           });
@@ -126,7 +126,7 @@ export const useClubMatches = () => {
             logo: matchData.home_club_logo || '/placeholder.svg',
             division: ensureDivision(matchData.home_division || 'bronze'),
             tier: Number(matchData.home_tier || 1),
-            totalDistance: parseFloat(matchData.home_total_distance || '0'),
+            totalDistance: parseFloat(String(matchData.home_total_distance || '0')),
             members: homeMembers
           },
           awayClub: {
@@ -135,13 +135,17 @@ export const useClubMatches = () => {
             logo: matchData.away_club_logo || '/placeholder.svg',
             division: ensureDivision(matchData.away_division || 'bronze'),
             tier: Number(matchData.away_tier || 1),
-            totalDistance: parseFloat(matchData.away_total_distance || '0'),
+            totalDistance: parseFloat(String(matchData.away_total_distance || '0')),
             members: awayMembers
           },
           startDate: matchData.start_date,
           endDate: matchData.end_date,
           status: matchData.status as 'active' | 'completed',
-          winner: matchData.winner as 'home' | 'away' | 'draw' | undefined,
+          // Use matchData winner if it exists, otherwise determine based on distances
+          winner: determineWinner(
+            parseFloat(String(matchData.home_total_distance || '0')), 
+            parseFloat(String(matchData.away_total_distance || '0'))
+          ),
           leagueBeforeMatch: parseLeagueData(matchData.league_before_match),
           leagueAfterMatch: parseLeagueData(matchData.league_after_match)
         };
@@ -153,6 +157,13 @@ export const useClubMatches = () => {
     }
     
     return enhancedMatches;
+  };
+
+  // Helper function to determine the winner based on distances
+  const determineWinner = (homeDistance: number, awayDistance: number): 'home' | 'away' | 'draw' => {
+    if (homeDistance > awayDistance) return 'home';
+    if (awayDistance > homeDistance) return 'away';
+    return 'draw';
   };
 
   return { fetchClubMatches };
