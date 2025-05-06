@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Match, Division } from '@/types';
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -74,7 +73,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
     const afterEmoji = getDivisionEmoji(afterDivision);
     const formattedLeague = formatLeague(afterDivision, afterTier);
     
-    // Handle TIE outcomes
+    // Fix for the type error: Explicitly handle 'draw' case separately from the other cases
     if (match.winner === 'draw') {
       return `Maintained in ${afterEmoji} ${formattedLeague}`;
     }
@@ -91,9 +90,8 @@ const MatchCard: React.FC<MatchCardProps> = ({
       if (beforeDivision !== 'elite') {
         return `Promoted to ${afterEmoji} ${formattedLeague} ${pointsText}`;
       } else {
-        if (match.winner === 'draw') {
-          return `Maintained in ${afterEmoji} ${formattedLeague} ${pointsText}`;
-        } else if (matchResult === 'WIN') {
+        // This is the fixed section - we already handled 'draw' above
+        if (matchResult === 'WIN') {
           return `Gained points in ${afterEmoji} ${formattedLeague} ${pointsText}`;
         } else {
           return `Lost points in ${afterEmoji} ${formattedLeague} ${pointsText}`;
