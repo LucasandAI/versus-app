@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 
@@ -25,7 +26,34 @@ const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
   const [image, setImage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+
+  const handleCreateClub = () => {
+    if (!name.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a club name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createClub({
+      name: name.trim(),
+      logo: image || '/placeholder.svg',
+      bio: bio.trim()
+    });
+
+    toast({
+      title: "Success",
+      description: "Your club has been created",
+    });
+
+    // Reset form
+    setName("");
+    setBio("");
+    setImage(null);
+    onOpenChange(false);
+  };
 
   const handleLogoUpload = async (file: File) => {
     if (!currentUser) return null;
@@ -49,68 +77,6 @@ const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
     } catch (error) {
       console.error('[CreateClubDialog] Error uploading logo:', error);
       return null;
-    }
-  };
-
-  const handleCreateClub = async () => {
-    if (!name.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a club name",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    
-    try {
-      // Upload logo if there's an image
-      let logoUrl = '/placeholder.svg';
-      if (image) {
-        // Extract the file from data URL if needed
-        const imageFile = await fetch(image)
-          .then(res => res.blob())
-          .then(blob => new File([blob], 'club-logo.png', { type: 'image/png' }))
-          .catch(err => {
-            console.error('[CreateClubDialog] Error converting image:', err);
-            return null;
-          });
-          
-        if (imageFile) {
-          logoUrl = await handleLogoUpload(imageFile) || logoUrl;
-        }
-      }
-
-      const clubData = {
-        name: name.trim(),
-        logo: logoUrl,
-        bio: bio.trim() || `Welcome to ${name.trim()}! We're a group of passionate runners looking to challenge ourselves and improve together.`
-      };
-
-      const result = await createClub(clubData);
-      
-      if (result) {
-        toast({
-          title: "Success",
-          description: `Your club "${name}" has been created!`,
-        });
-        
-        // Reset form and close dialog
-        setName("");
-        setBio("");
-        setImage(null);
-        onOpenChange(false);
-      }
-    } catch (error) {
-      console.error('[CreateClubDialog] Error creating club:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create club",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -160,7 +126,7 @@ const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="name" className="text-sm font-medium">Club Name</label>
+            <Label htmlFor="name">Club Name</Label>
             <Input
               id="name"
               value={name}
@@ -170,7 +136,7 @@ const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="bio" className="text-sm font-medium">Club Bio</label>
+            <Label htmlFor="bio">Club Bio</Label>
             <Textarea
               id="bio"
               value={bio}
@@ -181,18 +147,11 @@ const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
           </div>
         </div>
         <DialogFooter>
-          <Button 
-            variant="outline" 
-            onClick={() => onOpenChange(false)} 
-            disabled={isLoading}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleCreateClub} 
-            disabled={isLoading}
-          >
-            {isLoading ? 'Creating...' : 'Create Club'}
+          <Button onClick={handleCreateClub}>
+            Create Club
           </Button>
         </DialogFooter>
       </DialogContent>
