@@ -23,28 +23,22 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   }
 
   // Add optional chaining and fallback for the members array
-  const isAdmin = currentUser && 
-    Array.isArray(club.members) && 
-    club.members.some(member => 
-      member && member.id === currentUser.id && member.isAdmin === true
-    ) || false;
-
-  // Ensure matchHistory is an array
-  const matchHistory = Array.isArray(club.matchHistory) ? club.matchHistory : [];
+  const isAdmin = currentUser && Array.isArray(club.members) && club.members.some(member => 
+    member && member.id === currentUser.id && member.isAdmin === true
+  ) || false;
 
   return (
     <div className="space-y-6">
-      <ClubStats club={club} matchHistory={matchHistory} />
-      
+      <ClubStats 
+        club={club} 
+        matchHistory={Array.isArray(club.matchHistory) ? club.matchHistory : []} 
+      />
       {club.currentMatch && (
-        <div>
-          <ClubCurrentMatch
-            match={club.currentMatch}
-            onViewProfile={onSelectUser}
-          />
-        </div>
+        <ClubCurrentMatch
+          match={club.currentMatch}
+          onViewProfile={onSelectUser}
+        />
       )}
-      
       {isAdmin && currentUser && <ClubAdminActions club={club} currentUser={currentUser} />}
     </div>
   );

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import ChatDrawerContainer from './ChatDrawerContainer';
 import DrawerHeader from './DrawerHeader';
@@ -7,8 +7,8 @@ import { ChatProvider } from '@/context/ChatContext';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { useChatActions } from '@/hooks/chat/useChatActions';
 import { useApp } from '@/context/AppContext';
-import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
-import { useUnreadMessages } from '@/context/unread-messages';
+import { useConversations } from '@/hooks/chat/dm/useConversations';
+import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -27,7 +27,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   clubMessages = {},
   setClubMessages
 }) => {
-  // Use refs for mutable state to avoid re-renders
   const [activeTab, setActiveTab] = useState<"clubs"|"dm">("clubs");
   const [selectedLocalClub, setSelectedLocalClub] = useState<Club | null>(null);
   const [directMessageUser, setDirectMessageUser] = useState<{
@@ -37,74 +36,34 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     conversationId: string;
   } | null>(null);
   
-  // Store unread sets in refs to avoid re-renders, using memoized copies for rendering
-  const { unreadClubs, unreadConversations } = useUnreadMessages();
-  const unreadClubsRef = useRef<Set<string>>(new Set());
-  const unreadConversationsRef = useRef<Set<string>>(new Set());
-  
-  // Update refs without causing re-renders
-  useEffect(() => {
-    unreadClubsRef.current = new Set(unreadClubs);
-  }, [unreadClubs]);
-  
-  useEffect(() => {
-    unreadConversationsRef.current = new Set(unreadConversations);
-  }, [unreadConversations]);
-  
-  // Stable action handlers
   const { sendMessageToClub, deleteMessage } = useChatActions();
   const { currentUser } = useApp();
-  const { fetchConversations } = useDirectConversationsContext();
-
-  // Memoized handler functions
-  const handleSelectClub = useCallback((club: Club) => {
-    setSelectedLocalClub(club);
-  }, []);
-
-  const handleSendMessage = useCallback(async (message: string, clubId?: string) => {
-    if (message && clubId && setClubMessages) {
-      console.log('[MainChatDrawer] Sending message to club:', clubId);
-      return await sendMessageToClub(clubId, message, setClubMessages);
-    }
-  }, [sendMessageToClub, setClubMessages]);
+  const { hiddenDMs } = useHiddenDMs();
   
-  const handleDeleteMessage = useCallback(async (messageId: string) => {
-    if (messageId && setClubMessages) {
-      console.log('[MainChatDrawer] Deleting message:', messageId);
-      return await deleteMessage(messageId, setClubMessages);
-    }
-  }, [deleteMessage, setClubMessages]);
+  // Pre-fetch conversations when drawer opens for faster loading
+  const { fetchConversations } = useConversations(hiddenDMs);
   
-  const handleTabChange = useCallback((tab: "clubs" | "dm") => {
-    setActiveTab(tab);
-  }, []);
-
-  // Effect to fetch conversations when drawer opens
   useEffect(() => {
+    // Only pre-fetch conversations when drawer opens AND current user is available
     if (open && currentUser?.id) {
-      // Only fetch if we're on the DM tab
-      if (activeTab === "dm") {
-        console.log("[MainChatDrawer] Drawer opened with DM tab, ensuring conversations are loaded");
-        fetchConversations();
-      }
+      // Pre-fetch conversations when drawer opens
+      fetchConversations();
     }
-  }, [open, currentUser?.id, activeTab, fetchConversations]);
-  
-  // Handle direct message opening events
+  }, [open, currentUser?.id, fetchConversations]);
+
   useEffect(() => {
     const handleOpenDM = (event: CustomEvent<{
       userId: string;
       userName: string;
       userAvatar?: string;
-      conversationId?: string;
+      conversationId: string;
     }>) => {
       setActiveTab("dm");
-      
       setDirectMessageUser({
         userId: event.detail.userId,
         userName: event.detail.userName,
         userAvatar: event.detail.userAvatar || '/placeholder.svg',
-        conversationId: event.detail.conversationId || 'new'
+        conversationId: event.detail.conversationId
       });
     };
 
@@ -112,23 +71,48 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     return () => {
       window.removeEventListener('openDirectMessage', handleOpenDM as EventListener);
     };
-  }, [fetchConversations]);
+  }, []);
 
-  // IMPORTANT: Use React.memo for stable child rendering
-  const DrawerHeaderMemo = React.memo(DrawerHeader);
-  const ChatDrawerContainerMemo = React.memo(ChatDrawerContainer);
+  const handleSelectClub = (club: Club) => {
+    setSelectedLocalClub(club);
+  };
+
+  // Handle sending a new message
+  const handleSendMessage = async (message: string, clubId?: string) => {
+    if (message && clubId && setClubMessages) {
+      console.log('[MainChatDrawer] Sending message to club:', clubId);
+      return await sendMessageToClub(clubId, message, setClubMessages);
+    }
+  };
+  
+  // Handle deleting a message
+  const handleDeleteMessage = async (messageId: string) => {
+    if (messageId && setClubMessages) {
+      console.log('[MainChatDrawer] Deleting message:', messageId);
+      return await deleteMessage(messageId, setClubMessages);
+    }
+  };
+  
+  const handleTabChange = (tab: "clubs" | "dm") => {
+    setActiveTab(tab);
+    
+    // If switching to DM tab, pre-fetch conversations for faster loading
+    if (tab === "dm" && currentUser?.id) {
+      fetchConversations();
+    }
+  };
 
   return (
     <ChatProvider>
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="h-[80vh] rounded-t-xl p-0 flex flex-col">
-          <DrawerHeaderMemo 
+          <DrawerHeader 
             activeTab={activeTab} 
             setActiveTab={handleTabChange}
             selectedClub={selectedLocalClub}
           />
           
-          <ChatDrawerContainerMemo 
+          <ChatDrawerContainer 
             activeTab={activeTab}
             clubs={clubs}
             selectedLocalClub={selectedLocalClub}
@@ -136,8 +120,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             messages={clubMessages}
             deleteChat={() => {}}
             unreadMessages={{}}
-            unreadClubs={unreadClubsRef.current}
-            unreadConversations={unreadConversationsRef.current}
             handleNewMessage={() => {}}
             onSendMessage={handleSendMessage}
             onDeleteMessage={handleDeleteMessage}
@@ -150,5 +132,4 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   );
 };
 
-// Use React.memo for the entire component
-export default React.memo(MainChatDrawer);
+export default MainChatDrawer;

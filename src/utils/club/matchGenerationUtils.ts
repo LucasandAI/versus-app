@@ -1,4 +1,3 @@
-
 import { Club, ClubMember, Division, Match } from '@/types';
 import { ensureDivision } from './leagueUtils';
 
@@ -36,72 +35,62 @@ export const createMatchResultForLeague = (
   const determineWinner = isWin !== undefined ? isWin : Math.random() > 0.5;
   const winner = determineWinner ? 'home' : 'away';
   
-  // Generate league status before and after the match with the new nested structure
+  // Generate league status before and after the match
   const leagueBeforeMatch = {
-    home: {
-      division: homeClub.division,
-      tier: homeClub.tier,
-      elitePoints: homeClub.elitePoints
-    },
-    away: {
-      division: awayClub.division,
-      tier: awayClub.tier,
-      elitePoints: awayClub.elitePoints
-    }
+    division: homeClub.division,
+    tier: homeClub.tier,
+    elitePoints: homeClub.elitePoints
   };
   
   // Calculate new league status after match
-  let leagueAfterMatch = {
-    home: { ...leagueBeforeMatch.home },
-    away: { ...leagueBeforeMatch.away }
-  };
+  let leagueAfterMatch = { ...leagueBeforeMatch };
   
   const divisionValue = ensureDivision(homeClub.division);
   
   // Elite league special handling
   if (divisionValue === 'elite') {
     if (winner === 'home') {
-      leagueAfterMatch.home.elitePoints = (leagueBeforeMatch.home.elitePoints || 0) + 1;
+      leagueAfterMatch.elitePoints = (leagueBeforeMatch.elitePoints || 0) + 1;
     } else {
-      leagueAfterMatch.home.elitePoints = Math.max((leagueBeforeMatch.home.elitePoints || 0) - 1, 0);
+      leagueAfterMatch.elitePoints = Math.max((leagueBeforeMatch.elitePoints || 0) - 1, 0);
     }
   } 
   // Other leagues: promotion/relegation based on tiers
   else {
     if (winner === 'home') {
       // Promotion logic
-      if (leagueBeforeMatch.home.tier === 1) {
+      if (leagueBeforeMatch.tier === 1) {
         // Promote to next division
         if (divisionValue === 'bronze') {
-          leagueAfterMatch.home.division = 'silver';
-          leagueAfterMatch.home.tier = 5;
+          leagueAfterMatch.division = 'silver';
+          leagueAfterMatch.tier = 5;
         } else if (divisionValue === 'silver') {
-          leagueAfterMatch.home.division = 'gold';
-          leagueAfterMatch.home.tier = 5;
+          leagueAfterMatch.division = 'gold';
+          leagueAfterMatch.tier = 5;
         } else if (divisionValue === 'gold') {
-          leagueAfterMatch.home.division = 'elite';
-          leagueAfterMatch.home.tier = 1;
-          leagueAfterMatch.home.elitePoints = 0;
+          leagueAfterMatch.division = 'elite';
+          leagueAfterMatch.tier = 1;
+          leagueAfterMatch.elitePoints = 0;
         }
       } else {
         // Move up within same division
-        leagueAfterMatch.home.tier = Math.max(leagueBeforeMatch.home.tier - 1, 1);
+        leagueAfterMatch.tier = Math.max(leagueBeforeMatch.tier - 1, 1);
       }
     } else {
       // Relegation logic
-      if (leagueBeforeMatch.home.tier === 5) {
+      if (leagueBeforeMatch.tier === 5) {
         // Relegate to previous division
         if (divisionValue === 'gold') {
-          leagueAfterMatch.home.division = 'silver';
-          leagueAfterMatch.home.tier = 1;
+          leagueAfterMatch.division = 'silver';
+          leagueAfterMatch.tier = 1;
         } else if (divisionValue === 'silver') {
-          leagueAfterMatch.home.division = 'bronze';
-          leagueAfterMatch.home.tier = 1;
+          leagueAfterMatch.division = 'bronze';
+          leagueAfterMatch.tier = 1;
         }
         // Bronze stays at bronze 5
       } else {
         // Move down within same division
-        leagueAfterMatch.home.tier = Math.min(leagueBeforeMatch.home.tier + 1, 5);
+        leagueAfterMatch.tier = Math.min(leagueBeforeMatch.tier + 1, 5);
       }
     }
   }

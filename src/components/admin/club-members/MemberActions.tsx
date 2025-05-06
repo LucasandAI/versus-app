@@ -32,7 +32,6 @@ const MemberActions: React.FC<MemberActionsProps> = ({
               size="sm" 
               className="h-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
               onClick={() => onMakeAdmin(memberId, memberName)}
-              data-testid={`make-admin-${memberId}`}
             >
               <UserCog className="h-4 w-4" />
               <span className="sr-only">Make Admin</span>
@@ -52,7 +51,6 @@ const MemberActions: React.FC<MemberActionsProps> = ({
               size="sm" 
               className="h-8 text-red-500 hover:text-red-700 hover:bg-red-50"
               onClick={() => onRemove(memberId, memberName)}
-              data-testid={`remove-member-${memberId}`}
             >
               <UserMinus className="h-4 w-4" />
               <span className="sr-only">Remove</span>

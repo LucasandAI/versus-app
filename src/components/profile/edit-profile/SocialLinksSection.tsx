@@ -28,7 +28,7 @@ const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
 }) => {
   return (
     <div className="space-y-4">
-      <h4 className="text-sm font-medium">Social Links <span className="text-gray-500 text-xs italic">(all optional)</span></h4>
+      <h4 className="text-sm font-medium">Social Links</h4>
       
       <div className="space-y-3">
         <div className="flex items-center gap-2">

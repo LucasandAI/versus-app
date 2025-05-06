@@ -4,82 +4,14 @@ import { getClubToJoin } from '@/utils/club';
 import { useClubValidation } from './useClubValidation';
 import { toast } from "@/hooks/use-toast";
 import { handleNotification } from '@/utils/notificationUtils';
-import { supabase } from '@/integrations/supabase/client';
 
 export const useClubJoin = () => {
   const { currentUser, setCurrentUser } = useApp();
   const { validateClubJoin, validateClubRequest } = useClubValidation();
 
-  const handleRequestToJoin = async (clubId: string, clubName: string) => {
-    if (!currentUser) {
-      toast({
-        title: "Login Required",
-        description: "You need to be logged in to request joining a club",
-        variant: "destructive"
-      });
-      return;
-    }
-    
+  const handleRequestToJoin = (clubId: string, clubName: string) => {
     if (validateClubJoin(currentUser, clubName)) {
-      try {
-        // Check if user already has a pending request for this club
-        const { data: existingRequest } = await supabase
-          .from('club_requests')
-          .select('*')
-          .eq('user_id', currentUser.id)
-          .eq('club_id', clubId)
-          .eq('status', 'PENDING')
-          .maybeSingle();
-          
-        if (existingRequest) {
-          // Delete the request instead of updating to 'cancelled'
-          const { error } = await supabase
-            .from('club_requests')
-            .delete()
-            .eq('user_id', currentUser.id)
-            .eq('club_id', clubId)
-            .eq('status', 'PENDING');
-            
-          if (error) {
-            console.error('Error canceling join request:', error);
-            throw error;
-          }
-          
-          toast({
-            title: "Request Canceled",
-            description: `Your request to join ${clubName} has been canceled`
-          });
-          return;
-        }
-        
-        // If no existing request, create a new one
-        const { error } = await supabase
-          .from('club_requests')
-          .insert({
-            user_id: currentUser.id,
-            club_id: clubId,
-            status: 'PENDING'
-          });
-          
-        if (error) {
-          console.error('Error sending join request:', error);
-          throw error;
-        }
-        
-        toast({
-          title: "Request Sent",
-          description: `Your request to join ${clubName} has been sent`
-        });
-        
-        validateClubRequest(clubName);
-      } catch (error) {
-        console.error('Error in handleRequestToJoin:', error);
-        toast({
-          title: "Error",
-          description: "Could not process your request. Please try again.",
-          variant: "destructive"
-        });
-      }
+      validateClubRequest(clubName);
     }
   };
 

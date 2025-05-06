@@ -1,6 +1,8 @@
 
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 
 export const useMessageHandling = (
   currentUserId: string | undefined,
@@ -10,36 +12,35 @@ export const useMessageHandling = (
   setIsSending: React.Dispatch<React.SetStateAction<boolean>>,
   createConversation: () => Promise<string | null>
 ) => {
+  const { unhideConversation } = useHiddenDMs();
   
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || !currentUserId || !userId) return;
     setIsSending(true);
     
-    // Generate a unique temp ID for optimistic UI
-    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    unhideConversation(userId);
+    
+    const optimisticId = `temp-${Date.now()}`;
     const timestamp = new Date().toISOString();
     
-    // Create optimistic message
-    const optimisticMessage = {
-      id: tempId,
+    const newMessageObj = {
+      id: optimisticId,
       text: message,
       sender: {
         id: currentUserId,
-        name: 'You',
+        name: currentUserId,
         avatar: undefined
       },
-      timestamp,
-      optimistic: true
+      timestamp
     };
 
     try {
-      // Add optimistic message to UI
-      setMessages(prev => [...prev, optimisticMessage]);
+      setMessages(prev => [...prev, newMessageObj]);
       
       // Get or create a conversation ID
       let actualConversationId = conversationId;
       if (!actualConversationId || actualConversationId === 'new') {
-        console.log('[useMessageHandling] Creating/finding conversation for users:', currentUserId, userId);
+        console.log('Need to create/find conversation for users:', currentUserId, userId);
         const newConversationId = await createConversation();
         if (!newConversationId) {
           throw new Error('Could not create conversation');
@@ -47,8 +48,6 @@ export const useMessageHandling = (
         actualConversationId = newConversationId;
       }
 
-      console.log('[useMessageHandling] Sending message to conversation:', actualConversationId);
-      
       const { data, error } = await supabase
         .from('direct_messages')
         .insert({
@@ -72,14 +71,13 @@ export const useMessageHandling = (
         }));
       }
     } catch (error) {
-      console.error('[useMessageHandling] Error sending message:', error);
+      console.error('Error sending message:', error);
       toast({
         title: "Error",
         description: "Could not send message",
         variant: "destructive"
       });
-      // Remove optimistic message on error
-      setMessages(prev => prev.filter(msg => msg.id !== tempId));
+      setMessages(prev => prev.filter(msg => msg.id !== optimisticId));
     } finally {
       setIsSending(false);
     }
@@ -87,14 +85,7 @@ export const useMessageHandling = (
 
   const handleDeleteMessage = async (messageId: string) => {
     try {
-      // Optimistically remove the message from UI
       setMessages(prev => prev.filter(msg => msg.id !== messageId));
-      
-      // Skip database deletion for optimistic messages
-      if (messageId.startsWith('temp-')) {
-        console.log('[useMessageHandling] Skipping deletion for optimistic message:', messageId);
-        return;
-      }
       
       const { error } = await supabase
         .from('direct_messages')
@@ -103,7 +94,7 @@ export const useMessageHandling = (
 
       if (error) throw error;
     } catch (error) {
-      console.error('[useMessageHandling] Error deleting message:', error);
+      console.error('Error deleting message:', error);
       toast({
         title: "Error",
         description: "Could not delete message",

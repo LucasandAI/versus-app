@@ -1,6 +1,7 @@
 
 import React from 'react';
 import UserAvatar from '@/components/shared/UserAvatar';
+import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 
 interface SearchResult {
   id: string;
@@ -11,20 +12,23 @@ interface SearchResult {
 interface UserSearchResultsProps {
   results: SearchResult[];
   isLoading: boolean;
-  onSelect: (userId: string, userName: string, userAvatar: string) => void;
-  showResults: boolean;
+  onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
+  visible: boolean;
 }
 
 const UserSearchResults: React.FC<UserSearchResultsProps> = ({
   results,
   isLoading,
-  onSelect,
-  showResults,
+  onSelectUser,
+  visible,
 }) => {
-  if (!showResults) return null;
+  const { unhideConversation } = useHiddenDMs();
+
+  if (!visible) return null;
 
   const handleUserSelect = (user: SearchResult) => {
-    onSelect(user.id, user.name, user.avatar);
+    unhideConversation(user.id);
+    onSelectUser(user.id, user.name, user.avatar);
   };
 
   if (isLoading) {
@@ -36,7 +40,7 @@ const UserSearchResults: React.FC<UserSearchResultsProps> = ({
   }
 
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="absolute z-10 w-full bg-white border-x border-b rounded-b-lg shadow-lg max-h-[300px] overflow-y-auto">
       {results.length === 0 ? (
         <div className="p-4 text-center text-gray-500">
           No users found

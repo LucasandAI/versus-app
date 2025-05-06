@@ -1,28 +1,24 @@
 
+import { useCallback, useEffect } from 'react';
+import type { DMConversation } from './types';
+
+const VISIBLE_CONVERSATIONS_KEY = 'visibleConversations';
+
 export const useConversationsPersistence = () => {
-  const STORAGE_KEY = 'direct_conversations';
+  const saveConversationsToStorage = useCallback((conversations: DMConversation[]) => {
+    console.log('[useConversationsPersistence] Saving conversations to storage:', conversations.length);
+    localStorage.setItem(VISIBLE_CONVERSATIONS_KEY, JSON.stringify(conversations));
+  }, []);
 
-  const loadConversationsFromStorage = () => {
-    try {
-      const storedData = localStorage.getItem(STORAGE_KEY);
-      if (!storedData) return [];
-      return JSON.parse(storedData);
-    } catch (e) {
-      console.error('Error loading conversations from storage:', e);
-      return [];
-    }
-  };
-
-  const saveConversationsToStorage = (conversations: any[]) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
-    } catch (e) {
-      console.error('Error saving conversations to storage:', e);
-    }
-  };
+  const loadConversationsFromStorage = useCallback((): DMConversation[] => {
+    const stored = localStorage.getItem(VISIBLE_CONVERSATIONS_KEY);
+    const conversations = stored ? JSON.parse(stored) : [];
+    console.log('[useConversationsPersistence] Loaded conversations from storage:', conversations.length);
+    return conversations;
+  }, []);
 
   return {
-    loadConversationsFromStorage,
-    saveConversationsToStorage
+    saveConversationsToStorage,
+    loadConversationsFromStorage
   };
 };

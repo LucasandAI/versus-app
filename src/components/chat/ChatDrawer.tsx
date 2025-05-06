@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Club } from '@/types';
 import MainChatDrawer from './drawer/MainChatDrawer';
 
@@ -14,16 +14,6 @@ interface ChatDrawerProps {
 }
 
 const ChatDrawer: React.FC<ChatDrawerProps> = (props) => {
-  // Debug: Check clubs IDs when they're passed to the drawer
-  useEffect(() => {
-    if (props.clubs?.length > 0) {
-      console.log('[ChatDrawer] Clubs passed to drawer:');
-      props.clubs.forEach(club => {
-        console.log(`  Club: ${club.name}, ID: ${club.id} (type: ${typeof club.id})`);
-      });
-    }
-  }, [props.clubs]);
-
   return <MainChatDrawer {...props} />;
 };
 

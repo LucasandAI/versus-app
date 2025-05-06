@@ -41,7 +41,7 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
         />
       </div>
       <div>
-        <p className="text-sm text-gray-500">Click the icon to upload a new picture <span className="italic">(optional)</span></p>
+        <p className="text-sm text-gray-500">Click the icon to upload a new picture</p>
       </div>
     </div>
   );

@@ -6,7 +6,6 @@ import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import { useNavigation } from '@/hooks/useNavigation';
 import { useChatActions } from '@/hooks/chat/useChatActions';
-import { useActiveClubMessages } from '@/hooks/chat/useActiveClubMessages';
 
 interface ChatClubContentProps {
   club: Club;
@@ -17,33 +16,22 @@ interface ChatClubContentProps {
   onDeleteMessage?: (messageId: string) => void;
   setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
   clubId?: string;
-  globalMessages?: Record<string, any[]>;
 }
 
 const ChatClubContent = ({ 
   club,
-  messages: propMessages,
+  messages,
   onMatchClick,
   onSelectUser,
   onSendMessage,
   onDeleteMessage,
   setClubMessages,
-  clubId,
-  globalMessages = {}
+  clubId
 }: ChatClubContentProps) => {
   const { navigateToClubDetail } = useNavigation();
   const [isSending, setIsSending] = useState(false);
   const { deleteMessage } = useChatActions();
   const effectiveClubId = clubId || club?.id;
-  
-  // Use our new hook to get messages that stay in sync with global state
-  const { messages } = useActiveClubMessages(
-    effectiveClubId,
-    globalMessages
-  );
-  
-  // Log the messages length as requested
-  console.log('[ChatClubContent] Messages length:', messages.length);
   
   useEffect(() => {
     console.log('[ChatClubContent] Club changed, resetting state for:', effectiveClubId);

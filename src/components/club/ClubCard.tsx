@@ -4,7 +4,7 @@ import { ChevronDown } from 'lucide-react';
 import { Club } from '@/types';
 import UserAvatar from '../shared/UserAvatar';
 import MatchProgressBar from '../shared/MatchProgressBar';
-import { formatLeague } from '@/utils/club/leagueUtils';
+import { formatLeagueWithTier } from '@/lib/format';
 import { useNavigation } from '@/hooks/useNavigation';
 
 interface ClubCardProps {
@@ -60,17 +60,14 @@ const ClubCard: React.FC<ClubCardProps> = ({
             image={club.logo} 
             size="md"
             className="h-12 w-12 cursor-pointer"
-            onClick={(e) => {
-              e && e.stopPropagation();
-              handleClubClick();
-            }}
+            onClick={handleClubClick}
           />
         </div>
         <div>
-          <h3 className="font-medium cursor-pointer hover:text-primary transition-colors" onClick={handleClubClick}>{club.name}</h3>
-          <div className="flex items-center gap-1 mt-0.5">
+          <h3 className="font-medium cursor-pointer hover:text-primary" onClick={handleClubClick}>{club.name}</h3>
+          <div className="flex items-center gap-1">
             <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
-              {formatLeague(club.division, club.tier)}
+              {formatLeagueWithTier(club.division, club.tier)}
             </span>
             <span className="text-xs text-gray-500">
               • {club.members.length}/{MAX_MEMBERS} members
@@ -90,14 +87,14 @@ const ClubCard: React.FC<ClubCardProps> = ({
           
           <div className="flex justify-between items-center mb-3 text-sm">
             <span 
-              className="font-medium cursor-pointer hover:text-primary transition-colors"
+              className="font-medium cursor-pointer hover:text-primary"
               onClick={(e) => handleClubNameClick(e, club.currentMatch!.homeClub)}
             >
               {club.currentMatch.homeClub.name}
             </span>
             <span className="text-xs text-gray-500">vs</span>
             <span 
-              className="font-medium cursor-pointer hover:text-primary transition-colors"
+              className="font-medium cursor-pointer hover:text-primary"
               onClick={(e) => handleClubNameClick(e, club.currentMatch!.awayClub)}
             >
               {club.currentMatch.awayClub.name}
@@ -131,9 +128,9 @@ const ClubCard: React.FC<ClubCardProps> = ({
                         onSelectUser(member.id, member.name, member.avatar);
                       }}
                     >
-                      <UserAvatar name={member.name} image={member.avatar} size="xs" />
+                      <UserAvatar name={member.name} image={member.avatar} size="sm" />
                       <div>
-                        <p className="text-xs font-medium hover:text-primary transition-colors">{member.name}</p>
+                        <p className="text-xs font-medium hover:text-primary">{member.name}</p>
                         <p className="text-xs text-gray-500">{member.distanceContribution?.toFixed(1)} km</p>
                       </div>
                     </div>
@@ -150,9 +147,9 @@ const ClubCard: React.FC<ClubCardProps> = ({
                         onSelectUser(member.id, member.name, member.avatar);
                       }}
                     >
-                      <UserAvatar name={member.name} image={member.avatar} size="xs" />
+                      <UserAvatar name={member.name} image={member.avatar} size="sm" />
                       <div>
-                        <p className="text-xs font-medium hover:text-primary transition-colors">{member.name}</p>
+                        <p className="text-xs font-medium hover:text-primary">{member.name}</p>
                         <p className="text-xs text-gray-500">{member.distanceContribution?.toFixed(1)} km</p>
                       </div>
                     </div>

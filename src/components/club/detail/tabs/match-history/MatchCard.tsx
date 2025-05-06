@@ -1,10 +1,10 @@
+
 import React from 'react';
 import { Match, Division } from '@/types';
 import { ChevronDown, ChevronUp } from "lucide-react";
 import MatchProgressBar from '@/components/shared/MatchProgressBar';
 import { formatLeague, getDivisionEmoji } from '@/utils/club/leagueUtils';
 import MatchDetails from './MatchDetails';
-import { format } from 'date-fns';
 
 interface MatchCardProps {
   match: Match;
@@ -32,11 +32,6 @@ const MatchCard: React.FC<MatchCardProps> = ({
     const start = new Date(startDate);
     const end = new Date(endDate);
     
-    // For short matches (same day), show specific times
-    if (start.toDateString() === end.toDateString()) {
-      return `${format(start, 'MMM d, h:mm a')} - ${format(end, 'h:mm a')}`;
-    }
-    
     const startMonth = start.toLocaleDateString('en-US', { month: 'long' });
     const endMonth = end.toLocaleDateString('en-US', { month: 'long' });
     
@@ -52,37 +47,26 @@ const MatchCard: React.FC<MatchCardProps> = ({
       return 'No league data';
     }
     
-    const isHome = match.homeClub.id === clubId;
-    const sideKey = isHome ? 'home' : 'away';
-    
-    // Access nested properties correctly
-    const beforeLeague = match.leagueBeforeMatch[sideKey];
-    const afterLeagueData = match.leagueAfterMatch[sideKey];
-    
-    if (!beforeLeague || !afterLeagueData) {
-      return 'No league data available';
-    }
-    
-    const beforeDivision = beforeLeague.division;
-    const afterDivision = afterLeagueData.division;
-    const afterTier = afterLeagueData.tier;
+    const beforeDivision = match.leagueBeforeMatch.division;
+    const afterDivision = match.leagueAfterMatch.division;
+    const afterTier = match.leagueAfterMatch.tier || 1;
     
     const afterEmoji = getDivisionEmoji(afterDivision);
-    const formattedLeague = formatLeague(afterDivision, afterTier);
+    const afterLeague = formatLeague(afterDivision, afterTier);
     
     const isDivisionChange = beforeDivision !== afterDivision;
-    const isTierChange = beforeLeague.tier !== afterLeagueData.tier;
+    const isTierChange = match.leagueBeforeMatch.tier !== afterTier;
     
     if (afterDivision === 'elite') {
-      const beforePoints = beforeLeague.elitePoints || 0;
-      const afterPoints = afterLeagueData.elitePoints || 0;
+      const beforePoints = match.leagueBeforeMatch.elitePoints || 0;
+      const afterPoints = match.leagueAfterMatch.elitePoints || 0;
       const pointChange = afterPoints - beforePoints;
       const pointsText = `(${pointChange >= 0 ? '+' : ''}${pointChange} points, total: ${afterPoints})`;
       
       if (beforeDivision !== 'elite') {
-        return `Promoted to ${afterEmoji} ${formattedLeague} ${pointsText}`;
+        return `Promoted to ${afterEmoji} ${afterLeague} ${pointsText}`;
       } else {
-        return `${weWon ? 'Gained' : 'Lost'} points in ${afterEmoji} ${formattedLeague} ${pointsText}`;
+        return `${weWon ? 'Gained' : 'Lost'} points in ${afterEmoji} ${afterLeague} ${pointsText}`;
       }
     }
     
@@ -92,18 +76,18 @@ const MatchCard: React.FC<MatchCardProps> = ({
         ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'elite'].indexOf(beforeDivision);
       
       if (divisionOrderChange) {
-        return `Promoted to ${afterEmoji} ${formattedLeague}`;
+        return `Promoted to ${afterEmoji} ${afterLeague}`;
       } else {
-        return `Relegated to ${afterEmoji} ${formattedLeague}`;
+        return `Relegated to ${afterEmoji} ${afterLeague}`;
       }
     } else if (isTierChange) {
-      if (beforeLeague.tier > afterLeagueData.tier) {
-        return `Promoted to ${afterEmoji} ${formattedLeague}`;
+      if (match.leagueBeforeMatch.tier && match.leagueBeforeMatch.tier > afterTier) {
+        return `Promoted to ${afterEmoji} ${afterLeague}`;
       } else {
-        return `Relegated to ${afterEmoji} ${formattedLeague}`;
+        return `Relegated to ${afterEmoji} ${afterLeague}`;
       }
     } else {
-      return `Maintained in ${afterEmoji} ${formattedLeague}`;
+      return `Maintained in ${afterEmoji} ${afterLeague}`;
     }
   };
 

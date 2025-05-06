@@ -7,8 +7,14 @@ export const createClubChannel = (club: Club): RealtimeChannel => {
   const clubId = club.id;
   console.log(`[subscriptionUtils] Creating channel for club ${clubId}`);
   
-  // Create a simple channel name without timestamp to avoid conflicts
-  return supabase.channel(`club_messages:${clubId}`);
+  // Create a unique channel name with timestamp to avoid conflicts
+  return supabase.channel(`club-messages-${clubId}-${Date.now()}`, {
+    config: {
+      broadcast: {
+        self: false
+      }
+    }
+  });
 };
 
 export const cleanupChannels = (channels: RealtimeChannel[]) => {

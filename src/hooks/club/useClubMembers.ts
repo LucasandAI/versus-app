@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { ClubMember } from '@/types';
+import { PostgrestError } from '@supabase/supabase-js';
 
 export const useClubMembers = () => {
   const fetchClubMembers = async (clubId: string): Promise<ClubMember[]> => {

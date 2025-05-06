@@ -1,20 +1,17 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Club } from '@/types';
 import UserAvatar from '../../shared/UserAvatar';
 import ClubMembersPopover from './ClubMembersPopover';
 import { useNavigation } from '@/hooks/useNavigation';
 import { formatDistanceToNow } from 'date-fns';
 import { useClubLastMessages } from '@/hooks/chat/messages/useClubLastMessages';
-import { useUnreadMessages } from '@/context/unread-messages';
-import { Badge } from '@/components/ui/badge';
 
 interface ClubsListProps {
   clubs: Club[];
   selectedClub: Club | null;
   onSelectClub: (club: Club) => void;
   unreadCounts: Record<string, number>;
-  unreadClubs?: Set<string>;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   setChatToDelete: (data: {
     id: string;
@@ -27,101 +24,77 @@ const ClubsList: React.FC<ClubsListProps> = ({
   clubs,
   selectedClub,
   onSelectClub,
+  unreadCounts,
   onSelectUser,
-  unreadClubs: propUnreadClubs,
   setChatToDelete,
 }) => {
   const { navigateToClubDetail } = useNavigation();
-  const { lastMessages, sortedClubs } = useClubLastMessages(clubs);
-  const { unreadClubs: contextUnreadClubs, markClubMessagesAsRead } = useUnreadMessages();
-  
-  // Use either the passed props (preferred) or fall back to context
-  const unreadClubs = propUnreadClubs || contextUnreadClubs;
-  
-  // Add a debug effect to log unread clubs when they change
-  useEffect(() => {
-    console.log('[ClubsList] unreadClubs set updated:', Array.from(unreadClubs));
-    console.log('[ClubsList] Using prop unread clubs?', !!propUnreadClubs);
-  }, [unreadClubs, propUnreadClubs]);
+  const lastMessages = useClubLastMessages(clubs);
   
   const handleClubClick = (club: Club, e: React.MouseEvent) => {
     e.preventDefault();
     onSelectClub(club);
-    markClubMessagesAsRead(club.id);
     console.log('[ClubsList] Club selected for chat:', club.id);
   };
 
   const truncateMessage = (text: string) => {
-    return text?.length > 50 ? `${text.substring(0, 50)}...` : text;
+    return text.length > 50 ? `${text.substring(0, 50)}...` : text;
   };
-
-  // Create a key that will change whenever unread status changes
-  const unreadKey = Array.from(unreadClubs).join(',');
 
   return (
     <div className="p-3">
-      <h1 className="text-4xl font-bold mb-4">Clubs</h1>
+      <h3 className="text-sm font-medium mb-2">Your Clubs</h3>
       
-      <div className="divide-y">
-        {sortedClubs.map(club => {
-          // Get club ID as string to ensure consistent comparison
-          const clubId = String(club.id);
-          const isUnread = unreadClubs.has(clubId);
-          
-          console.log(`[ClubsList] Rendering club ${club.name} (${clubId}), isUnread:`, isUnread);
-          
+      <div className="space-y-1">
+        {clubs.map(club => {
           const lastMessage = lastMessages[club.id];
           const formattedTime = lastMessage?.timestamp 
             ? formatDistanceToNow(new Date(lastMessage.timestamp), { addSuffix: false })
             : '';
             
           return (
-            <div 
-              key={`${club.id}-${isUnread ? 'unread' : 'read'}-${unreadKey}`}
-              className={`flex items-start px-4 py-3 cursor-pointer hover:bg-gray-50 relative group
-                ${selectedClub?.id === club.id ? 'bg-primary/10 text-primary' : ''}
-                ${isUnread ? 'font-medium' : ''}`}
-              onClick={(e) => handleClubClick(club, e)}
-            >
-              <UserAvatar 
-                name={club.name} 
-                image={club.logo || ''} 
-                size="lg"
-                className="flex-shrink-0 mr-3"
-              />
+            <div key={club.id} className="flex flex-col relative group">
+              <button 
+                className={`w-full flex items-center p-3 rounded-md text-left transition-colors ${
+                  selectedClub?.id === club.id ? 'bg-primary/10 text-primary' : 'hover:bg-gray-100'
+                }`} 
+                onClick={(e) => handleClubClick(club, e)}
+              >
+                <div className="flex-shrink-0 mr-3">
+                  <UserAvatar name={club.name} image={club.logo || ''} size="lg" />
+                </div>
 
-              <div className="flex-1 min-w-0 overflow-hidden">
-                <div className="flex items-center justify-between mb-1">
-                  <h2 className={`text-lg truncate max-w-[60%] ${isUnread ? 'font-bold' : 'font-medium'}`}>
-                    {club.name}
-                  </h2>
-                  {formattedTime && (
-                    <span className={`text-xs ${isUnread ? 'font-bold' : 'text-gray-500'} flex-shrink-0 ml-auto`}>
-                      {formattedTime}
-                    </span>
-                  )}
-                </div>
-                
-                <div className="flex items-center">
-                  <p className={`text-sm truncate flex-1 ${isUnread ? 'text-gray-900' : 'text-gray-600'}`}>
-                    {lastMessage ? (
-                      <>
-                        <span className={isUnread ? 'font-bold' : 'font-medium'}>
-                          {lastMessage.sender?.name || 'Unknown'}:
-                        </span>{' '}
-                        {truncateMessage(lastMessage.message)}
-                      </>
-                    ) : (
-                      "No messages yet"
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-baseline">
+                    <p className="font-medium truncate text-lg">{club.name}</p>
+                    {formattedTime && (
+                      <span className="ml-2 text-sm text-gray-500">
+                        {formattedTime}
+                      </span>
                     )}
-                  </p>
-                  {isUnread && (
-                    <Badge variant="dot" className="ml-2" />
-                  )}
+                  </div>
+                  
+                  <div className="flex items-center justify-between mt-1">
+                    {lastMessage ? (
+                      <p className="text-sm text-gray-600 truncate pr-2">
+                        <span className="font-medium">{lastMessage.sender?.name || 'Unknown'}: </span>
+                        {truncateMessage(lastMessage.message)}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-600 truncate pr-2">
+                        No messages yet
+                      </p>
+                    )}
+                    {unreadCounts[club.id] > 0 && (
+                      <span className="ml-1 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
+                        {unreadCounts[club.id] > 9 ? '9+' : unreadCounts[club.id]}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <ClubMembersPopover club={club} onSelectUser={onSelectUser} />
                 </div>
-                
-                <ClubMembersPopover club={club} onSelectUser={onSelectUser} />
-              </div>
+              </button>
             </div>
           );
         })}

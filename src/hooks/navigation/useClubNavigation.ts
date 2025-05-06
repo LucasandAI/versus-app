@@ -2,7 +2,6 @@
 import { useApp } from '@/context/AppContext';
 import { toast } from "@/hooks/use-toast";
 import { createNotification } from '@/utils/notifications/notificationManagement';
-import { sendClubInvite } from '@/utils/clubInviteActions';
 import { Club } from '@/types';
 import { useNavigation } from '@/hooks/useNavigation';
 import { supabase } from '@/integrations/supabase/client';
@@ -92,10 +91,20 @@ export const useClubNavigation = () => {
 
   const handleSendInvite = async (userId: string, userName: string, clubId: string, clubName: string) => {
     try {
-      // Use our updated sendClubInvite function to send the invite and create notification
-      const success = await sendClubInvite(clubId, clubName, userId, userName);
-      
-      return success;
+      const success = await createNotification({
+        type: 'invite',
+        club_id: clubId,
+        user_id: userId,
+        message: `invited you to join ${clubName}`
+      });
+
+      if (success) {
+        toast({
+          title: "Invitation Sent",
+          description: `${userName} has been invited to join ${clubName}.`
+        });
+        return true;
+      }
     } catch (error) {
       console.error('Error sending invitation:', error);
       toast({

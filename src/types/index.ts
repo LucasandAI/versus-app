@@ -45,13 +45,13 @@ export interface JoinRequest {
   userName: string;
   userAvatar: string;
   createdAt: string;
-  status: 'PENDING' | 'SUCCESS' | 'ERROR'; // Changed back to uppercase to match database
 }
 
 export interface ClubRequest {
   id: string;
   userId: string;
   clubId: string;
+  status: 'pending' | 'accepted' | 'rejected';
   createdAt: string;
 }
 
@@ -63,54 +63,64 @@ export interface ClubInvite {
   createdAt: string;
 }
 
-export interface MatchTeam {
-  id: string;
-  name: string;
-  logo: string;
-  totalDistance: number;
-  division?: Division;
-  tier?: number;
-  members: ClubMember[];
-}
-
-export interface LeagueStatus {
-  division: Division;
-  tier: number;
-  elitePoints?: number;
-}
-
 export interface Match {
   id: string;
-  homeClub: MatchTeam;
-  awayClub: MatchTeam;
+  homeClub: {
+    id: string;
+    name: string;
+    logo: string;
+    totalDistance: number;
+    members: ClubMember[];
+  };
+  awayClub: {
+    id: string;
+    name: string;
+    logo: string;
+    totalDistance: number;
+    members: ClubMember[];
+  };
   startDate: string;
   endDate: string;
   status: 'active' | 'completed';
   winner?: 'home' | 'away' | 'draw';
   leagueBeforeMatch?: {
-    home?: LeagueStatus;
-    away?: LeagueStatus;
+    division: Division;
+    tier?: number;
+    elitePoints?: number;
   };
   leagueAfterMatch?: {
-    home?: LeagueStatus;
-    away?: LeagueStatus;
+    division: Division;
+    tier?: number;
+    elitePoints?: number;
   };
 }
 
 export interface Notification {
   id: string;
-  type: string;
-  userId?: string;
-  userName?: string;
-  userAvatar?: string | null;
-  clubId?: string;
-  clubName?: string;
-  clubLogo?: string | null;
-  title?: string;
-  message: string;
+  type: 'invite' | 'join_request' | 'match_result' | 'match_start' | 'achievement' | 'invitation' | 'activity';
+  title: string;
+  description: string;
   timestamp: string;
   read: boolean;
-  data?: any;
+  data?: Record<string, any>;
+  
+  // Fields for club-related notifications
+  clubId?: string;
+  clubName?: string;
+  
+  // Fields for user-related notifications
+  userId?: string;
+  userName?: string;
+  userAvatar?: string;
+  
+  // Fields for activity notifications
+  distance?: number;
+  
+  // Field for invitation notifications
+  message?: string;
+  
+  // Field for displaying notifications
+  previouslyDisplayed?: boolean;
 }
 
 export type AppView = 'connect' | 'home' | 'clubDetail' | 'leaderboard' | 'profile';
@@ -120,17 +130,15 @@ export interface AppContextType {
   currentView: AppView;
   selectedClub: Club | null;
   selectedUser: User | null;
-  isSessionReady: boolean;
-  needsProfileCompletion: boolean;
-  setNeedsProfileCompletion: (value: boolean) => void;
   setCurrentUser: (user: User | null | ((prev: User | null) => User | null)) => void;
   setCurrentView: (view: AppView) => void;
   setSelectedClub: (club: Club | null) => void;
   setSelectedUser: (user: User | null) => void;
   signIn: (email: string, password: string) => Promise<User | null>;
   signOut: () => Promise<void>;
-  createClub: (clubData: any) => Promise<Club | null>;
+  createClub: (name: string, logo?: string) => Promise<Club | null>;
   refreshCurrentUser: () => Promise<User | null>;
+  isSessionReady: boolean;
 }
 
 export type { ChatMessage } from './chat';

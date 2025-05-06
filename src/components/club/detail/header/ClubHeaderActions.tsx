@@ -45,7 +45,6 @@ const ClubHeaderActions: React.FC<ClubHeaderActionsProps> = ({
     checkPendingRequest 
   } = useJoinRequest(clubId);
 
-  // Only check pending requests once when component mounts or when user changes
   useEffect(() => {
     if (currentUser?.id && !isActuallyMember) {
       checkPendingRequest(currentUser.id);
@@ -53,12 +52,12 @@ const ClubHeaderActions: React.FC<ClubHeaderActionsProps> = ({
   }, [currentUser?.id, isActuallyMember, checkPendingRequest]);
 
   const handleRequestJoin = async () => {
-    if (!currentUser?.id || isRequesting) return;
+    if (!currentUser?.id) return;
     await sendJoinRequest(currentUser.id);
   };
 
   const handleCancelRequest = async () => {
-    if (!currentUser?.id || isRequesting) return;
+    if (!currentUser?.id) return;
     await cancelJoinRequest(currentUser.id);
   };
 

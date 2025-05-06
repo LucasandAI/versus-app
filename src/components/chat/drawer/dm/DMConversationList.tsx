@@ -1,36 +1,83 @@
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import { useHiddenDMs } from '@/hooks/chat/useHiddenDMs';
 import ConversationItem from './ConversationItem';
+import { useConversations } from '@/hooks/chat/dm/useConversations';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DMConversation } from '@/hooks/chat/dm/types';
 import { useApp } from '@/context/AppContext';
-import { useUnreadMessages } from '@/context/UnreadMessagesContext';
-import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
 
 interface Props {
   onSelectUser: (userId: string, userName: string, userAvatar: string, conversationId: string) => void;
   selectedUserId?: string;
-  unreadConversations?: Set<string>; // This prop is now defined
+  initialConversations?: DMConversation[];
+  isInitialLoading?: boolean;
 }
 
 const DMConversationList: React.FC<Props> = ({ 
   onSelectUser, 
   selectedUserId,
-  unreadConversations = new Set() // Default value properly defined
+  initialConversations = [],
+  isInitialLoading = false
 }) => {
+  const { hideConversation, hiddenDMs } = useHiddenDMs();
   const { currentUser } = useApp();
-  const { conversations, loading } = useDirectConversationsContext();
+  const { conversations, loading, fetchConversations } = useConversations(hiddenDMs);
+  const hasFetchedRef = useRef(false);
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  const isEmpty = !loading && conversations.length === 0;
+  // Clean up resources on unmount
+  useEffect(() => {
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Only fetch once when user ID becomes available
+  useEffect(() => {
+    if (currentUser?.id && !hasFetchedRef.current) {
+      console.log("[DMConversationList] Current user ID available:", currentUser.id);
+      hasFetchedRef.current = true;
+      
+      // Clear any existing timeout
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+      
+      // Small delay to ensure auth is fully ready
+      fetchTimeoutRef.current = setTimeout(() => {
+        console.log("[DMConversationList] Triggering fetchConversations after delay");
+        fetchConversations();
+      }, 300); // Increased delay
+    } else if (!currentUser?.id) {
+      console.log("[DMConversationList] Waiting for current user ID");
+      hasFetchedRef.current = false;
+    }
+  }, [currentUser?.id, fetchConversations]);
   
-  // Debug logging to check the unread conversations
-  console.log('[DMConversationList] unreadConversations:', Array.from(unreadConversations));
+  // Determine which conversations to display
+  // Use fully loaded conversations if available, otherwise use initial basic conversations
+  const displayConversations = conversations.length > 0 ? conversations : initialConversations;
+  const showLoading = (isInitialLoading || loading) && displayConversations.length === 0;
+  const isEmpty = !showLoading && displayConversations.length === 0;
+  
+  const handleHideConversation = (
+    e: React.MouseEvent,
+    userId: string
+  ) => {
+    e.stopPropagation();
+    console.log('[DMConversationList] Hiding conversation for userId:', userId);
+    hideConversation(userId);
+  };
 
   return (
     <div className="flex flex-col h-full bg-white">
       <h1 className="text-4xl font-bold p-4">Messages</h1>
       
       <div className="flex-1 overflow-auto">
-        {loading ? (
+        {showLoading ? (
           <div className="p-4 space-y-3">
             {[1, 2, 3].map((i) => (
               <div key={i} className="flex items-center space-x-3 p-2">
@@ -49,32 +96,21 @@ const DMConversationList: React.FC<Props> = ({
           </div>
         ) : (
           <div className="divide-y">
-            {conversations
-              .filter(conversation => conversation.userId !== currentUser?.id)
-              .map((conversation) => {
-                const isUnread = unreadConversations.has(conversation.conversationId);
-                console.log(`[DMConversationList] Conversation ${conversation.conversationId} isUnread: ${isUnread}`);
-                
-                return (
-                  <ConversationItem
-                    key={conversation.conversationId}
-                    conversation={{
-                      ...conversation,
-                      lastMessage: conversation.lastMessage || '',
-                      timestamp: conversation.timestamp || ''
-                    }}
-                    isSelected={selectedUserId === conversation.userId}
-                    isUnread={isUnread}
-                    onSelect={() => onSelectUser(
-                      conversation.userId,
-                      conversation.userName,
-                      conversation.userAvatar,
-                      conversation.conversationId
-                    )}
-                    isLoading={false}
-                  />
-                );
-              })}
+            {displayConversations.map((conversation) => (
+              <ConversationItem
+                key={conversation.conversationId}
+                conversation={conversation}
+                isSelected={selectedUserId === conversation.userId}
+                onSelect={() => onSelectUser(
+                  conversation.userId,
+                  conversation.userName,
+                  conversation.userAvatar,
+                  conversation.conversationId
+                )}
+                onHide={(e) => handleHideConversation(e, conversation.userId)}
+                isLoading={conversation.isLoading}
+              />
+            ))}
           </div>
         )}
       </div>

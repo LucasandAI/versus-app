@@ -1,100 +1,175 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
-import { useFetchConversations } from './useFetchConversations';
+import { useDirectConversations } from './useDirectConversations';
 import { DMConversation } from './types';
+import { toast } from '@/hooks/use-toast';
+import debounce from 'lodash/debounce';
 
-// Wrapper around fetchConversations logic to provide a clean API
+export type { DMConversation } from './types';
+
+const SUBSCRIPTION_DELAY_MS = 300; // Increased delay before setting up subscriptions
+
 export const useConversations = (hiddenDMIds: string[] = []) => {
-  const [conversations, setConversations] = useState<DMConversation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { currentUser, isSessionReady } = useApp();
-  const hasFetchedRef = useRef(false);
+  const { currentUser } = useApp();
+  const { 
+    conversations, 
+    loading, 
+    fetchConversations
+  } = useDirectConversations(hiddenDMIds);
+  const subscriptionError = useRef(false);
+  const subscriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMounted = useRef(true);
   
-  // fetchConversations is a callback that triggers the actual fetch
-  const fetchConversations = useFetchConversations(currentUser?.id);
+  // Debounced fetch for realtime updates to prevent multiple rapid fetches
+  const debouncedFetch = useRef(
+    debounce(() => {
+      if (currentUser?.id && isMounted.current) {
+        console.log('Debounced fetch triggered by realtime update');
+        fetchConversations();
+      }
+    }, 300) // 300ms debounce time
+  ).current;
   
-  // Cleanup effect
+  // Clean up resources on unmount
   useEffect(() => {
     isMounted.current = true;
+    
     return () => {
       isMounted.current = false;
-    };
-  }, []);
-  
-  // Fetch conversations whenever currentUser or isSessionReady changes
-  useEffect(() => {
-    // Skip if we've already fetched
-    if (hasFetchedRef.current) {
-      return;
-    }
-    
-    // Strong guard against missing user ID or inactive session
-    if (!currentUser?.id || !isSessionReady) {
-      console.log('[useConversations] User ID or session not ready, skipping fetch');
-      return;
-    }
-    
-    const loadConversations = async () => {
-      setLoading(true);
-      try {
-        console.log('[useConversations] Fetching conversations for user:', currentUser.id);
-        const result = await fetchConversations();
-        
-        if (isMounted.current) {
-          // Filter out any self-conversations where userId might equal currentUser.id
-          const filteredResults = result?.filter(conv => conv.userId !== currentUser.id) || [];
-          setConversations(filteredResults);
-          hasFetchedRef.current = true;
-        }
-      } catch (error) {
-        console.error('[useConversations] Error fetching conversations:', error);
-      } finally {
-        if (isMounted.current) {
-          setLoading(false);
-        }
+      debouncedFetch.cancel();
+      
+      if (subscriptionTimeoutRef.current) {
+        clearTimeout(subscriptionTimeoutRef.current);
       }
     };
-
-    // Only load if we have both user ID and session ready - short timeout to ensure auth is fully ready
-    if (currentUser?.id && isSessionReady) {
-      setTimeout(() => {
-        if (isMounted.current && !hasFetchedRef.current) {
-          loadConversations();
-        }
-      }, 300);
+  }, [debouncedFetch]);
+  
+  // Subscribe to real-time updates for conversations
+  useEffect(() => {
+    // Guard clause: Early return if no user ID
+    if (!currentUser?.id) return;
+    
+    // Clear any existing timeout
+    if (subscriptionTimeoutRef.current) {
+      clearTimeout(subscriptionTimeoutRef.current);
     }
     
+    // Set a small delay before setting up subscriptions
+    subscriptionTimeoutRef.current = setTimeout(() => {
+      if (!isMounted.current) return;
+      
+      try {
+        console.log(`Setting up realtime subscriptions for user ${currentUser.id} after delay`);
+        
+        // Create channels for subscriptions
+        const channels = [];
+        
+        // Subscribe to new conversations where user is user1
+        const user1Channel = supabase
+          .channel('new-conversations-user1')
+          .on('postgres_changes', 
+              { 
+                event: 'INSERT', 
+                schema: 'public', 
+                table: 'direct_conversations',
+                filter: `user1_id=eq.${currentUser.id}`
+              },
+              () => {
+                console.log('New conversation detected (user1)');
+                debouncedFetch();
+              })
+          .subscribe();
+        channels.push(user1Channel);
+        
+        // Subscribe to new conversations where user is user2
+        const user2Channel = supabase
+          .channel('new-conversations-user2')
+          .on('postgres_changes', 
+              { 
+                event: 'INSERT', 
+                schema: 'public', 
+                table: 'direct_conversations',
+                filter: `user2_id=eq.${currentUser.id}`
+              },
+              () => {
+                console.log('New conversation detected (user2)');
+                debouncedFetch();
+              })
+          .subscribe();
+        channels.push(user2Channel);
+        
+        // Subscribe to new messages where user is sender
+        const senderChannel = supabase
+          .channel('dm-sender-updates')
+          .on('postgres_changes', 
+              { 
+                event: 'INSERT', 
+                schema: 'public', 
+                table: 'direct_messages',
+                filter: `sender_id=eq.${currentUser.id}`
+              },
+              () => {
+                console.log('New message sent detected');
+                debouncedFetch();
+              })
+          .subscribe();
+        channels.push(senderChannel);
+        
+        // Subscribe to new messages where user is receiver
+        const receiverChannel = supabase
+          .channel('dm-receiver-updates')
+          .on('postgres_changes', 
+              { 
+                event: 'INSERT', 
+                schema: 'public', 
+                table: 'direct_messages',
+                filter: `receiver_id=eq.${currentUser.id}`
+              },
+              () => {
+                console.log('New message received detected');
+                debouncedFetch();
+              })
+          .subscribe();
+        channels.push(receiverChannel);
+        
+        // Reset subscription error flag on successful subscription setup
+        subscriptionError.current = false;
+        
+        return () => {
+          if (isMounted.current) {
+            console.log('Cleaning up realtime subscriptions');
+            channels.forEach(channel => {
+              supabase.removeChannel(channel);
+            });
+          }
+        };
+      } catch (error) {
+        console.error('Error setting up real-time subscriptions:', error);
+        
+        // Show toast only once for subscription errors
+        if (!subscriptionError.current && isMounted.current) {
+          toast({
+            title: "Connection Error",
+            description: "Could not set up real-time updates. Messages may be delayed.",
+            variant: "destructive"
+          });
+          subscriptionError.current = true;
+        }
+      }
+    }, SUBSCRIPTION_DELAY_MS);
+    
     return () => {
-      isMounted.current = false;
+      if (subscriptionTimeoutRef.current) {
+        clearTimeout(subscriptionTimeoutRef.current);
+      }
     };
-  }, [currentUser?.id, isSessionReady, fetchConversations]);
+  }, [currentUser?.id, debouncedFetch]);
 
   return {
-    conversations: conversations.filter(
-      c => !hiddenDMIds.includes(c.userId) && !hiddenDMIds.includes(c.conversationId)
-    ),
+    conversations,
     loading,
-    fetchConversations: async () => {
-      // Ensure we have user and session before fetching
-      if (!currentUser?.id || !isSessionReady) {
-        console.log('[useConversations] fetchConversations called but user or session not ready');
-        return [];
-      }
-      
-      // Don't refetch if we've already done it, unless explicitly called
-      setLoading(true);
-      try {
-        const result = await fetchConversations();
-        // Filter out self-conversations
-        const filteredResults = result?.filter(conv => conv.userId !== currentUser.id) || [];
-        setConversations(filteredResults);
-        hasFetchedRef.current = true;
-        return filteredResults;
-      } finally {
-        setLoading(false);
-      }
-    }
+    fetchConversations
   };
 };

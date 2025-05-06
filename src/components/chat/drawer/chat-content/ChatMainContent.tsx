@@ -55,7 +55,6 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
           }}
           setClubMessages={setClubMessages}
           clubId={selectedClub.id} // Pass clubId for proper context in ChatInput
-          globalMessages={messages} // Pass the global messages state
         />
       </div>
     );

@@ -1,8 +1,10 @@
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
+import { toast } from '@/hooks/use-toast';
 import { DMConversation } from './types';
-import { useConversationsFetcher } from './useConversationsFetcher';
+import debounce from 'lodash/debounce';
 
 // Add default avatar constant
 const DEFAULT_AVATAR = '/placeholder.svg';
@@ -11,66 +13,179 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
   const [conversations, setConversations] = useState<DMConversation[]>([]);
   const [loading, setLoading] = useState(true);
   const { currentUser, isSessionReady } = useApp();
-  const fetchAttemptedRef = useRef(false);
+  const errorToastShown = useRef(false);
+  const attemptedFetch = useRef(false);
   const isMounted = useRef(true);
-  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Get the debounced fetch function
-  const { debouncedFetchConversations } = useConversationsFetcher(isMounted);
+
+  const debouncedFetchConversations = useRef(
+    debounce(async (userId: string) => {
+      if (!isMounted.current || !userId) return;
+      
+      try {
+        console.log('[useDirectConversations] Fetching conversations for user:', userId);
+        setLoading(true);
+        attemptedFetch.current = true;
+
+        const { data: conversationsData, error: conversationsError } = await supabase
+          .from('direct_conversations')
+          .select(`
+            id,
+            user1_id,
+            user2_id,
+            created_at
+          `)
+          .or(`user1_id.eq.${userId},user2_id.eq.${userId}`);
+
+        if (!isMounted.current) return;
+
+        if (conversationsError) throw conversationsError;
+
+        if (!conversationsData || conversationsData.length === 0) {
+          console.log('No conversations found for the current user');
+          setConversations([]);
+          setLoading(false);
+          return [];
+        }
+
+        const otherUserIds = conversationsData.map(conv => 
+          conv.user1_id === userId ? conv.user2_id : conv.user1_id
+        );
+
+        const basicConversations = conversationsData.reduce((acc: Record<string, DMConversation>, conv) => {
+          const otherUserId = conv.user1_id === userId ? conv.user2_id : conv.user1_id;
+          
+          if (hiddenDMIds.includes(otherUserId)) return acc;
+          
+          acc[otherUserId] = {
+            conversationId: conv.id,
+            userId: otherUserId,
+            userName: "Loading...",
+            userAvatar: DEFAULT_AVATAR,
+            lastMessage: "",
+            timestamp: conv.created_at,
+            isLoading: true
+          };
+          return acc;
+        }, {});
+
+        const initialConversations = Object.values(basicConversations)
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+        if (!isMounted.current) return;
+
+        setConversations(initialConversations);
+
+        errorToastShown.current = false;
+
+        const userPromise = supabase
+          .from('users')
+          .select('id, name, avatar')
+          .in('id', otherUserIds);
+
+        const messagesPromise = supabase
+          .from('direct_messages')
+          .select('conversation_id, text, timestamp')
+          .in('conversation_id', conversationsData.map(c => c.id))
+          .order('timestamp', { ascending: false });
+
+        const [userResult, messagesResult] = await Promise.all([userPromise, messagesPromise]);
+
+        if (!isMounted.current) return;
+
+        if (userResult.error) throw userResult.error;
+        if (messagesResult.error) throw messagesResult.error;
+
+        const userMap = (userResult.data || []).reduce((acc: Record<string, any>, user) => {
+          acc[user.id] = user;
+          return acc;
+        }, {});
+
+        const latestMessageMap = messagesResult.data?.reduce((acc: Record<string, any>, msg) => {
+          if (!acc[msg.conversation_id]) {
+            acc[msg.conversation_id] = {
+              text: msg.text,
+              timestamp: msg.timestamp
+            };
+          }
+          return acc;
+        }, {});
+
+        const updatedConversations = conversationsData
+          .map(conv => {
+            const otherUserId = conv.user1_id === userId ? conv.user2_id : conv.user1_id;
+            
+            if (hiddenDMIds.includes(otherUserId)) return null;
+            
+            const otherUser = userMap[otherUserId];
+            const latestMessage = latestMessageMap[conv.id];
+            
+            return {
+              conversationId: conv.id,
+              userId: otherUserId,
+              userName: otherUser?.name || 'Unknown User',
+              userAvatar: otherUser?.avatar || DEFAULT_AVATAR,
+              lastMessage: latestMessage?.text || '',
+              timestamp: latestMessage?.timestamp || conv.created_at
+            };
+          })
+          .filter((conv): conv is DMConversation => conv !== null)
+          .sort((a, b) => 
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          );
+
+        if (!isMounted.current) return;
+
+        setConversations(updatedConversations);
+        return updatedConversations;
+
+      } catch (error) {
+        if (!isMounted.current) return;
+        
+        console.error('[useDirectConversations] Error fetching conversations:', error);
+        
+        if (!errorToastShown.current) {
+          toast({
+            title: "Error",
+            description: "Could not load conversations. Please try again later.",
+            variant: "destructive"
+          });
+          errorToastShown.current = true;
+        }
+      } finally {
+        if (isMounted.current) {
+          setLoading(false);
+        }
+      }
+    }, 100)
+  ).current;
 
   const fetchConversations = useCallback(() => {
-    // Strong guard clause to prevent fetching without session or user
     if (!isSessionReady || !currentUser?.id) {
-      console.log('[useDirectConversations] Session or user not ready, skipping fetch');
+      console.log('[useDirectConversations] Waiting for session to be ready');
       return Promise.resolve([]);
     }
 
-    // Clear any existing timeout
-    if (fetchTimeoutRef.current) {
-      clearTimeout(fetchTimeoutRef.current);
-    }
-
-    // Use a short timeout to ensure auth is fully ready
-    return new Promise<DMConversation[]>((resolve) => {
-      fetchTimeoutRef.current = setTimeout(() => {
-        if (!isMounted.current) {
-          resolve([]);
-          return;
-        }
-
-        console.log('[useDirectConversations] Session and user ready, fetching conversations');
-        fetchAttemptedRef.current = true;
-        debouncedFetchConversations(currentUser.id, setLoading, (convs: DMConversation[]) => {
-          // Filter out self-conversations
-          const filteredConvs = convs.filter(c => c.userId !== currentUser.id);
-          setConversations(filteredConvs);
-          resolve(filteredConvs);
-        });
-      }, 300);
-    });
+    console.log('[useDirectConversations] Session ready, fetching conversations');
+    return debouncedFetchConversations(currentUser.id);
   }, [currentUser?.id, isSessionReady, debouncedFetchConversations]);
 
-  // Cleanup effect
   useEffect(() => {
     isMounted.current = true;
     return () => {
       isMounted.current = false;
-      if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current);
-      }
       debouncedFetchConversations.cancel();
     };
   }, [debouncedFetchConversations]);
 
-  // Filter out hidden conversations and self-conversations
-  const filteredConversations = conversations.filter(
-    conv => !hiddenDMIds.includes(conv.userId) && 
-           !hiddenDMIds.includes(conv.conversationId) &&
-           conv.userId !== currentUser?.id // Filter out self-conversations
-  );
+  useEffect(() => {
+    if (isSessionReady && currentUser?.id && !attemptedFetch.current) {
+      console.log('[useDirectConversations] Session ready, triggering initial fetch');
+      fetchConversations();
+    }
+  }, [isSessionReady, currentUser?.id, fetchConversations]);
 
   return {
-    conversations: filteredConversations,
+    conversations,
     loading,
     fetchConversations
   };
