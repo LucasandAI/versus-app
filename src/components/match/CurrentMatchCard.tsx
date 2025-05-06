@@ -23,8 +23,8 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
   onViewProfile
 }) => {
   const [showMemberContributions, setShowMemberContributions] = useState(false);
-  const [match, setMatch] = useState(initialMatch);
-  const [userClub, setUserClub] = useState(initialUserClub);
+  const [match, setMatch] = useState<Match>(initialMatch);
+  const [userClub, setUserClub] = useState<Club>(initialUserClub);
   const [timeRemaining, setTimeRemaining] = useState<string>('');
   
   const {
@@ -69,30 +69,32 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
     return () => clearInterval(timer);
   }, [match.endDate, match.id]);
 
-  // Handle real-time updates for match data
+  // Update state when props change
   useEffect(() => {
-    // Update state when props change
     setMatch(initialMatch);
     setUserClub(initialUserClub);
+  }, [initialMatch, initialUserClub]);
 
-    console.log('[CurrentMatchCard] Match data updated:', initialMatch);
+  // Handle real-time updates for match data
+  useEffect(() => {
+    console.log('[CurrentMatchCard] Setting up real-time subscriptions for match:', match.id);
 
     // Subscribe to both match updates and match distance changes
     const matchesChannel = supabase
-      .channel(`match-updates-${initialMatch.id}`)
+      .channel(`match-updates-${match.id}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'matches',
-          filter: `id=eq.${initialMatch.id}`
+          filter: `id=eq.${match.id}`
         },
         payload => {
           console.log(`[CurrentMatchCard] Match updated:`, payload);
           window.dispatchEvent(new CustomEvent('matchUpdated', {
             detail: {
-              matchId: initialMatch.id
+              matchId: match.id
             }
           }));
         }
@@ -101,53 +103,49 @@ const CurrentMatchCard: React.FC<CurrentMatchCardProps> = ({
       
     // Listen for match distance updates for this specific match
     const distanceChannel = supabase
-      .channel(`match-distances-${initialMatch.id}`)
+      .channel(`match-distances-${match.id}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'match_distances',
-          filter: `match_id=eq.${initialMatch.id}`
+          filter: `match_id=eq.${match.id}`
         },
         payload => {
           console.log(`[CurrentMatchCard] Match distance updated:`, payload);
           window.dispatchEvent(new CustomEvent('matchDistanceUpdated', {
             detail: {
-              matchId: initialMatch.id
+              matchId: match.id
             }
           }));
         }
       )
       .subscribe();
+      
+    return () => {
+      console.log('[CurrentMatchCard] Cleaning up subscriptions for match:', match.id);
+      supabase.removeChannel(matchesChannel);
+      supabase.removeChannel(distanceChannel);
+    };
+  }, [match.id]);
 
-    // Listen for match data updates
+  // Listen for match data updates via custom events
+  useEffect(() => {
     const handleMatchUpdate = (event: CustomEvent) => {
-      if (event.detail?.matchId === initialMatch.id || event.detail?.clubId === initialUserClub.id) {
-        console.log('[CurrentMatchCard] Match updated event received, updating UI');
-        setMatch(prevMatch => ({...prevMatch, ...initialMatch}));
-        setUserClub(initialUserClub);
+      if (event.detail?.matchId === match.id || event.detail?.clubId === userClub.id) {
+        console.log('[CurrentMatchCard] Match updated event received, will refresh data');
       }
     };
     
     window.addEventListener('matchDistanceUpdated', handleMatchUpdate as EventListener);
     window.addEventListener('matchUpdated', handleMatchUpdate as EventListener);
-    window.addEventListener('userDataUpdated', () => {
-      setMatch(initialMatch);
-      setUserClub(initialUserClub);
-    });
     
     return () => {
-      supabase.removeChannel(matchesChannel);
-      supabase.removeChannel(distanceChannel);
       window.removeEventListener('matchDistanceUpdated', handleMatchUpdate as EventListener);
       window.removeEventListener('matchUpdated', handleMatchUpdate as EventListener);
-      window.removeEventListener('userDataUpdated', () => {
-        setMatch(initialMatch);
-        setUserClub(initialUserClub);
-      });
     };
-  }, [initialMatch, initialUserClub]);
+  }, [match.id, userClub.id]);
 
   const handleMemberClick = (member: ClubMember) => {
     onViewProfile(member.id, member.name, member.avatar);

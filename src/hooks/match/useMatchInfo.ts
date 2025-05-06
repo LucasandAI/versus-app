@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club, Match, MatchTeam, ClubMember } from '@/types';
 
@@ -8,7 +8,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Transform the raw match data from view_full_match_info to our Match type
-  const transformMatchData = (rawMatches: any[]): Match[] => {
+  const transformMatchData = useCallback((rawMatches: any[]): Match[] => {
     return rawMatches.map(match => {
       // Parse members data for both clubs
       const parseMembers = (membersJson: any): ClubMember[] => {
@@ -71,10 +71,10 @@ export const useMatchInfo = (userClubs: Club[]) => {
         leagueAfterMatch: match.league_after_match
       };
     });
-  };
+  }, []);
 
   // Fetch matches for the user's clubs
-  const fetchMatches = async () => {
+  const fetchMatches = useCallback(async () => {
     if (!userClubs || userClubs.length === 0) {
       setMatches([]);
       setIsLoading(false);
@@ -106,7 +106,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userClubs, transformMatchData]);
 
   useEffect(() => {
     fetchMatches();
@@ -165,7 +165,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
       window.removeEventListener('matchEnded', handleMatchEvent);
       window.removeEventListener('matchDistanceUpdated', handleMatchEvent);
     };
-  }, [JSON.stringify(userClubs)]);
+  }, [fetchMatches]);
 
   return {
     matches,
