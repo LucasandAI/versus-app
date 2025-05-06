@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Match, Club } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -83,29 +84,7 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
   const currentClub = isHomeClub ? match.homeClub : match.awayClub;
   const opponentClub = isHomeClub ? match.awayClub : match.homeClub;
 
-  // Update match end time reference if match data changes
-  useEffect(() => {
-    if (match) {
-      const endDate = new Date(match.endDate);
-      if (!matchEndDateRef.current || endDate.getTime() !== matchEndDateRef.current.getTime()) {
-        matchEndDateRef.current = endDate;
-      }
-    }
-
-    // Update cycle info periodically
-    const cycleTimer = setInterval(() => {
-      setCycleInfo(getCurrentCycleInfo());
-    }, 1000);
-
-    // Update initial show state based on prop
-    if (forceShowDetails && !showMemberContributions) {
-      setShowMemberContributions(true);
-    }
-    return () => {
-      clearInterval(cycleTimer);
-    };
-  }, [match, forceShowDetails]);
-
+  // Moving the hook calls outside of the render to ensure consistent hook calls
   const handleMemberClick = (member: any) => {
     if (member && member.id) {
       onViewProfile(member.id, member.name || 'Unknown', member.avatar);
@@ -136,6 +115,30 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
   // Only show the match details during the match phase (UNLESS forceShowDetails is true)
   const showMatch = forceShowDetails || cycleInfo.isInMatchPhase;
 
+  // Use a single useEffect for all functionality - ALWAYS called regardless of conditions
+  useEffect(() => {
+    if (match) {
+      const endDate = new Date(match.endDate);
+      if (!matchEndDateRef.current || endDate.getTime() !== matchEndDateRef.current.getTime()) {
+        matchEndDateRef.current = endDate;
+      }
+    }
+
+    // Update cycle info periodically
+    const cycleTimer = setInterval(() => {
+      setCycleInfo(getCurrentCycleInfo());
+    }, 1000);
+
+    // Update initial show state based on prop
+    if (forceShowDetails && !showMemberContributions) {
+      setShowMemberContributions(true);
+    }
+    
+    return () => {
+      clearInterval(cycleTimer);
+    };
+  }, [match, forceShowDetails, showMemberContributions]);
+  
   return (
     <Card className="overflow-hidden border-0 shadow-md">
       {showMatch ? (
