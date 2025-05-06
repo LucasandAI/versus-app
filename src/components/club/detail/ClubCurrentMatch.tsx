@@ -1,19 +1,21 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Match } from '@/types';
+import { Match, Club } from '@/types';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { ChevronDown, Clock } from 'lucide-react';
 import MatchProgressBar from '@/components/shared/MatchProgressBar';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { useNavigation } from '@/hooks/useNavigation';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import CountdownTimer from '@/components/match/CountdownTimer';
 import { getCurrentCycleInfo } from '@/utils/date/matchTiming';
 import { useApp } from '@/context/AppContext';
+import SearchOpponentButton from '@/components/match/SearchOpponentButton';
+import NeedMoreMembersCard from '@/components/match/NeedMoreMembersCard';
 
 interface ClubCurrentMatchProps {
-  match: Match;
+  match?: Match;
   onViewProfile: (userId: string, name: string, avatar?: string) => void;
   forceShowDetails?: boolean; // Prop to force showing details
 }
@@ -31,8 +33,15 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
     forceShowDetails
   });
 
-  if (!match || !match.homeClub || !match.awayClub) {
-    console.error('[ClubCurrentMatch] Missing required match data:', match);
+  const [showMemberContributions, setShowMemberContributions] = useState(forceShowDetails);
+  const [cycleInfo, setCycleInfo] = useState(getCurrentCycleInfo());
+  const { navigateToClubDetail } = useNavigation();
+  const matchEndDateRef = useRef<Date | null>(match ? new Date(match.endDate) : null);
+  const { selectedClub } = useApp();
+
+  // No match and no selected club means we can't show anything
+  if (!match && !selectedClub) {
+    console.error('[ClubCurrentMatch] Missing both match and selectedClub data');
     return (
       <Card className="shadow-sm">
         <CardContent className="p-4">
@@ -44,12 +53,31 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
     );
   }
 
-  const [showMemberContributions, setShowMemberContributions] = useState(forceShowDetails);
-  const [cycleInfo, setCycleInfo] = useState(getCurrentCycleInfo());
-  const { navigateToClubDetail } = useNavigation();
-  const matchEndDateRef = useRef<Date>(new Date(match.endDate));
-  const { selectedClub } = useApp();
+  // If no match but we have a club, show the appropriate state (search button or need more members)
+  if (!match && selectedClub) {
+    const hasEnoughMembers = selectedClub.members && selectedClub.members.length >= 5;
+
+    if (hasEnoughMembers) {
+      return (
+        <Card className="shadow-md">
+          <CardContent className="p-4">
+            <div className="bg-blue-50 p-3 rounded-md text-center my-3">
+              <p className="font-medium mb-3">Ready to compete</p>
+              <SearchOpponentButton club={selectedClub} />
+            </div>
+          </CardContent>
+        </Card>
+      );
+    } else {
+      return <NeedMoreMembersCard club={selectedClub} />;
+    }
+  }
   
+  // From here on, we know we have a match
+  if (!match || !match.homeClub || !match.awayClub) {
+    return null;
+  }
+
   // Determine if the current club is home or away
   const isHomeClub = selectedClub && selectedClub.id === match.homeClub.id;
   // Use safe fallbacks when determining current and opponent clubs
@@ -58,9 +86,11 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
 
   // Update match end time reference if match data changes
   useEffect(() => {
-    const endDate = new Date(match.endDate);
-    if (endDate.getTime() !== matchEndDateRef.current.getTime()) {
-      matchEndDateRef.current = endDate;
+    if (match) {
+      const endDate = new Date(match.endDate);
+      if (!matchEndDateRef.current || endDate.getTime() !== matchEndDateRef.current.getTime()) {
+        matchEndDateRef.current = endDate;
+      }
     }
 
     // Update cycle info periodically
@@ -119,7 +149,7 @@ const ClubCurrentMatch: React.FC<ClubCurrentMatchProps> = ({
                 <Clock className="h-4 w-4 mr-1" />
                 <span>Time remaining: </span>
                 <CountdownTimer
-                  targetDate={matchEndDateRef.current}
+                  targetDate={matchEndDateRef.current!}
                   className="font-mono ml-1"
                   onComplete={handleCountdownComplete}
                   refreshInterval={500}

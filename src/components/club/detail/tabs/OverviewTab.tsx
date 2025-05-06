@@ -36,14 +36,12 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     <div className="space-y-6">
       <ClubStats club={club} matchHistory={matchHistory} />
       
-      {club.currentMatch && (
-        <div>
-          <ClubCurrentMatch
-            match={club.currentMatch}
-            onViewProfile={onSelectUser}
-          />
-        </div>
-      )}
+      <div>
+        <ClubCurrentMatch
+          match={club.currentMatch}
+          onViewProfile={onSelectUser}
+        />
+      </div>
       
       {isAdmin && currentUser && <ClubAdminActions club={club} currentUser={currentUser} />}
     </div>
