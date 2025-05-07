@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from 'react-router-dom';
 import { clearAllAuthData } from '@/integrations/supabase/safeClient';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from '@/hooks/use-toast';
 
 interface HomeHeaderProps {
@@ -173,10 +173,11 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
       </div>
 
       {/* Help Dialog */}
-      <Dialog open={helpDialogOpen} onOpenChange={setHelpDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={helpDialogOpen} onOpenChange={setHelpDialogOpen} modal={true}>
+        <DialogContent className="sm:max-w-md" forceMount>
           <DialogHeader>
             <DialogTitle>Need help?</DialogTitle>
+            <DialogDescription className="sr-only">Help information</DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <p>For assistance, please email us at <a href="mailto:support@versus.run" className="text-primary font-medium">support@versus.run</a>.</p>
