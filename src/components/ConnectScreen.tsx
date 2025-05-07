@@ -45,7 +45,7 @@ const ConnectScreen: React.FC = () => {
               },
               { 
                 number: 2, 
-                title: "Challenge other clubs in 7-day matches", 
+                title: "Compete", 
                 description: "Challenge other clubs in 7-day matches" 
               },
               { 
