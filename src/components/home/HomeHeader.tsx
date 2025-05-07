@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { MessageCircle, Watch, User, HelpCircle, LogOut } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -173,17 +172,32 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
       </div>
 
       {/* Help Dialog */}
-      <Dialog open={helpDialogOpen} onOpenChange={setHelpDialogOpen} modal={true}>
-        <DialogContent className="sm:max-w-md" forceMount>
-          <DialogHeader>
-            <DialogTitle>Need help?</DialogTitle>
-            <DialogDescription className="sr-only">Help information</DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <p>For assistance, please email us at <a href="mailto:support@versus.run" className="text-primary font-medium">support@versus.run</a>.</p>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {helpDialogOpen ? (
+        <Dialog open={helpDialogOpen} onOpenChange={(open) => {
+          setHelpDialogOpen(open);
+          // Ensure that when dialog is closed, any potential lingering overlay is cleared
+          if (!open) {
+            // Small timeout to ensure React has time to process the state change
+            setTimeout(() => {
+              document.body.style.pointerEvents = 'auto';
+            }, 100);
+          }
+        }}>
+          <DialogContent 
+            className="sm:max-w-md" 
+            onEscapeKeyDown={() => setHelpDialogOpen(false)}
+            onPointerDownOutside={() => setHelpDialogOpen(false)}
+          >
+            <DialogHeader>
+              <DialogTitle>Need help?</DialogTitle>
+              <DialogDescription className="sr-only">Help information</DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <p>For assistance, please email us at <a href="mailto:support@versus.run" className="text-primary font-medium">support@versus.run</a>.</p>
+            </div>
+          </DialogContent>
+        </Dialog>
+      ) : null}
     </div>
   );
 };
