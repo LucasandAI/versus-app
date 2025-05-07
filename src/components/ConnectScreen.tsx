@@ -45,8 +45,8 @@ const ConnectScreen: React.FC = () => {
               },
               { 
                 number: 2, 
-                title: "Compete Weekly", 
-                description: "Get matched against similar clubs every Monday" 
+                title: "Challenge other clubs in 7-day matches", 
+                description: "Challenge other clubs in 7-day matches" 
               },
               { 
                 number: 3, 
