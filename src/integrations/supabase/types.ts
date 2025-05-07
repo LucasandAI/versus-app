@@ -41,6 +41,7 @@ export type Database = {
           created_at: string | null
           device_type: string | null
           distance: number | null
+          duration: unknown | null
           end_time: string | null
           id: string
           match_id: string | null
@@ -52,6 +53,7 @@ export type Database = {
           created_at?: string | null
           device_type?: string | null
           distance?: number | null
+          duration?: unknown | null
           end_time?: string | null
           id?: string
           match_id?: string | null
@@ -63,6 +65,7 @@ export type Database = {
           created_at?: string | null
           device_type?: string | null
           distance?: number | null
+          duration?: unknown | null
           end_time?: string | null
           id?: string
           match_id?: string | null
