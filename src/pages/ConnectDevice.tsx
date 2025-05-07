@@ -69,7 +69,7 @@ const ConnectDevice: React.FC = () => {
         </div>
         
         <p className="mt-8 text-sm text-gray-500 text-center">
-          Connected devices will automatically sync your runs with Versus
+          Challenge other clubs in 7-day matches.
         </p>
       </div>
     </div>
