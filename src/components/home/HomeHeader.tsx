@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { MessageCircle, Watch } from 'lucide-react';
+import { MessageCircle, Watch, User, HelpCircle, LogOut } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '../shared/UserAvatar';
 import Button from '../shared/Button';
@@ -12,8 +12,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from 'react-router-dom';
+import { clearAllAuthData } from '@/integrations/supabase/safeClient';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from '@/hooks/use-toast';
 
 interface HomeHeaderProps {
   notifications: any[];
@@ -48,6 +52,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   
   const [badgeCount, setBadgeCount] = useState(totalUnreadCount);
   const [notificationsCount, setNotificationsCount] = useState(notifications.length);
+  const [helpDialogOpen, setHelpDialogOpen] = useState(false);
   
   console.log("[HomeHeader] Rendering with notifications:", notifications.length, notifications);
 
@@ -99,6 +104,24 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     navigate('/connect-device');
   };
   
+  const handleLogout = async () => {
+    try {
+      await clearAllAuthData();
+      window.location.reload();
+      toast({
+        title: "Logged out successfully",
+        description: "You have been signed out of your account"
+      });
+    } catch (error) {
+      console.error('Error logging out:', error);
+      toast({
+        title: "Logout error",
+        description: "There was a problem signing you out. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+  
   return (
     <div className="flex items-center justify-between mb-6">
       <h1 className="text-2xl font-bold">Versus</h1>
@@ -129,15 +152,37 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem onClick={handleViewOwnProfile}>
+              <User className="mr-2 h-4 w-4" />
               <span>Visit Profile</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleConnectDevice}>
               <Watch className="mr-2 h-4 w-4" />
               <span>Connect a Device</span>
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setHelpDialogOpen(true)}>
+              <HelpCircle className="mr-2 h-4 w-4" />
+              <span>Help</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log Out</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Help Dialog */}
+      <Dialog open={helpDialogOpen} onOpenChange={setHelpDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Need help?</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>For assistance, please email us at <a href="mailto:support@versus.run" className="text-primary font-medium">support@versus.run</a>.</p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
