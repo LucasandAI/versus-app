@@ -17,7 +17,7 @@ const ConnectDevice: React.FC = () => {
       id: 'apple-watch',
       name: 'Apple Watch',
       description: 'Connect your Apple Watch to track runs automatically',
-      logo: '/lovable-uploads/3a4510f7-9a3b-4980-8479-b78f493f9c52.png'
+      logo: '/lovable-uploads/c9f15dff-1812-49ea-9464-3969ddee6e5a.png'
     },
     {
       id: 'garmin',
