@@ -10,6 +10,7 @@ import { DirectConversationsProvider } from "./context/DirectConversationsContex
 import { AppProvider } from "./context/AppContext";
 import AppContent from "./components/AppContent";
 import Index from "./pages/Index";
+import ConnectDevice from "./pages/ConnectDevice";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
               <BrowserRouter>
                 <Routes>
                   <Route path="/" element={<AppContent><Index /></AppContent>} />
+                  <Route path="/connect-device" element={<AppContent><ConnectDevice /></AppContent>} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<AppContent><NotFound /></AppContent>} />
                 </Routes>

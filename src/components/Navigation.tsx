@@ -3,6 +3,7 @@ import React from 'react';
 import { Home, Trophy, User } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
+import { useLocation } from 'react-router-dom';
 
 interface NavigationProps {
   // We could add props here in the future if needed, but now we don't need any
@@ -10,6 +11,12 @@ interface NavigationProps {
 
 const Navigation: React.FC<NavigationProps> = () => {
   const { currentView, setCurrentView, setSelectedUser, currentUser, selectedUser } = useApp();
+  const location = useLocation();
+  
+  // Don't show navigation on the connect-device page
+  if (location.pathname === '/connect-device') {
+    return null;
+  }
 
   const handleProfileClick = () => {
     // Always set selectedUser to currentUser when clicking profile in nav

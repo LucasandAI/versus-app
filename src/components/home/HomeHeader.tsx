@@ -1,12 +1,19 @@
 
 import React, { useEffect, useState } from 'react';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Watch } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '../shared/UserAvatar';
 import Button from '../shared/Button';
 import NotificationPopover from '../shared/NotificationPopover';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
 import { useUnreadMessages } from '@/context/UnreadMessagesContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useNavigate } from 'react-router-dom';
 
 interface HomeHeaderProps {
   notifications: any[];
@@ -36,6 +43,8 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   const {
     totalUnreadCount
   } = useUnreadMessages();
+  
+  const navigate = useNavigate();
   
   const [badgeCount, setBadgeCount] = useState(totalUnreadCount);
   const [notificationsCount, setNotificationsCount] = useState(notifications.length);
@@ -86,6 +95,10 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     }
   };
   
+  const handleConnectDevice = () => {
+    navigate('/connect-device');
+  };
+  
   return (
     <div className="flex items-center justify-between mb-6">
       <h1 className="text-2xl font-bold">Versus</h1>
@@ -104,12 +117,26 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           icon={<MessageCircle className="h-5 w-5" />} 
           badge={badgeCount > 0 ? badgeCount : 0} 
         />
-        <UserAvatar 
-          name={currentUser?.name || "User"} 
-          image={currentUser?.avatar} 
-          size="sm" 
-          onClick={handleViewOwnProfile} 
-        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <div className="cursor-pointer">
+              <UserAvatar 
+                name={currentUser?.name || "User"} 
+                image={currentUser?.avatar} 
+                size="sm"
+              />
+            </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={handleViewOwnProfile}>
+              <span>Visit Profile</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleConnectDevice}>
+              <Watch className="mr-2 h-4 w-4" />
+              <span>Connect a Device</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );
