@@ -23,7 +23,7 @@ const ConnectDevice: React.FC = () => {
       id: 'garmin',
       name: 'Garmin Watch',
       description: 'Connect your Garmin device for accurate tracking',
-      logo: '/lovable-uploads/f8b9b002-af8f-4f3f-b2b3-0a95d21fe7d4.png'
+      logo: '/lovable-uploads/be90ac52-33ba-4c84-b86b-88b4925eea0c.png'
     },
     {
       id: 'other',
