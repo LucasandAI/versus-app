@@ -5,7 +5,7 @@ import { User } from '@/types';
 
 // Simple in-memory cache for recently viewed profiles
 const profileCache: Record<string, { user: User, timestamp: number }> = {};
-const CACHE_TTL = 60000; // 1 minute cache TTL
+const CACHE_TTL = 120000; // 2 minute cache TTL
 
 export const useProfileState = () => {
   const { selectedUser, setCurrentView, currentUser, setSelectedUser, currentView } = useApp();
@@ -16,29 +16,28 @@ export const useProfileState = () => {
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   
-  // Use a shorter loading time for cached data
+  // Immediately show data from cache or set loading true while we fetch
   useEffect(() => {
     if (selectedUser?.id) {
       const cachedProfile = profileCache[selectedUser.id];
       const now = Date.now();
       
-      // If we have a recent cached profile, use a shorter loading time
+      // If we have a recent cached profile, use it immediately
       if (cachedProfile && (now - cachedProfile.timestamp < CACHE_TTL)) {
-        setTimeout(() => {
-          setLoading(false);
-        }, 100); // Very short loading time for cached profiles
+        setLoading(false);
       } else {
-        setTimeout(() => {
-          setLoading(false);
+        setLoading(true);
+        
+        // Cache the profile for future use
+        if (selectedUser) {
+          profileCache[selectedUser.id] = {
+            user: selectedUser,
+            timestamp: now
+          };
           
-          // Cache the profile for future use
-          if (selectedUser) {
-            profileCache[selectedUser.id] = {
-              user: selectedUser,
-              timestamp: now
-            };
-          }
-        }, 300); // Shorter loading time than before but still visible
+          // Set loading to false as soon as data is available
+          setLoading(false);
+        }
       }
     }
   }, [selectedUser]);

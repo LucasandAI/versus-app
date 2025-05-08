@@ -7,8 +7,8 @@ const userProfileCache: Record<string, {
   timestamp: number
 }> = {};
 
-// Cache TTL in milliseconds (30 seconds)
-const CACHE_TTL = 30000; 
+// Cache TTL in milliseconds (2 minutes)
+const CACHE_TTL = 120000; 
 
 export const useFetchUserProfile = async (userId: string) => {
   // Check for cached profile
