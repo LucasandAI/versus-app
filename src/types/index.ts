@@ -121,6 +121,7 @@ export interface AppContextType {
   selectedClub: Club | null;
   selectedUser: User | null;
   isSessionReady: boolean;
+  setIsSessionReady: (ready: boolean) => void;
   needsProfileCompletion: boolean;
   setNeedsProfileCompletion: (value: boolean) => void;
   setCurrentUser: (user: User | null | ((prev: User | null) => User | null)) => void;

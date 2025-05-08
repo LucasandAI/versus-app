@@ -1,9 +1,9 @@
-
 import { useEffect } from 'react';
 import { safeSupabase } from '@/integrations/supabase/safeClient';
 import { AppView, User } from '@/types';
 import { useLoadCurrentUser } from './useLoadCurrentUser';
 import { toast } from '@/hooks/use-toast';
+import { useApp } from './AppContext';
 
 // Timeout for authentication check (10 seconds)
 export const AUTH_TIMEOUT = 10000;
@@ -24,6 +24,7 @@ export const useAuthSessionCore = ({
   setAuthError,
 }: AuthSessionCoreProps) => {
   const { loadCurrentUser } = useLoadCurrentUser();
+  const { setIsSessionReady } = useApp();
 
   useEffect(() => {
     let isMounted = true;
@@ -62,6 +63,7 @@ export const useAuthSessionCore = ({
             
             // Set the basic user immediately for better UX
             setCurrentUser(basicUser);
+            setIsSessionReady(true); // Set session as ready
             
             // Fetch full user profile in the background
             // Using setTimeout to avoid potential deadlocks with Supabase auth
@@ -99,6 +101,7 @@ export const useAuthSessionCore = ({
               setAuthError(error instanceof Error ? error.message : 'Authentication error');
               setUserLoading(false);
               setAuthChecked(true);
+              setIsSessionReady(false); // Set session as not ready on error
             }
           }
         } else {
@@ -107,6 +110,7 @@ export const useAuthSessionCore = ({
             setAuthChecked(true);
             setUserLoading(false);
             setCurrentView('connect');
+            setIsSessionReady(false); // Set session as not ready
           }
         }
       } else if (event === 'SIGNED_OUT') {
@@ -116,12 +120,14 @@ export const useAuthSessionCore = ({
           setCurrentView('connect');
           setAuthChecked(true);
           setUserLoading(false);
+          setIsSessionReady(false); // Set session as not ready on sign out
         }
       } else {
         console.log('[useAuthSessionCore] Other auth event:', event);
         if (isMounted) {
           setAuthChecked(true);
           setUserLoading(false);
+          setIsSessionReady(false); // Set session as not ready for other events
         }
       }
     });
@@ -147,6 +153,7 @@ export const useAuthSessionCore = ({
           setAuthChecked(true);
           setUserLoading(false);
           setCurrentView('connect');
+          setIsSessionReady(false); // Set session as not ready on error
           return;
         }
         
@@ -155,8 +162,11 @@ export const useAuthSessionCore = ({
           setAuthChecked(true);
           setUserLoading(false);
           setCurrentView('connect');
+          setIsSessionReady(false); // Set session as not ready when no session
+        } else {
+          // Valid session found
+          setIsSessionReady(true);
         }
-        // If session exists, the onAuthStateChange handler will be triggered
       });
     }, 0);
 
@@ -169,5 +179,5 @@ export const useAuthSessionCore = ({
         data.subscription.unsubscribe();
       }
     };
-  }, [setCurrentUser, setCurrentView, setUserLoading, setAuthChecked, setAuthError, loadCurrentUser]);
+  }, [setCurrentUser, setCurrentView, setUserLoading, setAuthChecked, setAuthError, loadCurrentUser, setIsSessionReady]);
 };
