@@ -135,39 +135,41 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   return (
     <div 
       ref={finalScrollRef} 
-      className={`overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent ${
+      className={`relative overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent ${
         isClubChat ? 'h-[calc(73vh-8rem)]' : 'h-[calc(73vh-6rem)]'
       }`}
     >
-      {/* Load more button */}
-      {hasMore && (
-        <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm py-2 flex justify-center">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onLoadMore}
-            disabled={isLoadingMore}
-            className="text-sm"
-          >
-            {isLoadingMore ? 'Loading...' : 'Load More Messages'}
-          </Button>
-        </div>
-      )}
-      
-      <MessageList 
-        messages={normalizedMessages} 
-        clubMembers={clubMembers} 
-        isSupport={isSupport} 
-        onDeleteMessage={onDeleteMessage} 
-        onSelectUser={onSelectUser} 
-        formatTime={finalFormatTime} 
-        currentUserAvatar={finalUserAvatar} 
-        currentUserId={currentUserId} 
-        lastMessageRef={finalLastMessageRef} 
-      />
-      
-      {/* Scroll anchor */}
-      <div ref={messagesEndRef} />
+      <div className="flex flex-col">
+        {/* Load more button */}
+        {hasMore && (
+          <div className="py-2 flex justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onLoadMore}
+              disabled={isLoadingMore}
+              className="text-sm"
+            >
+              {isLoadingMore ? 'Loading...' : 'Load More Messages'}
+            </Button>
+          </div>
+        )}
+        
+        <MessageList 
+          messages={normalizedMessages} 
+          clubMembers={clubMembers} 
+          isSupport={isSupport} 
+          onDeleteMessage={onDeleteMessage} 
+          onSelectUser={onSelectUser} 
+          formatTime={finalFormatTime} 
+          currentUserAvatar={finalUserAvatar} 
+          currentUserId={currentUserId} 
+          lastMessageRef={finalLastMessageRef} 
+        />
+        
+        {/* Scroll anchor */}
+        <div ref={messagesEndRef} />
+      </div>
     </div>
   );
 });
