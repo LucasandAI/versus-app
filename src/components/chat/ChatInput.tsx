@@ -33,13 +33,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
     if (message.trim() && !isSending) {
       const messageToSend = message.trim();
       console.log(`[ChatInput] Submitting message for ${conversationType}:${contextId}:`, 
-        messageToSend.substring(0, 20) + (messageToSend.length > 20 ? '...' : ''));
+        messageToSend.substring(0, 20));
       
       // Clear the input immediately for better user experience
       setMessage('');
       
       try {
-        // Send message without any delay
         await onSendMessage(messageToSend);
       } catch (error) {
         console.error(`[ChatInput] Error sending message for ${conversationType}:${contextId}:`, error);

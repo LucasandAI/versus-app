@@ -57,16 +57,12 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
     normalizeMessage
   } = useMessageNormalization(currentUserId, senderId => getMemberName(senderId, currentUserId, clubMembers));
 
-  // Only create local scroll refs if none are provided
+  // Custom scroll hook that uses stable refs
   const {
     scrollRef: defaultScrollRef,
     lastMessageRef: defaultLastMessageRef,
     scrollToBottom
-  } = !providedScrollRef ? useMessageScroll(messages) : { 
-    scrollRef: { current: null }, 
-    lastMessageRef: { current: null },
-    scrollToBottom: () => {}
-  };
+  } = useMessageScroll(messages);
 
   // Use provided values or defaults - store references to prevent recreation
   const finalUserAvatar = providedUserAvatar || defaultUserAvatar;
@@ -107,8 +103,12 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
     return normalized;
   }, [messages, normalizeMessage]);
 
-  // Don't duplicate scrolling logic if parent is handling it
-  if (prevMessageLengthRef.current !== messages.length && !providedScrollRef) {
+  // Track if messages changed and need scroll
+  if (prevMessageLengthRef.current !== messages.length) {
+    // Use requestAnimationFrame to scroll after render
+    if (messages.length > prevMessageLengthRef.current) {
+      requestAnimationFrame(() => scrollToBottom());
+    }
     prevMessageLengthRef.current = messages.length;
   }
 

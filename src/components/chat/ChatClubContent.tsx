@@ -7,7 +7,6 @@ import ChatInput from './ChatInput';
 import { useNavigation } from '@/hooks/useNavigation';
 import { useChatActions } from '@/hooks/chat/useChatActions';
 import { useActiveClubMessages } from '@/hooks/chat/useActiveClubMessages';
-import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
 
 interface ChatClubContentProps {
   club: Club;
@@ -42,9 +41,6 @@ const ChatClubContent = ({
     effectiveClubId,
     globalMessages
   );
-  
-  // Use our optimized scroll hook
-  const { scrollRef, lastMessageRef, scrollToBottom } = useMessageScroll(messages);
   
   // Log the messages length as requested
   console.log('[ChatClubContent] Messages length:', messages.length);
@@ -83,21 +79,21 @@ const ChatClubContent = ({
       const messageToSend = message.trim();
       if (effectiveClubId) {
         await onSendMessage(messageToSend, effectiveClubId);
-        
-        // Use our scroll hook to smoothly scroll to bottom
-        // Slight delay to ensure the message is in the DOM
-        requestAnimationFrame(() => {
-          scrollToBottom(true);
-        });
       }
+      
+      // After message is sent, scroll to bottom using requestAnimationFrame for smoother animation
+      requestAnimationFrame(() => {
+        const messageContainer = document.querySelector(`[data-conversation-id="${effectiveClubId}"]`)?.parentElement?.previousElementSibling;
+        if (messageContainer) {
+          messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+      });
     } catch (error) {
       console.error('[ChatClubContent] Error sending club message:', error);
     } finally {
-      // We can set isSending back to false immediately after onSendMessage
-      // since we're using optimistic updates
       setIsSending(false);
     }
-  }, [effectiveClubId, onSendMessage, scrollToBottom]);
+  }, [effectiveClubId, onSendMessage]);
 
   return (
     <div className="flex flex-col h-full">
@@ -115,8 +111,6 @@ const ChatClubContent = ({
             clubMembers={club.members || []}
             onDeleteMessage={handleDeleteMessage}
             onSelectUser={onSelectUser}
-            scrollRef={scrollRef}
-            lastMessageRef={lastMessageRef}
           />
         </div>
         

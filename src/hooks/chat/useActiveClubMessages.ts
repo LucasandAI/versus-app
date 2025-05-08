@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -16,7 +15,6 @@ export const useActiveClubMessages = (
   useEffect(() => {
     if (globalMessages[clubId]) {
       setMessages(globalMessages[clubId]);
-      console.log(`[useActiveClubMessages] Synced with global state for club ${clubId}, messages: ${globalMessages[clubId].length}`);
     }
   }, [clubId, globalMessages]);
 
@@ -30,27 +28,21 @@ export const useActiveClubMessages = (
           if (exists) return prev;
 
           // Add the new message and sort by timestamp
-          const updatedMessages = [...prev, e.detail.message].sort(
+          return [...prev, e.detail.message].sort(
             (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
           );
-          
-          console.log(`[useActiveClubMessages] Message received for club ${clubId}, new count: ${updatedMessages.length}`);
-          return updatedMessages;
         });
       }
     };
 
     const handleClubMessageDeleted = (e: CustomEvent) => {
       if (e.detail.clubId === clubId) {
-        setMessages(prev => {
-          const filtered = prev.filter(msg => msg.id !== e.detail.messageId);
-          console.log(`[useActiveClubMessages] Message deleted for club ${clubId}, new count: ${filtered.length}`);
-          return filtered;
-        });
+        setMessages(prev => 
+          prev.filter(msg => msg.id !== e.detail.messageId)
+        );
       }
     };
 
-    // Add event listeners
     window.addEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
     window.addEventListener('clubMessageDeleted', handleClubMessageDeleted as EventListener);
 
@@ -85,7 +77,6 @@ export const useActiveClubMessages = (
             .limit(50);
 
           if (data) {
-            console.log(`[useActiveClubMessages] Fetched ${data.length} messages for club ${clubId}`);
             setMessages(data);
           }
         } catch (error) {
