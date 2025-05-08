@@ -131,6 +131,8 @@ export interface AppContextType {
   signOut: () => Promise<void>;
   createClub: (name: string, logo?: string) => Promise<Club | null>;
   refreshCurrentUser: () => Promise<User | null>;
+  isAppReady: boolean;
+  setIsAppReady: (ready: boolean) => void;
 }
 
 export type { ChatMessage } from './chat';

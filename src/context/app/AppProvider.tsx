@@ -17,6 +17,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [userLoading, setUserLoading] = useState(false);
   const [isSessionReady, setIsSessionReady] = useState(false);
   const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
+  const [isAppReady, setIsAppReady] = useState(false);
 
   const { signIn, signOut } = useAuth();
   const { currentView, setCurrentView, selectedClub, setSelectedClub, selectedUser, setSelectedUser } = useViewState();
@@ -197,7 +198,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     signIn: handleSignIn,
     signOut,
     createClub,
-    refreshCurrentUser
+    refreshCurrentUser,
+    isAppReady,
+    setIsAppReady
   };
 
   if (userLoading && !currentUser) {

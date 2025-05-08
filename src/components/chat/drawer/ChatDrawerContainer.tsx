@@ -66,9 +66,17 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   return (
     <div className="flex flex-grow h-full overflow-hidden">
       {activeTab === "clubs" ? (
-        <>
-          {/* Club chat sidebar */}
-          <div className="w-80 border-r">
+        <div className="w-full h-full">
+          {selectedLocalClub ? (
+            <ChatClubContainer
+              selectedClub={selectedLocalClub}
+              messages={selectedLocalClub ? finalMessages[selectedLocalClub.id] || [] : []}
+              clubs={clubs}
+              onSendMessage={onSendMessage}
+              onDeleteMessage={onDeleteMessage}
+              onSelectClub={onSelectClub}
+            />
+          ) : (
             <ChatSidebarContent
               clubs={clubs}
               selectedClub={selectedLocalClub}
@@ -86,19 +94,8 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
               }}
               activeTab={activeTab}
             />
-          </div>
-
-          {/* Club chat content */}
-          <div className="flex-1 flex flex-col">
-            <ChatClubContainer
-              selectedClub={selectedLocalClub}
-              messages={selectedLocalClub ? finalMessages[selectedLocalClub.id] || [] : []}
-              clubs={clubs}
-              onSendMessage={onSendMessage}
-              onDeleteMessage={onDeleteMessage}
-            />
-          </div>
-        </>
+          )}
+        </div>
       ) : (
         // Direct messages container
         <DMContainer

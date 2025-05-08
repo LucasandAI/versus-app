@@ -1,6 +1,4 @@
-
 import React from 'react';
-import { useInitialAppLoad } from '@/hooks/useInitialAppLoad';
 import LoadingScreen from './shared/LoadingScreen';
 import { useApp } from '@/context/AppContext';
 
@@ -9,8 +7,7 @@ interface AppContentProps {
 }
 
 const AppContent: React.FC<AppContentProps> = ({ children }) => {
-  const { currentUser, isSessionReady } = useApp();
-  const isAppReady = useInitialAppLoad();
+  const { currentUser, isSessionReady, isAppReady } = useApp();
 
   // Show loading screen if authenticated but app data not yet ready
   if (currentUser && isSessionReady && !isAppReady) {

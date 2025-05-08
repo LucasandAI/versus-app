@@ -1,105 +1,103 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
-import { useFetchUserClubs } from '@/components/profile/hooks/userProfile/useFetchUserClubs';
-import { useUnreadMessages } from '@/context/UnreadMessagesContext';
-import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
-import { refreshNotifications } from '@/lib/notificationUtils';
-import { supabase } from '@/integrations/supabase/client';
-import { useClubMessages } from '@/hooks/chat/useClubMessages';
 import { Club } from '@/types';
+import { supabase } from '@/lib/supabase';
 
 export const useInitialAppLoad = () => {
-  const [isAppReady, setIsAppReady] = useState(false);
-  const { currentUser, isSessionReady } = useApp();
-  const { fetchConversations } = useDirectConversationsContext();
-  const { fetchUnreadCounts } = useUnreadMessages();
-  const initialDataFetchedRef = useRef(false);
-  const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { currentUser, isAppReady, setIsAppReady } = useApp();
 
   useEffect(() => {
-    // Skip if not authenticated or session not ready or already fetched
-    if (!isSessionReady || !currentUser?.id || initialDataFetchedRef.current) return;
-
     const fetchInitialData = async () => {
+      if (!currentUser || isAppReady) return;
+
       try {
-        console.log('[useInitialAppLoad] Starting initial data fetch');
+        console.log('Starting initial data fetch...');
         
-        // Step 1: Fetch user's clubs
-        console.log('[useInitialAppLoad] Fetching user clubs');
-        const clubsResponse = await useFetchUserClubs(currentUser.id);
-        const userClubs: Club[] = clubsResponse && 'clubs' in clubsResponse ? 
-          (Array.isArray(clubsResponse.clubs) ? clubsResponse.clubs : []) : [];
+        // Fetch user clubs
+        console.log('Fetching user clubs...');
+        const { data: clubsData } = await supabase
+          .from('clubs')
+          .select('*')
+          .eq('user_id', currentUser.id);
         
-        // Step 2: Fetch club messages
-        console.log('[useInitialAppLoad] Fetching club messages');
-        if (userClubs && userClubs.length > 0) {
-          const { data: clubMessages } = await supabase
-            .from('club_chat_messages')
-            .select(`
-              id, 
-              message, 
-              sender_id, 
-              club_id, 
-              timestamp,
-              sender:sender_id (
-                id, 
-                name, 
-                avatar
-              )
-            `)
-            .in('club_id', userClubs.map(club => club.id))
-            .order('timestamp', { ascending: false })
-            .limit(50);
-            
-          console.log('[useInitialAppLoad] Fetched club messages:', clubMessages?.length || 0);
+        if (!clubsData) {
+          console.error('No clubs data found');
+          return;
         }
-        
-        // Step 3: Fetch direct conversations
-        console.log('[useInitialAppLoad] Fetching direct conversations');
-        await fetchConversations(true); // Force refresh to ensure data is loaded
-        
-        // Step 4: Fetch unread message counts
-        console.log('[useInitialAppLoad] Fetching unread message counts');
-        await fetchUnreadCounts();
-        
-        // Step 5: Fetch notifications
-        console.log('[useInitialAppLoad] Fetching notifications');
-        await refreshNotifications();
-        
-        // Mark as completed
-        initialDataFetchedRef.current = true;
-        console.log('[useInitialAppLoad] Initial data loading complete');
+
+        // Fetch club messages with unread status
+        console.log('Fetching club messages...');
+        const clubIds = clubsData.map((club: Club) => club.id);
+        const { data: messagesData } = await supabase
+          .from('club_chat_messages')
+          .select(`
+            *,
+            club:club_id (
+              id,
+              name,
+              avatar_url
+            ),
+            sender:user_id (
+              id,
+              username,
+              avatar_url
+            )
+          `)
+          .in('club_id', clubIds)
+          .order('timestamp', { ascending: false })
+          .limit(200);
+
+        // Fetch direct conversations
+        console.log('Fetching direct conversations...');
+        const { data: conversationsData } = await supabase
+          .from('direct_conversations')
+          .select(`
+            *,
+            other_user:other_user_id (
+              id,
+              username,
+              avatar_url
+            )
+          `)
+          .or(`user_id.eq.${currentUser.id},other_user_id.eq.${currentUser.id}`);
+
+        // Fetch unread message counts
+        console.log('Fetching unread message counts...');
+        const { data: unreadData } = await supabase
+          .from('unread_messages')
+          .select('*')
+          .eq('user_id', currentUser.id);
+
+        // Fetch notifications
+        console.log('Fetching notifications...');
+        const { data: notificationsData } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        console.log('Initial data fetch completed');
         setIsAppReady(true);
-        
-        // Clear timeout if it exists
-        if (loadingTimeoutRef.current) {
-          clearTimeout(loadingTimeoutRef.current);
-          loadingTimeoutRef.current = null;
-        }
       } catch (error) {
-        console.error('[useInitialAppLoad] Error loading initial data:', error);
-        // Even on error, set app as ready so user isn't stuck on loading screen
+        console.error('Error fetching initial data:', error);
+        // Still mark app as ready to prevent getting stuck
         setIsAppReady(true);
       }
     };
 
-    // Start loading process
+    // Set a timeout to prevent getting stuck on loading screen
+    const timeoutId = setTimeout(() => {
+      console.log('Loading timeout reached, forcing app ready state');
+      setIsAppReady(true);
+    }, 5000);
+
     fetchInitialData();
 
-    // Timeout fallback to prevent users getting stuck on loading screen
-    loadingTimeoutRef.current = setTimeout(() => {
-      if (!isAppReady) {
-        console.warn('[useInitialAppLoad] Loading timeout reached, forcing app ready');
-        setIsAppReady(true);
-      }
-    }, 5000); // 5 seconds timeout
-
     return () => {
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-      }
+      clearTimeout(timeoutId);
     };
-  }, [isSessionReady, currentUser?.id, isAppReady, fetchConversations, fetchUnreadCounts]);
+  }, [currentUser, isAppReady, setIsAppReady]);
 
   return isAppReady;
 };
