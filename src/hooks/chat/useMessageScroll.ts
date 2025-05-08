@@ -149,11 +149,8 @@ export const useMessageScroll = (messages: any[]) => {
         const newScrollHeight = scrollRef.current.scrollHeight;
         const scrollDiff = newScrollHeight - oldScrollHeight.current;
         
-        // Use smooth scrolling when loading more messages
-        scrollRef.current.scrollTo({
-          top: oldScrollTop.current + scrollDiff,
-          behavior: 'smooth'
-        });
+        // Set scroll position immediately without animation
+        scrollRef.current.scrollTop = oldScrollTop.current + scrollDiff;
       } else if (isNewMessage && !isUserScrolling.current && hasInitialScroll.current) {
         // Only auto-scroll for new messages if user is at bottom and initial scroll is done
         scrollToBottom(true);
