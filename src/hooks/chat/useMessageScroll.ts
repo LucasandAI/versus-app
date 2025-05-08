@@ -9,11 +9,12 @@ export const useMessageScroll = (messages: any[]) => {
   const scrollLockRef = useRef<boolean>(false);
   const isInitialLoad = useRef<boolean>(true);
   const lastMessageId = useRef<string | null>(null);
+  const isLoadingMore = useRef<boolean>(false);
   
   // Optimize scrolling by using a callback with requestAnimationFrame
   const scrollToBottom = useCallback((smooth = true) => {
-    // Don't scroll if user is actively scrolling up
-    if (isUserScrolling.current) return;
+    // Don't scroll if user is actively scrolling up or loading more messages
+    if (isUserScrolling.current || isLoadingMore.current) return;
     
     // Prevent multiple scroll attempts in a short time
     if (scrollLockRef.current) return;
@@ -83,11 +84,16 @@ export const useMessageScroll = (messages: any[]) => {
     const latestMessage = messages[messages.length - 1];
     const currentMessageId = latestMessage?.id;
     
+    // Check if we're loading more messages (message count increased but no new latest message)
+    const isNewMessage = currentMessageId !== lastMessageId.current;
+    const isMessageCountIncreased = messages.length > previousMessageCount.current;
+    isLoadingMore.current = isMessageCountIncreased && !isNewMessage;
+    
     // Only auto-scroll if:
     // 1. This is a new message (different ID from last message)
     // 2. User is already at bottom
-    const isNewMessage = currentMessageId !== lastMessageId.current;
-    const shouldScroll = isNewMessage && !isUserScrolling.current;
+    // 3. Not during initial load
+    const shouldScroll = isNewMessage && !isUserScrolling.current && !isInitialLoad.current;
     
     if (shouldScroll && !scrollLockRef.current) {
       // Use requestAnimationFrame for smoother scrolling
