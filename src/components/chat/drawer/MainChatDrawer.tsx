@@ -61,17 +61,21 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     setSelectedLocalClub(club);
   }, []);
 
-  const handleSendMessage = useCallback(async (message: string, clubId?: string) => {
+  const handleSendMessage = useCallback(async (message: string, clubId?: string): Promise<void> => {
     if (message && clubId && setClubMessages) {
       console.log('[MainChatDrawer] Sending message to club:', clubId);
-      return await sendMessageToClub(clubId, message, setClubMessages);
+      // Ignore the return value to match the expected void return type
+      await sendMessageToClub(clubId, message, setClubMessages);
+      return;
     }
   }, [sendMessageToClub, setClubMessages]);
   
-  const handleDeleteMessage = useCallback(async (messageId: string) => {
+  const handleDeleteMessage = useCallback(async (messageId: string): Promise<void> => {
     if (messageId && setClubMessages) {
       console.log('[MainChatDrawer] Deleting message:', messageId);
-      return await deleteMessage(messageId, setClubMessages);
+      // Ignore the return value to match the expected void return type
+      await deleteMessage(messageId, setClubMessages);
+      return;
     }
   }, [deleteMessage, setClubMessages]);
   

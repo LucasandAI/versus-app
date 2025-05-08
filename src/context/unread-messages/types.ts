@@ -5,7 +5,7 @@ export interface UnreadMessagesContextType {
   directMessageUnreadCounts: Record<string, number>;
   refreshUnreadCounts: () => Promise<void>;
   
-  // Add the missing properties that are causing the TypeScript errors
+  // Consolidated properties
   unreadConversations: Set<string>;
   unreadClubs: Set<string>;
   markClubMessagesAsRead: (clubId: string) => Promise<void>;

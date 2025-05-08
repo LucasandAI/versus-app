@@ -1,5 +1,5 @@
 
-import React, { useRef, useEffect, useCallback, memo, useMemo } from 'react';
+import React, { useRef, useCallback, memo, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -7,15 +7,12 @@ import ChatMessages from '../../ChatMessages';
 import { useActiveDMMessages } from '@/hooks/chat/dm/useActiveDMMessages';
 import { useDMSubscription } from '@/hooks/chat/dm/useDMSubscription';
 import { useNavigation } from '@/hooks/useNavigation';
-import { useConversations } from '@/hooks/chat/dm/useConversations';
-import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
 import { useConversationManagement } from '@/hooks/chat/dm/useConversationManagement';
 import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
 import DMMessageInput from './DMMessageInput';
 import DMHeader from './DMHeader';
 import { ArrowLeft } from 'lucide-react';
-import { useUserData } from '@/hooks/chat/dm/useUserData';
 
 interface DMConversationProps {
   user: {
@@ -27,7 +24,6 @@ interface DMConversationProps {
   onBack: () => void;
 }
 
-// Use memo to prevent unnecessary re-renders
 const DMConversation: React.FC<DMConversationProps> = memo(({ 
   user, 
   conversationId,
@@ -37,89 +33,88 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   const { navigateToUserProfile } = useNavigation();
   const { markConversationAsRead } = useUnreadMessages();
   const [isSending, setIsSending] = React.useState(false);
-  const { formatTime } = useMessageFormatting();
   
-  // Validate user data completeness at the component level
-  const hasCompleteUserData = Boolean(user && user.id && user.name && user.avatar);
+  // Check if user data is complete
+  const hasValidUserData = useMemo(() => {
+    const isValid = Boolean(user && user.id && user.name);
+    console.log('[DMConversation] User data validation:', {
+      id: user?.id || 'missing',
+      name: user?.name || 'missing',
+      avatar: user?.avatar || 'missing',
+      isValid
+    });
+    return isValid;
+  }, [user]);
   
-  // Log comprehensive user data validation
-  console.log(`[DMConversation] User data validation:`, {
-    id: user?.id || 'missing',
-    name: user?.name || 'missing',
-    avatar: user?.avatar || 'missing',
-    isComplete: hasCompleteUserData
-  });
-  
-  // If user data is incomplete, don't proceed with rendering the conversation
-  if (!hasCompleteUserData) {
-    return (
-      <div className="flex flex-col h-full w-full">
-        <div className="border-b p-3 flex items-center">
-          <button 
-            onClick={onBack}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <div className="flex-1 flex justify-center">
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse"></div>
-              <div className="h-5 w-24 bg-gray-200 rounded animate-pulse"></div>
-            </div>
-          </div>
-          <div className="w-9"></div>
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-gray-500">Loading conversation data...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  // Create a stable reference to the user object that won't change identity
+  // Create a stable reference to the user object
   const userDataForMessages = useMemo(() => ({
-    id: user.id,
-    name: user.name,
-    avatar: user.avatar
-  }), [user.id, user.name, user.avatar]);
+    id: user?.id || '',
+    name: user?.name || 'Unknown',
+    avatar: user?.avatar || '/placeholder.svg'
+  }), [user?.id, user?.name, user?.avatar]);
   
-  // Use our hook for active messages - pass the userDataForMessages as source of truth
-  const { messages, setMessages, addOptimisticMessage } = useActiveDMMessages(
+  // Use hooks for active messages with proper error handling
+  const { 
+    messages, 
+    setMessages, 
+    addOptimisticMessage,
+    isLoading,
+    error: messagesError
+  } = useActiveDMMessages(
     conversationId, 
-    user.id,
+    user?.id,
     currentUser?.id,
-    userDataForMessages // Pass the authoritative user data to useActiveDMMessages
+    userDataForMessages
   );
   
-  // Pass the complete user data object to useDMSubscription to ensure consistent display
+  // Set up subscription for real-time updates
   useDMSubscription(
     conversationId, 
-    user.id, 
+    user?.id, 
     currentUser?.id, 
     setMessages,
-    userDataForMessages // This is the authoritative source of user metadata
+    userDataForMessages
   );
   
-  // Use scroll management hook with optimized scrolling
-  const { scrollRef, lastMessageRef, scrollToBottom } = useMessageScroll(messages);
+  // Optimize scroll management with useRef
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const lastMessageRef = useRef<HTMLDivElement>(null);
   
-  // Custom hooks for conversation management
-  const { createConversation } = useConversationManagement(currentUser?.id, user.id);
+  const scrollToBottom = useCallback(() => {
+    if (lastMessageRef.current) {
+      lastMessageRef.current.scrollIntoView({ behavior: 'smooth' });
+    } else if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, []);
+  
+  // Conversation management
+  const { createConversation } = useConversationManagement(currentUser?.id, user?.id);
+  
+  // Handle loading errors
+  const loadError = messagesError;
   
   // Mark conversation as read when opened
-  useEffect(() => {
+  React.useEffect(() => {
     if (conversationId && conversationId !== 'new') {
       markConversationAsRead(conversationId);
     }
   }, [conversationId, markConversationAsRead]);
+  
+  // Scroll to bottom when messages change
+  React.useEffect(() => {
+    if (messages.length > 0 && !isLoading) {
+      requestAnimationFrame(() => scrollToBottom());
+    }
+  }, [messages, isLoading, scrollToBottom]);
 
-  // Stable send message handler
+  // Handle sending messages
   const handleSendMessage = useCallback(async (text: string) => {
-    if (!text.trim() || !currentUser?.id) return;
+    if (!text.trim() || !currentUser?.id || !hasValidUserData) return;
     
     setIsSending(true);
     
-    // Create optimistic message with stable ID format
+    // Create optimistic message with stable ID
     const optimisticId = `optimistic-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const optimisticMessage = {
       id: optimisticId,
@@ -127,24 +122,22 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       sender: {
         id: currentUser.id,
         name: currentUser.name || 'You',
-        avatar: currentUser.avatar
+        avatar: currentUser.avatar || '/placeholder.svg'
       },
       timestamp: new Date().toISOString(),
       optimistic: true
     };
     
-    // Add optimistic message to UI
+    // Add optimistic message
     addOptimisticMessage(optimisticMessage);
     
-    // Scroll to bottom - wrapped in requestAnimationFrame to avoid layout thrashing
-    requestAnimationFrame(() => {
-      scrollToBottom();
-    });
+    // Schedule scroll to bottom
+    requestAnimationFrame(() => scrollToBottom());
     
     try {
       let finalConversationId = conversationId;
       
-      // Create conversation if needed
+      // Create new conversation if needed
       if (finalConversationId === 'new') {
         const newConversationId = await createConversation();
         if (newConversationId) {
@@ -182,13 +175,99 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     } finally {
       setIsSending(false);
     }
-  }, [currentUser, user, conversationId, addOptimisticMessage, createConversation, scrollToBottom, setMessages]);
+  }, [currentUser, user, conversationId, addOptimisticMessage, createConversation, scrollToBottom, setMessages, hasValidUserData]);
+  
+  // Delete message handler
+  const handleDeleteMessage = useCallback(async (messageId: string) => {
+    console.log('[DMConversation] Deleting message:', messageId);
+    
+    // Skip for optimistic messages - just remove from state
+    if (messageId.startsWith('optimistic-')) {
+      setMessages(prev => prev.filter(m => m.id !== messageId));
+      return;
+    }
+    
+    try {
+      // Optimistically remove from UI
+      setMessages(prev => prev.filter(m => m.id !== messageId));
+      
+      // Delete from database
+      const { error } = await supabase
+        .from('direct_messages')
+        .delete()
+        .eq('id', messageId);
+      
+      if (error) throw error;
+      
+    } catch (error) {
+      console.error('[DMConversation] Error deleting message:', error);
+      toast({
+        title: "Error deleting message",
+        description: "Please try again",
+        variant: "destructive"
+      });
+    }
+  }, [setMessages]);
   
   // Club members array for ChatMessages - memoized to prevent recreating
   const clubMembers = useMemo(() => 
-    currentUser ? [currentUser] : [], 
-    [currentUser]
+    currentUser ? [
+      {
+        id: currentUser.id,
+        name: currentUser.name || 'You',
+        avatar: currentUser.avatar
+      },
+      {
+        id: user?.id || '',
+        name: user?.name || 'User',
+        avatar: user?.avatar
+      }
+    ] : [], 
+    [currentUser, user]
   );
+  
+  // Format time function (memoized)
+  const formatTime = useCallback((isoString: string) => {
+    try {
+      const date = new Date(isoString);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      return '';
+    }
+  }, []);
+  
+  // If user data is invalid, show an error
+  if (!hasValidUserData) {
+    return (
+      <div className="flex flex-col h-full w-full">
+        <div className="border-b p-3 flex items-center">
+          <button 
+            onClick={onBack}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div className="flex-1 flex justify-center">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse"></div>
+              <div className="h-5 w-24 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
+          <div className="w-9"></div>
+        </div>
+        <div className="flex-1 flex items-center justify-center flex-col p-4 text-center">
+          <p className="text-gray-500 mb-2">Cannot display conversation</p>
+          <p className="text-sm text-gray-400">Missing user data</p>
+          <button 
+            className="mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+            onClick={onBack}
+          >
+            Go back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full w-full">
@@ -212,30 +291,42 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
             />
           </div>
         </div>
-        {/* This empty div helps maintain balance in the header */}
         <div className="w-9"></div>
       </div>
       
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-        <div className="flex-1 min-h-0">
-          <ChatMessages 
-            messages={messages}
-            clubMembers={clubMembers}
-            onSelectUser={(userId, userName, userAvatar) => 
-              navigateToUserProfile(userId, userName, userAvatar)
-            }
-            currentUserAvatar={currentUser?.avatar}
-            lastMessageRef={lastMessageRef}
-            formatTime={formatTime}
-            scrollRef={scrollRef}
-          />
-        </div>
+        {isLoading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary border-r-2"></div>
+          </div>
+        ) : loadError ? (
+          <div className="flex-1 flex items-center justify-center flex-col">
+            <p className="text-red-500 mb-2">Error loading messages</p>
+            <p className="text-sm text-gray-500">{loadError}</p>
+          </div>
+        ) : (
+          <div className="flex-1 min-h-0" ref={scrollRef}>
+            <ChatMessages 
+              messages={messages}
+              clubMembers={clubMembers}
+              onDeleteMessage={handleDeleteMessage}
+              onSelectUser={(userId, userName, userAvatar) => 
+                navigateToUserProfile(userId, userName, userAvatar)
+              }
+              currentUserAvatar={currentUser?.avatar}
+              lastMessageRef={lastMessageRef}
+              formatTime={formatTime}
+              scrollRef={scrollRef}
+            />
+          </div>
+        )}
         
         <DMMessageInput
           onSendMessage={handleSendMessage}
           isSending={isSending}
           userId={user.id}
           conversationId={conversationId}
+          disabled={isLoading || Boolean(loadError)}
         />
       </div>
     </div>
