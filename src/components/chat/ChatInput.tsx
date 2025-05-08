@@ -93,5 +93,4 @@ const ChatInput: React.FC<ChatInputProps> = ({
   );
 };
 
-// Memoize the component to prevent unnecessary re-renders
-export default React.memo(ChatInput);
+export default ChatInput;

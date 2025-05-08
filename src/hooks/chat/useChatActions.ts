@@ -27,13 +27,12 @@ export const useChatActions = () => {
           id: currentUser.id,
           name: currentUser.name,
           avatar: currentUser.avatar
-        },
-        optimistic: true // Flag to identify this is an optimistic update
+        }
       };
       
       console.log('[useChatActions] Created optimistic message:', optimisticMessage);
       
-      // Always update local state immediately with optimistic message if setClubMessages is provided
+      // Directly update local state with optimistic message if setClubMessages is provided
       if (setClubMessages) {
         setClubMessages(prevMessages => {
           const clubMessages = prevMessages[clubId] || [];
@@ -55,84 +54,75 @@ export const useChatActions = () => {
       // Add debug log before insert attempt
       console.log('[Chat Debug] About to insert message:', { clubId, messageText });
 
-      // Use Promise.resolve().then() to ensure optimistic UI update happens before the actual request
-      await Promise.resolve().then(async () => {
-        const { data: insertedMessage, error: insertError } = await supabase
-          .from('club_chat_messages')
-          .insert({
-            club_id: clubId,
-            message: messageText,
-            sender_id: currentUser.id
-          })
-          .select(`
-            id, 
-            message, 
-            timestamp, 
-            sender_id,
-            club_id,
-            sender:sender_id(id, name, avatar)
-          `)
-          .single();
-        
-        // Add debug log after insert attempt
-        console.log('[Chat Debug] Insert result:', { data: insertedMessage, error: insertError });
-  
-        if (insertError) {
-          console.error('[useChatActions] Error sending message:', insertError);
-          
-          if (insertError.code === '42501') {
-            toast({
-              title: "Permission Error",
-              description: "You don't have permission to send messages in this club",
-              variant: "destructive"
-            });
-          } else {
-            toast({
-              title: "Message Send Error",
-              description: insertError.message || "Failed to send message",
-              variant: "destructive"
-            });
-          }
-          
-          // Remove optimistic message on error if setClubMessages is provided
-          if (setClubMessages) {
-            setClubMessages(prevMessages => {
-              const clubMessages = prevMessages[clubId] || [];
-              
-              return {
-                ...prevMessages,
-                [clubId]: clubMessages.filter(msg => msg.id !== tempId)
-              };
-            });
-          }
-          
-          return null;
-        }
-  
-        console.log('[useChatActions] Message sent successfully:', insertedMessage);
-        
-        // Only if we have both - replace optimistic message with real one
-        // This is a smoother transition using a queued state update
-        if (setClubMessages && insertedMessage) {
-          setTimeout(() => {
-            setClubMessages(prevMessages => {
-              const clubMessages = prevMessages[clubId] || [];
-              
-              // Replace optimistic message with the real one
-              return {
-                ...prevMessages,
-                [clubId]: clubMessages.map(msg => 
-                  msg.id === tempId ? { ...insertedMessage, transition: 'complete' } : msg
-                )
-              };
-            });
-          }, 100); // Small delay to ensure smooth transition
-        }
-        
-        return insertedMessage;
-      });
+      const { data: insertedMessage, error: insertError } = await supabase
+        .from('club_chat_messages')
+        .insert({
+          club_id: clubId,
+          message: messageText,
+          sender_id: currentUser.id
+        })
+        .select(`
+          id, 
+          message, 
+          timestamp, 
+          sender_id,
+          club_id,
+          sender:sender_id(id, name, avatar)
+        `)
+        .single();
       
-      return true; // Return early success since we're using optimistic updates
+      // Add debug log after insert attempt
+      console.log('[Chat Debug] Insert result:', { data: insertedMessage, error: insertError });
+
+      if (insertError) {
+        console.error('[useChatActions] Error sending message:', insertError);
+        
+        if (insertError.code === '42501') {
+          toast({
+            title: "Permission Error",
+            description: "You don't have permission to send messages in this club",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Message Send Error",
+            description: insertError.message || "Failed to send message",
+            variant: "destructive"
+          });
+        }
+        
+        // Remove optimistic message on error if setClubMessages is provided
+        if (setClubMessages) {
+          setClubMessages(prevMessages => {
+            const clubMessages = prevMessages[clubId] || [];
+            
+            return {
+              ...prevMessages,
+              [clubId]: clubMessages.filter(msg => msg.id !== tempId)
+            };
+          });
+        }
+        
+        return null;
+      }
+
+      console.log('[useChatActions] Message sent successfully:', insertedMessage);
+      
+      // Replace optimistic message with real one
+      if (setClubMessages && insertedMessage) {
+        setClubMessages(prevMessages => {
+          const clubMessages = prevMessages[clubId] || [];
+          
+          return {
+            ...prevMessages,
+            [clubId]: clubMessages.map(msg => 
+              msg.id === tempId ? insertedMessage : msg
+            )
+          };
+        });
+      }
+      
+      return insertedMessage;
     } catch (error) {
       console.error('[useChatActions] Unexpected error sending message:', error);
       toast({

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import ChatHeader from './ChatHeader';
 import ChatMessages from './ChatMessages';
@@ -50,7 +50,7 @@ const ChatClubContent = ({
     setIsSending(false);
   }, [effectiveClubId]);
 
-  const handleDeleteMessage = useCallback(async (messageId: string) => {
+  const handleDeleteMessage = async (messageId: string) => {
     console.log('[ChatClubContent] Deleting message:', messageId);
     
     if (onDeleteMessage) {
@@ -59,25 +59,19 @@ const ChatClubContent = ({
       // Fallback to direct deleteMessage if no handler provided
       await deleteMessage(messageId, setClubMessages);
     }
-  }, [onDeleteMessage, setClubMessages, deleteMessage]);
+  };
 
-  const handleClubClick = useCallback(() => {
+  const handleClubClick = () => {
     if (club && club.id) {
       navigateToClubDetail(club.id, club);
       const event = new CustomEvent('chatDrawerClosed');
       window.dispatchEvent(event);
     }
-  }, [club, navigateToClubDetail]);
+  };
 
-  const handleSendMessage = useCallback(async (message: string) => {
+  const handleSendMessage = async (message: string) => {
     console.log('[ChatClubContent] Sending message for club:', effectiveClubId);
-    
-    // Don't set isSending to true immediately to prevent flickering
-    // Instead use a small delay before showing the sending state
-    const sendingTimeout = setTimeout(() => {
-      setIsSending(true);
-    }, 300); // Delay showing "sending" state
-    
+    setIsSending(true);
     try {
       const messageToSend = message.trim();
       if (effectiveClubId) {
@@ -86,10 +80,9 @@ const ChatClubContent = ({
     } catch (error) {
       console.error('[ChatClubContent] Error sending club message:', error);
     } finally {
-      clearTimeout(sendingTimeout); // Clear timeout if completed before 300ms
       setIsSending(false);
     }
-  }, [effectiveClubId, onSendMessage]);
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -123,4 +116,4 @@ const ChatClubContent = ({
   );
 };
 
-export default React.memo(ChatClubContent);
+export default ChatClubContent;
