@@ -452,16 +452,6 @@ const LoginForm: React.FC = () => {
     }
   };
 
-  // Reset form states when dialog opens/closes or steps change
-  useEffect(() => {
-    if (isResetDialogOpen) {
-      // Reset all forms when dialog opens
-      resetPasswordForm.reset();
-      verifyOtpForm.reset();
-      newPasswordForm.reset();
-    }
-  }, [isResetDialogOpen, resetPasswordStep]); // Added resetPasswordStep dependency to reset forms on step changes
-
   // Render the appropriate form based on the current auth mode
   const renderForm = () => {
     if (authMode === 'profile-completion') {
@@ -863,7 +853,7 @@ const LoginForm: React.FC = () => {
               <FormField
                 control={newPasswordForm.control}
                 name="confirmPassword"
-                render={({ field: { ref, ...restField } }) => (
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Confirm Password</FormLabel>
                     <FormControl>
@@ -872,8 +862,7 @@ const LoginForm: React.FC = () => {
                         type="password"
                         autoComplete="new-password"
                         disabled={isLoading}
-                        ref={ref}
-                        {...restField}
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
