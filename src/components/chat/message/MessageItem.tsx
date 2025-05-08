@@ -30,7 +30,13 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const [canDelete, setCanDelete] = useState(false);
   const { navigateToUserProfile } = useNavigation();
   
-  // Check if the message can be deleted by the current user
+  // Debug log to see complete sender data
+  console.log(`[MessageItem] Rendering message with id ${message.id}, sender:`, {
+    id: message.sender?.id || 'unknown',
+    name: message.sender?.name || 'unknown',
+    avatar: message.sender?.avatar || 'undefined'
+  });
+  
   useEffect(() => {
     const checkDeletePermission = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -44,11 +50,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
       }
     };
     
-    // Only check if delete functionality is provided
-    if (onDeleteMessage) {
-      checkDeletePermission();
-    }
-  }, [message.sender?.id, onDeleteMessage]);
+    checkDeletePermission();
+  }, [message.sender?.id]);
   
   const handleDeleteClick = () => {
     if (canDelete && onDeleteMessage && message.id) {
@@ -72,7 +75,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
     return message.timestamp;
   };
 
-  // Always use the data provided in the message object
+  // IMPORTANT: Always use the data provided in the message object
   // Never fall back to defaults for name - this ensures consistent display
   const senderName = message.sender?.name || 'Unknown';
   
@@ -80,8 +83,12 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const senderAvatar = message.sender?.avatar;
 
   const renderDeleteButton = () => {
-    if (!canDelete || !onDeleteMessage) {
-      return null;
+    if (!isUserMessage || !canDelete || !onDeleteMessage) {
+      return (
+        <div className="w-8 h-8 opacity-0" aria-hidden="true">
+          {/* Placeholder to maintain layout */}
+        </div>
+      );
     }
 
     return (
@@ -130,11 +137,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
       {/* Delete button for user's own messages */}
       {isUserMessage && renderDeleteButton()}
-
-      {/* Delete button for non-user messages (when authorized) */}
-      {!isUserMessage && canDelete && renderDeleteButton()}
     </div>
   );
 };
 
-export default React.memo(MessageItem);
+export default MessageItem;

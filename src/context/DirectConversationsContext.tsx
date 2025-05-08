@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from './AppContext';
 import { toast } from '@/hooks/use-toast';
@@ -10,14 +10,14 @@ interface Conversation {
   userName: string;
   userAvatar: string;
   lastMessage?: string;
-  timestamp?: string;
+  timestamp?: string;  // Added timestamp property
 }
 
 interface DirectConversationsContextValue {
   conversations: Conversation[];
   loading: boolean;
   hasLoaded: boolean;
-  fetchConversations: (forceRefresh?: boolean) => Promise<Conversation[]>;
+  fetchConversations: (forceRefresh?: boolean) => Promise<void>;
   refreshConversations: () => Promise<void>;
   getOrCreateConversation: (userId: string, userName: string, userAvatar?: string) => Promise<Conversation | null>;
 }
@@ -26,7 +26,7 @@ const DirectConversationsContext = createContext<DirectConversationsContextValue
   conversations: [],
   loading: false,
   hasLoaded: false,
-  fetchConversations: async () => [],
+  fetchConversations: async () => {},
   refreshConversations: async () => {},
   getOrCreateConversation: async () => null,
 });
@@ -38,30 +38,21 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
   const [loading, setLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
   const { currentUser } = useApp();
-  const fetchInProgressRef = useRef<boolean>(false);
-  
-  const fetchConversations = useCallback(async (forceRefresh = false): Promise<Conversation[]> => {
-    // Prevent concurrent fetches and return cached conversations when appropriate
-    if (fetchInProgressRef.current) {
-      console.log('[DirectConversationsProvider] Fetch already in progress, returning current conversations');
-      return conversations;
-    }
-    
+
+  const fetchConversations = useCallback(async (forceRefresh = false) => {
     if (!forceRefresh && hasLoaded) {
       console.log('[DirectConversationsProvider] Using cached conversations');
-      return conversations;
+      return;
     }
     
     if (!currentUser?.id) {
       console.warn('[DirectConversationsProvider] Cannot fetch conversations, no current user');
-      return [];
+      return;
     }
     
+    setLoading(true);
+    
     try {
-      // Set loading and fetch in progress flags
-      setLoading(true);
-      fetchInProgressRef.current = true;
-      
       console.log('[DirectConversationsProvider] Fetching conversations for user:', currentUser.id);
       
       // Get all conversations where the current user is a participant
@@ -81,7 +72,8 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
       if (!conversationsData || conversationsData.length === 0) {
         setConversations([]);
         setHasLoaded(true);
-        return [];
+        setLoading(false);
+        return;
       }
       
       // Get the other participant's details for each conversation
@@ -141,8 +133,6 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
       setConversations(conversationsWithUserDetails);
       setHasLoaded(true);
       
-      return conversationsWithUserDetails;
-      
     } catch (error) {
       console.error('[DirectConversationsProvider] Error fetching conversations:', error);
       toast({
@@ -150,12 +140,10 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
         description: "Failed to load conversations",
         variant: "destructive"
       });
-      return [];
     } finally {
       setLoading(false);
-      fetchInProgressRef.current = false;
     }
-  }, [currentUser?.id, hasLoaded, conversations]);
+  }, [currentUser?.id, hasLoaded]);
   
   const refreshConversations = useCallback(async () => {
     await fetchConversations(true);

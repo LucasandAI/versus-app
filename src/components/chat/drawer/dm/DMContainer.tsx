@@ -1,11 +1,10 @@
-import React, { useState, useEffect, memo, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, memo, useMemo } from 'react';
 import DMConversationList from './DMConversationList';
 import DMConversation from './DMConversation';
 import DMSearchPanel from './DMSearchPanel';
 import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
+import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
 import { useApp } from '@/context/AppContext';
-import { useUnreadMessages } from '@/context/UnreadMessagesContext';
-import { toast } from '@/hooks/use-toast';
 
 interface DMContainerProps {
   directMessageUser: {
@@ -27,57 +26,35 @@ interface DMContainerProps {
 const DMContainer: React.FC<DMContainerProps> = memo(({ 
   directMessageUser, 
   setDirectMessageUser,
-  unreadConversations: propUnreadConversations
+  unreadConversations = new Set<string>()
 }) => {
   const [showSearch, setShowSearch] = useState(false);
-  const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const { getOrCreateConversation } = useDirectConversationsContext();
-  const { markConversationAsRead } = useUnreadMessages();
+  const { markDirectMessagesAsRead } = useMessageReadStatus();
   const { currentUser } = useApp();
 
-  // Create a handler for search results selection
-  const handleSearchSelect = useCallback(async (userId: string, userName: string, userAvatar: string) => {
+  // Create a handler for search results selection - memoized to keep reference stable
+  const handleSearchSelect = useMemo(() => async (userId: string, userName: string, userAvatar: string) => {
     console.log(`[DMContainer] User selected from search: ${userId}, ${userName}`);
-    
-    if (isCreatingConversation) {
-      // Prevent duplicate creation attempts
-      return;
-    }
-    
-    try {
-      setIsCreatingConversation(true);
-      const conversation = await getOrCreateConversation(userId, userName, userAvatar);
-      
-      if (conversation) {
-        setDirectMessageUser({
-          userId,
-          userName,
-          userAvatar: userAvatar || '/placeholder.svg',
-          conversationId: conversation.conversationId
-        });
-        setShowSearch(false);
-      } else {
-        throw new Error("Failed to create conversation");
-      }
-    } catch (error) {
-      console.error('[DMContainer] Error creating conversation:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create conversation. Please try again.",
-        variant: "destructive"
+    const conversation = await getOrCreateConversation(userId, userName, userAvatar);
+    if (conversation) {
+      setDirectMessageUser({
+        userId,
+        userName,
+        userAvatar: userAvatar || '/placeholder.svg',
+        conversationId: conversation.conversationId
       });
-    } finally {
-      setIsCreatingConversation(false);
+      setShowSearch(false);
     }
-  }, [getOrCreateConversation, setDirectMessageUser, isCreatingConversation]);
+  }, [getOrCreateConversation, setDirectMessageUser]);
   
   // Mark conversation as read when selected
   useEffect(() => {
-    if (directMessageUser && directMessageUser.conversationId && directMessageUser.conversationId !== 'new' && currentUser?.id) {
+    if (directMessageUser && currentUser?.id) {
       console.log(`[DMContainer] Marking conversation ${directMessageUser.conversationId} as read`);
-      markConversationAsRead(directMessageUser.conversationId);
+      markDirectMessagesAsRead(directMessageUser.conversationId, currentUser.id);
     }
-  }, [directMessageUser?.conversationId, currentUser?.id, markConversationAsRead]);
+  }, [directMessageUser?.conversationId, currentUser?.id, markDirectMessagesAsRead]);
 
   // Only create these components once and keep them in memory
   const conversationListComponent = useMemo(() => (
@@ -86,35 +63,31 @@ const DMContainer: React.FC<DMContainerProps> = memo(({
         setDirectMessageUser({
           userId,
           userName,
-          userAvatar: userAvatar || '/placeholder.svg',
-          conversationId: conversationId || 'new'
+          userAvatar,
+          conversationId
         });
       }}
       selectedUserId={directMessageUser?.userId}
-      unreadConversations={propUnreadConversations}
+      unreadConversations={unreadConversations}
     />
-  ), [directMessageUser?.userId, propUnreadConversations, setDirectMessageUser]);
+  ), [directMessageUser?.userId, unreadConversations, setDirectMessageUser]);
   
   const searchPanelComponent = useMemo(() => (
     <DMSearchPanel 
       onSelect={handleSearchSelect} 
       onBack={() => setShowSearch(false)} 
-      isLoading={isCreatingConversation}
     />
-  ), [handleSearchSelect, isCreatingConversation]);
+  ), [handleSearchSelect]);
 
   // The user has selected a DM conversation
   if (directMessageUser) {
-    // Ensure all required properties are present
-    const userData = {
-      id: directMessageUser.userId,
-      name: directMessageUser.userName,
-      avatar: directMessageUser.userAvatar || '/placeholder.svg'
-    };
-    
     return (
       <DMConversation
-        user={userData}
+        user={{
+          id: directMessageUser.userId,
+          name: directMessageUser.userName,
+          avatar: directMessageUser.userAvatar
+        }}
         conversationId={directMessageUser.conversationId}
         onBack={() => setDirectMessageUser(null)}
       />
@@ -127,21 +100,7 @@ const DMContainer: React.FC<DMContainerProps> = memo(({
   }
 
   // Show the conversation list (default view)
-  return (
-    <div className="w-full h-full flex flex-col">
-      <div className="flex-1 overflow-hidden">
-        {conversationListComponent}
-      </div>
-      <div className="p-4 border-t">
-        <button
-          className="w-full py-2 px-4 bg-primary text-white rounded-md font-medium hover:bg-primary/90 transition-colors"
-          onClick={() => setShowSearch(true)}
-        >
-          New Message
-        </button>
-      </div>
-    </div>
-  );
+  return conversationListComponent;
 });
 
 DMContainer.displayName = 'DMContainer';

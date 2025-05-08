@@ -8,23 +8,19 @@ import { ArrowLeft } from 'lucide-react';
 interface DMSearchPanelProps {
   onSelect: (userId: string, userName: string, userAvatar: string) => Promise<void>;
   onBack: () => void;
-  isLoading?: boolean; // Added isLoading prop
 }
 
-const DMSearchPanel: React.FC<DMSearchPanelProps> = ({ onSelect, onBack, isLoading: externalLoading }) => {
+const DMSearchPanel: React.FC<DMSearchPanelProps> = ({ onSelect, onBack }) => {
   const {
     query,
     setQuery,
     searchResults,
-    isLoading: searchLoading,
+    isLoading,
     searchUsers,
     clearSearch,
     showResults,
     setShowResults
   } = useUserSearch();
-
-  // Combine both loading states
-  const isLoading = externalLoading || searchLoading;
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;

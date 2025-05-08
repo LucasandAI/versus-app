@@ -1,9 +1,6 @@
-import React from 'react';
+
+import React, { memo } from 'react';
 import { Club } from '@/types';
-import { useClubMessages } from '@/hooks/chat/useClubMessages';
-import { useInitialMessages } from '@/hooks/chat/messages/useInitialMessages';
-import { useApp } from '@/context/AppContext';
-import ChatSidebarContent from './ChatSidebarContent';
 import ChatClubContainer from './club/ChatClubContainer';
 import DMContainer from './dm/DMContainer';
 
@@ -11,93 +8,62 @@ interface ChatDrawerContainerProps {
   activeTab: "clubs" | "dm";
   clubs: Club[];
   selectedLocalClub: Club | null;
-  onSelectClub: (club: Club | null) => void;
+  onSelectClub: (club: Club) => void;
   messages?: Record<string, any[]>;
-  deleteChat?: (clubId: string) => void;
-  unreadMessages?: Record<string, number>;
+  deleteChat: (chatId: string) => void;
+  unreadMessages: Record<string, number>;
   unreadClubs?: Set<string>;
   unreadConversations?: Set<string>;
-  handleNewMessage?: () => void;
-  onSendMessage?: (message: string, clubId: string) => void;
+  handleNewMessage: (clubId: string, message: any, isOpen: boolean) => void;
+  onSendMessage: (message: string, clubId?: string) => void;
   onDeleteMessage?: (messageId: string) => void;
-  directMessageUser?: {
+  directMessageUser: {
     userId: string;
     userName: string;
     userAvatar: string;
     conversationId: string;
   } | null;
-  setDirectMessageUser?: (user: {
+  setDirectMessageUser: React.Dispatch<React.SetStateAction<{
     userId: string;
     userName: string;
     userAvatar: string;
     conversationId: string;
-  } | null) => void;
+  } | null>>;
 }
 
-const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
+// Memo the container to prevent re-renders
+const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = memo(({
   activeTab,
   clubs,
   selectedLocalClub,
   onSelectClub,
-  messages,
+  messages = {},
   deleteChat,
   unreadMessages,
-  unreadClubs,
-  unreadConversations,
+  unreadClubs = new Set<string>(),
+  unreadConversations = new Set<string>(),
   handleNewMessage,
   onSendMessage,
   onDeleteMessage,
   directMessageUser,
   setDirectMessageUser
 }) => {
-  const { currentUser } = useApp();
-  
-  // Manage club messages with the useClubMessages hook
-  const { clubMessages, setClubMessages } = useClubMessages(clubs, true);
-  
-  // Initialize messages
-  useInitialMessages(clubs, true, setClubMessages);
-
-  // Ensure we use the passed messages prop if available, otherwise use the clubMessages state
-  const finalMessages = messages && Object.keys(messages).length > 0 
-    ? messages as Record<string, any[]> 
-    : clubMessages;
+  // Cache key for accessibility
+  const activeCacheKey = activeTab === 'clubs' ? 'clubs' : 'dm';
 
   return (
-    <div className="flex flex-grow h-full overflow-hidden">
-      {activeTab === "clubs" ? (
-        <div className="w-full h-full">
-          {selectedLocalClub ? (
-            <ChatClubContainer
-              selectedClub={selectedLocalClub}
-              messages={selectedLocalClub ? finalMessages[selectedLocalClub.id] || [] : []}
-              clubs={clubs}
-              onSendMessage={onSendMessage}
-              onDeleteMessage={onDeleteMessage}
-              onSelectClub={onSelectClub}
-            />
-          ) : (
-            <ChatSidebarContent
-              clubs={clubs}
-              selectedClub={selectedLocalClub}
-              onSelectClub={onSelectClub}
-              onDeleteChat={deleteChat}
-              unreadCounts={unreadMessages}
-              unreadClubs={unreadClubs}
-              onSelectUser={(userId, userName, userAvatar) => {
-                setDirectMessageUser?.({
-                  userId,
-                  userName,
-                  userAvatar: userAvatar || '/placeholder.svg',
-                  conversationId: 'new'
-                });
-              }}
-              activeTab={activeTab}
-            />
-          )}
-        </div>
+    <div className="flex-1 overflow-hidden">
+      {activeTab === 'clubs' ? (
+        <ChatClubContainer 
+          clubs={clubs}
+          selectedClub={selectedLocalClub}
+          onSelectClub={onSelectClub}
+          messages={messages}
+          unreadClubs={unreadClubs}
+          onSendMessage={onSendMessage}
+          onDeleteMessage={onDeleteMessage}
+        />
       ) : (
-        // Direct messages container
         <DMContainer
           directMessageUser={directMessageUser}
           setDirectMessageUser={setDirectMessageUser}
@@ -106,6 +72,8 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
       )}
     </div>
   );
-};
+});
+
+ChatDrawerContainer.displayName = 'ChatDrawerContainer';
 
 export default ChatDrawerContainer;

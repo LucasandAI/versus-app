@@ -1,14 +1,17 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useApp } from '@/context/AppContext';
 import { Notification } from '@/types';
 import { handleNotification, markAllNotificationsAsRead } from '@/lib/notificationUtils';
+import { useInitialAppLoad } from '@/hooks/useInitialAppLoad';
 
 export const useHomeNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadMessages, setUnreadMessages] = useState<Record<string, number>>({});
-  const { currentUser, refreshCurrentUser, isAppReady } = useApp();
+  const { currentUser, refreshCurrentUser } = useApp();
+  const isAppReady = useInitialAppLoad();  // NEW: Get app ready state
 
   // Initialize notifications from localStorage if available
   useEffect(() => {

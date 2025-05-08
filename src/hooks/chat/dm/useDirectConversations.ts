@@ -29,14 +29,11 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
     if (fetchTimeoutRef.current) {
       clearTimeout(fetchTimeoutRef.current);
     }
-    
-    setLoading(true);
 
     // Use a short timeout to ensure auth is fully ready
     return new Promise<DMConversation[]>((resolve) => {
       fetchTimeoutRef.current = setTimeout(() => {
         if (!isMounted.current) {
-          setLoading(false);
           resolve([]);
           return;
         }
@@ -46,23 +43,12 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
         debouncedFetchConversations(currentUser.id, setLoading, (convs: DMConversation[]) => {
           // Filter out self-conversations
           const filteredConvs = convs.filter(c => c.userId !== currentUser.id);
-          
-          if (isMounted.current) {
-            setConversations(filteredConvs);
-            setLoading(false);
-          }
+          setConversations(filteredConvs);
           resolve(filteredConvs);
         });
       }, 300);
     });
   }, [currentUser?.id, isSessionReady, debouncedFetchConversations]);
-
-  // Ensure data loaded once on mount if possible
-  useEffect(() => {
-    if (isSessionReady && currentUser?.id && !fetchAttemptedRef.current) {
-      fetchConversations();
-    }
-  }, [isSessionReady, currentUser?.id, fetchConversations]);
 
   // Cleanup effect
   useEffect(() => {

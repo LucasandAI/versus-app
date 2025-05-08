@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -20,25 +20,21 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   onClick,
   initials: customInitials
 }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   
-  // Memoize the result of isValidUrl to prevent unnecessary re-evals
-  const isValidImage = useMemo(() => {
-    if (!image || typeof image !== 'string' || image.trim() === '' || image === '/placeholder.svg') {
-      return false;
-    }
-    
-    // Basic URL validation
-    try {
-      new URL(image);
-      return !imageError; // Only valid if both URL is valid and no error occurred
-    } catch (e) {
-      return false;
-    }
-  }, [image, imageError]);
+  // Reset states when image prop changes
+  useEffect(() => {
+    setImageLoaded(false);
+    setImageError(false);
+  }, [image]);
 
-  // Memoize initials calculation to prevent re-renders
-  const displayInitials = useMemo(() => {
+  // For debugging
+  useEffect(() => {
+    console.log(`[UserAvatar] Rendering with image: ${image}`);
+  }, [image]);
+
+  const getInitials = (name: string) => {
     // Use custom initials if provided
     if (customInitials) return customInitials;
     
@@ -62,7 +58,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
     
     // For single word names, take first two letters
     return name.substring(0, 2).toUpperCase();
-  }, [name, customInitials]);
+  };
 
   const sizeClasses = {
     xs: 'h-6 w-6 text-xs',
@@ -72,31 +68,58 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   };
 
   const handleImageError = () => {
+    console.log(`[UserAvatar] Error loading image: ${image}`);
     setImageError(true);
   };
+
+  const handleImageLoad = () => {
+    console.log(`[UserAvatar] Successfully loaded image: ${image}`);
+    setImageLoaded(true);
+  };
+
+  // Check if image URL is valid - improved validation
+  const isValidUrl = (url?: string | null) => {
+    if (!url || typeof url !== 'string' || url.trim() === '' || url === '/placeholder.svg') {
+      return false;
+    }
+    
+    // Basic URL validation for Supabase URLs
+    try {
+      // Check if it's a valid URL
+      new URL(url);
+      return true;
+    } catch (e) {
+      console.log(`[UserAvatar] Invalid URL: ${url}`);
+      return false;
+    }
+  };
+
+  // Show image if it's a valid URL and no error occurred
+  const shouldShowImage = isValidUrl(image) && !imageError;
+  const initials = getInitials(name);
 
   return (
     <Avatar 
       className={cn(sizeClasses[size], className, onClick ? 'cursor-pointer' : '')}
       onClick={onClick}
     >
-      {isValidImage ? (
+      {shouldShowImage ? (
         <AvatarImage 
           src={image || ''} 
           alt={name} 
           className="object-cover" 
           onError={handleImageError}
+          onLoad={handleImageLoad}
         />
       ) : null}
       
       <AvatarFallback 
         className="bg-primary/10 text-primary font-bold"
       >
-        {displayInitials}
+        {initials}
       </AvatarFallback>
     </Avatar>
   );
 };
 
-// Apply memo to prevent unnecessary re-renders
-export default React.memo(UserAvatar);
+export default UserAvatar;

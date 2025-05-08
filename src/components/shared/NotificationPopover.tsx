@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Bell, Trash2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -9,6 +10,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { useApp } from '@/context/AppContext';
+import { useInitialAppLoad } from '@/hooks/useInitialAppLoad';
 
 interface NotificationPopoverProps {
   notifications: Notification[];
@@ -25,7 +27,8 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
   onUserClick,
   onDeclineInvite
 }) => {
-  const { isSessionReady, isAppReady } = useApp();
+  const { isSessionReady } = useApp();
+  const isAppReady = useInitialAppLoad();
   const [open, setOpen] = useState(false);
   const [localNotifications, setLocalNotifications] = useState<Notification[]>(notifications);
 

@@ -7,7 +7,6 @@ import { useMessageNormalization } from './message/useMessageNormalization';
 import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
 import { useCurrentMember } from '@/hooks/chat/messages/useCurrentMember';
 import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
-import { Spinner } from '@/components/ui/spinner';
 
 interface ChatMessagesProps {
   messages: ChatMessage[] | any[];
@@ -23,7 +22,6 @@ interface ChatMessagesProps {
   lastMessageRef?: React.RefObject<HTMLDivElement>;
   formatTime?: (isoString: string) => string;
   scrollRef?: React.RefObject<HTMLDivElement>;
-  isLoading?: boolean;
 }
 
 // Use memo to prevent unnecessary re-renders with consistent identity reference
@@ -37,7 +35,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   lastMessageRef: providedLastMessageRef,
   formatTime: providedFormatTime,
   scrollRef: providedScrollRef,
-  isLoading = false
 }) => {
   // Create stable references to prevent recreation
   const prevMessageLengthRef = useRef<number>(0);
@@ -73,7 +70,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   const finalFormatTime = providedFormatTime || defaultFormatTime;
   const finalScrollRef = providedScrollRef || defaultScrollRef;
   
-  // Handle case when messages is not an array or when loading
+  // Handle case when messages is not an array
   if (!Array.isArray(messages)) {
     return (
       <div className="flex-1 p-4">
@@ -84,15 +81,25 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
     );
   }
   
+  // Add debug logging to see what's being processed
+  console.log('[ChatMessages] Processing messages array:', messages.length);
+  
   // Only normalize messages once per unique message set
   // Using useMemo with messages reference as dependency
   const normalizedMessages = useMemo(() => {
+    console.log('[ChatMessages] Normalizing messages, count:', messages.length);
     // Debug log a sample message to see what's coming in
     if (messages.length > 0) {
-      console.log('[ChatMessages] Processing messages array:', messages.length);
+      console.log('[ChatMessages] Sample message before normalization:', messages[messages.length - 1]);
     }
     
     const normalized = messages.map(message => normalizeMessage(message));
+    
+    // Debug log the normalized result for comparison
+    if (normalized.length > 0) {
+      console.log('[ChatMessages] Sample normalized message:', normalized[normalized.length - 1]);
+    }
+    
     return normalized;
   }, [messages, normalizeMessage]);
 
@@ -115,27 +122,17 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
         isClubChat ? 'h-[calc(73vh-8rem)]' : 'h-[calc(73vh-6rem)]'
       }`}
     >
-      {isLoading && messages.length === 0 ? (
-        <div className="h-full flex items-center justify-center">
-          <Spinner />
-        </div>
-      ) : normalizedMessages.length === 0 ? (
-        <div className="h-full flex items-center justify-center text-gray-500 text-sm">
-          No messages yet. Start the conversation!
-        </div>
-      ) : (
-        <MessageList 
-          messages={normalizedMessages} 
-          clubMembers={clubMembers} 
-          isSupport={isSupport} 
-          onDeleteMessage={onDeleteMessage} 
-          onSelectUser={onSelectUser} 
-          formatTime={finalFormatTime} 
-          currentUserAvatar={finalUserAvatar} 
-          currentUserId={currentUserId} 
-          lastMessageRef={finalLastMessageRef} 
-        />
-      )}
+      <MessageList 
+        messages={normalizedMessages} 
+        clubMembers={clubMembers} 
+        isSupport={isSupport} 
+        onDeleteMessage={onDeleteMessage} 
+        onSelectUser={onSelectUser} 
+        formatTime={finalFormatTime} 
+        currentUserAvatar={finalUserAvatar} 
+        currentUserId={currentUserId} 
+        lastMessageRef={finalLastMessageRef} 
+      />
     </div>
   );
 });
