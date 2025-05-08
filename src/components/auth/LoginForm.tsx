@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -66,7 +65,7 @@ type VerifyOtpFormValues = z.infer<typeof verifyOtpSchema>;
 type NewPasswordFormValues = z.infer<typeof newPasswordSchema>;
 
 const LoginForm: React.FC = () => {
-  const { signIn, needsProfileCompletion, setNeedsProfileCompletion } = useApp();
+  const { signIn, signOut, resetPassword, isLoading: authLoading } = useApp();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode>('login');
@@ -284,27 +283,22 @@ const LoginForm: React.FC = () => {
     setError(null);
     
     try {
-      // Store the token for later use in handleSetNewPassword
+      // Store the token for use in handleSetNewPassword
       setResetToken(values.otp);
-
-      // Verify the OTP without creating a session
-      const { error } = await supabase.auth.verifyOtp({
-        email: resetEmail,
-        token: values.otp,
-        type: 'recovery'
-      });
       
-      if (error) throw error;
-      
-      // Reset the new password form before proceeding to ensure clean state
-      newPasswordForm.reset({ password: '', confirmPassword: '' });
+      // We'll just validate the format here, the actual verification
+      // will happen together with password update
+      if (values.otp.length !== 6 || !/^\d+$/.test(values.otp)) {
+        throw new Error("Verification code must be 6 digits");
+      }
       
       // Move to the new password step
       setResetPasswordStep('newPassword');
+      newPasswordForm.reset({ password: '', confirmPassword: '' });
       setFormKey(Date.now()); // Force re-render form components
       
       toast({
-        title: "Code verified",
+        title: "Enter new password",
         description: "Please set your new password"
       });
     } catch (error) {
@@ -326,39 +320,14 @@ const LoginForm: React.FC = () => {
     setError(null);
     
     try {
-      // Sign out any existing session to avoid interference
-      await supabase.auth.signOut();
+      // Use the centralized auth hook for password reset
+      const success = await resetPassword(resetEmail, resetToken, values.password);
       
-      // Update the user password using verifyOtp with the stored token
-      const { error } = await supabase.auth.verifyOtp({
-        email: resetEmail,
-        token: resetToken,
-        type: 'recovery',
-        options: {
-          captchaToken: undefined
-        }
-      });
-      
-      if (error) throw error;
-      
-      // Now update the password
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: values.password
-      });
-      
-      if (updateError) throw updateError;
-      
-      // Sign out again to ensure clean state
-      await supabase.auth.signOut();
-      
-      // Close the reset dialog
-      setIsResetDialogOpen(false);
-      setResetToken(null);
-      
-      toast({
-        title: "Password updated",
-        description: "Your password has been successfully updated. You can now log in with your new password."
-      });
+      if (success) {
+        // Close the reset dialog on success
+        setIsResetDialogOpen(false);
+        setResetToken(null);
+      }
     } catch (error) {
       console.error('[LoginForm] Password update error:', error);
       toast({
@@ -973,4 +942,3 @@ const LoginForm: React.FC = () => {
 };
 
 export default LoginForm;
-
