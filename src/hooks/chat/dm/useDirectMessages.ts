@@ -7,7 +7,7 @@ export const useDirectMessages = (
   conversationId: string,
   globalMessages: Record<string, any[]> = {}
 ) => {
-  const [messages, setMessages] = useState<any[]>(globalMessages[conversationId] || []);
+  const [messages, setMessages] = useState<any[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [oldestMessageTimestamp, setOldestMessageTimestamp] = useState<string | null>(null);
@@ -15,13 +15,14 @@ export const useDirectMessages = (
   // Keep local state in sync with global messages
   useEffect(() => {
     if (globalMessages[conversationId]) {
-      setMessages(globalMessages[conversationId]);
+      const sortedMessages = [...globalMessages[conversationId]].sort((a, b) => 
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+      setMessages(sortedMessages);
+      
       // Update oldest message timestamp
-      if (globalMessages[conversationId].length > 0) {
-        const oldestMsg = globalMessages[conversationId].reduce((oldest, current) => 
-          new Date(current.timestamp) < new Date(oldest.timestamp) ? current : oldest
-        );
-        setOldestMessageTimestamp(oldestMsg.timestamp);
+      if (sortedMessages.length > 0) {
+        setOldestMessageTimestamp(sortedMessages[0].timestamp);
       }
     }
   }, [conversationId, globalMessages]);
@@ -47,17 +48,15 @@ export const useDirectMessages = (
               )
             `)
             .eq('conversation_id', conversationId)
-            .order('timestamp', { ascending: false })
+            .order('timestamp', { ascending: true })
             .limit(MESSAGES_PER_PAGE);
 
           if (data) {
-            // Reverse the order to show oldest first
-            const sortedData = [...data].reverse();
-            setMessages(sortedData);
+            setMessages(data);
             
             // Update oldest message timestamp
-            if (sortedData.length > 0) {
-              setOldestMessageTimestamp(sortedData[0].timestamp);
+            if (data.length > 0) {
+              setOldestMessageTimestamp(data[0].timestamp);
             }
             
             // Check if there are more messages
@@ -95,17 +94,15 @@ export const useDirectMessages = (
         `)
         .eq('conversation_id', conversationId)
         .lt('timestamp', oldestMessageTimestamp)
-        .order('timestamp', { ascending: false })
+        .order('timestamp', { ascending: true })
         .limit(MESSAGES_PER_PAGE);
 
       if (data) {
-        // Reverse the order to show oldest first
-        const sortedData = [...data].reverse();
-        setMessages(prev => [...sortedData, ...prev]);
+        setMessages(prev => [...data, ...prev]);
         
         // Update oldest message timestamp
-        if (sortedData.length > 0) {
-          setOldestMessageTimestamp(sortedData[0].timestamp);
+        if (data.length > 0) {
+          setOldestMessageTimestamp(data[0].timestamp);
         }
         
         // Check if there are more messages

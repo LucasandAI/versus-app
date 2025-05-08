@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useCallback } from 'react';
 
 export const useMessageScroll = (messages: any[]) => {
@@ -11,6 +10,9 @@ export const useMessageScroll = (messages: any[]) => {
   
   // Optimize scrolling by using a callback with requestAnimationFrame
   const scrollToBottom = useCallback((smooth = true) => {
+    // Don't scroll if user is actively scrolling up
+    if (isUserScrolling.current) return;
+    
     // Prevent multiple scroll attempts in a short time
     if (scrollLockRef.current) return;
     scrollLockRef.current = true;
@@ -25,12 +27,6 @@ export const useMessageScroll = (messages: any[]) => {
       if (scrollRef.current) {
         const { scrollHeight, clientHeight } = scrollRef.current;
         scrollRef.current.scrollTop = scrollHeight - clientHeight;
-        
-        // Important: Use behavior: 'auto' to prevent visual jarring
-        // scrollRef.current.scrollTo({
-        //   top: scrollHeight - clientHeight,
-        //   behavior: smooth ? 'smooth' : 'auto'
-        // });
       }
       
       // Release scroll lock after animation completes
@@ -55,6 +51,7 @@ export const useMessageScroll = (messages: any[]) => {
       // Only consider at bottom if within 50px of bottom
       const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
       
+      // Update user scrolling state
       isUserScrolling.current = !isAtBottom;
       
       // Debounce scroll state changes
