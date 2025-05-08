@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useFetchUserClubs } from '@/components/profile/hooks/userProfile/useFetchUserClubs';
@@ -15,7 +14,7 @@ export const useInitialAppLoad = () => {
   const { fetchConversations } = useDirectConversationsContext();
   const { fetchUnreadCounts } = useUnreadMessages();
   const initialDataFetchedRef = useRef(false);
-  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Skip if not authenticated or session not ready or already fetched
@@ -23,48 +22,40 @@ export const useInitialAppLoad = () => {
 
     const fetchInitialData = async () => {
       try {
-        console.log('[useInitialAppLoad] Starting initial data load');
+        console.log('[useInitialAppLoad] Starting initial data fetch');
         
-        // Step 1: Fetch user clubs
+        // Step 1: Fetch user's clubs
         console.log('[useInitialAppLoad] Fetching user clubs');
         const clubsResponse = await useFetchUserClubs(currentUser.id);
-        // Ensure clubsResponse has the expected structure before accessing properties
         const userClubs: Club[] = clubsResponse && 'clubs' in clubsResponse ? 
           (Array.isArray(clubsResponse.clubs) ? clubsResponse.clubs : []) : [];
         
-        // Step 2: Pre-fetch club messages in background for faster chat drawer open
+        // Step 2: Fetch club messages
+        console.log('[useInitialAppLoad] Fetching club messages');
         if (userClubs && userClubs.length > 0) {
-          console.log('[useInitialAppLoad] Prefetching club messages');
-          
-          const clubIds = userClubs.map(club => club.id);
-          await Promise.all([
-            // Fetch last 10 messages for each club to prepopulate cache
-            supabase
-              .from('club_chat_messages')
-              .select(`
+          const { data: clubMessages } = await supabase
+            .from('club_chat_messages')
+            .select(`
+              id, 
+              message, 
+              sender_id, 
+              club_id, 
+              timestamp,
+              sender:sender_id (
                 id, 
-                message, 
-                sender_id, 
-                club_id, 
-                timestamp,
-                sender:sender_id (
-                  id, 
-                  name, 
-                  avatar
-                )
-              `)
-              .in('club_id', clubIds)
-              .order('timestamp', { ascending: false })
-              .limit(10)
-              .then(({ data, error }) => {
-                if (error) console.error('[useInitialAppLoad] Error prefetching club messages:', error);
-                if (data) console.log(`[useInitialAppLoad] Prefetched ${data.length} club messages`);
-              })
-          ]);
+                name, 
+                avatar
+              )
+            `)
+            .in('club_id', userClubs.map(club => club.id))
+            .order('timestamp', { ascending: false })
+            .limit(50);
+            
+          console.log('[useInitialAppLoad] Fetched club messages:', clubMessages?.length || 0);
         }
         
-        // Step 3: Fetch conversations (only once)
-        console.log('[useInitialAppLoad] Fetching DM conversations');
+        // Step 3: Fetch direct conversations
+        console.log('[useInitialAppLoad] Fetching direct conversations');
         await fetchConversations(true); // Force refresh to ensure data is loaded
         
         // Step 4: Fetch unread message counts

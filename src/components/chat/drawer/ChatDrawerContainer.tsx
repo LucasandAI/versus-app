@@ -1,39 +1,37 @@
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Club } from '@/types';
-import ChatSidebar from '../ChatSidebar';
-import ChatClubContainer from './club/ChatClubContainer';
-import DMContainer from './dm/DMContainer';
 import { useClubMessages } from '@/hooks/chat/useClubMessages';
 import { useInitialMessages } from '@/hooks/chat/messages/useInitialMessages';
 import { useApp } from '@/context/AppContext';
-import LoadingScreen from '@/components/shared/LoadingScreen';
+import ChatSidebar from './sidebar/ChatSidebar';
+import ChatClubContainer from './club/ChatClubContainer';
+import DMContainer from './dm/DMContainer';
 
 interface ChatDrawerContainerProps {
   activeTab: "clubs" | "dm";
   clubs: Club[];
   selectedLocalClub: Club | null;
-  onSelectClub: (club: Club) => void;
+  onSelectClub: (club: Club | null) => void;
   messages?: Record<string, any[]>;
-  deleteChat: (chatId: string) => void;
-  unreadMessages: Record<string, number>;
+  deleteChat?: (clubId: string) => void;
+  unreadMessages?: Record<string, number>;
   unreadClubs?: Set<string>;
   unreadConversations?: Set<string>;
-  handleNewMessage: (message: any) => void;
-  onSendMessage: (message: string, clubId?: string) => Promise<void> | void;
-  onDeleteMessage?: (messageId: string) => Promise<void> | void;
-  directMessageUser: {
+  handleNewMessage?: () => void;
+  onSendMessage?: (message: string, clubId: string) => void;
+  onDeleteMessage?: (messageId: string) => void;
+  directMessageUser?: {
     userId: string;
     userName: string;
     userAvatar: string;
     conversationId: string;
   } | null;
-  setDirectMessageUser: React.Dispatch<React.SetStateAction<{
+  setDirectMessageUser?: (user: {
     userId: string;
     userName: string;
     userAvatar: string;
     conversationId: string;
-  } | null>>;
+  } | null) => void;
 }
 
 const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
@@ -53,35 +51,18 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   setDirectMessageUser
 }) => {
   const { currentUser } = useApp();
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
   
   // Manage club messages with the useClubMessages hook
-  const { clubMessages, setClubMessages, isLoading: messagesLoading } = useClubMessages(clubs, true);
+  const { clubMessages, setClubMessages } = useClubMessages(clubs, true);
   
   // Initialize messages
   useInitialMessages(clubs, true, setClubMessages);
-  
-  // Set initial loading state
-  useEffect(() => {
-    if (!messagesLoading) {
-      // Give a slight delay to ensure smooth transition
-      const timer = setTimeout(() => {
-        setIsInitialLoading(false);
-      }, 200);
-      return () => clearTimeout(timer);
-    }
-  }, [messagesLoading]);
 
   // Ensure we use the passed messages prop if available, otherwise use the clubMessages state
   const finalMessages = messages && Object.keys(messages).length > 0 
     ? messages as Record<string, any[]> 
     : clubMessages;
 
-  // Show loading state if initial loading
-  if (isInitialLoading && activeTab === "clubs") {
-    return <LoadingScreen message="Loading chat messages..." subMessage="Preparing your conversations" />;
-  }
-  
   return (
     <div className="flex flex-grow h-full overflow-hidden">
       {activeTab === "clubs" ? (
@@ -96,7 +77,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
               unreadCounts={unreadMessages}
               unreadClubs={unreadClubs}
               onSelectUser={(userId, userName, userAvatar) => {
-                setDirectMessageUser({
+                setDirectMessageUser?.({
                   userId,
                   userName,
                   userAvatar: userAvatar || '/placeholder.svg',
