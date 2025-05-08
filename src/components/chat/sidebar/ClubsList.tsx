@@ -1,5 +1,5 @@
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Club } from '@/types';
 import UserAvatar from '../../shared/UserAvatar';
 import ClubMembersPopover from './ClubMembersPopover';
@@ -38,14 +38,22 @@ const ClubsList: React.FC<ClubsListProps> = ({
   // Use either the passed props (preferred) or fall back to context
   const unreadClubs = propUnreadClubs || contextUnreadClubs;
   
-  // Memoize the unread key array to prevent recreation on each render
-  const unreadClubsArray = useMemo(() => Array.from(unreadClubs || new Set()), [unreadClubs]);
+  // Create stable keys for clubs that don't change with unread status
+  const clubKeys = useMemo(() => {
+    return sortedClubs.reduce((acc, club) => {
+      acc[club.id] = `club-${club.id}`;
+      return acc;
+    }, {} as Record<string, string>);
+  }, [sortedClubs]);
   
   const handleClubClick = (club: Club, e: React.MouseEvent) => {
     e.preventDefault();
     onSelectClub(club);
     markClubMessagesAsRead(club.id);
     console.log('[ClubsList] Club selected for chat:', club.id);
+    
+    // Dispatch club selected event for subscription awareness
+    window.dispatchEvent(new CustomEvent('clubSelected', { detail: { clubId: club.id } }));
   };
 
   const truncateMessage = (text: string) => {
@@ -61,25 +69,22 @@ const ClubsList: React.FC<ClubsListProps> = ({
           // Get club ID as string to ensure consistent comparison
           const clubId = String(club.id);
           const isUnread = unreadClubs?.has(clubId);
+          const stableKey = clubKeys[clubId];
           
           const lastMessage = lastMessages[club.id];
           const formattedTime = lastMessage?.timestamp 
             ? formatDistanceToNow(new Date(lastMessage.timestamp), { addSuffix: false })
             : '';
             
-          // Create a stable unique key for the club that doesn't change with unread status
-          const uniqueClubKey = `club-${clubId}`;
-            
           return (
             <div 
-              key={uniqueClubKey}
+              key={stableKey}
               className={`flex items-start px-4 py-3 cursor-pointer hover:bg-gray-50 relative group
                 ${selectedClub?.id === club.id ? 'bg-primary/10 text-primary' : ''}
                 ${isUnread ? 'font-medium' : ''}`}
               onClick={(e) => handleClubClick(club, e)}
             >
               <UserAvatar 
-                key={`avatar-${club.id}`}
                 name={club.name} 
                 image={club.logo || ''} 
                 size="lg"

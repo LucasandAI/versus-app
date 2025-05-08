@@ -3,7 +3,6 @@ import DMConversationList from './DMConversationList';
 import DMConversation from './DMConversation';
 import DMSearchPanel from './DMSearchPanel';
 import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
-import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
 import { useApp } from '@/context/AppContext';
 import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 import { toast } from '@/hooks/use-toast';

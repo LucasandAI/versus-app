@@ -1,5 +1,5 @@
 
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageItem from './MessageItem';
 
@@ -17,6 +17,7 @@ interface MessageListProps {
   currentUserAvatar: string;
   currentUserId: string | null;
   lastMessageRef: React.RefObject<HTMLDivElement>;
+  scrollRef?: React.RefObject<HTMLDivElement>;
 }
 
 // Memoize the component to prevent unnecessary re-renders
@@ -29,20 +30,29 @@ const MessageList: React.FC<MessageListProps> = memo(({
   formatTime,
   currentUserAvatar,
   currentUserId,
-  lastMessageRef
+  lastMessageRef,
+  scrollRef
 }) => {
+  // Use useMemo to create stable keys that don't change on rerender
+  const messageKeys = useMemo(() => {
+    return messages.reduce((acc, msg, idx) => {
+      acc[idx] = msg.id || `msg-${idx}`;
+      return acc;
+    }, {} as Record<number, string>);
+  }, [messages]);
+  
   // Use useMemo to avoid recreating message items on every render
-  const messageItems = React.useMemo(() => {
+  const messageItems = useMemo(() => {
     return messages.map((message: ChatMessage, index: number) => {
       const isUserMessage = currentUserId && 
                            message.sender && 
                            String(message.sender.id) === String(currentUserId);
       const isLastMessage = index === messages.length - 1;
+      const stableKey = messageKeys[index];
       
-      // Use stable key with index to prevent remounting on ID changes
       return (
         <div 
-          key={message.id || `msg-${index}`}
+          key={stableKey}
           ref={isLastMessage ? lastMessageRef : undefined}
           className={`mb-3 ${isLastMessage ? 'pb-5' : ''}`}
         >
@@ -58,7 +68,17 @@ const MessageList: React.FC<MessageListProps> = memo(({
         </div>
       );
     });
-  }, [messages, currentUserId, lastMessageRef, isSupport, onDeleteMessage, onSelectUser, formatTime, currentUserAvatar]);
+  }, [
+    messages, 
+    currentUserId, 
+    lastMessageRef, 
+    isSupport, 
+    onDeleteMessage, 
+    onSelectUser, 
+    formatTime, 
+    currentUserAvatar, 
+    messageKeys
+  ]);
 
   return (
     <div className="flex-1 px-0 py-2">

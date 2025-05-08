@@ -1,10 +1,12 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import ConversationItem from './ConversationItem';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useApp } from '@/context/AppContext';
 import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
+import SearchBar from './SearchBar';
+import { Search, UserPlus } from 'lucide-react';
 
 interface Props {
   onSelectUser: (userId: string, userName: string, userAvatar: string, conversationId: string) => void;
@@ -20,30 +22,34 @@ const DMConversationList: React.FC<Props> = ({
   const { currentUser } = useApp();
   const { conversations, loading } = useDirectConversationsContext();
   const { unreadConversations: contextUnreadConversations } = useUnreadMessages();
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Use prop unreadConversations if provided, otherwise use context
   const unreadConversations = propUnreadConversations || contextUnreadConversations || new Set();
   
-  // Create stable memoized array of unread conversations
-  const unreadConvArray = useMemo(() => 
-    Array.from(unreadConversations), 
-    [unreadConversations]
-  );
-  
-  // Debug logging to check the unread conversations
-  console.log('[DMConversationList] unreadConversations:', unreadConvArray);
-  
-  const isEmpty = !loading && conversations.length === 0;
-  
   // Filter out conversations with the current user
   const filteredConversations = useMemo(() => 
-    conversations.filter(conversation => conversation.userId !== currentUser?.id),
-    [conversations, currentUser?.id]
+    conversations.filter(conversation => 
+      conversation.userId !== currentUser?.id &&
+      (searchQuery 
+        ? conversation.userName.toLowerCase().includes(searchQuery.toLowerCase())
+        : true)
+    ),
+    [conversations, currentUser?.id, searchQuery]
   );
+  
+  const isEmpty = !loading && filteredConversations.length === 0;
 
   return (
     <div className="flex flex-col h-full bg-white">
-      <h1 className="text-4xl font-bold p-4">Messages</h1>
+      <div className="p-4">
+        <h1 className="text-4xl font-bold mb-4">Messages</h1>
+        <SearchBar 
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onClear={() => setSearchQuery('')}
+        />
+      </div>
       
       <div className="flex-1 overflow-auto">
         {loading ? (
@@ -60,16 +66,22 @@ const DMConversationList: React.FC<Props> = ({
           </div>
         ) : isEmpty ? (
           <div className="p-4 text-center text-gray-500">
-            <p className="text-lg">No messages yet</p>
-            <p className="text-sm mt-1">Search above to start a conversation</p>
+            {searchQuery ? (
+              <p className="text-lg">No results for "{searchQuery}"</p>
+            ) : (
+              <>
+                <p className="text-lg">No messages yet</p>
+                <p className="text-sm mt-1">Start a new conversation using the button below</p>
+              </>
+            )}
           </div>
         ) : (
           <div className="divide-y">
             {filteredConversations.map((conversation) => {
               const isUnread = unreadConversations.has(conversation.conversationId);
               
-              // Create a stable key that includes unread status
-              const stableKey = `conv-${conversation.conversationId}-${isUnread ? 'unread' : 'read'}`;
+              // Create a stable key that doesn't include unread status
+              const stableKey = `conv-${conversation.conversationId}`;
               
               return (
                 <ConversationItem
