@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -74,6 +75,9 @@ const LoginForm: React.FC = () => {
   const [resetPasswordStep, setResetPasswordStep] = useState<'email' | 'verify' | 'newPassword'>('email');
   const [resetEmail, setResetEmail] = useState('');
   
+  // Form keys to force re-render when needed
+  const [formKey, setFormKey] = useState(Date.now());
+  
   // Profile form state
   const [avatar, setAvatar] = useState<string>('');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -144,6 +148,28 @@ const LoginForm: React.FC = () => {
     },
     mode: "onChange", // This enables validation as the user types
   });
+
+  // Reset forms when dialog opens/closes or steps change
+  useEffect(() => {
+    if (isResetDialogOpen) {
+      // Reset all forms when dialog opens
+      resetPasswordForm.reset();
+      verifyOtpForm.reset();
+      newPasswordForm.reset();
+    }
+  }, [isResetDialogOpen, resetPasswordStep]); 
+
+  // Special effect to reset the new password form when moving to that step
+  useEffect(() => {
+    if (resetPasswordStep === 'newPassword') {
+      console.log('[LoginForm] Moving to newPassword step, resetting form');
+      setFormKey(Date.now()); // Force re-render
+      newPasswordForm.reset({
+        password: '',
+        confirmPassword: '', // Explicitly reset confirmPassword
+      });
+    }
+  }, [resetPasswordStep, newPasswordForm]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -828,7 +854,7 @@ const LoginForm: React.FC = () => {
         
       case 'newPassword':
         return (
-          <Form {...newPasswordForm}>
+          <Form {...newPasswordForm} key={formKey}>
             <form onSubmit={newPasswordForm.handleSubmit(handleSetNewPassword)} className="space-y-4">
               <FormField
                 control={newPasswordForm.control}
