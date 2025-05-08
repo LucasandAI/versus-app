@@ -273,6 +273,12 @@ const LoginForm: React.FC = () => {
       
       if (error) throw error;
       
+      // Reset the new password form to ensure fields are empty
+      newPasswordForm.reset({
+        password: '',
+        confirmPassword: ''
+      });
+      
       setResetPasswordStep('newPassword');
       toast({
         title: "Code verified",
@@ -862,7 +868,9 @@ const LoginForm: React.FC = () => {
                         type="password"
                         autoComplete="new-password"
                         disabled={isLoading}
+                        key="confirm-password-input" // Add a key to force re-render
                         {...field}
+                        value={field.value || ''} // Ensure the value is never undefined
                       />
                     </FormControl>
                     <FormMessage />
@@ -897,7 +905,9 @@ const LoginForm: React.FC = () => {
       {renderForm()}
       
       <Dialog open={isResetDialogOpen} onOpenChange={(open) => {
-        if (!open && !isLoading) setIsResetDialogOpen(false);
+        if (!open && !isLoading) {
+          setIsResetDialogOpen(false);
+        }
       }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
