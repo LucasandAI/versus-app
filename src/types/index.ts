@@ -121,7 +121,6 @@ export interface AppContextType {
   selectedClub: Club | null;
   selectedUser: User | null;
   isSessionReady: boolean;
-  setIsSessionReady: (ready: boolean) => void;
   needsProfileCompletion: boolean;
   setNeedsProfileCompletion: (value: boolean) => void;
   setCurrentUser: (user: User | null | ((prev: User | null) => User | null)) => void;
@@ -132,8 +131,6 @@ export interface AppContextType {
   signOut: () => Promise<void>;
   createClub: (name: string, logo?: string) => Promise<Club | null>;
   refreshCurrentUser: () => Promise<User | null>;
-  isAppReady: boolean;
-  setIsAppReady: (ready: boolean) => void;
 }
 
 export type { ChatMessage } from './chat';
