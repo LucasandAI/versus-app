@@ -7,12 +7,12 @@ export const useMessageScroll = (messages: any[]) => {
   const isUserScrolling = useRef<boolean>(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const scrollLockRef = useRef<boolean>(false);
-  const isInitialLoad = useRef<boolean>(true);
   const lastMessageId = useRef<string | null>(null);
   const isLoadingMore = useRef<boolean>(false);
   const oldScrollHeight = useRef<number>(0);
   const oldScrollTop = useRef<number>(0);
   const scrollAnimationFrame = useRef<number | null>(null);
+  const hasInitialScroll = useRef<boolean>(false);
   
   // Optimize scrolling by using a callback with requestAnimationFrame
   const scrollToBottom = useCallback((smooth = true) => {
@@ -132,20 +132,19 @@ export const useMessageScroll = (messages: any[]) => {
           top: oldScrollTop.current + scrollDiff,
           behavior: 'smooth'
         });
-      } else if (isNewMessage && !isUserScrolling.current && !isInitialLoad.current) {
-        // Only auto-scroll for new messages if user is at bottom
+      } else if (isNewMessage && !isUserScrolling.current && hasInitialScroll.current) {
+        // Only auto-scroll for new messages if user is at bottom and initial scroll is done
         scrollToBottom(true); // Use smooth scrolling for new messages
+      } else if (!hasInitialScroll.current) {
+        // On first load, scroll to bottom without animation
+        scrollToBottom(false);
+        hasInitialScroll.current = true;
       }
     });
     
     // Update message count and last message ID
     previousMessageCount.current = messages.length;
     lastMessageId.current = currentMessageId;
-    
-    // Reset initial load flag after first render
-    if (isInitialLoad.current) {
-      isInitialLoad.current = false;
-    }
   }, [messages, scrollToBottom]);
 
   return {

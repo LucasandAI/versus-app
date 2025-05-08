@@ -1,27 +1,22 @@
-import React, { memo, useMemo, useRef, useEffect } from 'react';
-import { ChatMessage } from '@/types/chat';
-import MessageList from './message/MessageList';
-import { useMessageUser } from './message/useMessageUser';
-import { useMessageNormalization } from './message/useMessageNormalization';
-import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
-import { useCurrentMember } from '@/hooks/chat/messages/useCurrentMember';
-import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
-import { useApp } from '@/context/AppContext';
+import React, { useRef, useMemo, memo } from 'react';
 import { Button } from '@/components/ui/button';
+import MessageList from './MessageList';
+import { useMessageUser } from '@/hooks/chat/useMessageUser';
+import { useCurrentMember } from '@/hooks/chat/useCurrentMember';
+import { useMessageFormatting } from '@/hooks/chat/useMessageFormatting';
+import { useMessageNormalization } from '@/hooks/chat/useMessageNormalization';
+import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
+import { useApp } from '@/context/AppContext';
 
 interface ChatMessagesProps {
-  messages: ChatMessage[] | any[];
-  clubMembers: Array<{
-    id: string;
-    name: string;
-    avatar?: string;
-  }>;
+  messages: any[];
+  clubMembers: any[];
   isSupport?: boolean;
   onDeleteMessage?: (messageId: string) => void;
   onSelectUser?: (userId: string, userName: string, userAvatar?: string) => void;
   currentUserAvatar?: string;
   lastMessageRef?: React.RefObject<HTMLDivElement>;
-  formatTime?: (isoString: string) => string;
+  formatTime?: (timestamp: string) => string;
   scrollRef?: React.RefObject<HTMLDivElement>;
   hasMore?: boolean;
   isLoadingMore?: boolean;
@@ -43,9 +38,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   isLoadingMore = false,
   onLoadMore
 }) => {
-  // Create stable references to prevent recreation
-  const prevMessageLengthRef = useRef<number>(0);
-  
   const {
     currentUserId,
     currentUserAvatar: defaultUserAvatar
@@ -72,7 +64,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   } = useMessageScroll(messages);
 
   const { currentUser } = useApp();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Use provided values or defaults - store references to prevent recreation
   const finalUserAvatar = providedUserAvatar || defaultUserAvatar;
@@ -113,24 +104,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
     return normalized;
   }, [messages, normalizeMessage]);
 
-  // Track if messages changed and need scroll
-  if (prevMessageLengthRef.current !== messages.length) {
-    // Use requestAnimationFrame to scroll after render
-    if (messages.length > prevMessageLengthRef.current) {
-      requestAnimationFrame(() => scrollToBottom());
-    }
-    prevMessageLengthRef.current = messages.length;
-  }
-
   // Determine if this is a club chat by checking if there are club members
   const isClubChat = clubMembers.length > 0;
-
-  // Scroll to bottom when new messages arrive
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages]);
 
   return (
     <div 
@@ -166,9 +141,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
           currentUserId={currentUserId} 
           lastMessageRef={finalLastMessageRef} 
         />
-        
-        {/* Scroll anchor */}
-        <div ref={messagesEndRef} />
       </div>
     </div>
   );
