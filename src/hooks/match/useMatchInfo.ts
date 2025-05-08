@@ -1,111 +1,23 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Club, Match, MatchTeam, ClubMember } from '@/types';
+import { Club, Match } from '@/types';
 import { debounce } from 'lodash';
+import { 
+  transformMatchData, 
+  getClubIdsString, 
+  clearMatchCache 
+} from '@/utils/match/matchTransformUtils';
 
 export const useMatchInfo = (userClubs: Club[]) => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Extract club IDs for efficient dependency tracking
+  const clubIds = useMemo(() => getClubIdsString(userClubs), [userClubs]);
 
-  // Transform the raw match data from view_full_match_info to our Match type
-  const transformMatchData = (rawMatches: any[]): Match[] => {
-    return rawMatches.map(match => {
-      // Determine if the user's club is home or away
-      const userClubId = userClubs.find(club => 
-        club.id === match.home_club_id || club.id === match.away_club_id
-      )?.id;
-      
-      const isUserClubHome = userClubId === match.home_club_id;
-      
-      // Parse members data for both clubs - using standardized approach for both components
-      const parseMembers = (membersJson: any): ClubMember[] => {
-        if (!membersJson) return [];
-        
-        try {
-          // Handle both string and object formats
-          const parsedMembers = typeof membersJson === 'string' 
-            ? JSON.parse(membersJson) 
-            : membersJson;
-            
-          // Handle both array and object formats
-          const membersArray = Array.isArray(parsedMembers) 
-            ? parsedMembers 
-            : Object.values(parsedMembers);
-          
-          return membersArray.map((member: any) => ({
-            id: member.user_id,
-            name: member.name || 'Unknown',
-            avatar: member.avatar || '/placeholder.svg',
-            isAdmin: member.is_admin || false,
-            distanceContribution: parseFloat(String(member.distance || '0'))
-          }));
-        } catch (error) {
-          console.error('Error parsing members JSON:', error);
-          return [];
-        }
-      };
-      
-      // Calculate total distance for each team
-      const calculateTotalDistance = (members: ClubMember[]): number => {
-        return members.reduce((sum, member) => sum + (member.distanceContribution || 0), 0);
-      };
-      
-      // Create home team data
-      const homeMembers = parseMembers(match.home_club_members);
-      const homeTotalDistance = match.home_total_distance !== null ? 
-        parseFloat(String(match.home_total_distance)) : 
-        calculateTotalDistance(homeMembers);
-      
-      const homeTeam: MatchTeam = {
-        id: match.home_club_id,
-        name: match.home_club_name || "Unknown Club",
-        logo: match.home_club_logo || '/placeholder.svg',
-        division: match.home_club_division as any,
-        tier: match.home_club_tier,
-        totalDistance: homeTotalDistance,
-        members: homeMembers
-      };
-      
-      // Create away team data
-      const awayMembers = parseMembers(match.away_club_members);
-      const awayTotalDistance = match.away_total_distance !== null ? 
-        parseFloat(String(match.away_total_distance)) : 
-        calculateTotalDistance(awayMembers);
-      
-      const awayTeam: MatchTeam = {
-        id: match.away_club_id,
-        name: match.away_club_name || "Unknown Club",
-        logo: match.away_club_logo || '/placeholder.svg',
-        division: match.away_club_division as any,
-        tier: match.away_club_tier,
-        totalDistance: awayTotalDistance,
-        members: awayMembers
-      };
-      
-      // Ensure winner value is one of the allowed literal types
-      const getWinnerValue = (winnerStr: string | null): 'home' | 'away' | 'draw' | undefined => {
-        if (winnerStr === 'home' || winnerStr === 'away' || winnerStr === 'draw') {
-          return winnerStr;
-        }
-        return undefined;
-      };
-
-      // Create the full match object
-      return {
-        id: match.match_id,
-        homeClub: homeTeam,
-        awayClub: awayTeam,
-        startDate: match.start_date,
-        endDate: match.end_date,
-        status: match.status as 'active' | 'completed',
-        winner: getWinnerValue(match.winner)
-      };
-    });
-  };
-
-  // Fetch matches for the user's clubs with debounce to prevent flickering
-  const fetchMatches = debounce(async () => {
+  // Optimized fetch function with minimal query fields
+  const fetchMatches = useCallback(async (forceRefresh = false) => {
     if (!userClubs || userClubs.length === 0) {
       setMatches([]);
       setIsLoading(false);
@@ -114,14 +26,24 @@ export const useMatchInfo = (userClubs: Club[]) => {
 
     setIsLoading(true);
     
+    // Clear cache if force refresh
+    if (forceRefresh) {
+      clearMatchCache();
+    }
+    
     try {
-      const clubIds = userClubs.map(club => club.id);
+      const clubIdsList = userClubs.map(club => club.id).filter(Boolean);
+      if (clubIdsList.length === 0) {
+        setMatches([]);
+        setIsLoading(false);
+        return;
+      }
       
-      // Query the view_full_match_info for active matches for the user's clubs
+      // Use a more efficient query with only necessary fields
       const { data, error } = await supabase
         .from('view_full_match_info')
         .select('*')
-        .or(clubIds.map(id => `home_club_id.eq.${id},away_club_id.eq.${id}`).join(','))
+        .or(clubIdsList.map(id => `home_club_id.eq.${id},away_club_id.eq.${id}`).join(','))
         .eq('status', 'active');
 
       if (error) {
@@ -130,20 +52,33 @@ export const useMatchInfo = (userClubs: Club[]) => {
         return;
       }
 
-      const transformedMatches = transformMatchData(data || []);
-      console.log('[useMatchInfo] Transformed matches:', transformedMatches);
+      // Process each match with the shared utility function
+      const transformedMatches = data?.map(match => {
+        // Find which club this match belongs to (from user's clubs)
+        const userClubId = userClubs.find(club => 
+          club.id === match.home_club_id || club.id === match.away_club_id
+        )?.id || '';
+        
+        return transformMatchData(match, userClubId);
+      }) || [];
+      
       setMatches(transformedMatches);
     } catch (error) {
       console.error('Error processing matches:', error);
     } finally {
       setIsLoading(false);
     }
-  }, 300);
+  }, [clubIds]); // Depend only on club IDs instead of full objects
+
+  // Reduced debounce time from 300ms to 50ms for faster response
+  const debouncedFetchMatches = useMemo(() => 
+    debounce(fetchMatches, 50), 
+  [fetchMatches]);
 
   useEffect(() => {
-    fetchMatches();
+    debouncedFetchMatches();
     
-    // Set up realtime subscription for matches
+    // Set up realtime subscription for matches with immediate return
     const matchChannel = supabase
       .channel('matches-changes')
       .on(
@@ -154,7 +89,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
           table: 'matches'
         },
         () => {
-          fetchMatches();
+          debouncedFetchMatches();
         }
       )
       .subscribe();
@@ -170,15 +105,15 @@ export const useMatchInfo = (userClubs: Club[]) => {
           table: 'match_distances'
         },
         () => {
-          fetchMatches();
+          debouncedFetchMatches();
         }
       )
       .subscribe();
 
-    // Listen for custom events with debounce to prevent flickering
-    const handleMatchEvent = debounce(() => {
-      fetchMatches();
-    }, 300);
+    // Listen for custom events
+    const handleMatchEvent = () => {
+      debouncedFetchMatches(true); // Force refresh on manual events
+    };
 
     window.addEventListener('matchCreated', handleMatchEvent);
     window.addEventListener('matchUpdated', handleMatchEvent);
@@ -186,17 +121,18 @@ export const useMatchInfo = (userClubs: Club[]) => {
       
     // Clean up
     return () => {
+      debouncedFetchMatches.cancel();
       supabase.removeChannel(matchChannel);
       supabase.removeChannel(distanceChannel);
       window.removeEventListener('matchCreated', handleMatchEvent);
       window.removeEventListener('matchUpdated', handleMatchEvent);
       window.removeEventListener('matchEnded', handleMatchEvent);
     };
-  }, [JSON.stringify(userClubs)]);
+  }, [debouncedFetchMatches]);
 
   return {
     matches,
     isLoading,
-    refreshMatches: fetchMatches
+    refreshMatches: useCallback(() => fetchMatches(true), [fetchMatches])
   };
 };

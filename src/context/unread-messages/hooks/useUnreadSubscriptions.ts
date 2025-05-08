@@ -76,19 +76,6 @@ export const useUnreadSubscriptions = ({
       }, 100);
     };
     
-    // Listen for both manual and automatic unread updates
-    const handleManualUnreadUpdate = (e: CustomEvent) => {
-      if (e.detail && e.detail.clubId) {
-        pendingClubUpdates.add(e.detail.clubId);
-        queueUpdate();
-      } else if (e.detail && e.detail.conversationId) {
-        pendingUpdates.add(e.detail.conversationId);
-        queueUpdate();
-      }
-    };
-    
-    window.addEventListener('unreadMessagesUpdated', handleManualUnreadUpdate as EventListener);
-    
     // Set up real-time subscriptions for new messages
     const dmChannel = supabase
       .channel('global-dm-unread-tracking')
@@ -130,8 +117,6 @@ export const useUnreadSubscriptions = ({
     return () => {
       supabase.removeChannel(dmChannel);
       supabase.removeChannel(clubChannel);
-      
-      window.removeEventListener('unreadMessagesUpdated', handleManualUnreadUpdate as EventListener);
       
       if (updateTimeout) {
         clearTimeout(updateTimeout);

@@ -1,5 +1,5 @@
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import { Club } from '@/types';
 import UserAvatar from '../../shared/UserAvatar';
 import ClubMembersPopover from './ClubMembersPopover';
@@ -36,40 +36,27 @@ const ClubsList: React.FC<ClubsListProps> = ({
   const { unreadClubs: contextUnreadClubs, markClubMessagesAsRead } = useUnreadMessages();
   
   // Use either the passed props (preferred) or fall back to context
-  const unreadClubs = useMemo(() => {
-    if (propUnreadClubs && propUnreadClubs.size > 0) {
-      return propUnreadClubs;
-    }
-    return contextUnreadClubs;
-  }, [propUnreadClubs, contextUnreadClubs]);
+  const unreadClubs = propUnreadClubs || contextUnreadClubs;
   
-  // Add logging to track unread updates
+  // Add a debug effect to log unread clubs when they change
   useEffect(() => {
-    const logUnreadChanges = () => {
-      console.log('[ClubsList] unreadClubs updated:', Array.from(unreadClubs));
-    };
-    
-    window.addEventListener('unreadMessagesUpdated', logUnreadChanges);
-    
-    return () => {
-      window.removeEventListener('unreadMessagesUpdated', logUnreadChanges);
-    };
-  }, [unreadClubs]);
+    console.log('[ClubsList] unreadClubs set updated:', Array.from(unreadClubs));
+    console.log('[ClubsList] Using prop unread clubs?', !!propUnreadClubs);
+  }, [unreadClubs, propUnreadClubs]);
   
   const handleClubClick = (club: Club, e: React.MouseEvent) => {
     e.preventDefault();
     onSelectClub(club);
-    
-    // Mark as read and emit event for any other components to update
     markClubMessagesAsRead(club.id);
-    window.dispatchEvent(new CustomEvent('clubSelected', { detail: { clubId: club.id } }));
-    
     console.log('[ClubsList] Club selected for chat:', club.id);
   };
 
   const truncateMessage = (text: string) => {
     return text?.length > 50 ? `${text.substring(0, 50)}...` : text;
   };
+
+  // Create a key that will change whenever unread status changes
+  const unreadKey = Array.from(unreadClubs).join(',');
 
   return (
     <div className="p-3">
@@ -80,7 +67,8 @@ const ClubsList: React.FC<ClubsListProps> = ({
           // Get club ID as string to ensure consistent comparison
           const clubId = String(club.id);
           const isUnread = unreadClubs.has(clubId);
-          const isSelected = selectedClub?.id === club.id;
+          
+          console.log(`[ClubsList] Rendering club ${club.name} (${clubId}), isUnread:`, isUnread);
           
           const lastMessage = lastMessages[club.id];
           const formattedTime = lastMessage?.timestamp 
@@ -89,13 +77,11 @@ const ClubsList: React.FC<ClubsListProps> = ({
             
           return (
             <div 
-              key={`${club.id}`}
+              key={`${club.id}-${isUnread ? 'unread' : 'read'}-${unreadKey}`}
               className={`flex items-start px-4 py-3 cursor-pointer hover:bg-gray-50 relative group
-                ${isSelected ? 'bg-primary/10 text-primary' : ''}
+                ${selectedClub?.id === club.id ? 'bg-primary/10 text-primary' : ''}
                 ${isUnread ? 'font-medium' : ''}`}
               onClick={(e) => handleClubClick(club, e)}
-              data-club-id={clubId}
-              data-unread={isUnread ? 'true' : 'false'}
             >
               <UserAvatar 
                 name={club.name} 

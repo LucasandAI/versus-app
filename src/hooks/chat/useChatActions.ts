@@ -3,7 +3,6 @@ import { useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
-import { v4 as uuidv4 } from 'uuid';
 
 export const useChatActions = () => {
   const { currentUser } = useApp();
@@ -15,7 +14,7 @@ export const useChatActions = () => {
       }
       
       // Generate a unique temp ID for optimistic UI
-      const tempId = `temp-${uuidv4()}`;
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       
       // Create a fresh optimistic message with the current text input
       const optimisticMessage = {
@@ -28,8 +27,7 @@ export const useChatActions = () => {
           id: currentUser.id,
           name: currentUser.name,
           avatar: currentUser.avatar
-        },
-        optimistic: true
+        }
       };
       
       console.log('[useChatActions] Created optimistic message:', optimisticMessage);

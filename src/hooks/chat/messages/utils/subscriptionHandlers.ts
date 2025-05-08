@@ -1,3 +1,4 @@
+
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Club } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,12 +26,6 @@ interface DeletePayload {
   [key: string]: any;
 }
 
-// Map to keep track of messages being processed to prevent duplicates
-const processedMessages = new Map<string, number>();
-
-// Debounce time for message processing (in ms)
-const DEBOUNCE_TIME = 300;
-
 export const handleNewMessagePayload = async (
   payload: RealtimePostgresChangesPayload<{
     [key: string]: any;
@@ -44,45 +39,18 @@ export const handleNewMessagePayload = async (
   
   console.log('[subscriptionHandlers] Received message payload:', typedPayload);
   
-  if (!typedPayload.new || !typedPayload.new.club_id || !typedPayload.new.id) {
-    console.log('[subscriptionHandlers] Invalid payload, missing club_id or id:', typedPayload);
+  if (!typedPayload.new || !typedPayload.new.club_id) {
+    console.log('[subscriptionHandlers] Invalid payload, missing club_id:', typedPayload);
     return;
   }
   
   // Get the club ID from the message
   const messageClubId = typedPayload.new.club_id;
-  const messageId = typedPayload.new.id;
-  
-  // Check if we've already processed this message recently (dedupe)
-  const messageKey = `${messageId}-${messageClubId}`;
-  const now = Date.now();
-  if (processedMessages.has(messageKey)) {
-    const lastProcessed = processedMessages.get(messageKey) || 0;
-    if (now - lastProcessed < DEBOUNCE_TIME) {
-      console.log(`[subscriptionHandlers] Skipping duplicate message (debounced): ${messageId}`);
-      return;
-    }
-  }
-  
-  // Mark this message as processed
-  processedMessages.set(messageKey, now);
-  
-  // Clean up old entries from the processedMessages map
-  setTimeout(() => {
-    processedMessages.delete(messageKey);
-  }, DEBOUNCE_TIME * 2);
   
   // Check if this message belongs to one of the user's clubs
   const isRelevantClub = userClubs.some(club => club.id === messageClubId);
   if (!isRelevantClub) {
     console.log(`[subscriptionHandlers] Message for club ${messageClubId} not relevant to user`);
-    return;
-  }
-  
-  // Skip if this is our own optimistic message
-  if (typedPayload.new.sender_id === currentUser?.id && 
-      String(messageId).startsWith('temp-')) {
-    console.log(`[subscriptionHandlers] Skipping our own optimistic message: ${messageId}`);
     return;
   }
   
@@ -96,42 +64,19 @@ export const handleNewMessagePayload = async (
     setClubMessages(prev => {
       const clubMsgs = prev[clubId] || [];
       
-      // Check if message already exists or is an update to an optimistic message
-      const existingIndex = clubMsgs.findIndex(msg => msg.id === messageWithSender.id);
-      const existingOptimisticIndex = clubMsgs.findIndex(
-        msg => msg.sender_id === messageWithSender.sender_id && 
-               msg.optimistic && 
-               msg.message === messageWithSender.message
+      // Check if message already exists to prevent duplicates
+      const messageExists = clubMsgs.some(msg => msg.id === messageWithSender.id);
+      if (messageExists) return prev;
+      
+      // Sort messages by timestamp
+      const updatedMessages = [...clubMsgs, messageWithSender].sort(
+        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
       
-      // The message ID already exists (prevent duplicates)
-      if (existingIndex >= 0) {
-        console.log(`[subscriptionHandlers] Skipping duplicate message: ${messageWithSender.id}`);
-        return prev;
-      }
-      
-      let updatedMessages;
-      
-      if (existingOptimisticIndex >= 0) {
-        // Replace the optimistic message with the real one
-        console.log(`[subscriptionHandlers] Replacing optimistic message with real one: ${messageWithSender.id}`);
-        const newMessages = [...clubMsgs];
-        newMessages[existingOptimisticIndex] = messageWithSender;
-        updatedMessages = newMessages;
-      } else {
-        // Add as a new message and sort
-        console.log(`[subscriptionHandlers] Adding new message: ${messageWithSender.id}`);
-        updatedMessages = [...clubMsgs, messageWithSender].sort(
-          (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-        );
-      }
-      
       // Create and dispatch a global event with the new message details
-      requestAnimationFrame(() => {
-        window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
-          detail: { clubId, message: messageWithSender } 
-        }));
-      });
+      window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
+        detail: { clubId, message: messageWithSender } 
+      }));
       
       return {
         ...prev,
@@ -143,11 +88,9 @@ export const handleNewMessagePayload = async (
     // we need to update the unread count for this club
     if (typedPayload.new.sender_id !== currentUser?.id && 
         (!selectedClubRef || selectedClubRef !== messageClubId)) {
-      requestAnimationFrame(() => {
-        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
-          detail: { clubId: messageClubId } 
-        }));
-      });
+      window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
+        detail: { clubId: messageClubId } 
+      }));
     }
   }
 };
@@ -165,20 +108,6 @@ export const handleMessageDeletion = (
   if (typedPayload.old && typedPayload.old.id && typedPayload.old.club_id) {
     const deletedMessageId = typedPayload.old.id;
     const clubId = typedPayload.old.club_id;
-    
-    // Check if we've already processed this message recently (dedupe)
-    const messageKey = `delete-${deletedMessageId}`;
-    const now = Date.now();
-    if (processedMessages.has(messageKey)) {
-      const lastProcessed = processedMessages.get(messageKey) || 0;
-      if (now - lastProcessed < DEBOUNCE_TIME) {
-        console.log(`[subscriptionHandlers] Skipping duplicate deletion (debounced): ${deletedMessageId}`);
-        return;
-      }
-    }
-    
-    // Mark this deletion as processed
-    processedMessages.set(messageKey, now);
     
     setClubMessages(prev => {
       if (!prev[clubId]) return prev;
@@ -199,16 +128,9 @@ export const handleMessageDeletion = (
     });
     
     // Dispatch an event for the message deletion
-    requestAnimationFrame(() => {
-      window.dispatchEvent(new CustomEvent('clubMessageDeleted', { 
-        detail: { clubId, messageId: deletedMessageId } 
-      }));
-    });
-    
-    // Clean up the processed entry
-    setTimeout(() => {
-      processedMessages.delete(messageKey);
-    }, DEBOUNCE_TIME * 2);
+    window.dispatchEvent(new CustomEvent('clubMessageDeleted', { 
+      detail: { clubId, messageId: deletedMessageId } 
+    }));
   }
 };
 

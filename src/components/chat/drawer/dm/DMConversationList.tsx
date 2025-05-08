@@ -1,5 +1,5 @@
 
-import React, { useEffect, useMemo } from 'react';
+import React from 'react';
 import ConversationItem from './ConversationItem';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useApp } from '@/context/AppContext';
@@ -9,43 +9,21 @@ import { useDirectConversationsContext } from '@/context/DirectConversationsCont
 interface Props {
   onSelectUser: (userId: string, userName: string, userAvatar: string, conversationId: string) => void;
   selectedUserId?: string;
-  unreadConversations?: Set<string>;
+  unreadConversations?: Set<string>; // This prop is now defined
 }
 
 const DMConversationList: React.FC<Props> = ({ 
   onSelectUser, 
   selectedUserId,
-  unreadConversations: propUnreadConversations
+  unreadConversations = new Set() // Default value properly defined
 }) => {
   const { currentUser } = useApp();
-  const { conversations, loading, refreshConversations } = useDirectConversationsContext();
-  const { unreadConversations: contextUnreadConversations } = useUnreadMessages();
-  
-  // Merge unread conversations from props and context
-  const unreadConversations = useMemo(() => {
-    if (propUnreadConversations && propUnreadConversations.size > 0) {
-      return propUnreadConversations;
-    }
-    return contextUnreadConversations;
-  }, [propUnreadConversations, contextUnreadConversations]);
+  const { conversations, loading } = useDirectConversationsContext();
   
   const isEmpty = !loading && conversations.length === 0;
   
-  // Listen for new messages to update conversation list
-  useEffect(() => {
-    const handleDMReceived = (e: CustomEvent) => {
-      if (e.detail && e.detail.conversationId) {
-        // Refresh conversations when a new message is received
-        refreshConversations();
-      }
-    };
-    
-    window.addEventListener('dmMessageReceived', handleDMReceived as EventListener);
-    
-    return () => {
-      window.removeEventListener('dmMessageReceived', handleDMReceived as EventListener);
-    };
-  }, [refreshConversations]);
+  // Debug logging to check the unread conversations
+  console.log('[DMConversationList] unreadConversations:', Array.from(unreadConversations));
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -75,6 +53,7 @@ const DMConversationList: React.FC<Props> = ({
               .filter(conversation => conversation.userId !== currentUser?.id)
               .map((conversation) => {
                 const isUnread = unreadConversations.has(conversation.conversationId);
+                console.log(`[DMConversationList] Conversation ${conversation.conversationId} isUnread: ${isUnread}`);
                 
                 return (
                   <ConversationItem
