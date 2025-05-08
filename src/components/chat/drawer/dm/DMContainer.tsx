@@ -1,9 +1,10 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import DMConversationList from './DMConversationList';
 import DMConversation from './DMConversation';
 import { useApp } from '@/context/AppContext';
-import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
-import { useUnreadMessages } from '@/context/UnreadMessagesContext';
+import { useUnreadMessages } from '@/context/unread-messages';
+import { DirectMessage } from '@/context/ChatContext';
 
 interface DMContainerProps {
   directMessageUser: {
@@ -19,23 +20,69 @@ interface DMContainerProps {
     conversationId: string;
   } | null>>;
   unreadConversations: Set<string>;
+  directMessages?: Record<string, DirectMessage[]>;
+  onSendDirectMessage?: (message: string, conversationId: string, receiverId: string) => Promise<void>;
+  onDeleteMessage?: (messageId: string, type: 'club' | 'direct', contextId: string) => void;
+  onSelectUser?: (userId: string, userName: string, userAvatar?: string) => void;
+}
+
+interface ConversationUser {
+  id: string;
+  name: string;
+  avatar: string;
+}
+
+interface DMConversationItem {
+  id: string;
+  user: ConversationUser;
+  lastMessage?: string;
+  timestamp?: string;
+  unread: boolean;
 }
 
 const DMContainer: React.FC<DMContainerProps> = ({
   directMessageUser,
   setDirectMessageUser,
-  unreadConversations
+  unreadConversations,
+  directMessages = {},
+  onSendDirectMessage = async () => {},
+  onDeleteMessage,
+  onSelectUser
 }) => {
   const { currentUser } = useApp();
-  const { conversations, loading, hasLoaded, fetchConversations } = useDirectConversationsContext();
   const { markConversationAsRead } = useUnreadMessages();
+  const [conversations, setConversations] = useState<DMConversationItem[]>([]);
   
-  // Fetch conversations when component mounts if they haven't been loaded
+  // Format conversations for the list
   useEffect(() => {
-    if (!hasLoaded && !loading) {
-      fetchConversations();
-    }
-  }, [hasLoaded, loading, fetchConversations]);
+    // Convert DirectConversationsContext data to the format expected by DMConversationList
+    const formattedConversations: DMConversationItem[] = Object.keys(directMessages).map(conversationId => {
+      const messages = directMessages[conversationId] || [];
+      const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+      
+      // Get the other user's info from the messages
+      const otherUserMessage = messages.find(msg => msg.sender.id !== currentUser?.id);
+      const user: ConversationUser = otherUserMessage ? {
+        id: otherUserMessage.sender.id,
+        name: otherUserMessage.sender.name,
+        avatar: otherUserMessage.sender.avatar || '/placeholder.svg'
+      } : {
+        id: 'unknown',
+        name: 'Unknown User',
+        avatar: '/placeholder.svg'
+      };
+      
+      return {
+        id: conversationId,
+        user,
+        lastMessage: lastMessage?.text,
+        timestamp: lastMessage?.timestamp,
+        unread: unreadConversations.has(conversationId)
+      };
+    });
+    
+    setConversations(formattedConversations);
+  }, [directMessages, currentUser?.id, unreadConversations]);
   
   // Handle back button click
   const handleBack = useCallback(() => {
@@ -44,21 +91,23 @@ const DMContainer: React.FC<DMContainerProps> = ({
   
   // Handle selecting a conversation
   const handleSelectConversation = useCallback((conversation: {
-    conversationId: string;
-    userId: string;
-    userName: string;
-    userAvatar: string;
+    id: string;
+    user: {
+      id: string;
+      name: string;
+      avatar?: string;
+    };
   }) => {
     setDirectMessageUser({
-      userId: conversation.userId,
-      userName: conversation.userName,
-      userAvatar: conversation.userAvatar,
-      conversationId: conversation.conversationId
+      userId: conversation.user.id,
+      userName: conversation.user.name,
+      userAvatar: conversation.user.avatar || '/placeholder.svg',
+      conversationId: conversation.id
     });
     
     // Mark conversation as read when selected
-    if (conversation.conversationId !== 'new') {
-      markConversationAsRead(conversation.conversationId);
+    if (conversation.id !== 'new') {
+      markConversationAsRead(conversation.id);
     }
   }, [setDirectMessageUser, markConversationAsRead]);
   
@@ -70,7 +119,7 @@ const DMContainer: React.FC<DMContainerProps> = ({
           conversations={conversations}
           onSelectConversation={handleSelectConversation}
           unreadConversations={unreadConversations}
-          loading={loading}
+          loading={false}
         />
       </div>
     );
@@ -86,7 +135,13 @@ const DMContainer: React.FC<DMContainerProps> = ({
           avatar: directMessageUser.userAvatar
         }}
         conversationId={directMessageUser.conversationId}
+        messages={directMessages[directMessageUser.conversationId] || []}
         onBack={handleBack}
+        onSendMessage={(message) => onSendDirectMessage(message, directMessageUser.conversationId, directMessageUser.userId)}
+        onDeleteMessage={onDeleteMessage ? 
+          (messageId) => onDeleteMessage(messageId, 'direct', directMessageUser.conversationId) : 
+          undefined}
+        onSelectUser={onSelectUser}
       />
     </div>
   );

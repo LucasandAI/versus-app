@@ -1,13 +1,5 @@
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useApp } from '@/context/AppContext';
-import { toast } from '@/hooks/use-toast';
-import ChatMessages from '../../ChatMessages';
-import { useNavigation } from '@/hooks/useNavigation';
-import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
-import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
-import DMMessageInput from './DMMessageInput';
-import DMHeader from './DMHeader';
+import React, { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { DirectMessage } from '@/context/ChatContext';
 
@@ -20,80 +12,32 @@ interface DMConversationProps {
   conversationId: string;
   messages: DirectMessage[];
   onBack: () => void;
-  onSendMessage: (message: string, conversationId: string, receiverId: string) => Promise<void>;
+  onSendMessage: (message: string) => void;
   onDeleteMessage?: (messageId: string, type: 'club' | 'direct', contextId: string) => void;
+  onSelectUser?: (userId: string, userName: string, userAvatar?: string) => void;
 }
 
-const DMConversation: React.FC<DMConversationProps> = ({ 
-  user, 
+const DMConversation: React.FC<DMConversationProps> = ({
+  user,
   conversationId,
   messages,
   onBack,
   onSendMessage,
-  onDeleteMessage
+  onDeleteMessage,
+  onSelectUser
 }) => {
-  const { currentUser } = useApp();
-  const { navigateToUserProfile } = useNavigation();
-  const [isSending, setIsSending] = useState(false);
-  const { formatTime } = useMessageFormatting();
-  const { scrollRef, lastMessageRef, scrollToBottom } = useMessageScroll(messages);
+  const [message, setMessage] = useState('');
 
-  // Log messages for debugging
-  console.log(`[DMConversation] Rendering with ${messages?.length || 0} messages for conversation ${conversationId}`);
-  
-  // Sort messages by timestamp
-  const sortedMessages = useMemo(() => {
-    if (!messages) return [];
-    return [...messages].sort((a, b) => 
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
-  }, [messages]);
-  
-  // Scroll to bottom when component mounts or conversation changes
-  useEffect(() => {
-    scrollToBottom();
-  }, [conversationId]);
-
-  const handleSendMessage = async (message: string) => {
-    console.log('[DMConversation] Sending message for conversation:', conversationId);
-    setIsSending(true);
-    try {
-      await onSendMessage(message, conversationId, user.id);
-      // Scroll to bottom after sending
-      setTimeout(scrollToBottom, 100);
-    } catch (error) {
-      console.error('[DMConversation] Error sending DM:', error);
-    } finally {
-      setIsSending(false);
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (message.trim()) {
+      onSendMessage(message);
+      setMessage('');
     }
   };
-  
-  const handleDeleteMessage = async (messageId: string) => {
-    if (onDeleteMessage) {
-      await onDeleteMessage(messageId, 'direct', conversationId);
-    }
-  };
-
-  // Club members array for ChatMessages - include both current user and the other user
-  const chatMembers = useMemo(() => {
-    const members = [];
-    if (currentUser) {
-      members.push({
-        id: currentUser.id,
-        name: currentUser.name,
-        avatar: currentUser.avatar
-      });
-    }
-    members.push({
-      id: user.id,
-      name: user.name,
-      avatar: user.avatar
-    });
-    return members;
-  }, [currentUser, user]);
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col h-full">
       <div className="border-b p-3 flex items-center">
         <button 
           onClick={onBack}
@@ -101,47 +45,75 @@ const DMConversation: React.FC<DMConversationProps> = ({
         >
           <ArrowLeft size={20} />
         </button>
-        <div className="flex-1 flex justify-center">
+        
+        <div className="flex-1 flex items-center justify-center gap-2">
           <div 
-            className="flex items-center gap-3 cursor-pointer hover:opacity-80" 
-            onClick={() => navigateToUserProfile(user.id, user.name, user.avatar)}
+            className="flex items-center cursor-pointer" 
+            onClick={() => onSelectUser?.(user.id, user.name, user.avatar)}
           >
-            <DMHeader 
-              userId={user.id} 
-              userName={user.name} 
-              userAvatar={user.avatar} 
-            />
+            <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden">
+              {user.avatar && (
+                <img 
+                  src={user.avatar}
+                  alt={user.name}
+                  className="w-full h-full object-cover"
+                />
+              )}
+            </div>
+            <span className="ml-2 font-medium">{user.name}</span>
           </div>
         </div>
-        <div className="w-9"></div>
+        
+        <div className="w-8"></div>
       </div>
       
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
-          <ChatMessages 
-            messages={sortedMessages}
-            clubMembers={chatMembers}
-            onSelectUser={(userId, userName, userAvatar) => 
-              navigateToUserProfile(userId, userName, userAvatar)
-            }
-            currentUserAvatar={currentUser?.avatar}
-            lastMessageRef={lastMessageRef}
-            formatTime={formatTime}
-            onDeleteMessage={handleDeleteMessage}
+      <div className="flex-1 overflow-y-auto p-4">
+        {messages.length === 0 ? (
+          <div className="h-full flex items-center justify-center text-gray-500">
+            No messages yet. Start the conversation!
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {messages.map((msg) => (
+              <div 
+                key={msg.id}
+                className={`flex ${msg.sender.id === user.id ? 'justify-start' : 'justify-end'}`}
+              >
+                <div 
+                  className={`p-3 max-w-[70%] rounded-lg ${
+                    msg.sender.id === user.id 
+                      ? 'bg-gray-100 text-gray-800'
+                      : 'bg-primary text-white'
+                  }`}
+                >
+                  {msg.text}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      
+      <div className="border-t p-3">
+        <form onSubmit={handleSendMessage} className="flex gap-2">
+          <input
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Type a message..."
+            className="flex-1 border rounded-full p-2 px-4 focus:outline-none focus:ring-1 focus:ring-primary"
           />
-        </div>
-        
-        <div className="bg-white border-t">
-          <DMMessageInput
-            onSendMessage={handleSendMessage}
-            isSending={isSending}
-            userId={user.id}
-            conversationId={conversationId}
-          />
-        </div>
+          <button
+            type="submit"
+            disabled={!message.trim()}
+            className="p-2 rounded-full bg-primary text-white disabled:opacity-50"
+          >
+            Send
+          </button>
+        </form>
       </div>
     </div>
   );
 };
 
-export default React.memo(DMConversation);
+export default DMConversation;

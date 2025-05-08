@@ -3,7 +3,6 @@ import React from 'react';
 import { Club } from '@/types';
 import ClubsList from './ClubsList';
 import ChatClubContent from '../../ChatClubContent';
-import ChatEmpty from '../../ChatEmpty';
 import { ClubMessage } from '@/context/ChatContext';
 
 interface ChatClubContainerProps {

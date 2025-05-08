@@ -1,70 +1,98 @@
 
 import React, { useState } from 'react';
+import { Search, Users } from 'lucide-react';
 import { Club } from '@/types';
-import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import ClubAvatar from '@/components/shared/ClubAvatar';
-import { Badge } from '@/components/ui/badge';
 
 interface ClubsListProps {
   clubs: Club[];
+  selectedClub?: Club | null;
   onSelectClub: (club: Club) => void;
-  unreadClubs: Set<string>;
+  unreadClubs?: Set<string>;
+  unreadCounts?: Record<string, number>;
+  onSelectUser?: (userId: string, userName: string, userAvatar?: string) => void;
+  setChatToDelete?: (chat: { id: string, name: string }) => void;
 }
 
-const ClubsList: React.FC<ClubsListProps> = ({ clubs, onSelectClub, unreadClubs }) => {
+const ClubsList: React.FC<ClubsListProps> = ({
+  clubs,
+  selectedClub,
+  onSelectClub,
+  unreadClubs = new Set(),
+  unreadCounts = {},
+  onSelectUser,
+  setChatToDelete
+}) => {
   const [searchQuery, setSearchQuery] = useState('');
   
-  const filteredClubs = clubs.filter(club => 
-    club.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  
+  const filteredClubs = searchQuery 
+    ? clubs.filter(club => 
+        club.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (club.bio || '').toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : clubs;
+    
+  // Sort clubs: first by unread status, then alphabetically
+  const sortedClubs = [...filteredClubs].sort((a, b) => {
+    // Unread clubs come first
+    if (unreadClubs.has(a.id) && !unreadClubs.has(b.id)) return -1;
+    if (!unreadClubs.has(a.id) && unreadClubs.has(b.id)) return 1;
+    
+    // Then sort alphabetically
+    return a.name.localeCompare(b.name);
+  });
+
   return (
-    <div className="h-full flex flex-col">
-      <div className="p-3 border-b">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input 
-            placeholder="Search clubs..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+    <div>
+      <div className="p-4 pb-2">
+        <Input
+          placeholder="Search clubs..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full"
+          prefix={<Search className="h-4 w-4 text-gray-400" />}
+        />
       </div>
       
-      <div className="flex-1 overflow-y-auto">
-        {filteredClubs.length === 0 ? (
-          <div className="p-5 text-center text-gray-500">
-            {searchQuery ? "No clubs found" : "No clubs available"}
+      <div className="overflow-y-auto max-h-[calc(80vh-120px)]">
+        {sortedClubs.length === 0 ? (
+          <div className="p-4 text-center text-gray-500">
+            {searchQuery ? "No clubs found" : "You aren't in any clubs yet"}
           </div>
         ) : (
-          <div className="divide-y">
-            {filteredClubs.map((club) => (
-              <button
-                key={club.id}
-                className={`w-full p-3 flex items-center hover:bg-gray-100 transition-colors ${
-                  unreadClubs.has(club.id) ? 'bg-gray-50' : ''
-                }`}
-                onClick={() => onSelectClub(club)}
-              >
-                <div className="relative">
-                  <ClubAvatar club={club} size="md" />
+          sortedClubs.map(club => (
+            <Button
+              key={club.id}
+              variant="ghost"
+              className={`w-full flex items-center gap-3 px-4 py-3 justify-start rounded-none ${
+                selectedClub?.id === club.id ? "bg-gray-100" : ""
+              }`}
+              onClick={() => onSelectClub(club)}
+            >
+              <ClubAvatar 
+                name={club.name}
+                imageSrc={club.logo}
+                size="md"
+              />
+              <div className="flex-1 text-left truncate">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{club.name}</span>
                   {unreadClubs.has(club.id) && (
-                    <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                    <span className="w-2 h-2 bg-primary rounded-full"></span>
                   )}
                 </div>
-                <div className="ml-3 flex-1 text-left">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{club.name}</span>
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {club.member_count || club.members?.length || 0} members
-                  </div>
+                <div className="flex items-center text-xs text-gray-500">
+                  <Users className="w-3 h-3 mr-1" />
+                  <span>
+                    {/* Safely handle member_count which may not be available */}
+                    {club.members ? club.members.length : (club as any).member_count || '?'} members
+                  </span>
                 </div>
-              </button>
-            ))}
-          </div>
+              </div>
+            </Button>
+          ))
         )}
       </div>
     </div>
