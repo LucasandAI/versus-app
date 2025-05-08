@@ -1,120 +1,29 @@
-
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Club } from '@/types';
-import ChatHeader from './ChatHeader';
-import ChatMessages from './ChatMessages';
-import ChatInput from './ChatInput';
-import { useNavigation } from '@/hooks/useNavigation';
-import { useClubChatMessages } from '@/hooks/chat/useClubChatMessages';
 
-interface ChatClubContentProps {
+export interface ChatClubContentProps {
   club: Club;
   onMatchClick: () => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   onSendMessage: (message: string, clubId?: string) => void;
   onDeleteMessage?: (messageId: string) => void;
-  clubId?: string;
 }
 
-const ChatClubContent = ({ 
+const ChatClubContent: React.FC<ChatClubContentProps> = ({
   club,
   onMatchClick,
   onSelectUser,
   onSendMessage,
-  onDeleteMessage,
-  clubId,
-}: ChatClubContentProps) => {
-  const { navigateToClubDetail } = useNavigation();
-  const effectiveClubId = clubId || club?.id;
-  
-  // Use our new hook for club messages
-  const {
-    messages,
-    isLoading,
-    hasMore,
-    loadMore,
-    scrollRef,
-    lastMessageRef,
-    sendMessage,
-    deleteMessage,
-    isSubmitting,
-    scrollToBottom
-  } = useClubChatMessages(effectiveClubId);
-  
-  // Mark club as viewed to reset unread count
-  useEffect(() => {
-    if (effectiveClubId) {
-      // Dispatch an event that the unread count context will listen for
-      const event = new CustomEvent('clubSelected', { 
-        detail: { clubId: effectiveClubId } 
-      });
-      window.dispatchEvent(event);
-      
-      return () => {
-        window.dispatchEvent(new Event('clubDeselected'));
-      };
-    }
-  }, [effectiveClubId]);
-
-  const handleClubClick = () => {
-    if (club && club.id) {
-      navigateToClubDetail(club.id, club);
-      const event = new CustomEvent('chatDrawerClosed');
-      window.dispatchEvent(event);
-    }
-  };
-
-  const handleSendMessage = async (message: string) => {
-    if (message.trim() && effectiveClubId) {
-      await sendMessage(message);
-      // Also call the provided onSendMessage prop
-      onSendMessage(message, effectiveClubId);
-    }
-  };
-
-  const handleDeleteMessage = async (messageId: string) => {
-    if (messageId) {
-      await deleteMessage(messageId);
-      // Also call the provided onDeleteMessage prop if available
-      if (onDeleteMessage) {
-        onDeleteMessage(messageId);
-      }
-    }
-  };
-
+  onDeleteMessage
+}) => {
   return (
-    <div className="flex flex-col h-full">
-      <ChatHeader 
-        club={club}
-        onMatchClick={onMatchClick}
-        onSelectUser={onSelectUser}
-        onClubClick={handleClubClick}
-      />
-      
-      <div className="flex-1 flex flex-col relative overflow-hidden">
-        <div className="flex-1 min-h-0">
-          <ChatMessages 
-            messages={messages} 
-            clubMembers={club.members || []}
-            onDeleteMessage={handleDeleteMessage}
-            onSelectUser={onSelectUser}
-            isLoading={isLoading}
-            hasMore={hasMore}
-            loadMore={loadMore}
-            scrollRef={scrollRef}
-            lastMessageRef={lastMessageRef}
-          />
-        </div>
-        
-        <div className="absolute bottom-0 left-0 right-0 bg-white">
-          <ChatInput 
-            onSendMessage={handleSendMessage} 
-            conversationType="club"
-            conversationId={effectiveClubId} 
-            isSending={isSubmitting}
-          />
-        </div>
-      </div>
+    <div className="p-4">
+      <h2>{club.name} Chat</h2>
+      <p>This is the chat content for the club: {club.name}</p>
+      <button onClick={onMatchClick}>View Matches</button>
+      <button onClick={() => onSelectUser('user123', 'John Doe')}>Chat with John</button>
+      <button onClick={() => onSendMessage('Hello!', club.id)}>Send Message</button>
+      {onDeleteMessage && <button onClick={() => onDeleteMessage('message123')}>Delete Message</button>}
     </div>
   );
 };

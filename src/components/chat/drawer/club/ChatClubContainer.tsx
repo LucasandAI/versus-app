@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Club } from '@/types';
 import ClubsList from './ClubsList';
@@ -25,8 +24,10 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
 }) => {
   const { navigateToClubDetail } = useNavigation();
 
+  // Fix this method to pass proper parameters
   const navigateToMatches = (clubId: string) => {
-    navigateToClubDetail(clubId, { id: clubId, tab: 'matches' });
+    // Only pass the clubId and not a tab property
+    navigateToClubDetail(clubId, { id: clubId });
   };
 
   // Clubs sorted by unread status first, then alphabetically

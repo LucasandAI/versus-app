@@ -19,7 +19,7 @@ const Index = () => {
       detail: { userId, userName: name } 
     });
     window.dispatchEvent(event);
-    open();
+    open(); // Just call open directly instead of trying to call isOpen
   };
   
   const handleMarkAsRead = (id: string) => {

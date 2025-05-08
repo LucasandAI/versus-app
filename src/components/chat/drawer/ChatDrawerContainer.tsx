@@ -13,6 +13,10 @@ interface ChatDrawerContainerProps {
   unreadConversations?: Set<string>;
   onSendMessage: (message: string, clubId?: string) => void;
   onDeleteMessage?: (messageId: string) => void;
+  messages?: Record<string, any[]>; // Added missing messages prop
+  deleteChat?: () => void; // Added missing deleteChat prop
+  unreadMessages?: Record<string, number>; // Added missing unreadMessages prop
+  handleNewMessage?: () => void; // Added missing handleNewMessage prop
   directMessageUser: {
     userId: string;
     userName: string;

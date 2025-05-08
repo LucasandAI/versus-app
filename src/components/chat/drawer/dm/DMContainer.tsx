@@ -6,12 +6,10 @@ import DMConversation from './DMConversation';
 import ChatEmpty from '../../ChatEmpty';
 
 interface Conversation {
-  id: string;
-  otherUser: {
-    id: string;
-    name: string;
-    avatar?: string;
-  };
+  conversationId: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
   lastMessage?: string;
   timestamp?: string;
 }
@@ -40,20 +38,20 @@ const DMContainer: React.FC<DMContainerProps> = ({
   const { conversations, loading } = useDirectConversationsContext();
   const [formattedConversations, setFormattedConversations] = useState<any[]>([]);
 
-  // Format conversations for the list
+  // Format conversations for the list - fix the interface mismatch
   useEffect(() => {
     if (!conversations) return;
     
     const formatted = conversations.map((conv: Conversation) => ({
-      id: conv.id,
+      id: conv.conversationId,
       user: {
-        id: conv.otherUser.id,
-        name: conv.otherUser.name,
-        avatar: conv.otherUser.avatar
+        id: conv.userId,
+        name: conv.userName,
+        avatar: conv.userAvatar
       },
       lastMessage: conv.lastMessage,
       timestamp: conv.timestamp,
-      unread: unreadConversations.has(conv.id)
+      unread: unreadConversations.has(conv.conversationId)
     }));
     
     setFormattedConversations(formatted);
@@ -104,7 +102,6 @@ const DMContainer: React.FC<DMContainerProps> = ({
             }}
             conversationId={directMessageUser.conversationId}
             onBack={handleBack}
-            messages={[]}
             onSendMessage={sendMessage}
           />
         </div>
