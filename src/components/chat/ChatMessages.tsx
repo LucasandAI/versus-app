@@ -7,13 +7,15 @@ import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting
 import { useMessageNormalization } from './message/useMessageNormalization';
 import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
 import { useApp } from '@/context/AppContext';
+import { ClubMember } from '@/types';
+import { Loader2 } from 'lucide-react';
 
 interface ChatMessagesProps {
   messages: any[];
-  clubMembers: any[];
+  clubMembers: ClubMember[];
   isSupport?: boolean;
   onDeleteMessage?: (messageId: string) => void;
-  onSelectUser?: (userId: string, userName: string, userAvatar?: string) => void;
+  onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   currentUserAvatar?: string;
   lastMessageRef?: React.RefObject<HTMLDivElement>;
   formatTime?: (timestamp: string) => string;
@@ -108,39 +110,46 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   const isClubChat = clubMembers.length > 0;
 
   return (
-    <div 
-      ref={finalScrollRef} 
-      className={`relative overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent ${
-        isClubChat ? 'h-[calc(73vh-8rem)]' : 'h-[calc(73vh-6rem)]'
-      }`}
-    >
-      <div className="flex flex-col min-h-full">
-        {/* Load more button */}
+    <div className="flex flex-col h-full">
+      <div 
+        ref={finalScrollRef}
+        onScroll={scrollToBottom}
+        className={`relative overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent ${
+          isClubChat ? 'h-[calc(73vh-8rem)]' : 'h-[calc(73vh-6rem)]'
+        }`}
+      >
         {hasMore && (
-          <div className="py-2 flex justify-center">
+          <div className="sticky top-0 z-10 flex justify-center p-2 bg-white/80 backdrop-blur-sm">
             <Button
               variant="outline"
               size="sm"
               onClick={onLoadMore}
               disabled={isLoadingMore}
-              className="text-sm"
+              className="shadow-sm"
             >
-              {isLoadingMore ? 'Loading...' : 'Load More Messages'}
+              {isLoadingMore ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                'Load More Messages'
+              )}
             </Button>
           </div>
         )}
         
-        <div className="flex-1 min-h-0">
-          <MessageList 
-            messages={normalizedMessages} 
-            clubMembers={clubMembers} 
-            isSupport={isSupport} 
-            onDeleteMessage={onDeleteMessage} 
-            onSelectUser={onSelectUser} 
-            formatTime={finalFormatTime} 
-            currentUserAvatar={finalUserAvatar} 
-            currentUserId={currentUserId} 
-            lastMessageRef={finalLastMessageRef} 
+        <div className="min-h-full">
+          <MessageList
+            messages={normalizedMessages}
+            clubMembers={clubMembers}
+            isSupport={isSupport}
+            onDeleteMessage={onDeleteMessage}
+            onSelectUser={onSelectUser}
+            formatTime={finalFormatTime}
+            currentUserAvatar={finalUserAvatar}
+            currentUserId={currentUserId}
+            lastMessageRef={finalLastMessageRef}
           />
         </div>
       </div>
