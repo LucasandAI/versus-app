@@ -10,7 +10,7 @@ export const useInitialAppLoad = () => {
   const [isAppReady, setIsAppReady] = useState(false);
   const { currentUser, isSessionReady } = useApp();
   const { fetchConversations } = useDirectConversationsContext();
-  const { refreshUnreadCounts } = useUnreadMessages();
+  const { fetchUnreadCounts } = useUnreadMessages();
   const initialDataFetchedRef = useRef(false);
 
   useEffect(() => {
@@ -31,7 +31,7 @@ export const useInitialAppLoad = () => {
 
         // Step 3: Fetch unread message counts
         console.log('[useInitialAppLoad] Fetching unread message counts');
-        await refreshUnreadCounts();
+        await fetchUnreadCounts();
         
         // Step 4: Fetch notifications (NEW)
         console.log('[useInitialAppLoad] Fetching notifications');
@@ -60,7 +60,7 @@ export const useInitialAppLoad = () => {
     }, 5000);
 
     return () => clearTimeout(timeoutId);
-  }, [isSessionReady, currentUser?.id, isAppReady, fetchConversations, refreshUnreadCounts]);
+  }, [isSessionReady, currentUser?.id, isAppReady, fetchConversations, fetchUnreadCounts]);
 
   return isAppReady;
 };

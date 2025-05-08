@@ -2,8 +2,6 @@
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import HomeHeader from '@/components/home/HomeHeader';
-import HomeCurrentUser from '@/components/home/HomeCurrentUser';
-import HomeContent from '@/components/home/HomeContent';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
 import ChatDrawer from '@/components/chat/ChatDrawer';
 
@@ -47,14 +45,17 @@ const Index = () => {
         onDeclineInvite={handleDeclineInvite}
       />
       <div className="container max-w-6xl mx-auto px-4">
-        <HomeCurrentUser />
-        <HomeContent onChatWithUser={handleUserSelect} />
+        {/* We need to restore functionality without HomeCurrentUser and HomeContent */}
+        <div className="py-8">
+          <h2 className="text-2xl font-semibold mb-4">Welcome to Versus</h2>
+          <p className="text-gray-600 mb-8">Your club-based running app where teams compete weekly based on total distance run.</p>
+        </div>
       </div>
       
       {/* Chat drawer */}
       <ChatDrawer
         open={isOpen}
-        onOpenChange={(open) => open ? open() : close()}
+        onOpenChange={(isOpen) => isOpen ? open() : close()}
         clubs={userClubs}
       />
     </div>
