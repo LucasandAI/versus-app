@@ -13,6 +13,7 @@ export const useMessageScroll = (messages: any[]) => {
   const oldScrollTop = useRef<number>(0);
   const scrollAnimationFrame = useRef<number | null>(null);
   const hasInitialScroll = useRef<boolean>(false);
+  const isInitialScrollComplete = useRef<boolean>(false);
   
   // Optimize scrolling by using a callback with requestAnimationFrame
   const scrollToBottom = useCallback((smooth = true) => {
@@ -35,16 +36,37 @@ export const useMessageScroll = (messages: any[]) => {
     scrollAnimationFrame.current = requestAnimationFrame(() => {
       if (scrollRef.current) {
         const { scrollHeight, clientHeight } = scrollRef.current;
+        const targetScroll = scrollHeight - clientHeight;
+        
+        // If we're already at the bottom, don't scroll
+        if (scrollRef.current.scrollTop === targetScroll) {
+          scrollLockRef.current = false;
+          return;
+        }
+        
         scrollRef.current.scrollTo({
-          top: scrollHeight - clientHeight,
+          top: targetScroll,
           behavior: smooth ? 'smooth' : 'auto'
         });
+        
+        // For initial scroll, check if we've reached the bottom
+        if (!hasInitialScroll.current) {
+          const checkScroll = () => {
+            if (scrollRef.current && scrollRef.current.scrollTop === targetScroll) {
+              isInitialScrollComplete.current = true;
+              scrollLockRef.current = false;
+            } else if (!isInitialScrollComplete.current) {
+              requestAnimationFrame(checkScroll);
+            }
+          };
+          checkScroll();
+        } else {
+          // Release scroll lock after animation completes
+          setTimeout(() => {
+            scrollLockRef.current = false;
+          }, 300);
+        }
       }
-      
-      // Release scroll lock after animation completes
-      setTimeout(() => {
-        scrollLockRef.current = false;
-      }, 300); // Increased timeout to account for smooth scroll duration
     });
     
     scrollTimeoutRef.current = null;
@@ -75,7 +97,7 @@ export const useMessageScroll = (messages: any[]) => {
       // Update user scrolling state with debounce
       scrollTimer = setTimeout(() => {
         isUserScrolling.current = isScrolling;
-      }, 150); // Increased debounce time for smoother detection
+      }, 150);
       
       lastScrollTop = scrollTop;
       lastScrollTime = currentTime;
@@ -134,7 +156,7 @@ export const useMessageScroll = (messages: any[]) => {
         });
       } else if (isNewMessage && !isUserScrolling.current && hasInitialScroll.current) {
         // Only auto-scroll for new messages if user is at bottom and initial scroll is done
-        scrollToBottom(true); // Use smooth scrolling for new messages
+        scrollToBottom(true);
       } else if (!hasInitialScroll.current) {
         // On first load, scroll to bottom without animation
         scrollToBottom(false);
