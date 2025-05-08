@@ -1,15 +1,18 @@
 
-import { Loader } from "lucide-react";
-import { cn } from "@/lib/utils";
+import React from 'react';
+import { Loader } from 'lucide-react';
 
 interface SpinnerProps {
   className?: string;
   size?: number;
 }
 
-export const Spinner = ({ className, size = 24 }: SpinnerProps) => {
+export const Spinner: React.FC<SpinnerProps> = ({ 
+  className = "", 
+  size = 24 
+}) => {
   return (
-    <div className={cn("animate-spin text-muted-foreground", className)}>
+    <div className={`animate-spin ${className}`}>
       <Loader size={size} />
     </div>
   );

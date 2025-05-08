@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
 
@@ -16,31 +16,42 @@ export const useActiveDMMessages = (
   userData?: UserData
 ) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Start as false to avoid showing loading unnecessarily
   const [error, setError] = useState<string | null>(null);
   const [isFetched, setIsFetched] = useState(false);
   const [fetchAttempted, setFetchAttempted] = useState(false);
+  const isFetchingRef = useRef(false);
 
   // Fetch initial messages
   useEffect(() => {
     // Reset state when conversation changes
-    setIsLoading(true);
     setError(null);
     setIsFetched(false);
     setFetchAttempted(false);
     
+    // Don't reset messages immediately to prevent flashing
+    // We'll update them once new data is fetched
+    
     let isMounted = true;
     
     const fetchMessages = async () => {
-      // Don't fetch for new conversations
-      if (conversationId === 'new' || !conversationId || !userId || !currentUserId) {
+      // Don't fetch for new conversations or if already fetching
+      if (conversationId === 'new' || !conversationId || !userId || !currentUserId || isFetchingRef.current) {
         if (isMounted) {
-          setMessages([]);
+          if (conversationId === 'new') {
+            setMessages([]);
+          }
           setIsLoading(false);
           setFetchAttempted(true);
         }
         return;
       }
+
+      // Set loading and fetching flags
+      if (!isFetched) {
+        setIsLoading(true);
+      }
+      isFetchingRef.current = true;
 
       try {
         console.log(`[useActiveDMMessages] Fetching messages for conversation: ${conversationId}`);
@@ -84,6 +95,7 @@ export const useActiveDMMessages = (
       } finally {
         if (isMounted) {
           setIsLoading(false);
+          isFetchingRef.current = false;
         }
       }
     };

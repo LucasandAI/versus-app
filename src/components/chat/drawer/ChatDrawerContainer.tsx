@@ -41,6 +41,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
   clubs,
   selectedLocalClub,
   onSelectClub,
+  messages,
   deleteChat,
   unreadMessages,
   unreadClubs,
@@ -71,6 +72,11 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
     }
   }, [messagesLoading]);
 
+  // Ensure we use the passed messages prop if available, otherwise use the clubMessages state
+  const finalMessages = messages && Object.keys(messages).length > 0 
+    ? messages as Record<string, any[]> 
+    : clubMessages;
+
   // Show loading state if initial loading
   if (isInitialLoading && activeTab === "clubs") {
     return <LoadingScreen message="Loading chat messages..." subMessage="Preparing your conversations" />;
@@ -98,7 +104,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
                 });
               }}
               activeTab={activeTab}
-              clubMessages={clubMessages}
+              clubMessages={finalMessages}
             />
           </div>
 
@@ -106,7 +112,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
           <div className="flex-1 flex flex-col">
             <ChatClubContainer
               selectedClub={selectedLocalClub}
-              messages={selectedLocalClub ? clubMessages[selectedLocalClub.id] || [] : []}
+              messages={selectedLocalClub ? finalMessages[selectedLocalClub.id] || [] : []}
               clubs={clubs}
               onSendMessage={onSendMessage}
               onDeleteMessage={onDeleteMessage}

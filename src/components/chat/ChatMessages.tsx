@@ -1,3 +1,4 @@
+
 import React, { memo, useMemo, useRef } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageList from './message/MessageList';
@@ -72,7 +73,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   const finalFormatTime = providedFormatTime || defaultFormatTime;
   const finalScrollRef = providedScrollRef || defaultScrollRef;
   
-  // Handle case when messages is not an array
+  // Handle case when messages is not an array or when loading
   if (!Array.isArray(messages)) {
     return (
       <div className="flex-1 p-4">
@@ -83,25 +84,15 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
     );
   }
   
-  // Add debug logging to see what's being processed
-  console.log('[ChatMessages] Processing messages array:', messages.length);
-  
   // Only normalize messages once per unique message set
   // Using useMemo with messages reference as dependency
   const normalizedMessages = useMemo(() => {
-    console.log('[ChatMessages] Normalizing messages, count:', messages.length);
     // Debug log a sample message to see what's coming in
     if (messages.length > 0) {
-      console.log('[ChatMessages] Sample message before normalization:', messages[messages.length - 1]);
+      console.log('[ChatMessages] Processing messages array:', messages.length);
     }
     
     const normalized = messages.map(message => normalizeMessage(message));
-    
-    // Debug log the normalized result for comparison
-    if (normalized.length > 0) {
-      console.log('[ChatMessages] Sample normalized message:', normalized[normalized.length - 1]);
-    }
-    
     return normalized;
   }, [messages, normalizeMessage]);
 
@@ -127,6 +118,10 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
       {isLoading && messages.length === 0 ? (
         <div className="h-full flex items-center justify-center">
           <Spinner />
+        </div>
+      ) : normalizedMessages.length === 0 ? (
+        <div className="h-full flex items-center justify-center text-gray-500 text-sm">
+          No messages yet. Start the conversation!
         </div>
       ) : (
         <MessageList 

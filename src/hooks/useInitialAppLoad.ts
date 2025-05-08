@@ -7,6 +7,7 @@ import { useDirectConversationsContext } from '@/context/DirectConversationsCont
 import { refreshNotifications } from '@/lib/notificationUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useClubMessages } from '@/hooks/chat/useClubMessages';
+import { Club } from '@/types';
 
 export const useInitialAppLoad = () => {
   const [isAppReady, setIsAppReady] = useState(false);
@@ -26,7 +27,10 @@ export const useInitialAppLoad = () => {
         
         // Step 1: Fetch user clubs
         console.log('[useInitialAppLoad] Fetching user clubs');
-        const userClubs = await useFetchUserClubs(currentUser.id);
+        const clubsResponse = await useFetchUserClubs(currentUser.id);
+        // Ensure clubsResponse has the expected structure before accessing properties
+        const userClubs: Club[] = clubsResponse && 'clubs' in clubsResponse ? 
+          (Array.isArray(clubsResponse.clubs) ? clubsResponse.clubs : []) : [];
         
         // Step 2: Pre-fetch club messages in background for faster chat drawer open
         if (userClubs && userClubs.length > 0) {
