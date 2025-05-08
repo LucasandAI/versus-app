@@ -872,15 +872,7 @@ const LoginForm: React.FC = () => {
                         type="password"
                         autoComplete="new-password"
                         disabled={isLoading}
-                        value={field.value || ''}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          newPasswordForm.trigger("confirmPassword"); // Trigger validation on change
-                        }}
-                        onBlur={() => {
-                          field.onBlur();
-                          newPasswordForm.trigger("confirmPassword"); // Trigger validation on blur
-                        }}
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
