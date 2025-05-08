@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Club } from '@/types';
 import ChatSidebar from '../ChatSidebar';
 
@@ -24,13 +24,16 @@ const ChatSidebarContent: React.FC<ChatSidebarContentProps> = ({
   onSelectUser,
   activeTab
 }) => {
-  // Create a key for forced re-renders
-  const unreadKey = JSON.stringify([...unreadClubs].sort());
+  // Create a stable key for forced re-renders that doesn't change on every render
+  const unreadKey = useMemo(() => {
+    const sortedArray = [...unreadClubs].sort().join(',');
+    return `sidebar-${sortedArray}`;
+  }, [unreadClubs]);
   
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <ChatSidebar
-        key={`chat-sidebar-${unreadKey}`}
+        key={unreadKey}
         clubs={clubs}
         selectedClub={selectedClub}
         onSelectClub={onSelectClub}
@@ -44,4 +47,4 @@ const ChatSidebarContent: React.FC<ChatSidebarContentProps> = ({
   );
 };
 
-export default ChatSidebarContent;
+export default React.memo(ChatSidebarContent);

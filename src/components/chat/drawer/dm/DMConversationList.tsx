@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import ConversationItem from './ConversationItem';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useApp } from '@/context/AppContext';
@@ -9,21 +9,37 @@ import { useDirectConversationsContext } from '@/context/DirectConversationsCont
 interface Props {
   onSelectUser: (userId: string, userName: string, userAvatar: string, conversationId: string) => void;
   selectedUserId?: string;
-  unreadConversations?: Set<string>; // This prop is now defined
+  unreadConversations?: Set<string>;
 }
 
 const DMConversationList: React.FC<Props> = ({ 
   onSelectUser, 
   selectedUserId,
-  unreadConversations = new Set() // Default value properly defined
+  unreadConversations: propUnreadConversations
 }) => {
   const { currentUser } = useApp();
   const { conversations, loading } = useDirectConversationsContext();
+  const { unreadConversations: contextUnreadConversations } = useUnreadMessages();
+  
+  // Use prop unreadConversations if provided, otherwise use context
+  const unreadConversations = propUnreadConversations || contextUnreadConversations || new Set();
+  
+  // Create stable memoized array of unread conversations
+  const unreadConvArray = useMemo(() => 
+    Array.from(unreadConversations), 
+    [unreadConversations]
+  );
+  
+  // Debug logging to check the unread conversations
+  console.log('[DMConversationList] unreadConversations:', unreadConvArray);
   
   const isEmpty = !loading && conversations.length === 0;
   
-  // Debug logging to check the unread conversations
-  console.log('[DMConversationList] unreadConversations:', Array.from(unreadConversations));
+  // Filter out conversations with the current user
+  const filteredConversations = useMemo(() => 
+    conversations.filter(conversation => conversation.userId !== currentUser?.id),
+    [conversations, currentUser?.id]
+  );
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -49,32 +65,32 @@ const DMConversationList: React.FC<Props> = ({
           </div>
         ) : (
           <div className="divide-y">
-            {conversations
-              .filter(conversation => conversation.userId !== currentUser?.id)
-              .map((conversation) => {
-                const isUnread = unreadConversations.has(conversation.conversationId);
-                console.log(`[DMConversationList] Conversation ${conversation.conversationId} isUnread: ${isUnread}`);
-                
-                return (
-                  <ConversationItem
-                    key={conversation.conversationId}
-                    conversation={{
-                      ...conversation,
-                      lastMessage: conversation.lastMessage || '',
-                      timestamp: conversation.timestamp || ''
-                    }}
-                    isSelected={selectedUserId === conversation.userId}
-                    isUnread={isUnread}
-                    onSelect={() => onSelectUser(
-                      conversation.userId,
-                      conversation.userName,
-                      conversation.userAvatar,
-                      conversation.conversationId
-                    )}
-                    isLoading={false}
-                  />
-                );
-              })}
+            {filteredConversations.map((conversation) => {
+              const isUnread = unreadConversations.has(conversation.conversationId);
+              
+              // Create a stable key that includes unread status
+              const stableKey = `conv-${conversation.conversationId}-${isUnread ? 'unread' : 'read'}`;
+              
+              return (
+                <ConversationItem
+                  key={stableKey}
+                  conversation={{
+                    ...conversation,
+                    lastMessage: conversation.lastMessage || '',
+                    timestamp: conversation.timestamp || ''
+                  }}
+                  isSelected={selectedUserId === conversation.userId}
+                  isUnread={isUnread}
+                  onSelect={() => onSelectUser(
+                    conversation.userId,
+                    conversation.userName,
+                    conversation.userAvatar || '/placeholder.svg',
+                    conversation.conversationId
+                  )}
+                  isLoading={false}
+                />
+              );
+            })}
           </div>
         )}
       </div>
@@ -82,4 +98,4 @@ const DMConversationList: React.FC<Props> = ({
   );
 };
 
-export default DMConversationList;
+export default React.memo(DMConversationList);

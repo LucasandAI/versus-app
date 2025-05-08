@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Club } from '@/types';
 import UserAvatar from '../../shared/UserAvatar';
 import ClubMembersPopover from './ClubMembersPopover';
@@ -38,11 +38,8 @@ const ClubsList: React.FC<ClubsListProps> = ({
   // Use either the passed props (preferred) or fall back to context
   const unreadClubs = propUnreadClubs || contextUnreadClubs;
   
-  // Add a debug effect to log unread clubs when they change
-  useEffect(() => {
-    console.log('[ClubsList] unreadClubs set updated:', Array.from(unreadClubs));
-    console.log('[ClubsList] Using prop unread clubs?', !!propUnreadClubs);
-  }, [unreadClubs, propUnreadClubs]);
+  // Memoize the unread key array to prevent recreation on each render
+  const unreadClubsArray = useMemo(() => Array.from(unreadClubs || new Set()), [unreadClubs]);
   
   const handleClubClick = (club: Club, e: React.MouseEvent) => {
     e.preventDefault();
@@ -55,9 +52,6 @@ const ClubsList: React.FC<ClubsListProps> = ({
     return text?.length > 50 ? `${text.substring(0, 50)}...` : text;
   };
 
-  // Create a key that will change whenever unread status changes
-  const unreadKey = Array.from(unreadClubs).join(',');
-
   return (
     <div className="p-3">
       <h1 className="text-4xl font-bold mb-4">Clubs</h1>
@@ -66,24 +60,26 @@ const ClubsList: React.FC<ClubsListProps> = ({
         {sortedClubs.map(club => {
           // Get club ID as string to ensure consistent comparison
           const clubId = String(club.id);
-          const isUnread = unreadClubs.has(clubId);
-          
-          console.log(`[ClubsList] Rendering club ${club.name} (${clubId}), isUnread:`, isUnread);
+          const isUnread = unreadClubs?.has(clubId);
           
           const lastMessage = lastMessages[club.id];
           const formattedTime = lastMessage?.timestamp 
             ? formatDistanceToNow(new Date(lastMessage.timestamp), { addSuffix: false })
             : '';
             
+          // Create a stable unique key for the club that doesn't change with unread status
+          const uniqueClubKey = `club-${clubId}`;
+            
           return (
             <div 
-              key={`${club.id}-${isUnread ? 'unread' : 'read'}-${unreadKey}`}
+              key={uniqueClubKey}
               className={`flex items-start px-4 py-3 cursor-pointer hover:bg-gray-50 relative group
                 ${selectedClub?.id === club.id ? 'bg-primary/10 text-primary' : ''}
                 ${isUnread ? 'font-medium' : ''}`}
               onClick={(e) => handleClubClick(club, e)}
             >
               <UserAvatar 
+                key={`avatar-${club.id}`}
                 name={club.name} 
                 image={club.logo || ''} 
                 size="lg"
@@ -136,4 +132,4 @@ const ClubsList: React.FC<ClubsListProps> = ({
   );
 };
 
-export default ClubsList;
+export default React.memo(ClubsList);
