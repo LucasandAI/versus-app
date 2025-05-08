@@ -12,25 +12,23 @@ export interface ChatMessage {
   timestamp: string;
   isSupport?: boolean;
   optimistic?: boolean;
-  status?: 'sending' | 'sent' | 'error';
 }
 
-export interface ClubMessage extends ChatMessage {
-  clubId: string;
+export interface DirectMessage {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  text: string;
+  timestamp: string;
 }
 
-export interface DirectMessage extends ChatMessage {
-  conversationId: string;
-  receiverId: string;
-}
-
-// Simplified version of the old state - kept for compatibility
 export interface ChatState {
   messages: Record<string, ChatMessage[]>;
   unreadMessages: Record<string, number>;
 }
 
-// Compatibility type for support tickets
+// Adding SupportTicket type definition as a temporary solution
+// This will be removed in future refactoring
 export interface SupportTicket {
   id: string;
   subject: string;

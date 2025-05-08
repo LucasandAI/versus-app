@@ -1,9 +1,9 @@
 
 import React from 'react';
-import { ClubMessage, DirectMessage } from '@/context/ChatContext';
+import { ChatMessage } from '@/types/chat';
 
 interface MessageContentProps {
-  message: ClubMessage | DirectMessage;
+  message: ChatMessage;
   isUserMessage: boolean;
   isSupport: boolean;
   onDeleteMessage?: () => void;
@@ -19,7 +19,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
     <div 
       className={`p-3 rounded-lg break-words ${
         isUserMessage 
-          ? `bg-primary text-white ${message.status === 'error' ? 'opacity-70' : ''}`
+          ? 'bg-primary text-white' 
           : isSupport
             ? 'bg-blue-100 text-blue-800'
             : 'bg-gray-100 text-gray-800'

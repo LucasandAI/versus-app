@@ -1,96 +1,43 @@
-import React, { useState, useEffect, Suspense } from 'react';
-import { ThemeProvider } from "@/components/theme-provider"
-import { TooltipProvider } from "@/components/ui/tooltip"
-import { Toaster } from "@/components/ui/toaster"
-import { Loader2 } from "lucide-react"
-import { AppProvider, useApp } from './context/AppContext';
-import { Header } from './components/Header';
-import { AppContent } from './components/AppContent';
-import { NetworkStatus } from './components/NetworkStatus';
-import { DirectConversationsProvider } from './context/DirectConversationsContext';
-import { ChatDrawerProvider as ChatDrawerContextProvider } from './context/ChatDrawerContext';
-import { ChatProvider } from './context/ChatContext';
 
-function App() {
-  const [isSessionReady, setIsSessionReady] = useState(false);
-  const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
-  const {
-    currentUser,
-    currentView,
-    selectedClub,
-		selectedUser,
-    setCurrentUser,
-    setCurrentView,
-    setSelectedClub,
-		setSelectedUser,
-    signIn,
-    signOut,
-    createClub,
-    refreshCurrentUser
-  } = useApp();
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ChatDrawerProvider } from "./context/ChatDrawerContext";
+import { UnreadMessagesProvider } from "./context/UnreadMessagesContext";
+import { DirectConversationsProvider } from "./context/DirectConversationsContext";
+import { AppProvider } from "./context/AppContext";
+import AppContent from "./components/AppContent";
+import Index from "./pages/Index";
+import ConnectDevice from "./pages/ConnectDevice";
+import NotFound from "./pages/NotFound";
 
-  useEffect(() => {
-    const checkSession = async () => {
-      // Check if the user is logged in
-      if (currentUser) {
-        setIsSessionReady(true);
-      } else {
-        setIsSessionReady(false);
-      }
-    };
+const queryClient = new QueryClient();
 
-    checkSession();
-  }, [currentUser]);
-
-  return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <TooltipProvider>
-        <Toaster />
-        <div className="flex flex-col min-h-screen">
-          {/* Only show app UI when session is ready */}
-          {isSessionReady ? (
-            <AppProvider 
-              currentUser={currentUser} 
-              currentView={currentView} 
-              selectedClub={selectedClub}
-              selectedUser={selectedUser}
-              isSessionReady={isSessionReady}
-              needsProfileCompletion={needsProfileCompletion}
-              setCurrentUser={setCurrentUser}
-              setCurrentView={setCurrentView}
-              setSelectedClub={setSelectedClub} 
-              setSelectedUser={setSelectedUser}
-              signIn={signIn}
-              signOut={signOut} 
-              createClub={createClub} 
-              refreshCurrentUser={refreshCurrentUser}
-              setNeedsProfileCompletion={setNeedsProfileCompletion}
-            >
-              <ChatProvider>
-                <DirectConversationsProvider>
-                  <UnreadMessagesProvider>
-                    <ChatDrawerContextProvider>
-                      <Header />
-                      <main className="flex-1 flex flex-col">
-                        <Suspense fallback={<div className="flex-1 flex justify-center items-center"><Loader2 className="h-10 w-10 animate-spin" /></div>}>
-                          <AppContent />
-                        </Suspense>
-                      </main>
-                      <NetworkStatus />
-                    </ChatDrawerContextProvider>
-                  </UnreadMessagesProvider>
-                </DirectConversationsProvider>
-              </ChatProvider>
-            </AppProvider>
-          ) : (
-            <div className="flex-1 flex justify-center items-center">
-              <Loader2 className="h-16 w-16 animate-spin" />
-            </div>
-          )}
-        </div>
-      </TooltipProvider>
-    </ThemeProvider>
-  );
-}
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <AppProvider>
+        <UnreadMessagesProvider>
+          <DirectConversationsProvider>
+            <ChatDrawerProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<AppContent><Index /></AppContent>} />
+                  <Route path="/connect-device" element={<AppContent><ConnectDevice /></AppContent>} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<AppContent><NotFound /></AppContent>} />
+                </Routes>
+              </BrowserRouter>
+            </ChatDrawerProvider>
+          </DirectConversationsProvider>
+        </UnreadMessagesProvider>
+      </AppProvider>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 
 export default App;

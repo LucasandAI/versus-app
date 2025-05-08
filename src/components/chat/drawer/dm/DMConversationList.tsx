@@ -1,142 +1,81 @@
 
-import React, { useState } from 'react';
-import { Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import React from 'react';
+import ConversationItem from './ConversationItem';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useFormatRelativeTime } from '@/hooks/useFormatRelativeTime';
+import { useApp } from '@/context/AppContext';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
+import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
 
-interface DMConversationUser {
-  id: string;
-  name: string;
-  avatar?: string;
+interface Props {
+  onSelectUser: (userId: string, userName: string, userAvatar: string, conversationId: string) => void;
+  selectedUserId?: string;
+  unreadConversations?: Set<string>; // This prop is now defined
 }
 
-interface DMConversationItem {
-  id: string;
-  user: DMConversationUser;
-  lastMessage?: string;
-  timestamp?: string;
-  unread: boolean;
-}
-
-interface DMConversationListProps {
-  conversations: DMConversationItem[];
-  onSelectConversation: (conversation: { id: string; user: DMConversationUser }) => void;
-  unreadConversations: Set<string>;
-  loading?: boolean;
-}
-
-const DMConversationList: React.FC<DMConversationListProps> = ({
-  conversations,
-  onSelectConversation,
-  unreadConversations,
-  loading = false
+const DMConversationList: React.FC<Props> = ({ 
+  onSelectUser, 
+  selectedUserId,
+  unreadConversations = new Set() // Default value properly defined
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const { formatRelativeTime } = useFormatRelativeTime();
+  const { currentUser } = useApp();
+  const { conversations, loading } = useDirectConversationsContext();
   
-  const filteredConversations = searchQuery 
-    ? conversations.filter(conversation => 
-        conversation.user.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : conversations;
-
-  // Sort conversations: first by unread status, then by most recent
-  const sortedConversations = [...filteredConversations].sort((a, b) => {
-    // Unread conversations come first
-    if (unreadConversations.has(a.id) && !unreadConversations.has(b.id)) return -1;
-    if (!unreadConversations.has(a.id) && unreadConversations.has(b.id)) return 1;
-    
-    // Then sort by timestamp (most recent first)
-    if (a.timestamp && b.timestamp) {
-      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-    }
-    
-    // If no timestamp, put those without timestamps last
-    if (a.timestamp && !b.timestamp) return -1;
-    if (!a.timestamp && b.timestamp) return 1;
-    
-    // If neither has timestamp, sort by name
-    return a.user.name.localeCompare(b.user.name);
-  });
+  const isEmpty = !loading && conversations.length === 0;
   
-  if (loading) {
-    return (
-      <div>
-        <div className="p-4 pb-2">
-          <Skeleton className="w-full h-10" />
-        </div>
-        {[1, 2, 3].map(i => (
-          <div key={i} className="p-4 flex items-center gap-3">
-            <Skeleton className="w-10 h-10 rounded-full" />
-            <div className="flex-1">
-              <Skeleton className="w-24 h-4 mb-2" />
-              <Skeleton className="w-40 h-3" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
+  // Debug logging to check the unread conversations
+  console.log('[DMConversationList] unreadConversations:', Array.from(unreadConversations));
 
   return (
-    <div>
-      <div className="p-4 pb-2">
-        <Input
-          placeholder="Search conversations..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full"
-          prefix={<Search className="h-4 w-4 text-gray-400" />}
-        />
-      </div>
+    <div className="flex flex-col h-full bg-white">
+      <h1 className="text-4xl font-bold p-4">Messages</h1>
       
-      <div className="overflow-y-auto max-h-[calc(80vh-120px)]">
-        {sortedConversations.length === 0 ? (
+      <div className="flex-1 overflow-auto">
+        {loading ? (
+          <div className="p-4 space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center space-x-3 p-2">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : isEmpty ? (
           <div className="p-4 text-center text-gray-500">
-            {searchQuery ? "No conversations found" : "No direct messages yet"}
+            <p className="text-lg">No messages yet</p>
+            <p className="text-sm mt-1">Search above to start a conversation</p>
           </div>
         ) : (
-          sortedConversations.map(conversation => (
-            <Button
-              key={conversation.id}
-              variant="ghost"
-              className="w-full flex items-center gap-3 px-4 py-3 justify-start rounded-none"
-              onClick={() => onSelectConversation(conversation)}
-            >
-              <div className="w-10 h-10 rounded-full bg-gray-200 flex-shrink-0">
-                {conversation.user.avatar && (
-                  <img 
-                    src={conversation.user.avatar} 
-                    alt={conversation.user.name}
-                    className="w-full h-full rounded-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
+          <div className="divide-y">
+            {conversations
+              .filter(conversation => conversation.userId !== currentUser?.id)
+              .map((conversation) => {
+                const isUnread = unreadConversations.has(conversation.conversationId);
+                console.log(`[DMConversationList] Conversation ${conversation.conversationId} isUnread: ${isUnread}`);
+                
+                return (
+                  <ConversationItem
+                    key={conversation.conversationId}
+                    conversation={{
+                      ...conversation,
+                      lastMessage: conversation.lastMessage || '',
+                      timestamp: conversation.timestamp || ''
                     }}
+                    isSelected={selectedUserId === conversation.userId}
+                    isUnread={isUnread}
+                    onSelect={() => onSelectUser(
+                      conversation.userId,
+                      conversation.userName,
+                      conversation.userAvatar,
+                      conversation.conversationId
+                    )}
+                    isLoading={false}
                   />
-                )}
-              </div>
-              <div className="flex-1 text-left truncate">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">{conversation.user.name}</span>
-                  {unreadConversations.has(conversation.id) && (
-                    <span className="w-2 h-2 bg-primary rounded-full"></span>
-                  )}
-                </div>
-                <div className="flex items-center justify-between text-xs text-gray-500">
-                  <span className="truncate max-w-[160px]">
-                    {conversation.lastMessage || 'Start chatting...'}
-                  </span>
-                  {conversation.timestamp && (
-                    <span className="ml-2 flex-shrink-0">
-                      {formatRelativeTime(conversation.timestamp)}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </Button>
-          ))
+                );
+              })}
+          </div>
         )}
       </div>
     </div>
