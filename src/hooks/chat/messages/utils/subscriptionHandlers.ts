@@ -67,9 +67,8 @@ export const handleNewMessagePayload = async (
       }
       
       // Add new message and sort by timestamp
-      const updatedMessages = [...clubMessages, messageWithSender].sort(
-        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      );
+      const updatedMessages = [...clubMessages, messageWithSender]
+        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
       
       return {
         ...prev,

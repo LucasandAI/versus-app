@@ -1,5 +1,4 @@
-
-import React, { memo, useMemo, useRef } from 'react';
+import React, { memo, useMemo, useRef, useEffect } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageList from './message/MessageList';
 import { useMessageUser } from './message/useMessageUser';
@@ -7,6 +6,8 @@ import { useMessageNormalization } from './message/useMessageNormalization';
 import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
 import { useCurrentMember } from '@/hooks/chat/messages/useCurrentMember';
 import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
+import { useApp } from '@/context/AppContext';
+import { Button } from '@/components/ui/button';
 
 interface ChatMessagesProps {
   messages: ChatMessage[] | any[];
@@ -22,6 +23,9 @@ interface ChatMessagesProps {
   lastMessageRef?: React.RefObject<HTMLDivElement>;
   formatTime?: (isoString: string) => string;
   scrollRef?: React.RefObject<HTMLDivElement>;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
+  onLoadMore?: () => void;
 }
 
 // Use memo to prevent unnecessary re-renders with consistent identity reference
@@ -35,6 +39,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   lastMessageRef: providedLastMessageRef,
   formatTime: providedFormatTime,
   scrollRef: providedScrollRef,
+  hasMore = false,
+  isLoadingMore = false,
+  onLoadMore
 }) => {
   // Create stable references to prevent recreation
   const prevMessageLengthRef = useRef<number>(0);
@@ -63,6 +70,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
     lastMessageRef: defaultLastMessageRef,
     scrollToBottom
   } = useMessageScroll(messages);
+
+  const { currentUser } = useApp();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Use provided values or defaults - store references to prevent recreation
   const finalUserAvatar = providedUserAvatar || defaultUserAvatar;
@@ -115,6 +125,13 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   // Determine if this is a club chat by checking if there are club members
   const isClubChat = clubMembers.length > 0;
 
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
   return (
     <div 
       ref={finalScrollRef} 
@@ -122,6 +139,21 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
         isClubChat ? 'h-[calc(73vh-8rem)]' : 'h-[calc(73vh-6rem)]'
       }`}
     >
+      {/* Load more button */}
+      {hasMore && (
+        <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm py-2 flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onLoadMore}
+            disabled={isLoadingMore}
+            className="text-sm"
+          >
+            {isLoadingMore ? 'Loading...' : 'Load More Messages'}
+          </Button>
+        </div>
+      )}
+      
       <MessageList 
         messages={normalizedMessages} 
         clubMembers={clubMembers} 
@@ -133,6 +165,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
         currentUserId={currentUserId} 
         lastMessageRef={finalLastMessageRef} 
       />
+      
+      {/* Scroll anchor */}
+      <div ref={messagesEndRef} />
     </div>
   );
 });

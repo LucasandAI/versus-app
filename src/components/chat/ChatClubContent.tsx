@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import ChatHeader from './ChatHeader';
@@ -37,7 +36,7 @@ const ChatClubContent = ({
   const effectiveClubId = clubId || club?.id;
   
   // Use our new hook to get messages that stay in sync with global state
-  const { messages } = useActiveClubMessages(
+  const { messages, hasMore, isLoadingMore, loadMoreMessages } = useActiveClubMessages(
     effectiveClubId,
     globalMessages
   );
@@ -100,6 +99,9 @@ const ChatClubContent = ({
             clubMembers={club.members || []}
             onDeleteMessage={handleDeleteMessage}
             onSelectUser={onSelectUser}
+            hasMore={hasMore}
+            isLoadingMore={isLoadingMore}
+            onLoadMore={loadMoreMessages}
           />
         </div>
         
