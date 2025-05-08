@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from './AppContext';
 import { toast } from '@/hooks/use-toast';
@@ -34,93 +35,9 @@ export const useDirectConversationsContext = () => useContext(DirectConversation
 
 export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
   const { currentUser } = useApp();
-
-  // Add function to fetch conversation details
-  const fetchConversationDetails = useCallback(async (conversationId: string) => {
-    try {
-      const { data: conversation, error } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('id', conversationId)
-        .single();
-
-      if (error) throw error;
-
-      const otherUserId = conversation.user1_id === currentUser?.id ? conversation.user2_id : conversation.user1_id;
-      
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id, name, avatar')
-        .eq('id', otherUserId)
-        .single();
-
-      if (userError) throw userError;
-
-      setConversations(prev => [...prev, {
-        conversationId: conversation.id,
-        userId: userData.id,
-        userName: userData.name,
-        userAvatar: userData.avatar || '/placeholder.svg',
-        lastMessage: '',
-        timestamp: conversation.created_at
-      }]);
-    } catch (error) {
-      console.error('[DirectConversationsProvider] Error fetching conversation details:', error);
-    }
-  }, [currentUser?.id]);
-
-  // Add real-time subscription for new messages
-  useEffect(() => {
-    if (!currentUser?.id) return;
-
-    const channel = supabase
-      .channel('direct-messages-updates')
-      .on('postgres_changes', 
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'direct_messages' 
-        },
-        async (payload) => {
-          if (payload.new.sender_id === currentUser.id || payload.new.receiver_id === currentUser.id) {
-            // Update the conversation list with the new message
-            setConversations(prev => {
-              const updatedConversations = [...prev];
-              const conversationIndex = updatedConversations.findIndex(
-                conv => conv.conversationId === payload.new.conversation_id
-              );
-
-              if (conversationIndex !== -1) {
-                // Update existing conversation
-                updatedConversations[conversationIndex] = {
-                  ...updatedConversations[conversationIndex],
-                  lastMessage: payload.new.text,
-                  timestamp: payload.new.timestamp
-                };
-              } else {
-                // Fetch conversation details if it's a new conversation
-                fetchConversationDetails(payload.new.conversation_id);
-              }
-
-              // Sort conversations by timestamp
-              return updatedConversations.sort((a, b) => {
-                if (!a.timestamp) return 1;
-                if (!b.timestamp) return -1;
-                return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-              });
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [currentUser?.id, fetchConversationDetails]);
 
   const fetchConversations = useCallback(async (forceRefresh = false) => {
     if (!forceRefresh && hasLoaded) {

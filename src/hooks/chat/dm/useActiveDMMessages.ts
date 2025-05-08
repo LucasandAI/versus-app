@@ -11,11 +11,10 @@ export const useActiveDMMessages = (
   conversationId: string,
   otherUserId: string,
   currentUserId: string | undefined,
-  otherUserData?: { id: string; name: string; avatar?: string }
+  otherUserData?: { id: string; name: string; avatar?: string } // Added parameter for otherUserData
 ) => {
+  // Local state for messages in this conversation
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [hasMore, setHasMore] = useState(true);
-  const [loading, setLoading] = useState(false);
   const { userCache, fetchUserData } = useUserData();
   
   // Use stable refs to prevent capturing stale values in closures
@@ -24,7 +23,6 @@ export const useActiveDMMessages = (
   const isProcessingUpdates = useRef(false);
   const stableConversationId = useRef(conversationId);
   const optimisticMessageIds = useRef(new Set<string>());
-  const oldestMessageTimestamp = useRef<string | null>(null);
   
   // Store authoritative user data in a ref for stable access
   const otherUserDataRef = useRef(otherUserData);
@@ -291,80 +289,31 @@ export const useActiveDMMessages = (
     fetchMessages();
   }, [fetchMessages]);
 
-  // Load more messages when scrolling up
-  const loadMoreMessages = useCallback(async () => {
-    if (!hasMore || loading || !conversationId || conversationId === 'new') return;
-
-    setLoading(true);
-    try {
-      const { data } = await supabase
-        .from('direct_messages')
-        .select(`
-          id, 
-          text, 
-          sender_id, 
-          receiver_id,
-          conversation_id,
-          timestamp
-        `)
-        .eq('conversation_id', conversationId)
-        .lt('timestamp', oldestMessageTimestamp.current || new Date().toISOString())
-        .order('timestamp', { ascending: false })
-        .limit(50);
-
-      if (data && data.length > 0) {
-        const newMessages = data.map(msg => ({
-          id: msg.id,
-          text: msg.text,
-          sender: {
-            id: msg.sender_id,
-            name: msg.sender_id === currentUserId ? 'You' : otherUserDataRef.current?.name || 'Unknown',
-            avatar: msg.sender_id === currentUserId ? undefined : otherUserDataRef.current?.avatar
-          },
-          timestamp: msg.timestamp
-        }));
-
-        setMessages(prev => [...newMessages.reverse(), ...prev]);
-        oldestMessageTimestamp.current = data[data.length - 1].timestamp;
-        setHasMore(data.length === 50);
-      } else {
-        setHasMore(false);
-      }
-    } catch (error) {
-      console.error('[useActiveDMMessages] Error loading more messages:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [conversationId, currentUserId, hasMore, loading]);
-
-  // Add message with optimistic update
-  const addMessage = useCallback((message: ChatMessage, isOptimistic = false) => {
-    if (isOptimistic) {
-      optimisticMessageIds.current.add(message.id);
-    }
-
-    setMessages(prev => {
-      // Check if message already exists
-      if (prev.some(m => m.id === message.id)) {
-        return prev;
-      }
-
-      // Add new message and sort by timestamp
-      const newMessages = [...prev, message].sort(
-        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      );
-
-      return newMessages;
-    });
+  // Add a new message optimistically (for local UI updates)
+  const addOptimisticMessage = useCallback((message: ChatMessage) => {
+    // Skip if already processed
+    const msgId = message.id?.toString();
+    if (!msgId || processedMsgIds.current.has(msgId)) return;
+    
+    // Track this as an optimistic message
+    optimisticMessageIds.current.add(msgId);
+    
+    // Mark as processed
+    processedMsgIds.current.add(msgId);
+    
+    // Add to messages state
+    setMessages(prev => [...prev, {
+      ...message,
+      optimistic: true
+    }]);
+    
+    console.log('[useActiveDMMessages] Added optimistic message:', msgId);
   }, []);
 
   // Return stable object reference
   return useMemo(() => ({
     messages,
     setMessages,
-    addMessage,
-    loadMoreMessages,
-    hasMore,
-    loading
-  }), [messages, addMessage, loadMoreMessages, hasMore, loading]);
+    addOptimisticMessage
+  }), [messages, addOptimisticMessage]);
 };

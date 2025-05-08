@@ -1,3 +1,4 @@
+
 import React, { memo } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageItem from './MessageItem';
@@ -16,9 +17,6 @@ interface MessageListProps {
   currentUserAvatar: string;
   currentUserId: string | null;
   lastMessageRef: React.RefObject<HTMLDivElement>;
-  hasMore?: boolean;
-  onLoadMore?: () => void;
-  isLoadingMore?: boolean;
 }
 
 // Memoize the component to prevent unnecessary re-renders
@@ -31,10 +29,7 @@ const MessageList: React.FC<MessageListProps> = memo(({
   formatTime,
   currentUserAvatar,
   currentUserId,
-  lastMessageRef,
-  hasMore = false,
-  onLoadMore,
-  isLoadingMore = false
+  lastMessageRef
 }) => {
   // Use useMemo to avoid recreating message items on every render
   const messageItems = React.useMemo(() => {
@@ -73,17 +68,6 @@ const MessageList: React.FC<MessageListProps> = memo(({
         </div>
       ) : (
         <>
-          {hasMore && (
-            <div className="flex justify-center mb-4">
-              <button
-                onClick={onLoadMore}
-                disabled={isLoadingMore}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
-              >
-                {isLoadingMore ? 'Loading...' : 'Load More Messages'}
-              </button>
-            </div>
-          )}
           {messageItems}
           {/* Add proper spacing at the bottom to ensure visibility above the input bar */}
           <div className="h-4"></div>
