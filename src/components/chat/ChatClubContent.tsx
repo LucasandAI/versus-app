@@ -72,25 +72,21 @@ const ChatClubContent = ({
   const handleSendMessage = useCallback(async (message: string) => {
     console.log('[ChatClubContent] Sending message for club:', effectiveClubId);
     
-    // Immediately set isSending to true like in DM implementation
-    setIsSending(true);
+    // Don't set isSending to true immediately to prevent flickering
+    // Instead use a small delay before showing the sending state
+    const sendingTimeout = setTimeout(() => {
+      setIsSending(true);
+    }, 300); // Delay showing "sending" state
     
     try {
       const messageToSend = message.trim();
       if (effectiveClubId) {
         await onSendMessage(messageToSend, effectiveClubId);
       }
-      
-      // After message is sent, scroll to bottom using requestAnimationFrame for smoother animation
-      requestAnimationFrame(() => {
-        const messageContainer = document.querySelector(`[data-conversation-id="${effectiveClubId}"]`)?.parentElement?.previousElementSibling;
-        if (messageContainer) {
-          messageContainer.scrollTop = messageContainer.scrollHeight;
-        }
-      });
     } catch (error) {
       console.error('[ChatClubContent] Error sending club message:', error);
     } finally {
+      clearTimeout(sendingTimeout); // Clear timeout if completed before 300ms
       setIsSending(false);
     }
   }, [effectiveClubId, onSendMessage]);

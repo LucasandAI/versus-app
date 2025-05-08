@@ -35,14 +35,21 @@ const ChatInput: React.FC<ChatInputProps> = ({
       console.log(`[ChatInput] Submitting message for ${conversationType}:${contextId}:`, 
         messageToSend.substring(0, 20));
       
-      // Clear the input immediately for better user experience
       setMessage('');
       
       try {
         await onSendMessage(messageToSend);
+        
+        // Give time for the message to be added to the DOM before scrolling
+        setTimeout(() => {
+          // Find the latest message and scroll to it
+          const messageContainer = document.querySelector(`[data-conversation-id="${contextId}"]`)?.parentElement?.previousElementSibling;
+          if (messageContainer) {
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+          }
+        }, 100);
       } catch (error) {
         console.error(`[ChatInput] Error sending message for ${conversationType}:${contextId}:`, error);
-        // If there was an error, restore the message
         setMessage(messageToSend);
       }
     }
@@ -73,7 +80,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
       />
       <button 
         type="submit"
-        className="p-2 rounded-full bg-primary text-white flex items-center justify-center disabled:opacity-50 flex-shrink-0 transition-opacity duration-150"
+        className="p-2 rounded-full bg-primary text-white flex items-center justify-center disabled:opacity-50 flex-shrink-0"
         disabled={!message.trim() || isSending}
       >
         {isSending ? (
@@ -86,4 +93,5 @@ const ChatInput: React.FC<ChatInputProps> = ({
   );
 };
 
+// Memoize the component to prevent unnecessary re-renders
 export default React.memo(ChatInput);

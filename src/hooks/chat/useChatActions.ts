@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,7 +33,7 @@ export const useChatActions = () => {
       
       console.log('[useChatActions] Created optimistic message:', optimisticMessage);
       
-      // Immediately update local state with optimistic message if setClubMessages is provided
+      // Always update local state immediately with optimistic message if setClubMessages is provided
       if (setClubMessages) {
         setClubMessages(prevMessages => {
           const clubMessages = prevMessages[clubId] || [];
@@ -54,63 +55,82 @@ export const useChatActions = () => {
       // Add debug log before insert attempt
       console.log('[Chat Debug] About to insert message:', { clubId, messageText });
 
-      // Now insert the real message to the database
-      const { data: insertedMessage, error: insertError } = await supabase
-        .from('club_chat_messages')
-        .insert({
-          club_id: clubId,
-          message: messageText,
-          sender_id: currentUser.id
-        })
-        .select(`
-          id, 
-          message, 
-          timestamp, 
-          sender_id,
-          club_id,
-          sender:sender_id(id, name, avatar)
-        `)
-        .single();
-      
-      // Add debug log after insert attempt
-      console.log('[Chat Debug] Insert result:', { data: insertedMessage, error: insertError });
-
-      if (insertError) {
-        console.error('[useChatActions] Error sending message:', insertError);
+      // Use Promise.resolve().then() to ensure optimistic UI update happens before the actual request
+      await Promise.resolve().then(async () => {
+        const { data: insertedMessage, error: insertError } = await supabase
+          .from('club_chat_messages')
+          .insert({
+            club_id: clubId,
+            message: messageText,
+            sender_id: currentUser.id
+          })
+          .select(`
+            id, 
+            message, 
+            timestamp, 
+            sender_id,
+            club_id,
+            sender:sender_id(id, name, avatar)
+          `)
+          .single();
         
-        if (insertError.code === '42501') {
-          toast({
-            title: "Permission Error",
-            description: "You don't have permission to send messages in this club",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Message Send Error",
-            description: insertError.message || "Failed to send message",
-            variant: "destructive"
-          });
-        }
-        
-        // Remove optimistic message on error if setClubMessages is provided
-        if (setClubMessages) {
-          setClubMessages(prevMessages => {
-            const clubMessages = prevMessages[clubId] || [];
-            
-            return {
-              ...prevMessages,
-              [clubId]: clubMessages.filter(msg => msg.id !== tempId)
-            };
-          });
-        }
-        
-        return null;
-      }
+        // Add debug log after insert attempt
+        console.log('[Chat Debug] Insert result:', { data: insertedMessage, error: insertError });
   
-      console.log('[useChatActions] Message sent successfully:', insertedMessage);
-      
-      // We keep the optimistic message until the real-time update replaces it
-      // This is similar to DM approach which is smoother
+        if (insertError) {
+          console.error('[useChatActions] Error sending message:', insertError);
+          
+          if (insertError.code === '42501') {
+            toast({
+              title: "Permission Error",
+              description: "You don't have permission to send messages in this club",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "Message Send Error",
+              description: insertError.message || "Failed to send message",
+              variant: "destructive"
+            });
+          }
+          
+          // Remove optimistic message on error if setClubMessages is provided
+          if (setClubMessages) {
+            setClubMessages(prevMessages => {
+              const clubMessages = prevMessages[clubId] || [];
+              
+              return {
+                ...prevMessages,
+                [clubId]: clubMessages.filter(msg => msg.id !== tempId)
+              };
+            });
+          }
+          
+          return null;
+        }
+  
+        console.log('[useChatActions] Message sent successfully:', insertedMessage);
+        
+        // Only if we have both - replace optimistic message with real one
+        // This is a smoother transition using a queued state update
+        if (setClubMessages && insertedMessage) {
+          setTimeout(() => {
+            setClubMessages(prevMessages => {
+              const clubMessages = prevMessages[clubId] || [];
+              
+              // Replace optimistic message with the real one
+              return {
+                ...prevMessages,
+                [clubId]: clubMessages.map(msg => 
+                  msg.id === tempId ? { ...insertedMessage, transition: 'complete' } : msg
+                )
+              };
+            });
+          }, 100); // Small delay to ensure smooth transition
+        }
+        
+        return insertedMessage;
+      });
       
       return true; // Return early success since we're using optimistic updates
     } catch (error) {
