@@ -1,10 +1,9 @@
-import React, { useState, useEffect, memo, useMemo } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import DMConversationList from './DMConversationList';
 import DMConversation from './DMConversation';
-import DMSearchPanel from './DMSearchPanel';
-import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
-import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
 import { useApp } from '@/context/AppContext';
+import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 
 interface DMContainerProps {
   directMessageUser: {
@@ -19,90 +18,78 @@ interface DMContainerProps {
     userAvatar: string;
     conversationId: string;
   } | null>>;
-  unreadConversations?: Set<string>;
+  unreadConversations: Set<string>;
 }
 
-// Memo the component to prevent unnecessary re-renders
-const DMContainer: React.FC<DMContainerProps> = memo(({ 
-  directMessageUser, 
+const DMContainer: React.FC<DMContainerProps> = ({
+  directMessageUser,
   setDirectMessageUser,
-  unreadConversations = new Set<string>()
+  unreadConversations
 }) => {
-  const [showSearch, setShowSearch] = useState(false);
-  const { getOrCreateConversation } = useDirectConversationsContext();
-  const { markDirectMessagesAsRead } = useMessageReadStatus();
   const { currentUser } = useApp();
-
-  // Create a handler for search results selection - memoized to keep reference stable
-  const handleSearchSelect = useMemo(() => async (userId: string, userName: string, userAvatar: string) => {
-    console.log(`[DMContainer] User selected from search: ${userId}, ${userName}`);
-    const conversation = await getOrCreateConversation(userId, userName, userAvatar);
-    if (conversation) {
-      setDirectMessageUser({
-        userId,
-        userName,
-        userAvatar: userAvatar || '/placeholder.svg',
-        conversationId: conversation.conversationId
-      });
-      setShowSearch(false);
-    }
-  }, [getOrCreateConversation, setDirectMessageUser]);
+  const { conversations, loading, hasLoaded, fetchConversations } = useDirectConversationsContext();
+  const { markConversationAsRead } = useUnreadMessages();
   
-  // Mark conversation as read when selected
+  // Fetch conversations when component mounts if they haven't been loaded
   useEffect(() => {
-    if (directMessageUser && currentUser?.id) {
-      console.log(`[DMContainer] Marking conversation ${directMessageUser.conversationId} as read`);
-      markDirectMessagesAsRead(directMessageUser.conversationId, currentUser.id);
+    if (!hasLoaded && !loading) {
+      fetchConversations();
     }
-  }, [directMessageUser?.conversationId, currentUser?.id, markDirectMessagesAsRead]);
-
-  // Only create these components once and keep them in memory
-  const conversationListComponent = useMemo(() => (
-    <DMConversationList
-      onSelectUser={(userId, userName, userAvatar, conversationId) => {
-        setDirectMessageUser({
-          userId,
-          userName,
-          userAvatar,
-          conversationId
-        });
-      }}
-      selectedUserId={directMessageUser?.userId}
-      unreadConversations={unreadConversations}
-    />
-  ), [directMessageUser?.userId, unreadConversations, setDirectMessageUser]);
+  }, [hasLoaded, loading, fetchConversations]);
   
-  const searchPanelComponent = useMemo(() => (
-    <DMSearchPanel 
-      onSelect={handleSearchSelect} 
-      onBack={() => setShowSearch(false)} 
-    />
-  ), [handleSearchSelect]);
-
-  // The user has selected a DM conversation
-  if (directMessageUser) {
+  // Handle back button click
+  const handleBack = useCallback(() => {
+    setDirectMessageUser(null);
+  }, [setDirectMessageUser]);
+  
+  // Handle selecting a conversation
+  const handleSelectConversation = useCallback((conversation: {
+    conversationId: string;
+    userId: string;
+    userName: string;
+    userAvatar: string;
+  }) => {
+    setDirectMessageUser({
+      userId: conversation.userId,
+      userName: conversation.userName,
+      userAvatar: conversation.userAvatar,
+      conversationId: conversation.conversationId
+    });
+    
+    // Mark conversation as read when selected
+    if (conversation.conversationId !== 'new') {
+      markConversationAsRead(conversation.conversationId);
+    }
+  }, [setDirectMessageUser, markConversationAsRead]);
+  
+  // If no conversation is selected, show the conversation list
+  if (!directMessageUser) {
     return (
-      <DMConversation
+      <div className="h-full">
+        <DMConversationList 
+          conversations={conversations}
+          onSelectConversation={handleSelectConversation}
+          unreadConversations={unreadConversations}
+          loading={loading}
+        />
+      </div>
+    );
+  }
+
+  // If a conversation is selected, show it
+  return (
+    <div className="h-full">
+      <DMConversation 
         user={{
           id: directMessageUser.userId,
           name: directMessageUser.userName,
           avatar: directMessageUser.userAvatar
         }}
         conversationId={directMessageUser.conversationId}
-        onBack={() => setDirectMessageUser(null)}
+        onBack={handleBack}
       />
-    );
-  }
-
-  // The user wants to search for someone
-  if (showSearch) {
-    return searchPanelComponent;
-  }
-
-  // Show the conversation list (default view)
-  return conversationListComponent;
-});
-
-DMContainer.displayName = 'DMContainer';
+    </div>
+  );
+};
 
 export default DMContainer;

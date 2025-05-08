@@ -1,15 +1,15 @@
 
-import React from 'react';
-import { ChatMessage } from '@/types/chat';
+import React, { useState, useEffect } from 'react';
 import UserAvatar from '@/components/shared/UserAvatar';
 import MessageContent from './MessageContent';
 import { supabase } from '@/integrations/supabase/client';
-import { useState, useEffect } from 'react';
 import { useNavigation } from '@/hooks/useNavigation';
 import MessageDeleteButton from './MessageDeleteButton';
+import { ClubMessage, DirectMessage } from '@/context/ChatContext';
+import { Loader2 } from 'lucide-react';
 
 interface MessageItemProps {
-  message: ChatMessage;
+  message: ClubMessage | DirectMessage;
   isUserMessage: boolean;
   isSupport: boolean;
   onDeleteMessage?: (messageId: string) => void;
@@ -31,11 +31,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const { navigateToUserProfile } = useNavigation();
   
   // Debug log to see complete sender data
-  console.log(`[MessageItem] Rendering message with id ${message.id}, sender:`, {
-    id: message.sender?.id || 'unknown',
-    name: message.sender?.name || 'unknown',
-    avatar: message.sender?.avatar || 'undefined'
-  });
+  console.log(`[MessageItem] Rendering message with id ${message.id}, status: ${message.status || 'none'}`);
   
   useEffect(() => {
     const checkDeletePermission = async () => {
@@ -61,34 +57,24 @@ const MessageItem: React.FC<MessageItemProps> = ({
   };
 
   const handleProfileClick = () => {
-    if (!isSupport && message.sender) {
-      console.log('[MessageItem] Profile clicked, using sender data:', message.sender);
-      navigateToUserProfile(message.sender.id, message.sender.name, message.sender.avatar);
+    if (!isSupport && message.sender && onSelectUser) {
+      onSelectUser(message.sender.id, message.sender.name, message.sender.avatar);
     }
   };
 
   const getTimestamp = () => {
     if (!message.timestamp) {
-      console.warn('[MessageItem] Message has no timestamp:', message.id);
-      return new Date().toISOString(); // Fallback to current time
+      return new Date().toISOString();
     }
     return message.timestamp;
   };
 
-  // IMPORTANT: Always use the data provided in the message object
-  // Never fall back to defaults for name - this ensures consistent display
   const senderName = message.sender?.name || 'Unknown';
-  
-  // Only use the avatar that was provided, no placeholder
   const senderAvatar = message.sender?.avatar;
 
   const renderDeleteButton = () => {
     if (!isUserMessage || !canDelete || !onDeleteMessage) {
-      return (
-        <div className="w-8 h-8 opacity-0" aria-hidden="true">
-          {/* Placeholder to maintain layout */}
-        </div>
-      );
+      return <div className="w-8 h-8 opacity-0" aria-hidden="true" />;
     }
 
     return (
@@ -98,7 +84,16 @@ const MessageItem: React.FC<MessageItemProps> = ({
     );
   };
 
-  // Use the proper alignment for messages
+  // Show sending status for optimistic messages
+  const renderStatus = () => {
+    if (message.status === 'sending') {
+      return <Loader2 className="h-3 w-3 ml-1 animate-spin text-gray-400" />;
+    } else if (message.status === 'error') {
+      return <span className="text-xs text-red-500 ml-1">Failed</span>;
+    }
+    return null;
+  };
+
   return (
     <div className={`flex ${isUserMessage ? 'justify-end mr-4' : 'justify-start ml-4'} mb-6 group`}>
       {/* Avatar appears only for non-user messages */}
@@ -124,11 +119,14 @@ const MessageItem: React.FC<MessageItemProps> = ({
           </button>
         )}
 
-        <MessageContent
-          message={message}
-          isUserMessage={isUserMessage}
-          isSupport={isSupport}
-        />
+        <div className="flex items-center">
+          <MessageContent
+            message={message}
+            isUserMessage={isUserMessage}
+            isSupport={isSupport}
+          />
+          {renderStatus()}
+        </div>
 
         <div className={`text-xs text-gray-500 mt-1 ${isUserMessage ? 'pr-1 text-right' : 'pl-1 text-left'} w-full`}>
           {formatTime(getTimestamp())}

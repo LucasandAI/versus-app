@@ -1,63 +1,47 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Club } from '@/types';
 import ChatHeader from './ChatHeader';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import { useNavigation } from '@/hooks/useNavigation';
-import { useChatActions } from '@/hooks/chat/useChatActions';
-import { useActiveClubMessages } from '@/hooks/chat/useActiveClubMessages';
+import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
+import { ClubMessage } from '@/context/ChatContext';
 
 interface ChatClubContentProps {
   club: Club;
-  messages: any[];
+  messages: ClubMessage[];
   onMatchClick: () => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   onSendMessage: (message: string, clubId?: string) => void;
-  onDeleteMessage?: (messageId: string) => void;
-  setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
-  clubId?: string;
-  globalMessages?: Record<string, any[]>;
+  onDeleteMessage?: (messageId: string, type: 'club' | 'direct', contextId: string) => void;
 }
 
 const ChatClubContent = ({ 
   club,
-  messages: propMessages,
+  messages,
   onMatchClick,
   onSelectUser,
   onSendMessage,
   onDeleteMessage,
-  setClubMessages,
-  clubId,
-  globalMessages = {}
 }: ChatClubContentProps) => {
   const { navigateToClubDetail } = useNavigation();
   const [isSending, setIsSending] = useState(false);
-  const { deleteMessage } = useChatActions();
-  const effectiveClubId = clubId || club?.id;
+  const { scrollRef, lastMessageRef, scrollToBottom } = useMessageScroll(messages);
   
-  // Use our new hook to get messages that stay in sync with global state
-  const { messages } = useActiveClubMessages(
-    effectiveClubId,
-    globalMessages
-  );
-  
-  // Log the messages length as requested
+  // Log the messages length for debugging
   console.log('[ChatClubContent] Messages length:', messages.length);
   
   useEffect(() => {
-    console.log('[ChatClubContent] Club changed, resetting state for:', effectiveClubId);
-    setIsSending(false);
-  }, [effectiveClubId]);
+    // Scroll to bottom when component mounts or club changes
+    scrollToBottom();
+  }, [club.id]);
 
   const handleDeleteMessage = async (messageId: string) => {
     console.log('[ChatClubContent] Deleting message:', messageId);
     
     if (onDeleteMessage) {
-      await onDeleteMessage(messageId);
-    } else if (setClubMessages) {
-      // Fallback to direct deleteMessage if no handler provided
-      await deleteMessage(messageId, setClubMessages);
+      await onDeleteMessage(messageId, 'club', club.id);
     }
   };
 
@@ -70,12 +54,14 @@ const ChatClubContent = ({
   };
 
   const handleSendMessage = async (message: string) => {
-    console.log('[ChatClubContent] Sending message for club:', effectiveClubId);
+    console.log('[ChatClubContent] Sending message for club:', club.id);
     setIsSending(true);
     try {
       const messageToSend = message.trim();
-      if (effectiveClubId) {
-        await onSendMessage(messageToSend, effectiveClubId);
+      if (club.id) {
+        await onSendMessage(messageToSend, club.id);
+        // Scroll to bottom after sending
+        setTimeout(scrollToBottom, 100);
       }
     } catch (error) {
       console.error('[ChatClubContent] Error sending club message:', error);
@@ -94,20 +80,21 @@ const ChatClubContent = ({
       />
       
       <div className="flex-1 flex flex-col relative overflow-hidden">
-        <div className="flex-1 min-h-0">
+        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
           <ChatMessages 
             messages={messages} 
             clubMembers={club.members || []}
             onDeleteMessage={handleDeleteMessage}
             onSelectUser={onSelectUser}
+            lastMessageRef={lastMessageRef}
           />
         </div>
         
-        <div className="absolute bottom-0 left-0 right-0 bg-white">
+        <div className="bg-white border-t">
           <ChatInput 
             onSendMessage={handleSendMessage} 
             conversationType="club"
-            conversationId={effectiveClubId} 
+            conversationId={club.id} 
             isSending={isSending}
           />
         </div>
