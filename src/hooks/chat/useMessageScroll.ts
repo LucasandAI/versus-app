@@ -1,38 +1,56 @@
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 
-export const useMessageScroll = (messages: any[]) => {
+export const useMessageScroll = (messages: any[], chatId?: string) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const previousMessageCount = useRef<number>(0);
   const isUserScrolling = useRef<boolean>(false);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const scrollLockRef = useRef<boolean>(false);
+  const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
   
+  // Track chat context to prevent cross-chat interference
+  const chatContextRef = useRef<string | undefined>(chatId);
+  
+  // Update chat context when it changes
+  useEffect(() => {
+    if (chatContextRef.current !== chatId) {
+      chatContextRef.current = chatId;
+      isUserScrolling.current = false; 
+      previousMessageCount.current = 0;
+      // Reset scroll position when chat context changes
+      setTimeout(() => {
+        scrollToBottom(false);
+      }, 50);
+    }
+  }, [chatId]);
+
   // Optimize scrolling by using a callback with requestAnimationFrame
   const scrollToBottom = useCallback((smooth = true) => {
-    // Cancel any pending scroll operations
+    // Don't scroll if another scroll is in progress - prevents stuttering
     if (scrollLockRef.current) return;
     
     // Set lock to prevent multiple scroll attempts
     scrollLockRef.current = true;
     
-    // Use requestAnimationFrame for smoother animation
+    // Use requestAnimationFrame for better timing with browser paint cycles
     requestAnimationFrame(() => {
       if (scrollRef.current) {
         const { scrollHeight, clientHeight } = scrollRef.current;
         
-        // Use the modern scrollTo with smooth behavior for better animation
         scrollRef.current.scrollTo({
           top: scrollHeight - clientHeight,
           behavior: smooth ? 'smooth' : 'auto'
         });
+        
+        // Update scroll state
+        setIsScrolledToBottom(true);
       }
       
-      // Release scroll lock after animation completes
+      // Release scroll lock after a shorter time to allow quick successive scrolls if needed
       setTimeout(() => {
         scrollLockRef.current = false;
-      }, 300); // Wait for smooth scroll to complete
+      }, 100); // Reduced from 300ms to improve responsiveness
     });
   }, []);
 
@@ -50,10 +68,12 @@ export const useMessageScroll = (messages: any[]) => {
       const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
       
       isUserScrolling.current = !isAtBottom;
+      setIsScrolledToBottom(isAtBottom);
       
       // Debounce scroll state changes
       scrollTimer = setTimeout(() => {
         isUserScrolling.current = !isAtBottom;
+        setIsScrolledToBottom(isAtBottom);
       }, 150);
     };
 
@@ -74,17 +94,13 @@ export const useMessageScroll = (messages: any[]) => {
   useEffect(() => {
     if (!messages.length) return;
     
-    // Only auto-scroll if:
-    // 1. This is the first load (previousMessageCount.current === 0)
-    // 2. New messages were added AND user is already at bottom
     const shouldScroll = 
       previousMessageCount.current === 0 || 
       (messages.length > previousMessageCount.current && !isUserScrolling.current);
     
     if (shouldScroll) {
-      // Use requestAnimationFrame for smoother scrolling
+      // Use requestAnimationFrame to ensure DOM is ready
       requestAnimationFrame(() => {
-        // Use smooth scrolling for better UX
         scrollToBottom(true);
       });
     }
@@ -95,6 +111,7 @@ export const useMessageScroll = (messages: any[]) => {
   return {
     scrollRef,
     lastMessageRef,
-    scrollToBottom
+    scrollToBottom,
+    isScrolledToBottom
   };
 };

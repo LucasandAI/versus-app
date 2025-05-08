@@ -22,6 +22,7 @@ interface ChatMessagesProps {
   lastMessageRef?: React.RefObject<HTMLDivElement>;
   formatTime?: (isoString: string) => string;
   scrollRef?: React.RefObject<HTMLDivElement>;
+  chatId?: string;
 }
 
 // Use memo to prevent unnecessary re-renders with consistent identity reference
@@ -35,6 +36,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   lastMessageRef: providedLastMessageRef,
   formatTime: providedFormatTime,
   scrollRef: providedScrollRef,
+  chatId
 }) => {
   // Create stable references to prevent recreation
   const prevMessageLengthRef = useRef<number>(0);
@@ -60,12 +62,10 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   // Only create local scroll refs if none are provided
   const {
     scrollRef: defaultScrollRef,
-    lastMessageRef: defaultLastMessageRef,
-    scrollToBottom
-  } = !providedScrollRef ? useMessageScroll(messages) : { 
+    lastMessageRef: defaultLastMessageRef
+  } = !providedScrollRef ? useMessageScroll(messages, chatId) : { 
     scrollRef: { current: null }, 
-    lastMessageRef: { current: null },
-    scrollToBottom: () => {}
+    lastMessageRef: { current: null }
   };
 
   // Use provided values or defaults - store references to prevent recreation
@@ -92,22 +92,13 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   // Using useMemo with messages reference as dependency
   const normalizedMessages = useMemo(() => {
     console.log('[ChatMessages] Normalizing messages, count:', messages.length);
-    // Debug log a sample message to see what's coming in
-    if (messages.length > 0) {
-      console.log('[ChatMessages] Sample message before normalization:', messages[messages.length - 1]);
-    }
     
     const normalized = messages.map(message => normalizeMessage(message));
-    
-    // Debug log the normalized result for comparison
-    if (normalized.length > 0) {
-      console.log('[ChatMessages] Sample normalized message:', normalized[normalized.length - 1]);
-    }
     
     return normalized;
   }, [messages, normalizeMessage]);
 
-  // Don't duplicate scrolling logic if parent is handling it
+  // Don't duplicate scrolling logic - avoid scroll issues
   if (prevMessageLengthRef.current !== messages.length && !providedScrollRef) {
     prevMessageLengthRef.current = messages.length;
   }
@@ -118,7 +109,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   return (
     <div 
       ref={finalScrollRef} 
-      className={`overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent ${
+      className={`overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent transition-opacity duration-150 ${
         isClubChat ? 'h-[calc(73vh-8rem)]' : 'h-[calc(73vh-6rem)]'
       }`}
     >

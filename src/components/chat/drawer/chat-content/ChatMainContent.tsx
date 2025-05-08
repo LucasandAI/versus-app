@@ -49,24 +49,19 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   // If we have a selected club, render the club content
   if (selectedClub) {
     const clubMessages = messages[selectedClub.id] || [];
-    console.log('[ChatMainContent] Rendering club messages:', { 
-      clubId: selectedClub.id, 
-      messageCount: clubMessages.length,
-      messageIds: clubMessages.map(m => m.id).join(', ')
-    });
     
     return (
-      <div className="flex-1 h-full flex flex-col">
+      <div className="flex-1 h-full flex flex-col transition-opacity duration-150">
         <ChatClubContent 
-          key={selectedClub.id} // Force re-render when club changes
+          key={`club-${selectedClub.id}`} // Force re-render when club changes
           club={selectedClub}
           messages={clubMessages}
           onMatchClick={handleMatchClick}
           onSelectUser={onSelectUser}
           onSendMessage={handleSendMessage}
           setClubMessages={setClubMessages}
-          clubId={selectedClub.id} // Pass clubId for proper context in ChatInput
-          globalMessages={messages} // Pass the global messages state
+          clubId={selectedClub.id}
+          globalMessages={messages}
         />
       </div>
     );

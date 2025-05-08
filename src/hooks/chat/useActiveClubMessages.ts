@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -11,19 +11,36 @@ export const useActiveClubMessages = (
 ) => {
   // Use the global messages as the source of truth
   const [messages, setMessages] = useState<any[]>(globalMessages[clubId] || []);
+  // Track initial load to prevent unnecessary fetch
+  const initialLoadCompletedRef = useRef<boolean>(false);
+  // Track currently active club to prevent cross-chat interference
+  const activeClubRef = useRef<string>(clubId);
   
   // Keep local state in sync with global messages
   useEffect(() => {
     if (globalMessages[clubId]) {
-      setMessages(globalMessages[clubId]);
-      console.log(`[useActiveClubMessages] Synced with global state for club ${clubId}, messages: ${globalMessages[clubId].length}`);
+      // Don't update if it's the same messages (by reference)
+      if (messages !== globalMessages[clubId]) {
+        setMessages(globalMessages[clubId]);
+        console.log(`[useActiveClubMessages] Synced with global state for club ${clubId}, messages: ${globalMessages[clubId].length}`);
+      }
     }
-  }, [clubId, globalMessages]);
+    
+    // Update active club reference
+    if (activeClubRef.current !== clubId) {
+      activeClubRef.current = clubId;
+      initialLoadCompletedRef.current = false;
+      console.log(`[useActiveClubMessages] Club changed to ${clubId}, resetting state`);
+    }
+  }, [clubId, globalMessages, messages]);
 
-  // Listen for club message events
+  // Listen for club message events with better isolation
   useEffect(() => {
+    const currentClubId = clubId; // Capture current value for closure
+    
     const handleClubMessageReceived = (e: CustomEvent) => {
-      if (e.detail.clubId === clubId && e.detail.message) {
+      // Only process events for the active club
+      if (e.detail.clubId === currentClubId && e.detail.message) {
         setMessages(prev => {
           // Check if message already exists
           const exists = prev.some(msg => msg.id === e.detail.message.id);
@@ -34,17 +51,18 @@ export const useActiveClubMessages = (
             (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
           );
           
-          console.log(`[useActiveClubMessages] Message received for club ${clubId}, new count: ${updatedMessages.length}`);
+          console.log(`[useActiveClubMessages] Message received for club ${currentClubId}, new count: ${updatedMessages.length}`);
           return updatedMessages;
         });
       }
     };
 
     const handleClubMessageDeleted = (e: CustomEvent) => {
-      if (e.detail.clubId === clubId) {
+      // Only process events for the active club
+      if (e.detail.clubId === currentClubId) {
         setMessages(prev => {
           const filtered = prev.filter(msg => msg.id !== e.detail.messageId);
-          console.log(`[useActiveClubMessages] Message deleted for club ${clubId}, new count: ${filtered.length}`);
+          console.log(`[useActiveClubMessages] Message deleted for club ${currentClubId}, new count: ${filtered.length}`);
           return filtered;
         });
       }
@@ -62,10 +80,17 @@ export const useActiveClubMessages = (
 
   // Load initial messages for the club if not in global state
   useEffect(() => {
-    // Only fetch if we don't have messages for this club yet
-    if (!globalMessages[clubId]?.length) {
+    // Only fetch if:
+    // 1. We don't have messages for this club yet
+    // 2. Initial load hasn't been completed
+    if ((!globalMessages[clubId]?.length || globalMessages[clubId].length === 0) && 
+        !initialLoadCompletedRef.current) {
+      
       const fetchMessages = async () => {
         try {
+          console.log(`[useActiveClubMessages] Fetching messages for club ${clubId}`);
+          initialLoadCompletedRef.current = true;
+          
           const { data } = await supabase
             .from('club_chat_messages')
             .select(`
@@ -86,7 +111,10 @@ export const useActiveClubMessages = (
 
           if (data) {
             console.log(`[useActiveClubMessages] Fetched ${data.length} messages for club ${clubId}`);
-            setMessages(data);
+            // Only set messages if the club hasn't changed during fetch
+            if (activeClubRef.current === clubId) {
+              setMessages(data);
+            }
           }
         } catch (error) {
           console.error('[useActiveClubMessages] Error fetching club messages:', error);

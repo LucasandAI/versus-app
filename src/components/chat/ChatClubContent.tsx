@@ -37,22 +37,24 @@ const ChatClubContent = ({
   const { deleteMessage } = useChatActions();
   const effectiveClubId = clubId || club?.id;
   
-  // Use our new hook to get messages that stay in sync with global state
+  // Use our hook to get messages that stay in sync with global state
   const { messages } = useActiveClubMessages(
     effectiveClubId,
     globalMessages
   );
   
-  // Use our optimized scroll hook
-  const { scrollRef, lastMessageRef, scrollToBottom } = useMessageScroll(messages);
+  // Use our optimized scroll hook with club ID to isolate context
+  const { scrollRef, lastMessageRef, scrollToBottom } = useMessageScroll(messages, effectiveClubId);
   
-  // Log the messages length as requested
+  // Log messages length for debugging
   console.log('[ChatClubContent] Messages length:', messages.length);
   
   useEffect(() => {
     console.log('[ChatClubContent] Club changed, resetting state for:', effectiveClubId);
     setIsSending(false);
-  }, [effectiveClubId]);
+    // Reset scroll position when club changes, with slight delay to ensure DOM is updated
+    setTimeout(() => scrollToBottom(false), 50);
+  }, [effectiveClubId, scrollToBottom]);
 
   const handleDeleteMessage = useCallback(async (messageId: string) => {
     console.log('[ChatClubContent] Deleting message:', messageId);
@@ -76,28 +78,21 @@ const ChatClubContent = ({
   const handleSendMessage = useCallback(async (message: string) => {
     console.log('[ChatClubContent] Sending message for club:', effectiveClubId);
     
-    // Immediately set isSending to true like in DM implementation
+    // Set isSending immediately for UI feedback
     setIsSending(true);
     
     try {
       const messageToSend = message.trim();
       if (effectiveClubId) {
         await onSendMessage(messageToSend, effectiveClubId);
-        
-        // Use our scroll hook to smoothly scroll to bottom
-        // Slight delay to ensure the message is in the DOM
-        requestAnimationFrame(() => {
-          scrollToBottom(true);
-        });
       }
     } catch (error) {
       console.error('[ChatClubContent] Error sending club message:', error);
     } finally {
-      // We can set isSending back to false immediately after onSendMessage
-      // since we're using optimistic updates
+      // Reset sending state
       setIsSending(false);
     }
-  }, [effectiveClubId, onSendMessage, scrollToBottom]);
+  }, [effectiveClubId, onSendMessage]);
 
   return (
     <div className="flex flex-col h-full">
@@ -109,7 +104,7 @@ const ChatClubContent = ({
       />
       
       <div className="flex-1 flex flex-col relative overflow-hidden">
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 transition-opacity duration-150">
           <ChatMessages 
             messages={messages} 
             clubMembers={club.members || []}
