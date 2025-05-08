@@ -141,16 +141,19 @@ export const useActiveClubMessages = (
         
         // Update messages by prepending older messages
         setMessages(prev => {
-          // Combine old and new messages, ensuring no duplicates
-          const combinedMessages = [...sortedData, ...prev];
-          const uniqueMessages = Array.from(
-            new Map(combinedMessages.map(msg => [msg.id, msg])).values()
-          );
+          // Create a map of existing messages by ID for deduplication
+          const existingMessages = new Map(prev.map(msg => [msg.id, msg]));
           
-          // Sort by timestamp to ensure correct order
-          return uniqueMessages.sort(
-            (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-          );
+          // Add new messages to the map, overwriting any duplicates
+          sortedData.forEach(msg => {
+            existingMessages.set(msg.id, msg);
+          });
+          
+          // Convert map back to array and sort by timestamp
+          const combinedMessages = Array.from(existingMessages.values())
+            .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+          
+          return combinedMessages;
         });
         
         // Update oldest message timestamp
