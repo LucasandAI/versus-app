@@ -35,7 +35,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
     
     console.log('[ChatMainContent] Sending club message to:', { 
       clubId: selectedClub.id, 
-      messageLength: message.length 
+      messagePreview: message.substring(0, 20) + (message.length > 20 ? '...' : '') 
     });
     onSendMessage(message, selectedClub.id);
   }, [selectedClub, onSendMessage]);
@@ -46,10 +46,13 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
     onMatchClick(selectedClub);
   }, [selectedClub, onMatchClick]);
 
+  // Memoize the club messages to prevent unnecessary re-renders
+  const clubMessages = useMemo(() => {
+    return selectedClub ? (messages[selectedClub.id] || []) : [];
+  }, [selectedClub, messages]);
+
   // If we have a selected club, render the club content
   if (selectedClub) {
-    const clubMessages = messages[selectedClub.id] || [];
-    
     return (
       <div className="flex-1 h-full flex flex-col transition-opacity duration-150">
         <ChatClubContent 

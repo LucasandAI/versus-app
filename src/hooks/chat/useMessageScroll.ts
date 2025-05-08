@@ -21,7 +21,7 @@ export const useMessageScroll = (messages: any[], chatId?: string) => {
       // Reset scroll position when chat context changes
       setTimeout(() => {
         scrollToBottom(false);
-      }, 50);
+      }, 10); // Reduced delay for faster response
     }
   }, [chatId]);
 
@@ -50,7 +50,7 @@ export const useMessageScroll = (messages: any[], chatId?: string) => {
       // Release scroll lock after a shorter time to allow quick successive scrolls if needed
       setTimeout(() => {
         scrollLockRef.current = false;
-      }, 100); // Reduced from 300ms to improve responsiveness
+      }, 50); // Reduced from 300ms to improve responsiveness
     });
   }, []);
 
@@ -101,7 +101,10 @@ export const useMessageScroll = (messages: any[], chatId?: string) => {
     if (shouldScroll) {
       // Use requestAnimationFrame to ensure DOM is ready
       requestAnimationFrame(() => {
-        scrollToBottom(true);
+        // Use another requestAnimationFrame to catch any layout recalculations
+        requestAnimationFrame(() => {
+          scrollToBottom(true);
+        });
       });
     }
     
