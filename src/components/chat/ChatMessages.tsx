@@ -1,6 +1,6 @@
 import React, { useRef, useMemo, memo } from 'react';
 import { Button } from '@/components/ui/button';
-import MessageList from './MessageList';
+import MessageList from './message/MessageList';
 import { useMessageUser } from '@/hooks/chat/useMessageUser';
 import { useCurrentMember } from '@/hooks/chat/useCurrentMember';
 import { useMessageFormatting } from '@/hooks/chat/useMessageFormatting';
