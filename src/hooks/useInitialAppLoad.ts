@@ -4,29 +4,43 @@ import { Club } from '@/types';
 import { supabase } from '@/lib/supabase';
 
 export const useInitialAppLoad = () => {
-  const { currentUser, isAppReady, setIsAppReady } = useApp();
+  const { currentUser, isSessionReady, isAppReady, setIsAppReady } = useApp();
 
   useEffect(() => {
     const fetchInitialData = async () => {
-      if (!currentUser || isAppReady) return;
+      // Don't start fetching if we don't have a user or session isn't ready
+      if (!currentUser || !isSessionReady) {
+        console.log('[useInitialAppLoad] Waiting for user and session:', {
+          hasUser: !!currentUser,
+          isSessionReady
+        });
+        return;
+      }
+
+      // Don't fetch if app is already ready
+      if (isAppReady) {
+        console.log('[useInitialAppLoad] App already ready, skipping fetch');
+        return;
+      }
 
       try {
-        console.log('Starting initial data fetch...');
+        console.log('[useInitialAppLoad] Starting initial data fetch...');
         
         // Fetch user clubs
-        console.log('Fetching user clubs...');
+        console.log('[useInitialAppLoad] Fetching user clubs...');
         const { data: clubsData } = await supabase
           .from('clubs')
           .select('*')
           .eq('user_id', currentUser.id);
         
         if (!clubsData) {
-          console.error('No clubs data found');
+          console.error('[useInitialAppLoad] No clubs data found');
+          setIsAppReady(true); // Still mark as ready to prevent getting stuck
           return;
         }
 
         // Fetch club messages with unread status
-        console.log('Fetching club messages...');
+        console.log('[useInitialAppLoad] Fetching club messages...');
         const clubIds = clubsData.map((club: Club) => club.id);
         const { data: messagesData } = await supabase
           .from('club_chat_messages')
@@ -48,7 +62,7 @@ export const useInitialAppLoad = () => {
           .limit(200);
 
         // Fetch direct conversations
-        console.log('Fetching direct conversations...');
+        console.log('[useInitialAppLoad] Fetching direct conversations...');
         const { data: conversationsData } = await supabase
           .from('direct_conversations')
           .select(`
@@ -62,14 +76,14 @@ export const useInitialAppLoad = () => {
           .or(`user_id.eq.${currentUser.id},other_user_id.eq.${currentUser.id}`);
 
         // Fetch unread message counts
-        console.log('Fetching unread message counts...');
+        console.log('[useInitialAppLoad] Fetching unread message counts...');
         const { data: unreadData } = await supabase
           .from('unread_messages')
           .select('*')
           .eq('user_id', currentUser.id);
 
         // Fetch notifications
-        console.log('Fetching notifications...');
+        console.log('[useInitialAppLoad] Fetching notifications...');
         const { data: notificationsData } = await supabase
           .from('notifications')
           .select('*')
@@ -77,10 +91,10 @@ export const useInitialAppLoad = () => {
           .order('created_at', { ascending: false })
           .limit(50);
 
-        console.log('Initial data fetch completed');
+        console.log('[useInitialAppLoad] Initial data fetch completed');
         setIsAppReady(true);
       } catch (error) {
-        console.error('Error fetching initial data:', error);
+        console.error('[useInitialAppLoad] Error fetching initial data:', error);
         // Still mark app as ready to prevent getting stuck
         setIsAppReady(true);
       }
@@ -88,7 +102,7 @@ export const useInitialAppLoad = () => {
 
     // Set a timeout to prevent getting stuck on loading screen
     const timeoutId = setTimeout(() => {
-      console.log('Loading timeout reached, forcing app ready state');
+      console.log('[useInitialAppLoad] Loading timeout reached, forcing app ready state');
       setIsAppReady(true);
     }, 5000);
 
@@ -97,7 +111,7 @@ export const useInitialAppLoad = () => {
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [currentUser, setIsAppReady]);
+  }, [currentUser, isSessionReady, setIsAppReady]); // Added isSessionReady to dependencies
 
   return isAppReady;
 };
