@@ -1,10 +1,10 @@
 import React, { useRef, useMemo, memo } from 'react';
 import { Button } from '@/components/ui/button';
 import MessageList from './message/MessageList';
-import { useMessageUser } from '@/hooks/chat/useMessageUser';
-import { useCurrentMember } from '@/hooks/chat/useCurrentMember';
-import { useMessageFormatting } from '@/hooks/chat/useMessageFormatting';
-import { useMessageNormalization } from '@/hooks/chat/useMessageNormalization';
+import { useMessageUser } from './message/useMessageUser';
+import { useCurrentMember } from '@/hooks/chat/messages/useCurrentMember';
+import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
+import { useMessageNormalization } from './message/useMessageNormalization';
 import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
 import { useApp } from '@/context/AppContext';
 
