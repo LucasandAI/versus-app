@@ -6,6 +6,7 @@ export const useMessageScroll = (messages: any[]) => {
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const isUserScrollingRef = useRef(false);
   const lastScrollHeightRef = useRef(0);
+  const hasInitialScrollRef = useRef(false);
   const { currentUser } = useApp();
 
   // Function to scroll to bottom
@@ -26,7 +27,7 @@ export const useMessageScroll = (messages: any[]) => {
     isUserScrollingRef.current = !isAtBottom;
   }, []);
 
-  // Effect to handle new messages and scroll behavior
+  // Effect to handle initial scroll and new messages
   useEffect(() => {
     if (!scrollContainerRef.current) return;
 
@@ -34,9 +35,10 @@ export const useMessageScroll = (messages: any[]) => {
     const isNewMessage = messages.length > 0 && 
       messages[messages.length - 1]?.sender?.id === currentUser?.id;
 
-    // If it's a new message or user is at bottom, scroll to bottom
-    if (isNewMessage || !isUserScrollingRef.current) {
+    // On first load or new message, scroll to bottom
+    if (!hasInitialScrollRef.current || isNewMessage || !isUserScrollingRef.current) {
       scrollToBottom();
+      hasInitialScrollRef.current = true;
     }
 
     // Store current scroll height for next update

@@ -85,17 +85,15 @@ export const useActiveClubMessages = (
               )
             `)
             .eq('club_id', clubId)
-            .order('timestamp', { ascending: false })
+            .order('timestamp', { ascending: true })
             .limit(MESSAGES_PER_PAGE);
 
           if (data) {
-            // Reverse the order to show oldest first
-            const sortedData = [...data].reverse();
-            setMessages(sortedData);
+            setMessages(data);
             
             // Update oldest message timestamp
-            if (sortedData.length > 0) {
-              setOldestMessageTimestamp(sortedData[0].timestamp);
+            if (data.length > 0) {
+              setOldestMessageTimestamp(data[0].timestamp);
             }
             
             // Check if there are more messages
@@ -132,20 +130,17 @@ export const useActiveClubMessages = (
         `)
         .eq('club_id', clubId)
         .lt('timestamp', oldestMessageTimestamp)
-        .order('timestamp', { ascending: false })
+        .order('timestamp', { ascending: true })
         .limit(MESSAGES_PER_PAGE);
 
       if (data) {
-        // Reverse the order to show oldest first
-        const sortedData = [...data].reverse();
-        
         // Update messages by prepending older messages
         setMessages(prev => {
           // Create a map of existing messages by ID for deduplication
           const existingMessages = new Map(prev.map(msg => [msg.id, msg]));
           
           // Add new messages to the map, overwriting any duplicates
-          sortedData.forEach(msg => {
+          data.forEach(msg => {
             existingMessages.set(msg.id, msg);
           });
           
@@ -157,8 +152,8 @@ export const useActiveClubMessages = (
         });
         
         // Update oldest message timestamp
-        if (sortedData.length > 0) {
-          setOldestMessageTimestamp(sortedData[0].timestamp);
+        if (data.length > 0) {
+          setOldestMessageTimestamp(data[0].timestamp);
         }
         
         // Check if there are more messages
