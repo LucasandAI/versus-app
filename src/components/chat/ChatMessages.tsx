@@ -114,10 +114,10 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
         isClubChat ? 'h-[calc(73vh-8rem)]' : 'h-[calc(73vh-6rem)]'
       }`}
     >
-      <div className="flex flex-col min-h-full">
+      <div className="flex flex-col">
         {/* Load more button */}
         {hasMore && (
-          <div className="py-2 flex justify-center sticky top-0 bg-white z-10">
+          <div className="py-2 flex justify-center">
             <Button
               variant="outline"
               size="sm"
