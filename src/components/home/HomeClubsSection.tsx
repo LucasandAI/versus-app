@@ -29,29 +29,21 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
   const { currentUser } = useApp();
   const [isLoading, setIsLoading] = useState(true);
   
-  // Track loading state based on initial render and clubs data quality
+  // Optimized loading state management
   useEffect(() => {
-    // Define what makes a club "fully loaded"
-    const areClubsReady = userClubs.every(club => 
-      club && 
-      club.name && 
-      club.logo && 
-      club.members && 
-      Array.isArray(club.members)
-    );
-    
-    // If we have the user but clubs are loading/incomplete, show loading state
-    if (currentUser) {
-      if (clubsLoading || !areClubsReady) {
-        setIsLoading(true);
-      } else {
-        // Add a small delay to ensure everything renders correctly
-        const timer = setTimeout(() => {
-          setIsLoading(false);
-        }, 100);
-        
-        return () => clearTimeout(timer);
-      }
+    // If we have user and clubs data, we can start rendering
+    if (currentUser && userClubs.length > 0 && !clubsLoading) {
+      // Slight delay to ensure smooth transition
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 50);
+      return () => clearTimeout(timer);
+    } else if (currentUser && !clubsLoading) {
+      // User with no clubs - show empty state quickly
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 50);
+      return () => clearTimeout(timer);
     } else {
       setIsLoading(true);
     }
@@ -72,18 +64,10 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
     <>
       <h2 className="text-xl font-bold mt-6 mb-4">Current Matches</h2>
       
-      {isLoading ? (
-        <div className="space-y-3">
-          {[...Array(2)].map((_, i) => (
-            <div key={i} className="h-40 bg-gray-100 animate-pulse rounded-md"></div>
-          ))}
-        </div>
-      ) : (
-        <CurrentMatchesList 
-          userClubs={processedUserClubs}
-          onViewProfile={onSelectUser}
-        />
-      )}
+      <CurrentMatchesList 
+        userClubs={processedUserClubs}
+        onViewProfile={onSelectUser}
+      />
 
       {!isAtClubCapacity && !isLoading && (
         <FindClubsSection 
