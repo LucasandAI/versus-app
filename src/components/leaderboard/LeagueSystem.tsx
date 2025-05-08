@@ -21,7 +21,7 @@ const LeagueSystem: React.FC = () => {
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <div className="text-blue-500 h-8 w-8 flex items-center justify-center">
-              <span className="text-2xl">🔷</span>
+              <span className="text-2xl">💎</span>
             </div>
             <span className="text-xl font-bold">Diamond</span>
           </div>
@@ -33,7 +33,7 @@ const LeagueSystem: React.FC = () => {
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <div className="text-gray-400 h-8 w-8 flex items-center justify-center">
-              <span className="text-2xl">💎</span>
+              <span className="text-2xl">🔷</span>
             </div>
             <span className="text-xl font-bold">Platinum</span>
           </div>
