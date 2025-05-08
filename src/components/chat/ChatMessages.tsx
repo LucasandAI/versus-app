@@ -1,4 +1,3 @@
-
 import React, { memo, useMemo, useRef } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageList from './message/MessageList';
