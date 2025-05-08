@@ -18,6 +18,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [isSessionReady, setIsSessionReady] = useState(false);
   const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const { signIn, signOut } = useAuth();
   const { currentView, setCurrentView, selectedClub, setSelectedClub, selectedUser, setSelectedUser } = useViewState();
@@ -48,14 +49,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [currentUser, loadCurrentUser]);
 
-  // Single effect to handle loading states
+  // Handle app ready state
   useEffect(() => {
-    if (isSessionReady && currentUser) {
+    if (isSessionReady && currentUser && !userLoading) {
       setIsAppReady(true);
+      setIsInitialLoad(false);
     } else if (!isSessionReady || !currentUser) {
       setIsAppReady(false);
     }
-  }, [isSessionReady, currentUser]);
+  }, [isSessionReady, currentUser, userLoading]);
 
   // Single timeout for auth check
   useEffect(() => {
@@ -101,6 +103,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       console.log('[AppProvider] handleSignIn called with email:', email);
       setUserLoading(true);
+      setIsInitialLoad(true);
       
       const user = await signIn(email, password);
       
@@ -145,14 +148,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsAppReady
   };
 
-  // Single loading screen
-  if (userLoading || !authChecked) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="flex flex-col items-center gap-2">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-        <p>{userLoading ? 'Loading your profile...' : 'Verifying your session...'}</p>
+  // Show loading screen during initial load or when loading user data
+  if (isInitialLoad || userLoading || !authChecked) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+          <p className="text-sm text-muted-foreground">
+            {userLoading ? 'Loading your profile...' : 'Verifying your session...'}
+          </p>
+        </div>
       </div>
-    </div>;
+    );
+  }
+
+  // Only render the app content when it's ready
+  if (!isAppReady) {
+    return null;
   }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
