@@ -18,9 +18,11 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
   const { isOpen, close } = useChatDrawerGlobal();
   const { currentUser } = useApp();
   
-  console.log('[ChatDrawerHandler] Rendering drawer with isOpen:', isOpen);
+  // Use our hook for real-time club messages
+  const { clubMessages, setClubMessages } = useClubMessages(userClubs, isOpen);
 
-  // Handle send message (passthrough function)
+  console.log('[ChatDrawerHandler] Rendering with clubMessages:', clubMessages);
+
   const handleSendMessage = async (message: string, clubId?: string) => {
     console.log('[ChatDrawerHandler] Send message requested:', { message, clubId });
     // This is just a passthrough function - the actual implementation is in MainChatDrawer
@@ -33,7 +35,9 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
         if (!open) close();
       }} 
       clubs={userClubs}
-      // We DON'T pass clubMessages or setClubMessages here as they're managed internally
+      clubMessages={clubMessages}
+      setClubMessages={setClubMessages}
+      onSendMessage={handleSendMessage}
     />
   );
 };

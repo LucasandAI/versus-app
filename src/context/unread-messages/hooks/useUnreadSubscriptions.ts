@@ -39,7 +39,7 @@ export const useUnreadSubscriptions = ({
     
     console.log('[useUnreadSubscriptions] Setting up realtime subscriptions for user:', currentUserId);
     
-    // Use micro-batching for unread updates to prevent cascading re-renders
+    // Use local micro-batching for unread updates to prevent cascading re-renders
     let pendingUpdates = new Set<string>();
     let pendingClubUpdates = new Set<string>();
     let updateTimeout: NodeJS.Timeout | null = null;
@@ -76,7 +76,7 @@ export const useUnreadSubscriptions = ({
       }, 100);
     };
     
-    // Set up real-time subscriptions for DM messages
+    // Set up real-time subscriptions for new messages
     const dmChannel = supabase
       .channel('global-dm-unread-tracking')
       .on('postgres_changes', 

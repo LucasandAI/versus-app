@@ -1,5 +1,5 @@
 
-import React, { memo, useMemo } from 'react';
+import React, { memo } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageItem from './MessageItem';
 
@@ -17,7 +17,6 @@ interface MessageListProps {
   currentUserAvatar: string;
   currentUserId: string | null;
   lastMessageRef: React.RefObject<HTMLDivElement>;
-  scrollRef?: React.RefObject<HTMLDivElement>;
 }
 
 // Memoize the component to prevent unnecessary re-renders
@@ -30,29 +29,20 @@ const MessageList: React.FC<MessageListProps> = memo(({
   formatTime,
   currentUserAvatar,
   currentUserId,
-  lastMessageRef,
-  scrollRef
+  lastMessageRef
 }) => {
-  // Use useMemo to create stable keys that don't change on rerender
-  const messageKeys = useMemo(() => {
-    return messages.reduce((acc, msg, idx) => {
-      acc[idx] = msg.id || `msg-${idx}`;
-      return acc;
-    }, {} as Record<number, string>);
-  }, [messages]);
-  
   // Use useMemo to avoid recreating message items on every render
-  const messageItems = useMemo(() => {
+  const messageItems = React.useMemo(() => {
     return messages.map((message: ChatMessage, index: number) => {
       const isUserMessage = currentUserId && 
                            message.sender && 
                            String(message.sender.id) === String(currentUserId);
       const isLastMessage = index === messages.length - 1;
-      const stableKey = messageKeys[index] || `msg-${index}-${message.id || 'unknown'}`;
       
+      // Use stable key with index to prevent remounting on ID changes
       return (
         <div 
-          key={stableKey}
+          key={message.id || `msg-${index}`}
           ref={isLastMessage ? lastMessageRef : undefined}
           className={`mb-3 ${isLastMessage ? 'pb-5' : ''}`}
         >
@@ -68,17 +58,7 @@ const MessageList: React.FC<MessageListProps> = memo(({
         </div>
       );
     });
-  }, [
-    messages, 
-    currentUserId, 
-    lastMessageRef, 
-    isSupport, 
-    onDeleteMessage, 
-    onSelectUser, 
-    formatTime, 
-    currentUserAvatar, 
-    messageKeys
-  ]);
+  }, [messages, currentUserId, lastMessageRef, isSupport, onDeleteMessage, onSelectUser, formatTime, currentUserAvatar]);
 
   return (
     <div className="flex-1 px-0 py-2">
@@ -108,16 +88,6 @@ const MessageList: React.FC<MessageListProps> = memo(({
     if (prevLastMsg.id !== nextLastMsg.id) {
       return false; // Re-render if last message changed
     }
-    
-    // Also check for delete operations
-    if (prevProps.messages.length !== nextProps.messages.length) {
-      return false;
-    }
-  }
-  
-  // Check if onDeleteMessage prop changed
-  if (prevProps.onDeleteMessage !== nextProps.onDeleteMessage) {
-    return false;
   }
   
   return true; // Don't re-render otherwise

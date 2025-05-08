@@ -9,15 +9,13 @@ interface DMMessageInputProps {
   isSending: boolean;
   userId: string;
   conversationId: string;
-  disabled?: boolean; // Added disabled prop
 }
 
 const DMMessageInput: React.FC<DMMessageInputProps> = ({
   onSendMessage,
   isSending,
   userId,
-  conversationId,
-  disabled = false
+  conversationId
 }) => {
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -30,7 +28,7 @@ const DMMessageInput: React.FC<DMMessageInputProps> = ({
   };
   
   const handleSendMessage = () => {
-    if (message.trim() && !isSending && !disabled) {
+    if (message.trim() && !isSending) {
       onSendMessage(message);
       setMessage('');
     }
@@ -38,10 +36,10 @@ const DMMessageInput: React.FC<DMMessageInputProps> = ({
 
   // Auto focus the textarea when the component mounts
   useEffect(() => {
-    if (textareaRef.current && !disabled) {
+    if (textareaRef.current) {
       textareaRef.current.focus();
     }
-  }, [conversationId, disabled]); // Re-focus when conversation changes or disabled status changes
+  }, [conversationId]); // Re-focus when conversation changes
   
   return (
     <div className="p-2 border-t relative">
@@ -53,14 +51,14 @@ const DMMessageInput: React.FC<DMMessageInputProps> = ({
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyPress}
-          disabled={isSending || disabled}
+          disabled={isSending}
           rows={1}
         />
         <Button 
           size="icon" 
           className="rounded-full h-9 w-9 shrink-0" 
           onClick={handleSendMessage}
-          disabled={!message.trim() || isSending || disabled}
+          disabled={!message.trim() || isSending}
         >
           {isSending ? (
             <Loader2 className="h-5 w-5 animate-spin" />
