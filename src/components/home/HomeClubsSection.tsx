@@ -29,21 +29,15 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
   const { currentUser } = useApp();
   const [isLoading, setIsLoading] = useState(true);
   
-  // Optimized loading state management
+  // Optimized loading state management - removed artificial delay
   useEffect(() => {
     // If we have user and clubs data, we can start rendering
     if (currentUser && userClubs.length > 0 && !clubsLoading) {
-      // Slight delay to ensure smooth transition
-      const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 50);
-      return () => clearTimeout(timer);
+      // No more artificial delay - set loading to false immediately
+      setIsLoading(false);
     } else if (currentUser && !clubsLoading) {
-      // User with no clubs - show empty state quickly
-      const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 50);
-      return () => clearTimeout(timer);
+      // User with no clubs - show empty state immediately
+      setIsLoading(false);
     } else {
       setIsLoading(true);
     }

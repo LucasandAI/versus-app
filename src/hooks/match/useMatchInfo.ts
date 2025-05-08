@@ -70,9 +70,9 @@ export const useMatchInfo = (userClubs: Club[]) => {
     }
   }, [clubIds]); // Depend only on club IDs instead of full objects
 
-  // Debounced version to prevent flickering
+  // Reduced debounce time from 300ms to 50ms for faster response
   const debouncedFetchMatches = useMemo(() => 
-    debounce(fetchMatches, 300), 
+    debounce(fetchMatches, 50), 
   [fetchMatches]);
 
   useEffect(() => {

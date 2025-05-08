@@ -19,16 +19,13 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
   const { matches, isLoading } = useMatchInfo(userClubs);
   const [renderState, setRenderState] = useState<'loading' | 'partial' | 'complete'>('loading');
   
-  // Progressive loading state management
+  // Progressive loading state management - no artificial delays
   useEffect(() => {
     if (isLoading) {
       // Stay in loading state
       setRenderState('loading');
-    } else if (matches.length > 0) {
-      // When we have matches, show them immediately
-      setRenderState('complete');
     } else {
-      // When we know there are no matches, either show empty state or waiting/need more members state
+      // Immediately show content when data is ready
       setRenderState('complete');
     }
   }, [isLoading, matches.length]);
