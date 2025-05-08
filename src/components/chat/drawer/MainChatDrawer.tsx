@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Club } from '@/types';
 import ChatDrawerContainer from './ChatDrawerContainer';
@@ -8,7 +7,7 @@ import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { useChatActions } from '@/hooks/chat/useChatActions';
 import { useApp } from '@/context/AppContext';
 import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
-import { useUnreadMessages } from '@/context/unread-messages';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 
 interface MainChatDrawerProps {
   open: boolean;

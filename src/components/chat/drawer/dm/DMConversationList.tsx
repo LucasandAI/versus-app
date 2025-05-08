@@ -1,83 +1,84 @@
 
 import React from 'react';
-import ConversationItem from './ConversationItem';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useApp } from '@/context/AppContext';
-import { useUnreadMessages } from '@/context/UnreadMessagesContext';
-import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { useFormatRelativeTime } from '@/hooks/useFormatRelativeTime';
 
-interface Props {
-  onSelectUser: (userId: string, userName: string, userAvatar: string, conversationId: string) => void;
-  selectedUserId?: string;
-  unreadConversations?: Set<string>; // This prop is now defined
+interface Conversation {
+  id: string;
+  user: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  lastMessage?: string;
+  timestamp?: string;
+  unread: boolean;
 }
 
-const DMConversationList: React.FC<Props> = ({ 
-  onSelectUser, 
-  selectedUserId,
-  unreadConversations = new Set() // Default value properly defined
+interface DMConversationListProps {
+  conversations: Conversation[];
+  onSelectConversation: (conversation: Conversation) => void;
+  selectedConversationId?: string;
+}
+
+const DMConversationList: React.FC<DMConversationListProps> = ({
+  conversations,
+  onSelectConversation,
+  selectedConversationId
 }) => {
-  const { currentUser } = useApp();
-  const { conversations, loading } = useDirectConversationsContext();
-  
-  const isEmpty = !loading && conversations.length === 0;
-  
-  // Debug logging to check the unread conversations
-  console.log('[DMConversationList] unreadConversations:', Array.from(unreadConversations));
+  const { formatRelativeTime } = useFormatRelativeTime();
+
+  if (conversations.length === 0) {
+    return (
+      <div className="p-4 text-center text-gray-500">
+        <p>No conversations yet</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      <h1 className="text-4xl font-bold p-4">Messages</h1>
-      
-      <div className="flex-1 overflow-auto">
-        {loading ? (
-          <div className="p-4 space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-center space-x-3 p-2">
-                <Skeleton className="h-10 w-10 rounded-full" />
-                <div className="space-y-2 flex-1">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-3 w-full" />
-                </div>
-              </div>
-            ))}
+    <div className="py-2">
+      {conversations.map((conversation) => (
+        <div
+          key={conversation.id}
+          onClick={() => onSelectConversation(conversation)}
+          className={`
+            flex items-center p-3 cursor-pointer transition-colors
+            ${selectedConversationId === conversation.id ? 'bg-gray-100' : 'hover:bg-gray-50'}
+            ${conversation.unread ? 'font-medium' : ''}
+          `}
+        >
+          <Avatar className="h-10 w-10 mr-3">
+            <AvatarImage src={conversation.user.avatar || '/placeholder.svg'} alt={conversation.user.name} />
+            <AvatarFallback>
+              {conversation.user.name.substring(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex justify-between items-center">
+              <p className="text-sm font-medium truncate">{conversation.user.name}</p>
+              {conversation.unread && (
+                <Badge variant="default" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center">
+                  •
+                </Badge>
+              )}
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <p className="text-xs text-gray-500 truncate">
+                {conversation.lastMessage || 'No messages yet'}
+              </p>
+              {conversation.timestamp && (
+                <p className="text-xs text-gray-400 ml-2 whitespace-nowrap">
+                  {formatRelativeTime(conversation.timestamp)}
+                </p>
+              )}
+            </div>
           </div>
-        ) : isEmpty ? (
-          <div className="p-4 text-center text-gray-500">
-            <p className="text-lg">No messages yet</p>
-            <p className="text-sm mt-1">Search above to start a conversation</p>
-          </div>
-        ) : (
-          <div className="divide-y">
-            {conversations
-              .filter(conversation => conversation.userId !== currentUser?.id)
-              .map((conversation) => {
-                const isUnread = unreadConversations.has(conversation.conversationId);
-                console.log(`[DMConversationList] Conversation ${conversation.conversationId} isUnread: ${isUnread}`);
-                
-                return (
-                  <ConversationItem
-                    key={conversation.conversationId}
-                    conversation={{
-                      ...conversation,
-                      lastMessage: conversation.lastMessage || '',
-                      timestamp: conversation.timestamp || ''
-                    }}
-                    isSelected={selectedUserId === conversation.userId}
-                    isUnread={isUnread}
-                    onSelect={() => onSelectUser(
-                      conversation.userId,
-                      conversation.userName,
-                      conversation.userAvatar,
-                      conversation.conversationId
-                    )}
-                    isLoading={false}
-                  />
-                );
-              })}
-          </div>
-        )}
-      </div>
+        </div>
+      ))}
     </div>
   );
 };
