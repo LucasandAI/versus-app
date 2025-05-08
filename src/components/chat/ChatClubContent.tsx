@@ -11,6 +11,8 @@ interface ChatClubContentProps {
   club: Club;
   onMatchClick: () => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
+  onSendMessage: (message: string, clubId?: string) => void;
+  onDeleteMessage?: (messageId: string) => void;
   clubId?: string;
 }
 
@@ -18,6 +20,8 @@ const ChatClubContent = ({
   club,
   onMatchClick,
   onSelectUser,
+  onSendMessage,
+  onDeleteMessage,
   clubId,
 }: ChatClubContentProps) => {
   const { navigateToClubDetail } = useNavigation();
@@ -63,12 +67,18 @@ const ChatClubContent = ({
   const handleSendMessage = async (message: string) => {
     if (message.trim() && effectiveClubId) {
       await sendMessage(message);
+      // Also call the provided onSendMessage prop
+      onSendMessage(message, effectiveClubId);
     }
   };
 
   const handleDeleteMessage = async (messageId: string) => {
     if (messageId) {
       await deleteMessage(messageId);
+      // Also call the provided onDeleteMessage prop if available
+      if (onDeleteMessage) {
+        onDeleteMessage(messageId);
+      }
     }
   };
 

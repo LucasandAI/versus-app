@@ -23,7 +23,11 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   onSendMessage,
   onDeleteMessage
 }) => {
-  const { navigateToMatches } = useNavigation();
+  const { navigateToClubDetail } = useNavigation();
+
+  const navigateToMatches = (clubId: string) => {
+    navigateToClubDetail(clubId, { id: clubId, tab: 'matches' });
+  };
 
   // Clubs sorted by unread status first, then alphabetically
   const sortedClubs = useMemo(() => {

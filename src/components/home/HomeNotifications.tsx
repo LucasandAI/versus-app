@@ -13,10 +13,17 @@ const HomeNotifications: React.FC<HomeNotificationsProps> = ({
   setNotifications
 }) => {
   // Use the unread messages context to get the total count
-  const { totalUnreadCount, clubUnreadCounts, directMessageUnreadCounts } = useUnreadMessages();
+  const { totalUnreadCount } = useUnreadMessages();
   
   // Update the chat notification count using our hook
   useChatNotifications({ setChatNotifications });
+
+  // Update notifications when they change
+  React.useEffect(() => {
+    // This would typically fetch notifications from an API
+    // For now, just update with an empty array
+    setNotifications([]);
+  }, [setNotifications]);
 
   return null; // This component doesn't render anything, it just handles state updates
 };

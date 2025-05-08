@@ -5,6 +5,17 @@ import DMConversationList from './DMConversationList';
 import DMConversation from './DMConversation';
 import ChatEmpty from '../../ChatEmpty';
 
+interface Conversation {
+  id: string;
+  otherUser: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  lastMessage?: string;
+  timestamp?: string;
+}
+
 interface DMContainerProps {
   directMessageUser: {
     userId: string;
@@ -33,7 +44,7 @@ const DMContainer: React.FC<DMContainerProps> = ({
   useEffect(() => {
     if (!conversations) return;
     
-    const formatted = conversations.map(conv => ({
+    const formatted = conversations.map((conv: Conversation) => ({
       id: conv.id,
       user: {
         id: conv.otherUser.id,
@@ -59,6 +70,11 @@ const DMContainer: React.FC<DMContainerProps> = ({
 
   const handleBack = () => {
     setDirectMessageUser(null);
+  };
+
+  // Mock function for sending messages - this will be implemented properly
+  const sendMessage = async (text: string) => {
+    console.log("Sending message:", text);
   };
 
   if (loading) {
@@ -88,6 +104,8 @@ const DMContainer: React.FC<DMContainerProps> = ({
             }}
             conversationId={directMessageUser.conversationId}
             onBack={handleBack}
+            messages={[]}
+            onSendMessage={sendMessage}
           />
         </div>
       )}
