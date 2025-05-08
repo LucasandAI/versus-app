@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -273,17 +272,17 @@ const LoginForm: React.FC = () => {
       
       if (error) throw error;
       
-      // Reset the new password form to ensure fields are empty
-      newPasswordForm.reset({
-        password: '',
-        confirmPassword: ''
-      });
+      // Force a complete reset of the new password form
+      newPasswordForm.reset();
       
-      setResetPasswordStep('newPassword');
-      toast({
-        title: "Code verified",
-        description: "Please set your new password"
-      });
+      // Use a timeout to ensure the form is reset after the state change
+      setTimeout(() => {
+        setResetPasswordStep('newPassword');
+        toast({
+          title: "Code verified",
+          description: "Please set your new password"
+        });
+      }, 10);
     } catch (error) {
       console.error('[LoginForm] OTP verification error:', error);
       toast({
@@ -457,6 +456,17 @@ const LoginForm: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  // Effect to reset form when step changes
+  useEffect(() => {
+    // Reset the new password form completely when entering the new password step
+    if (resetPasswordStep === 'newPassword') {
+      newPasswordForm.reset({
+        password: '',
+        confirmPassword: ''
+      });
+    }
+  }, [resetPasswordStep, newPasswordForm]);
 
   // Render the appropriate form based on the current auth mode
   const renderForm = () => {
@@ -868,7 +878,7 @@ const LoginForm: React.FC = () => {
                         type="password"
                         autoComplete="new-password"
                         disabled={isLoading}
-                        key="confirm-password-input" // Add a key to force re-render
+                        key={`confirm-password-${resetPasswordStep}-${Date.now()}`} // Dynamic key to force complete re-render
                         {...field}
                         value={field.value || ''} // Ensure the value is never undefined
                       />
@@ -904,11 +914,18 @@ const LoginForm: React.FC = () => {
     <div className="w-full max-w-md">
       {renderForm()}
       
-      <Dialog open={isResetDialogOpen} onOpenChange={(open) => {
-        if (!open && !isLoading) {
-          setIsResetDialogOpen(false);
-        }
-      }}>
+      <Dialog 
+        open={isResetDialogOpen} 
+        onOpenChange={(open) => {
+          if (!open && !isLoading) {
+            setIsResetDialogOpen(false);
+            // Reset the form state when dialog closes
+            if (resetPasswordStep === 'newPassword') {
+              newPasswordForm.reset();
+            }
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
