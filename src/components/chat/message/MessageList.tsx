@@ -1,7 +1,6 @@
 import React, { memo } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageItem from './MessageItem';
-import { formatDistanceToNow } from 'date-fns';
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -39,23 +38,12 @@ const MessageList: React.FC<MessageListProps> = memo(({
                            String(message.sender.id) === String(currentUserId);
       const isLastMessage = index === messages.length - 1;
       
-      // Use stable key with index to prevent remounting on ID changes
-      const showTimestamp = index === 0 || 
-        new Date(message.timestamp).getTime() - new Date(messages[index - 1].timestamp).getTime() > 5 * 60 * 1000;
-      
       return (
         <div 
           key={message.id || `msg-${index}`}
           ref={isLastMessage ? lastMessageRef : undefined}
           className={`mb-3 ${isLastMessage ? 'pb-5' : ''}`}
         >
-          {showTimestamp && (
-            <div className="flex justify-center my-2">
-              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                {formatDistanceToNow(new Date(message.timestamp), { addSuffix: true })}
-              </span>
-            </div>
-          )}
           <MessageItem 
             message={message} 
             isUserMessage={isUserMessage} 
