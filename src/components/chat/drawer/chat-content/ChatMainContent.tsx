@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import { Club } from '@/types';
 import ChatClubContent from '../../ChatClubContent';
 
@@ -29,6 +29,23 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
     });
   }, [selectedClub]);
 
+  // Memoize the send message handler to prevent unnecessary re-renders
+  const handleSendMessage = useCallback((message: string) => {
+    if (!selectedClub) return;
+    
+    console.log('[ChatMainContent] Sending club message to:', { 
+      clubId: selectedClub.id, 
+      messageLength: message.length 
+    });
+    onSendMessage(message, selectedClub.id);
+  }, [selectedClub, onSendMessage]);
+  
+  // Memoize matchClick handler
+  const handleMatchClick = useCallback(() => {
+    if (!selectedClub) return;
+    onMatchClick(selectedClub);
+  }, [selectedClub, onMatchClick]);
+
   // If we have a selected club, render the club content
   if (selectedClub) {
     const clubMessages = messages[selectedClub.id] || [];
@@ -44,15 +61,9 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
           key={selectedClub.id} // Force re-render when club changes
           club={selectedClub}
           messages={clubMessages}
-          onMatchClick={() => onMatchClick(selectedClub)}
+          onMatchClick={handleMatchClick}
           onSelectUser={onSelectUser}
-          onSendMessage={(message) => {
-            console.log('[ChatMainContent] Sending club message to:', { 
-              clubId: selectedClub.id, 
-              messageLength: message.length 
-            });
-            onSendMessage(message, selectedClub.id);
-          }}
+          onSendMessage={handleSendMessage}
           setClubMessages={setClubMessages}
           clubId={selectedClub.id} // Pass clubId for proper context in ChatInput
           globalMessages={messages} // Pass the global messages state
@@ -69,4 +80,4 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   );
 };
 
-export default ChatMainContent;
+export default React.memo(ChatMainContent);
