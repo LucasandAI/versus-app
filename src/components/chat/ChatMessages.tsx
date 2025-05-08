@@ -114,7 +114,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
         isClubChat ? 'h-[calc(73vh-8rem)]' : 'h-[calc(73vh-6rem)]'
       }`}
     >
-      <div className="flex flex-col">
+      <div className="flex flex-col h-full">
         {/* Load more button */}
         {hasMore && (
           <div className="py-2 flex justify-center">
@@ -130,17 +130,19 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
           </div>
         )}
         
-        <MessageList 
-          messages={normalizedMessages} 
-          clubMembers={clubMembers} 
-          isSupport={isSupport} 
-          onDeleteMessage={onDeleteMessage} 
-          onSelectUser={onSelectUser} 
-          formatTime={finalFormatTime} 
-          currentUserAvatar={finalUserAvatar} 
-          currentUserId={currentUserId} 
-          lastMessageRef={finalLastMessageRef} 
-        />
+        <div className="flex-1">
+          <MessageList 
+            messages={normalizedMessages} 
+            clubMembers={clubMembers} 
+            isSupport={isSupport} 
+            onDeleteMessage={onDeleteMessage} 
+            onSelectUser={onSelectUser} 
+            formatTime={finalFormatTime} 
+            currentUserAvatar={finalUserAvatar} 
+            currentUserId={currentUserId} 
+            lastMessageRef={finalLastMessageRef} 
+          />
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,3 @@
-
 import React, { memo } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageItem from './MessageItem';
@@ -61,7 +60,7 @@ const MessageList: React.FC<MessageListProps> = memo(({
   }, [messages, currentUserId, lastMessageRef, isSupport, onDeleteMessage, onSelectUser, formatTime, currentUserAvatar]);
 
   return (
-    <div className="flex-1 px-0 py-2">
+    <div className="flex-1 px-0 py-2 min-h-full">
       {messages.length === 0 ? (
         <div className="h-full flex items-center justify-center text-gray-500 text-sm py-4">
           No messages yet. Start the conversation!
