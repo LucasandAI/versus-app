@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -74,7 +73,8 @@ const LoginForm: React.FC = () => {
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [resetPasswordStep, setResetPasswordStep] = useState<'email' | 'verify' | 'newPassword'>('email');
   const [resetEmail, setResetEmail] = useState('');
-  const [formKey, setFormKey] = useState(Date.now()); // Key to force re-render forms
+  const [formKey, setFormKey] = useState(Date.now());
+  const [resetToken, setResetToken] = useState<string | null>(null);
   
   // Profile form state
   const [avatar, setAvatar] = useState<string>('');
@@ -153,6 +153,7 @@ const LoginForm: React.FC = () => {
       resetPasswordForm.reset();
       verifyOtpForm.reset();
       newPasswordForm.reset();
+      setResetToken(null);
     }
   }, [isResetDialogOpen, resetPasswordForm, verifyOtpForm, newPasswordForm]);
   
@@ -248,10 +249,11 @@ const LoginForm: React.FC = () => {
   const handleForgotPassword = () => {
     setIsResetDialogOpen(true);
     setResetPasswordStep('email');
-    setFormKey(Date.now()); // Force re-render
+    setFormKey(Date.now());
     resetPasswordForm.reset();
     verifyOtpForm.reset();
     newPasswordForm.reset();
+    setResetToken(null);
   };
 
   const handleResetPassword = async (values: ResetPasswordFormValues) => {
@@ -261,7 +263,12 @@ const LoginForm: React.FC = () => {
     setError(null);
     
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(values.email);
+      // Sign out first to clear any existing session
+      await supabase.auth.signOut();
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
+        redirectTo: window.location.origin // Make sure this is set properly
+      });
       
       if (error) throw error;
       
@@ -290,37 +297,25 @@ const LoginForm: React.FC = () => {
     setError(null);
     
     try {
-      // First sign out to prevent automatic login after OTP verification
+      // Sign out to reset session state
       await supabase.auth.signOut();
       
-      const { error } = await supabase.auth.verifyOtp({
-        email: resetEmail,
-        token: values.otp,
-        type: 'recovery'
-      });
+      // Store the OTP value for later use
+      setResetToken(values.otp);
       
-      if (error) throw error;
-      
-      // Move to new password step and force reset the form
+      // Move to new password step without verifying OTP yet
+      // We'll use the token in handleSetNewPassword to create a stateless flow
       setResetPasswordStep('newPassword');
-      setFormKey(Date.now()); // Force form re-render
-      
-      // Reset the form with empty values
-      setTimeout(() => {
-        newPasswordForm.reset({
-          password: '',
-          confirmPassword: '',
-        });
-      }, 0);
+      setFormKey(Date.now());
       
       toast({
-        title: "Code verified",
+        title: "Code accepted",
         description: "Please set your new password"
       });
     } catch (error) {
-      console.error('[LoginForm] OTP verification error:', error);
+      console.error('[LoginForm] OTP handling error:', error);
       toast({
-        title: "Invalid verification code",
+        title: "Error processing verification code",
         description: error instanceof Error ? error.message : "Please check and try again",
         variant: "destructive"
       });
@@ -330,25 +325,36 @@ const LoginForm: React.FC = () => {
   };
 
   const handleSetNewPassword = async (values: NewPasswordFormValues) => {
-    if (isLoading) return;
+    if (isLoading || !resetToken) return;
     
     setIsLoading(true);
     setError(null);
     
     try {
-      // Ensure we're signed out to prevent automatic session creation
+      // First ensure we're signed out
       await supabase.auth.signOut();
       
-      const { error } = await supabase.auth.updateUser({
-        password: values.password
+      // Use token directly with the update call in a stateless flow
+      const { error } = await supabase.auth.verifyOtp({
+        email: resetEmail,
+        token: resetToken,
+        type: 'recovery',
+        options: {
+          // Add new password during verification
+          data: {
+            password: values.password
+          }
+        }
       });
       
       if (error) throw error;
       
-      // Sign out again to ensure no active session remains
+      // Ensure we sign out again after the password update
       await supabase.auth.signOut();
       
       setIsResetDialogOpen(false);
+      setResetToken(null);
+      
       toast({
         title: "Password updated",
         description: "Your password has been successfully updated. You can now log in with your new password."
@@ -929,7 +935,7 @@ const LoginForm: React.FC = () => {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || !resetToken}
                 >
                   {isLoading ? 'Updating...' : 'Update Password'}
                 </Button>
@@ -951,6 +957,7 @@ const LoginForm: React.FC = () => {
           resetPasswordForm.reset();
           verifyOtpForm.reset();
           newPasswordForm.reset();
+          setResetToken(null);
         }
       }}>
         <DialogContent className="sm:max-w-md">
@@ -975,4 +982,3 @@ const LoginForm: React.FC = () => {
 };
 
 export default LoginForm;
-
