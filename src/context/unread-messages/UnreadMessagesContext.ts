@@ -8,7 +8,7 @@ const UnreadMessagesContext = createContext<UnreadMessagesContextType>({
   clubUnreadCounts: {},
   directMessageUnreadCounts: {},
   refreshUnreadCounts: async () => {},
-  fetchUnreadCounts: async () => {}, // Add this property
+  fetchUnreadCounts: async () => {},
   
   // Default values for the other properties
   unreadConversations: new Set<string>(),

@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useFetchUserClubs } from '@/components/profile/hooks/userProfile/useFetchUserClubs';
-import { useUnreadMessages } from '@/context/UnreadMessagesContext';
+import { useUnreadMessages } from '@/context/unread-messages';
 import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
 import { refreshNotifications } from '@/lib/notificationUtils';
 
