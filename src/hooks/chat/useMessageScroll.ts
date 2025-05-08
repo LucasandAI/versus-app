@@ -1,60 +1,48 @@
 
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 
-export const useMessageScroll = (messages: any[], chatId?: string) => {
+export const useMessageScroll = (messages: any[]) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const previousMessageCount = useRef<number>(0);
   const isUserScrolling = useRef<boolean>(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const scrollLockRef = useRef<boolean>(false);
-  const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
   
-  // Track chat context to prevent cross-chat interference
-  const chatContextRef = useRef<string | undefined>(chatId);
-  
-  // Update chat context when it changes
-  useEffect(() => {
-    if (chatContextRef.current !== chatId) {
-      chatContextRef.current = chatId;
-      isUserScrolling.current = false; 
-      previousMessageCount.current = 0;
-      // Reset scroll position when chat context changes
-      setTimeout(() => {
-        scrollToBottom(false);
-      }, 10); // Reduced delay for faster response
-    }
-  }, [chatId]);
-
   // Optimize scrolling by using a callback with requestAnimationFrame
   const scrollToBottom = useCallback((smooth = true) => {
-    // Don't scroll if another scroll is in progress - prevents stuttering
+    // Prevent multiple scroll attempts in a short time
     if (scrollLockRef.current) return;
-    
-    // Set lock to prevent multiple scroll attempts
     scrollLockRef.current = true;
     
-    // Use requestAnimationFrame for better timing with browser paint cycles
+    // Clear any existing scroll timeout
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    
+    // Use requestAnimationFrame to ensure DOM updates are complete
     requestAnimationFrame(() => {
       if (scrollRef.current) {
         const { scrollHeight, clientHeight } = scrollRef.current;
+        scrollRef.current.scrollTop = scrollHeight - clientHeight;
         
-        scrollRef.current.scrollTo({
-          top: scrollHeight - clientHeight,
-          behavior: smooth ? 'smooth' : 'auto'
-        });
-        
-        // Update scroll state
-        setIsScrolledToBottom(true);
+        // Important: Use behavior: 'auto' to prevent visual jarring
+        // scrollRef.current.scrollTo({
+        //   top: scrollHeight - clientHeight,
+        //   behavior: smooth ? 'smooth' : 'auto'
+        // });
       }
       
-      // Release scroll lock after a shorter time to allow quick successive scrolls if needed
+      // Release scroll lock after animation completes
       setTimeout(() => {
         scrollLockRef.current = false;
-      }, 50); // Reduced from 300ms to improve responsiveness
+      }, 50);
     });
+    
+    scrollTimeoutRef.current = null;
   }, []);
 
-  // Track user scrolling with passive event listener for better performance
+  // Track user scrolling with debounced handler - use passive event listener
   useEffect(() => {
     let scrollTimer: NodeJS.Timeout | null = null;
     
@@ -64,17 +52,15 @@ export const useMessageScroll = (messages: any[], chatId?: string) => {
       if (!scrollRef.current) return;
       
       const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-      // Consider at bottom if within 100px of bottom (more forgiving)
-      const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+      // Only consider at bottom if within 50px of bottom
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
       
       isUserScrolling.current = !isAtBottom;
-      setIsScrolledToBottom(isAtBottom);
       
       // Debounce scroll state changes
       scrollTimer = setTimeout(() => {
         isUserScrolling.current = !isAtBottom;
-        setIsScrolledToBottom(isAtBottom);
-      }, 150);
+      }, 100);
     };
 
     const currentScrollRef = scrollRef.current;
@@ -90,21 +76,21 @@ export const useMessageScroll = (messages: any[], chatId?: string) => {
     };
   }, []);
 
-  // Scroll on new messages if user is at bottom or on initial load
+  // Only scroll to bottom on initial load or new messages if user isn't scrolling up
   useEffect(() => {
     if (!messages.length) return;
     
+    // Only auto-scroll if:
+    // 1. This is the first load (previousMessageCount.current === 0)
+    // 2. New messages were added AND user is already at bottom
     const shouldScroll = 
       previousMessageCount.current === 0 || 
       (messages.length > previousMessageCount.current && !isUserScrolling.current);
     
-    if (shouldScroll) {
-      // Use requestAnimationFrame to ensure DOM is ready
+    if (shouldScroll && !scrollLockRef.current) {
+      // Use requestAnimationFrame for smoother scrolling
       requestAnimationFrame(() => {
-        // Use another requestAnimationFrame to catch any layout recalculations
-        requestAnimationFrame(() => {
-          scrollToBottom(true);
-        });
+        scrollToBottom(false); // Use false for auto behavior on message update
       });
     }
     
@@ -114,7 +100,6 @@ export const useMessageScroll = (messages: any[], chatId?: string) => {
   return {
     scrollRef,
     lastMessageRef,
-    scrollToBottom,
-    isScrolledToBottom
+    scrollToBottom
   };
 };

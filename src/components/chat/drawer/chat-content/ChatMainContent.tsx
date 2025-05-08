@@ -35,7 +35,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
     
     console.log('[ChatMainContent] Sending club message to:', { 
       clubId: selectedClub.id, 
-      messagePreview: message.substring(0, 20) + (message.length > 20 ? '...' : '') 
+      messageLength: message.length 
     });
     onSendMessage(message, selectedClub.id);
   }, [selectedClub, onSendMessage]);
@@ -46,25 +46,27 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
     onMatchClick(selectedClub);
   }, [selectedClub, onMatchClick]);
 
-  // Memoize the club messages to prevent unnecessary re-renders
-  const clubMessages = useMemo(() => {
-    return selectedClub ? (messages[selectedClub.id] || []) : [];
-  }, [selectedClub, messages]);
-
   // If we have a selected club, render the club content
   if (selectedClub) {
+    const clubMessages = messages[selectedClub.id] || [];
+    console.log('[ChatMainContent] Rendering club messages:', { 
+      clubId: selectedClub.id, 
+      messageCount: clubMessages.length,
+      messageIds: clubMessages.map(m => m.id).join(', ')
+    });
+    
     return (
-      <div className="flex-1 h-full flex flex-col transition-opacity duration-150">
+      <div className="flex-1 h-full flex flex-col">
         <ChatClubContent 
-          key={`club-${selectedClub.id}`} // Force re-render when club changes
+          key={selectedClub.id} // Force re-render when club changes
           club={selectedClub}
           messages={clubMessages}
           onMatchClick={handleMatchClick}
           onSelectUser={onSelectUser}
           onSendMessage={handleSendMessage}
           setClubMessages={setClubMessages}
-          clubId={selectedClub.id}
-          globalMessages={messages}
+          clubId={selectedClub.id} // Pass clubId for proper context in ChatInput
+          globalMessages={messages} // Pass the global messages state
         />
       </div>
     );

@@ -1,5 +1,5 @@
 
-import React, { memo, useMemo } from 'react';
+import React, { memo } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageItem from './MessageItem';
 
@@ -17,7 +17,6 @@ interface MessageListProps {
   currentUserAvatar: string;
   currentUserId: string | null;
   lastMessageRef: React.RefObject<HTMLDivElement>;
-  chatId?: string;
 }
 
 // Memoize the component to prevent unnecessary re-renders
@@ -30,32 +29,22 @@ const MessageList: React.FC<MessageListProps> = memo(({
   formatTime,
   currentUserAvatar,
   currentUserId,
-  lastMessageRef,
-  chatId
+  lastMessageRef
 }) => {
   // Use useMemo to avoid recreating message items on every render
-  const messageItems = useMemo(() => {
+  const messageItems = React.useMemo(() => {
     return messages.map((message: ChatMessage, index: number) => {
       const isUserMessage = currentUserId && 
                            message.sender && 
                            String(message.sender.id) === String(currentUserId);
       const isLastMessage = index === messages.length - 1;
       
-      // Add animation classes for smooth transitions based on message state
-      let animationClass = 'animate-fade-in opacity-100 transition-all duration-200';
-      
-      if (message.optimistic) {
-        animationClass = 'animate-fade-in opacity-70 transition-all duration-200';
-      }
-      
+      // Use stable key with index to prevent remounting on ID changes
       return (
         <div 
           key={message.id || `msg-${index}`}
           ref={isLastMessage ? lastMessageRef : undefined}
-          className={`mb-3 ${isLastMessage ? 'pb-5' : ''} ${animationClass}`}
-          data-message-id={message.id}
-          data-chat-id={chatId}
-          data-optimistic={message.optimistic ? 'true' : 'false'}
+          className={`mb-3 ${isLastMessage ? 'pb-5' : ''}`}
         >
           <MessageItem 
             message={message} 
@@ -69,20 +58,10 @@ const MessageList: React.FC<MessageListProps> = memo(({
         </div>
       );
     });
-  }, [
-    messages, 
-    currentUserId, 
-    lastMessageRef, 
-    isSupport, 
-    onDeleteMessage, 
-    onSelectUser, 
-    formatTime, 
-    currentUserAvatar,
-    chatId
-  ]);
+  }, [messages, currentUserId, lastMessageRef, isSupport, onDeleteMessage, onSelectUser, formatTime, currentUserAvatar]);
 
   return (
-    <div className="flex-1 px-0 py-2 transition-all duration-150">
+    <div className="flex-1 px-0 py-2">
       {messages.length === 0 ? (
         <div className="h-full flex items-center justify-center text-gray-500 text-sm py-4">
           No messages yet. Start the conversation!
@@ -98,25 +77,8 @@ const MessageList: React.FC<MessageListProps> = memo(({
   );
 }, (prevProps, nextProps) => {
   // Custom equality check to prevent unnecessary re-renders
-  // Only re-render if messages have changed in meaningful ways
-  
   if (prevProps.messages.length !== nextProps.messages.length) {
     return false; // Re-render if message count changes
-  }
-  
-  // Check if any message IDs have changed
-  const prevIds = new Set(prevProps.messages.map(m => m.id));
-  const nextIds = new Set(nextProps.messages.map(m => m.id));
-  
-  if (prevIds.size !== nextIds.size) {
-    return false; // Different number of unique IDs
-  }
-  
-  // Check if optimistic status changed for any message (real message arrived)
-  for (let i = 0; i < prevProps.messages.length; i++) {
-    if (prevProps.messages[i].optimistic !== nextProps.messages[i].optimistic) {
-      return false; // Optimistic status changed
-    }
   }
   
   // Compare last message ID to detect new messages
@@ -126,11 +88,6 @@ const MessageList: React.FC<MessageListProps> = memo(({
     if (prevLastMsg.id !== nextLastMsg.id) {
       return false; // Re-render if last message changed
     }
-  }
-  
-  // Check if chatId changed (indicates context switch)
-  if (prevProps.chatId !== nextProps.chatId) {
-    return false;
   }
   
   return true; // Don't re-render otherwise

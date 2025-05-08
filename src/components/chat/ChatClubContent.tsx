@@ -7,8 +7,6 @@ import ChatInput from './ChatInput';
 import { useNavigation } from '@/hooks/useNavigation';
 import { useChatActions } from '@/hooks/chat/useChatActions';
 import { useActiveClubMessages } from '@/hooks/chat/useActiveClubMessages';
-import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
-import { v4 as uuidv4 } from 'uuid';
 
 interface ChatClubContentProps {
   club: Club;
@@ -38,43 +36,19 @@ const ChatClubContent = ({
   const { deleteMessage } = useChatActions();
   const effectiveClubId = clubId || club?.id;
   
-  // Use our enhanced hook to get messages that stay in sync with global state
-  const { messages, addOptimisticMessage } = useActiveClubMessages(
+  // Use our new hook to get messages that stay in sync with global state
+  const { messages } = useActiveClubMessages(
     effectiveClubId,
     globalMessages
   );
   
-  // Use our optimized scroll hook with club ID to isolate context
-  const { scrollRef, lastMessageRef, scrollToBottom } = useMessageScroll(
-    messages,
-    effectiveClubId
-  );
-  
-  // Event for notifying that club has been selected
-  useEffect(() => {
-    if (effectiveClubId) {
-      // Dispatch event that this club is selected
-      window.dispatchEvent(new CustomEvent('clubSelected', { 
-        detail: { clubId: effectiveClubId } 
-      }));
-    }
-    
-    return () => {
-      // Dispatch event that club is deselected when component unmounts
-      window.dispatchEvent(new CustomEvent('clubDeselected'));
-    };
-  }, [effectiveClubId]);
+  // Log the messages length as requested
+  console.log('[ChatClubContent] Messages length:', messages.length);
   
   useEffect(() => {
     console.log('[ChatClubContent] Club changed, resetting state for:', effectiveClubId);
     setIsSending(false);
-    // Reset scroll position when club changes, with slight delay to ensure DOM is updated
-    setTimeout(() => {
-      if (messages && messages.length > 0) {
-        scrollToBottom(false);
-      }
-    }, 50);
-  }, [effectiveClubId, messages, scrollToBottom]);
+  }, [effectiveClubId]);
 
   const handleDeleteMessage = useCallback(async (messageId: string) => {
     console.log('[ChatClubContent] Deleting message:', messageId);
@@ -96,58 +70,30 @@ const ChatClubContent = ({
   }, [club, navigateToClubDetail]);
 
   const handleSendMessage = useCallback(async (message: string) => {
-    if (!message.trim() || !effectiveClubId) return;
-    
     console.log('[ChatClubContent] Sending message for club:', effectiveClubId);
     
-    // Set isSending immediately for UI feedback
+    // Immediately set isSending to true like in DM implementation
     setIsSending(true);
     
     try {
-      const trimmedMessage = message.trim();
-      
-      // Get current user from local storage to create optimistic message
-      const userDataStr = localStorage.getItem('currentUser');
-      const userData = userDataStr ? JSON.parse(userDataStr) : null;
-      
-      // Create an optimistic message with temporary ID
-      if (userData) {
-        const optimisticId = `temp-${uuidv4()}`;
-        const now = new Date().toISOString();
-        
-        const optimisticMessage = {
-          id: optimisticId,
-          message: trimmedMessage,
-          sender_id: userData.id,
-          club_id: effectiveClubId,
-          timestamp: now,
-          sender: {
-            id: userData.id,
-            name: userData.name,
-            avatar: userData.avatar
-          },
-          optimistic: true
-        };
-        
-        // Add the optimistic message
-        addOptimisticMessage(optimisticMessage);
-        
-        // Scroll to the new message
-        setTimeout(() => scrollToBottom(true), 10);
+      const messageToSend = message.trim();
+      if (effectiveClubId) {
+        await onSendMessage(messageToSend, effectiveClubId);
       }
       
-      // Actually send the message
-      await onSendMessage(trimmedMessage, effectiveClubId);
-      
-      // Scroll to bottom after sending
-      setTimeout(() => scrollToBottom(true), 50);
+      // After message is sent, scroll to bottom using requestAnimationFrame for smoother animation
+      requestAnimationFrame(() => {
+        const messageContainer = document.querySelector(`[data-conversation-id="${effectiveClubId}"]`)?.parentElement?.previousElementSibling;
+        if (messageContainer) {
+          messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+      });
     } catch (error) {
       console.error('[ChatClubContent] Error sending club message:', error);
     } finally {
-      // Reset sending state
       setIsSending(false);
     }
-  }, [effectiveClubId, onSendMessage, addOptimisticMessage, scrollToBottom]);
+  }, [effectiveClubId, onSendMessage]);
 
   return (
     <div className="flex flex-col h-full">
@@ -159,15 +105,12 @@ const ChatClubContent = ({
       />
       
       <div className="flex-1 flex flex-col relative overflow-hidden">
-        <div className="flex-1 min-h-0 transition-opacity duration-150">
+        <div className="flex-1 min-h-0">
           <ChatMessages 
             messages={messages} 
             clubMembers={club.members || []}
             onDeleteMessage={handleDeleteMessage}
             onSelectUser={onSelectUser}
-            scrollRef={scrollRef}
-            lastMessageRef={lastMessageRef}
-            chatId={effectiveClubId}
           />
         </div>
         

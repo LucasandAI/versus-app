@@ -22,7 +22,6 @@ interface ChatMessagesProps {
   lastMessageRef?: React.RefObject<HTMLDivElement>;
   formatTime?: (isoString: string) => string;
   scrollRef?: React.RefObject<HTMLDivElement>;
-  chatId?: string;
 }
 
 // Use memo to prevent unnecessary re-renders with consistent identity reference
@@ -36,11 +35,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   lastMessageRef: providedLastMessageRef,
   formatTime: providedFormatTime,
   scrollRef: providedScrollRef,
-  chatId
 }) => {
   // Create stable references to prevent recreation
   const prevMessageLengthRef = useRef<number>(0);
-  const messagesCache = useRef<any[]>([]);
   
   const {
     currentUserId,
@@ -60,14 +57,12 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
     normalizeMessage
   } = useMessageNormalization(currentUserId, senderId => getMemberName(senderId, currentUserId, clubMembers));
 
-  // Only create local scroll refs if none are provided
+  // Custom scroll hook that uses stable refs
   const {
     scrollRef: defaultScrollRef,
-    lastMessageRef: defaultLastMessageRef
-  } = !providedScrollRef ? useMessageScroll(messages, chatId) : { 
-    scrollRef: { current: null }, 
-    lastMessageRef: { current: null }
-  };
+    lastMessageRef: defaultLastMessageRef,
+    scrollToBottom
+  } = useMessageScroll(messages);
 
   // Use provided values or defaults - store references to prevent recreation
   const finalUserAvatar = providedUserAvatar || defaultUserAvatar;
@@ -86,28 +81,36 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
     );
   }
   
-  // Check if messages have actually changed before processing
-  // This helps prevent unnecessary re-renders
-  const messagesHaveChanged = 
-    prevMessageLengthRef.current !== messages.length ||
-    JSON.stringify(messages.map(m => m.id)) !== 
-    JSON.stringify(messagesCache.current.map(m => m.id));
+  // Add debug logging to see what's being processed
+  console.log('[ChatMessages] Processing messages array:', messages.length);
   
   // Only normalize messages once per unique message set
+  // Using useMemo with messages reference as dependency
   const normalizedMessages = useMemo(() => {
-    if (!messagesHaveChanged) {
-      return messagesCache.current;
+    console.log('[ChatMessages] Normalizing messages, count:', messages.length);
+    // Debug log a sample message to see what's coming in
+    if (messages.length > 0) {
+      console.log('[ChatMessages] Sample message before normalization:', messages[messages.length - 1]);
     }
     
-    console.log('[ChatMessages] Normalizing messages, count:', messages.length);
     const normalized = messages.map(message => normalizeMessage(message));
     
-    // Update cache refs
-    messagesCache.current = normalized;
-    prevMessageLengthRef.current = messages.length;
+    // Debug log the normalized result for comparison
+    if (normalized.length > 0) {
+      console.log('[ChatMessages] Sample normalized message:', normalized[normalized.length - 1]);
+    }
     
     return normalized;
-  }, [messages, normalizeMessage, messagesHaveChanged]);
+  }, [messages, normalizeMessage]);
+
+  // Track if messages changed and need scroll
+  if (prevMessageLengthRef.current !== messages.length) {
+    // Use requestAnimationFrame to scroll after render
+    if (messages.length > prevMessageLengthRef.current) {
+      requestAnimationFrame(() => scrollToBottom());
+    }
+    prevMessageLengthRef.current = messages.length;
+  }
 
   // Determine if this is a club chat by checking if there are club members
   const isClubChat = clubMembers.length > 0;
@@ -115,10 +118,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   return (
     <div 
       ref={finalScrollRef} 
-      className={`overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent transition-opacity duration-150 ${
+      className={`overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent ${
         isClubChat ? 'h-[calc(73vh-8rem)]' : 'h-[calc(73vh-6rem)]'
       }`}
-      data-chat-id={chatId}
     >
       <MessageList 
         messages={normalizedMessages} 
@@ -130,7 +132,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
         currentUserAvatar={finalUserAvatar} 
         currentUserId={currentUserId} 
         lastMessageRef={finalLastMessageRef} 
-        chatId={chatId}
       />
     </div>
   );
