@@ -9,6 +9,7 @@ import { useAuthSessionEffect } from './useAuthSessionEffect';
 import { useLoadCurrentUser } from './useLoadCurrentUser';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuthSessionCore } from './useAuthSessionCore';
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -130,12 +131,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [userLoading, currentUser, setCurrentView]);
 
-  useAuthSessionEffect({
+  useAuthSessionCore({
     setCurrentUser,
     setCurrentView,
     setUserLoading,
     setAuthChecked,
     setAuthError,
+    setIsSessionReady,
   });
 
   const setCurrentUserWithUpdates = (userOrFunction: User | null | ((prev: User | null) => User | null)) => {

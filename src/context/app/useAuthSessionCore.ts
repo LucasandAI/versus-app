@@ -3,7 +3,6 @@ import { safeSupabase } from '@/integrations/supabase/safeClient';
 import { AppView, User } from '@/types';
 import { useLoadCurrentUser } from './useLoadCurrentUser';
 import { toast } from '@/hooks/use-toast';
-import { useApp } from './AppContext';
 
 // Timeout for authentication check (10 seconds)
 export const AUTH_TIMEOUT = 10000;
@@ -14,6 +13,7 @@ interface AuthSessionCoreProps {
   setUserLoading: (loading: boolean) => void;
   setAuthChecked: (checked: boolean) => void;
   setAuthError: (error: string | null) => void;
+  setIsSessionReady: (ready: boolean) => void;
 }
 
 export const useAuthSessionCore = ({
@@ -22,9 +22,9 @@ export const useAuthSessionCore = ({
   setUserLoading,
   setAuthChecked,
   setAuthError,
+  setIsSessionReady,
 }: AuthSessionCoreProps) => {
   const { loadCurrentUser } = useLoadCurrentUser();
-  const { setIsSessionReady } = useApp();
 
   useEffect(() => {
     let isMounted = true;
