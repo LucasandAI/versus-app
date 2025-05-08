@@ -78,6 +78,7 @@ export const useChatActions = () => {
       if (insertError) {
         console.error('[useChatActions] Error sending message:', insertError);
         
+        // Show appropriate toast based on error type
         if (insertError.code === '42501') {
           toast({
             title: "Permission Error",
