@@ -65,8 +65,8 @@ export const UnreadMessagesProvider: React.FC<{ children: React.ReactNode }> = (
     // Update club-specific counts for legacy components
     if (unreadMessagesPerClub) {
       const clubCounts: Record<string, number> = {};
-      Object.entries(unreadMessagesPerClub).forEach(([clubId, messages]) => {
-        clubCounts[clubId] = messages.length;
+      Object.entries(unreadMessagesPerClub).forEach(([clubId, messageCount]) => {
+        clubCounts[clubId] = messageCount;
       });
       setClubUnreadCounts(clubCounts);
     }
@@ -74,8 +74,8 @@ export const UnreadMessagesProvider: React.FC<{ children: React.ReactNode }> = (
     // Update conversation-specific counts for legacy components
     if (unreadMessagesPerConversation) {
       const dmCounts: Record<string, number> = {};
-      Object.entries(unreadMessagesPerConversation).forEach(([conversationId, messages]) => {
-        dmCounts[conversationId] = messages.length;
+      Object.entries(unreadMessagesPerConversation).forEach(([conversationId, messageCount]) => {
+        dmCounts[conversationId] = messageCount;
       });
       setDirectMessageUnreadCounts(dmCounts);
     }
