@@ -5,7 +5,6 @@ import { updateUserInfo } from './useUserInfoSync';
 import { useClubManagement } from './useClubManagement';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useViewState } from '@/hooks/navigation/useViewState';
-import { useAuthSessionEffect } from './useAuthSessionEffect';
 import { useLoadCurrentUser } from './useLoadCurrentUser';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,7 +12,7 @@ import { useAuthSessionCore } from './useAuthSessionCore';
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [authChecked, setAuthChecked] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [userLoading, setUserLoading] = useState(false);
   const [isSessionReady, setIsSessionReady] = useState(false);
@@ -49,87 +48,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [currentUser, loadCurrentUser]);
 
+  // Single effect to handle loading states
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    if (isSessionReady && currentUser) {
+      setIsAppReady(true);
+    } else if (!isSessionReady || !currentUser) {
+      setIsAppReady(false);
+    }
+  }, [isSessionReady, currentUser]);
 
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user?.id && currentUser?.id) {
-          console.log('[AppProvider] Session and user confirmed ready');
-          setIsSessionReady(true);
-        } else {
-          setIsSessionReady(false);
-        }
-      } catch (error) {
-        console.error('[AppProvider] Session check error:', error);
-        setIsSessionReady(false);
-      }
-    };
-
-    checkSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_OUT') {
-          setIsSessionReady(false);
-        } else if (session?.user) {
-          timeoutId = setTimeout(() => {
-            checkSession();
-          }, 50);
-        }
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [currentUser?.id]);
-
-  useEffect(() => {
-    console.log('[AppProvider] State changed:', { 
-      authChecked, 
-      userLoading, 
-      currentUser: currentUser?.id || 'null',
-      currentView 
-    });
-  }, [authChecked, userLoading, currentUser, currentView]);
-
+  // Single timeout for auth check
   useEffect(() => {
     if (!authChecked) {
       const timeoutId = setTimeout(() => {
-        console.warn('[AppProvider] Auth check timeout reached, forcing auth checked state');
+        console.warn('[AppProvider] Auth check timeout reached');
         setAuthChecked(true);
         setUserLoading(false);
         setCurrentView('connect');
-      }, 5000); 
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [authChecked, setCurrentView]);
-  
-  useEffect(() => {
-    if (userLoading) {
-      const timeoutId = setTimeout(() => {
-        console.warn('[AppProvider] User loading timeout reached, forcing completion');
-        setUserLoading(false);
-        
-        if (currentUser) {
-          setCurrentView('home');
-          toast({
-            title: "Profile partially loaded",
-            description: "Some user data may be missing. Please refresh if needed.",
-            variant: "destructive"
-          });
-        } else {
-          setCurrentView('connect');
-        }
       }, 5000);
       
       return () => clearTimeout(timeoutId);
     }
-  }, [userLoading, currentUser, setCurrentView]);
+  }, [authChecked, setCurrentView]);
 
   useAuthSessionCore({
     setCurrentUser,
@@ -205,20 +145,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsAppReady
   };
 
-  if (userLoading && !currentUser) {
+  // Single loading screen
+  if (userLoading || !authChecked) {
     return <div className="flex items-center justify-center min-h-screen">
       <div className="flex flex-col items-center gap-2">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-        <p>Signing in...</p>
-      </div>
-    </div>;
-  }
-
-  if (userLoading && currentUser) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="flex flex-col items-center gap-2">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-        <p>Loading your profile...</p>
+        <p>{userLoading ? 'Loading your profile...' : 'Verifying your session...'}</p>
       </div>
     </div>;
   }
