@@ -1,5 +1,5 @@
 
-import React, { memo, useMemo, useRef } from 'react';
+import React, { memo, useMemo, useEffect, useRef } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageList from './message/MessageList';
 import { useMessageUser } from './message/useMessageUser';
@@ -38,6 +38,12 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
 }) => {
   // Create stable references to prevent recreation
   const prevMessageLengthRef = useRef<number>(0);
+  const messagesRef = useRef<any[]>([]);
+  
+  // Update our internal reference when messages change
+  useEffect(() => {
+    messagesRef.current = Array.isArray(messages) ? messages : [];
+  }, [messages]);
   
   const {
     currentUserId,
@@ -62,7 +68,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
     scrollRef: defaultScrollRef,
     lastMessageRef: defaultLastMessageRef,
     scrollToBottom
-  } = useMessageScroll(messages);
+  } = useMessageScroll(Array.isArray(messages) ? messages : []);
 
   // Use provided values or defaults - store references to prevent recreation
   const finalUserAvatar = providedUserAvatar || defaultUserAvatar;
@@ -81,36 +87,26 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
     );
   }
   
-  // Add debug logging to see what's being processed
-  console.log('[ChatMessages] Processing messages array:', messages.length);
-  
   // Only normalize messages once per unique message set
   // Using useMemo with messages reference as dependency
   const normalizedMessages = useMemo(() => {
-    console.log('[ChatMessages] Normalizing messages, count:', messages.length);
-    // Debug log a sample message to see what's coming in
-    if (messages.length > 0) {
-      console.log('[ChatMessages] Sample message before normalization:', messages[messages.length - 1]);
-    }
-    
-    const normalized = messages.map(message => normalizeMessage(message));
-    
-    // Debug log the normalized result for comparison
-    if (normalized.length > 0) {
-      console.log('[ChatMessages] Sample normalized message:', normalized[normalized.length - 1]);
-    }
-    
-    return normalized;
+    // Normalize the messages array
+    return messages.map(message => normalizeMessage(message));
   }, [messages, normalizeMessage]);
 
-  // Track if messages changed and need scroll
-  if (prevMessageLengthRef.current !== messages.length) {
-    // Use requestAnimationFrame to scroll after render
-    if (messages.length > prevMessageLengthRef.current) {
-      requestAnimationFrame(() => scrollToBottom());
+  // Track if messages changed and need to scroll
+  useEffect(() => {
+    if (Array.isArray(messages) && messages.length > prevMessageLengthRef.current) {
+      // Use requestAnimationFrame to scroll after render
+      requestAnimationFrame(() => {
+        scrollToBottom();
+      });
     }
-    prevMessageLengthRef.current = messages.length;
-  }
+    
+    if (Array.isArray(messages)) {
+      prevMessageLengthRef.current = messages.length;
+    }
+  }, [messages, scrollToBottom]);
 
   // Determine if this is a club chat by checking if there are club members
   const isClubChat = clubMembers.length > 0;
