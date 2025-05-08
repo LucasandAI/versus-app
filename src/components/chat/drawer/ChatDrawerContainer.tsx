@@ -3,7 +3,7 @@ import { Club } from '@/types';
 import { useClubMessages } from '@/hooks/chat/useClubMessages';
 import { useInitialMessages } from '@/hooks/chat/messages/useInitialMessages';
 import { useApp } from '@/context/AppContext';
-import ChatSidebar from './sidebar/ChatSidebar';
+import ChatSidebarContent from './ChatSidebarContent';
 import ChatClubContainer from './club/ChatClubContainer';
 import DMContainer from './dm/DMContainer';
 
@@ -69,7 +69,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
         <>
           {/* Club chat sidebar */}
           <div className="w-80 border-r">
-            <ChatSidebar
+            <ChatSidebarContent
               clubs={clubs}
               selectedClub={selectedLocalClub}
               onSelectClub={onSelectClub}
@@ -85,7 +85,6 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = ({
                 });
               }}
               activeTab={activeTab}
-              clubMessages={finalMessages}
             />
           </div>
 
