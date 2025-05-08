@@ -863,7 +863,7 @@ const LoginForm: React.FC = () => {
               <FormField
                 control={newPasswordForm.control}
                 name="confirmPassword"
-                render={({ field }) => (
+                render={({ field: { ref, ...restField } }) => (
                   <FormItem>
                     <FormLabel>Confirm Password</FormLabel>
                     <FormControl>
@@ -872,7 +872,8 @@ const LoginForm: React.FC = () => {
                         type="password"
                         autoComplete="new-password"
                         disabled={isLoading}
-                        {...field}
+                        ref={ref}
+                        {...restField}
                       />
                     </FormControl>
                     <FormMessage />
