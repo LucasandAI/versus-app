@@ -138,7 +138,13 @@ export const useActiveClubMessages = (
       if (data) {
         // Reverse the order to show oldest first
         const sortedData = [...data].reverse();
-        setMessages(prev => [...sortedData, ...prev]);
+        
+        // Update messages by prepending older messages
+        setMessages(prev => {
+          const newMessages = [...sortedData, ...prev];
+          // Remove any duplicates based on message ID
+          return Array.from(new Map(newMessages.map(msg => [msg.id, msg])).values());
+        });
         
         // Update oldest message timestamp
         if (sortedData.length > 0) {
