@@ -1,3 +1,4 @@
+
 import React, { memo } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageItem from './MessageItem';
@@ -38,6 +39,7 @@ const MessageList: React.FC<MessageListProps> = memo(({
                            String(message.sender.id) === String(currentUserId);
       const isLastMessage = index === messages.length - 1;
       
+      // Use stable key with index to prevent remounting on ID changes
       return (
         <div 
           key={message.id || `msg-${index}`}
@@ -59,7 +61,7 @@ const MessageList: React.FC<MessageListProps> = memo(({
   }, [messages, currentUserId, lastMessageRef, isSupport, onDeleteMessage, onSelectUser, formatTime, currentUserAvatar]);
 
   return (
-    <div className="flex-1 px-0 py-2 min-h-full">
+    <div className="flex-1 px-0 py-2">
       {messages.length === 0 ? (
         <div className="h-full flex items-center justify-center text-gray-500 text-sm py-4">
           No messages yet. Start the conversation!

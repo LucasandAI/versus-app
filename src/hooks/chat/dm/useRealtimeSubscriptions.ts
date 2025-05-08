@@ -1,3 +1,4 @@
+
 import { useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { UserCache } from './types';
@@ -18,55 +19,43 @@ export const useRealtimeSubscriptions = (
       .channel('direct-messages-changes')
       .on('postgres_changes', 
         { 
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          event: 'INSERT',
           schema: 'public',
           table: 'direct_messages'
         },
         async (payload: any) => {
-          if (!payload.new && !payload.old) return;
+          if (!payload.new) return;
           
-          // Handle message deletion
-          if (payload.eventType === 'DELETE' && payload.old) {
-            const conversationId = payload.old.conversation_id;
-            window.dispatchEvent(new CustomEvent('directMessageDeleted', {
-              detail: { conversationId, messageId: payload.old.id }
-            }));
-            return;
-          }
+          // Skip messages sent by the current user
+          if (payload.new.sender_id === currentUserId) return;
           
-          // Handle new/updated messages
-          if (payload.new) {
-            // Skip messages not involving the current user
-            if (payload.new.sender_id !== currentUserId && payload.new.receiver_id !== currentUserId) return;
-            
-            console.log('[RealTime] DM detected:', payload, 'timestamp:', new Date().toISOString());
-            
-            // For incoming messages from another user
-            const otherUserId = payload.new.sender_id === currentUserId ? 
-              payload.new.receiver_id : 
-              payload.new.sender_id;
-            
-            const cachedUser = userCache[otherUserId];
-            
-            if (cachedUser) {
+          // Only handle messages where this user is involved
+          if (payload.new.sender_id !== currentUserId && payload.new.receiver_id !== currentUserId) return;
+          
+          console.log('[RealTime] DM detected:', payload, 'timestamp:', new Date().toISOString());
+          
+          // For incoming messages from another user
+          const otherUserId = payload.new.sender_id;
+          const cachedUser = userCache[otherUserId];
+          
+          if (cachedUser) {
+            updateConversation(
+              payload.new.conversation_id, 
+              otherUserId, 
+              payload.new.text, 
+              cachedUser.name, 
+              cachedUser.avatar || '/placeholder.svg'
+            );
+          } else {
+            const userData = await fetchUserData(otherUserId);
+            if (userData) {
               updateConversation(
                 payload.new.conversation_id, 
                 otherUserId, 
                 payload.new.text, 
-                cachedUser.name, 
-                cachedUser.avatar || '/placeholder.svg'
+                userData.name, 
+                userData.avatar || '/placeholder.svg'
               );
-            } else {
-              const userData = await fetchUserData(otherUserId);
-              if (userData) {
-                updateConversation(
-                  payload.new.conversation_id, 
-                  otherUserId, 
-                  payload.new.text, 
-                  userData.name, 
-                  userData.avatar || '/placeholder.svg'
-                );
-              }
             }
           }
         }

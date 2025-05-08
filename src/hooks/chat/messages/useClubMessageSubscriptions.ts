@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useCallback } from 'react';
 import { Club } from '@/types';
 import { RealtimeChannel } from '@supabase/supabase-js';
@@ -79,15 +80,12 @@ export const useClubMessageSubscriptions = (
     // Create a single channel for all club messages
     const clubMessagesChannel = supabase.channel('all_club_messages');
     
-    // Subscribe to all club chat messages with proper filter
+    // Subscribe to all club chat messages without filter
     clubMessagesChannel
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
-        table: 'club_chat_messages',
-        filter: userClubs.length > 0 ? 
-          `club_id=in.(${userClubs.map(club => `'${club.id}'`).join(',')})` : 
-          undefined
+        table: 'club_chat_messages'
       }, (payload) => {
         handleNewMessagePayload(
           payload, 

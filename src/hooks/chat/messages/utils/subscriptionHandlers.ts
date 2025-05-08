@@ -1,3 +1,4 @@
+
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Club } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -58,31 +59,30 @@ export const handleNewMessagePayload = async (
   const messageWithSender = await fetchSenderDetails(typedPayload.new);
   
   if (messageWithSender) {
+    const clubId = messageWithSender.club_id;
+    
     setClubMessages(prev => {
-      const clubMessages = prev[messageClubId] || [];
+      const clubMsgs = prev[clubId] || [];
       
-      // Check if message already exists
-      if (clubMessages.some(msg => msg.id === messageWithSender.id)) {
-        return prev;
-      }
+      // Check if message already exists to prevent duplicates
+      const messageExists = clubMsgs.some(msg => msg.id === messageWithSender.id);
+      if (messageExists) return prev;
       
-      // Add new message and sort by timestamp
-      const updatedMessages = [...clubMessages, messageWithSender]
-        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      // Sort messages by timestamp
+      const updatedMessages = [...clubMsgs, messageWithSender].sort(
+        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+      
+      // Create and dispatch a global event with the new message details
+      window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
+        detail: { clubId, message: messageWithSender } 
+      }));
       
       return {
         ...prev,
-        [messageClubId]: updatedMessages
+        [clubId]: updatedMessages
       };
     });
-    
-    // Dispatch event for other components
-    window.dispatchEvent(new CustomEvent('clubMessageReceived', {
-      detail: {
-        clubId: messageClubId,
-        message: messageWithSender
-      }
-    }));
     
     // If the message is from another user and NOT the currently viewed club,
     // we need to update the unread count for this club

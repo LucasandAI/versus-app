@@ -1,28 +1,27 @@
-import React, { useRef, useMemo, memo } from 'react';
-import { Button } from '@/components/ui/button';
+
+import React, { memo, useMemo, useRef } from 'react';
+import { ChatMessage } from '@/types/chat';
 import MessageList from './message/MessageList';
 import { useMessageUser } from './message/useMessageUser';
-import { useCurrentMember } from '@/hooks/chat/messages/useCurrentMember';
-import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
 import { useMessageNormalization } from './message/useMessageNormalization';
 import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
-import { useApp } from '@/context/AppContext';
-import { ClubMember } from '@/types';
-import { Loader2 } from 'lucide-react';
+import { useCurrentMember } from '@/hooks/chat/messages/useCurrentMember';
+import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
 
 interface ChatMessagesProps {
-  messages: any[];
-  clubMembers: ClubMember[];
+  messages: ChatMessage[] | any[];
+  clubMembers: Array<{
+    id: string;
+    name: string;
+    avatar?: string;
+  }>;
   isSupport?: boolean;
   onDeleteMessage?: (messageId: string) => void;
-  onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
+  onSelectUser?: (userId: string, userName: string, userAvatar?: string) => void;
   currentUserAvatar?: string;
   lastMessageRef?: React.RefObject<HTMLDivElement>;
-  formatTime?: (timestamp: string) => string;
+  formatTime?: (isoString: string) => string;
   scrollRef?: React.RefObject<HTMLDivElement>;
-  hasMore?: boolean;
-  isLoadingMore?: boolean;
-  onLoadMore?: () => void;
 }
 
 // Use memo to prevent unnecessary re-renders with consistent identity reference
@@ -36,10 +35,10 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   lastMessageRef: providedLastMessageRef,
   formatTime: providedFormatTime,
   scrollRef: providedScrollRef,
-  hasMore = false,
-  isLoadingMore = false,
-  onLoadMore
 }) => {
+  // Create stable references to prevent recreation
+  const prevMessageLengthRef = useRef<number>(0);
+  
   const {
     currentUserId,
     currentUserAvatar: defaultUserAvatar
@@ -64,8 +63,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
     lastMessageRef: defaultLastMessageRef,
     scrollToBottom
   } = useMessageScroll(messages);
-
-  const { currentUser } = useApp();
 
   // Use provided values or defaults - store references to prevent recreation
   const finalUserAvatar = providedUserAvatar || defaultUserAvatar;
@@ -106,53 +103,36 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
     return normalized;
   }, [messages, normalizeMessage]);
 
+  // Track if messages changed and need scroll
+  if (prevMessageLengthRef.current !== messages.length) {
+    // Use requestAnimationFrame to scroll after render
+    if (messages.length > prevMessageLengthRef.current) {
+      requestAnimationFrame(() => scrollToBottom());
+    }
+    prevMessageLengthRef.current = messages.length;
+  }
+
   // Determine if this is a club chat by checking if there are club members
   const isClubChat = clubMembers.length > 0;
 
   return (
-    <div className="flex flex-col h-full">
-      <div 
-        ref={finalScrollRef}
-        onScroll={scrollToBottom}
-        className={`relative overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent ${
-          isClubChat ? 'h-[calc(73vh-8rem)]' : 'h-[calc(73vh-6rem)]'
-        }`}
-      >
-        {hasMore && (
-          <div className="sticky top-0 z-10 flex justify-center p-2 bg-white/80 backdrop-blur-sm">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onLoadMore}
-              disabled={isLoadingMore}
-              className="shadow-sm"
-            >
-              {isLoadingMore ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Loading...
-                </>
-              ) : (
-                'Load More Messages'
-              )}
-            </Button>
-          </div>
-        )}
-        
-        <div className="min-h-full">
-          <MessageList
-            messages={normalizedMessages}
-            clubMembers={clubMembers}
-            isSupport={isSupport}
-            onDeleteMessage={onDeleteMessage}
-            onSelectUser={onSelectUser}
-            formatTime={finalFormatTime}
-            currentUserAvatar={finalUserAvatar}
-            currentUserId={currentUserId}
-            lastMessageRef={finalLastMessageRef}
-          />
-        </div>
-      </div>
+    <div 
+      ref={finalScrollRef} 
+      className={`overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent ${
+        isClubChat ? 'h-[calc(73vh-8rem)]' : 'h-[calc(73vh-6rem)]'
+      }`}
+    >
+      <MessageList 
+        messages={normalizedMessages} 
+        clubMembers={clubMembers} 
+        isSupport={isSupport} 
+        onDeleteMessage={onDeleteMessage} 
+        onSelectUser={onSelectUser} 
+        formatTime={finalFormatTime} 
+        currentUserAvatar={finalUserAvatar} 
+        currentUserId={currentUserId} 
+        lastMessageRef={finalLastMessageRef} 
+      />
     </div>
   );
 });

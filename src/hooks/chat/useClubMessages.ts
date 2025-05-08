@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Club } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,7 +34,8 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
             )
           `)
           .in('club_id', clubIds)
-          .order('timestamp', { ascending: false });
+          .order('timestamp', { ascending: false })
+          .limit(50);
           
         if (error) throw error;
         

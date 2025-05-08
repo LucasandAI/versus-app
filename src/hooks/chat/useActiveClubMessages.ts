@@ -1,7 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-
-const MESSAGES_PER_PAGE = 50;
 
 /**
  * Hook for managing active club messages that syncs with global message state
@@ -12,21 +10,11 @@ export const useActiveClubMessages = (
 ) => {
   // Use the global messages as the source of truth
   const [messages, setMessages] = useState<any[]>(globalMessages[clubId] || []);
-  const [hasMore, setHasMore] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [oldestMessageTimestamp, setOldestMessageTimestamp] = useState<string | null>(null);
   
   // Keep local state in sync with global messages
   useEffect(() => {
     if (globalMessages[clubId]) {
       setMessages(globalMessages[clubId]);
-      // Update oldest message timestamp
-      if (globalMessages[clubId].length > 0) {
-        const oldestMsg = globalMessages[clubId].reduce((oldest, current) => 
-          new Date(current.timestamp) < new Date(oldest.timestamp) ? current : oldest
-        );
-        setOldestMessageTimestamp(oldestMsg.timestamp);
-      }
     }
   }, [clubId, globalMessages]);
 
@@ -86,18 +74,10 @@ export const useActiveClubMessages = (
             `)
             .eq('club_id', clubId)
             .order('timestamp', { ascending: true })
-            .limit(MESSAGES_PER_PAGE);
+            .limit(50);
 
           if (data) {
             setMessages(data);
-            
-            // Update oldest message timestamp
-            if (data.length > 0) {
-              setOldestMessageTimestamp(data[0].timestamp);
-            }
-            
-            // Check if there are more messages
-            setHasMore(data.length === MESSAGES_PER_PAGE);
           }
         } catch (error) {
           console.error('[useActiveClubMessages] Error fetching club messages:', error);
@@ -108,68 +88,5 @@ export const useActiveClubMessages = (
     }
   }, [clubId, globalMessages]);
 
-  // Function to load more messages
-  const loadMoreMessages = useCallback(async () => {
-    if (!hasMore || isLoadingMore || !oldestMessageTimestamp) return;
-    
-    setIsLoadingMore(true);
-    try {
-      const { data } = await supabase
-        .from('club_chat_messages')
-        .select(`
-          id, 
-          message, 
-          sender_id, 
-          club_id, 
-          timestamp,
-          sender:sender_id (
-            id, 
-            name, 
-            avatar
-          )
-        `)
-        .eq('club_id', clubId)
-        .lt('timestamp', oldestMessageTimestamp)
-        .order('timestamp', { ascending: true })
-        .limit(MESSAGES_PER_PAGE);
-
-      if (data) {
-        // Update messages by prepending older messages
-        setMessages(prev => {
-          // Create a map of existing messages by ID for deduplication
-          const existingMessages = new Map(prev.map(msg => [msg.id, msg]));
-          
-          // Add new messages to the map, overwriting any duplicates
-          data.forEach(msg => {
-            existingMessages.set(msg.id, msg);
-          });
-          
-          // Convert map back to array and sort by timestamp
-          const combinedMessages = Array.from(existingMessages.values())
-            .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-          
-          return combinedMessages;
-        });
-        
-        // Update oldest message timestamp
-        if (data.length > 0) {
-          setOldestMessageTimestamp(data[0].timestamp);
-        }
-        
-        // Check if there are more messages
-        setHasMore(data.length === MESSAGES_PER_PAGE);
-      }
-    } catch (error) {
-      console.error('[useActiveClubMessages] Error loading more messages:', error);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  }, [clubId, hasMore, isLoadingMore, oldestMessageTimestamp]);
-
-  return { 
-    messages, 
-    hasMore, 
-    isLoadingMore, 
-    loadMoreMessages 
-  };
+  return { messages };
 };
