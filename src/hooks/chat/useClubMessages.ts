@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Club } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
@@ -9,7 +8,44 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
   const [clubMessages, setClubMessages] = useState<Record<string, any[]>>({});
   const { currentUser } = useApp();
   const activeSubscriptionsRef = useRef<Record<string, boolean>>({});
+  const messageUpdateQueue = useRef<Record<string, any[]>>({});
+  const updateTimeout = useRef<NodeJS.Timeout | null>(null);
   
+  // Process message updates in batches
+  const processMessageUpdates = useCallback(() => {
+    if (updateTimeout.current) {
+      clearTimeout(updateTimeout.current);
+    }
+
+    updateTimeout.current = setTimeout(() => {
+      setClubMessages(prev => {
+        const updated = { ...prev };
+        Object.entries(messageUpdateQueue.current).forEach(([clubId, messages]) => {
+          updated[clubId] = [...(updated[clubId] || []), ...messages].sort(
+            (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+        });
+        messageUpdateQueue.current = {};
+        return updated;
+      });
+
+      // Dispatch event for UI updates
+      window.dispatchEvent(new CustomEvent('clubMessagesUpdated'));
+    }, 100);
+  }, []);
+
+  // Add message with optimistic update
+  const addMessage = useCallback((clubId: string, message: any, isOptimistic = false) => {
+    if (!messageUpdateQueue.current[clubId]) {
+      messageUpdateQueue.current[clubId] = [];
+    }
+    messageUpdateQueue.current[clubId].push({
+      ...message,
+      optimistic: isOptimistic
+    });
+    processMessageUpdates();
+  }, [processMessageUpdates]);
+
   // Fetch initial messages when drawer opens
   useEffect(() => {
     if (!isOpen || !currentUser?.id || !userClubs.length) return;
@@ -67,11 +103,59 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
     fetchInitialMessages();
   }, [isOpen, currentUser?.id, userClubs]);
   
-  // Set up real-time subscription for messages
-  useClubMessageSubscriptions(userClubs, isOpen, activeSubscriptionsRef, setClubMessages);
+  // Set up real-time subscriptions
+  useEffect(() => {
+    if (!isOpen || !currentUser?.id || !userClubs.length) return;
+
+    const channel = supabase
+      .channel('club-messages-updates')
+      .on('postgres_changes', 
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'club_chat_messages',
+          filter: `club_id=in.(${userClubs.map(club => `'${club.id}'`).join(',')})`
+        },
+        (payload) => {
+          if (payload.new.sender_id !== currentUser.id) {
+            addMessage(payload.new.club_id, payload.new);
+          }
+        }
+      )
+      .on('postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'club_chat_messages',
+          filter: `club_id=in.(${userClubs.map(club => `'${club.id}'`).join(',')})`
+        },
+        (payload) => {
+          if (payload.old) {
+            setClubMessages(prev => {
+              const updated = { ...prev };
+              if (updated[payload.old.club_id]) {
+                updated[payload.old.club_id] = updated[payload.old.club_id].filter(
+                  msg => msg.id !== payload.old.id
+                );
+              }
+              return updated;
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      if (updateTimeout.current) {
+        clearTimeout(updateTimeout.current);
+      }
+    };
+  }, [isOpen, currentUser?.id, userClubs, addMessage]);
   
   return {
     clubMessages,
+    addMessage,
     setClubMessages
   };
 };
