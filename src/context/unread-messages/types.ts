@@ -1,9 +1,9 @@
-
 export interface UnreadMessagesContextType {
   totalUnreadCount: number;
   clubUnreadCounts: Record<string, number>;
   directMessageUnreadCounts: Record<string, number>;
   refreshUnreadCounts: () => Promise<void>;
+  fetchUnreadCounts: () => Promise<void>;
   
   // Add the missing properties that are causing the TypeScript errors
   unreadConversations: Set<string>;
