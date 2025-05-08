@@ -4,10 +4,12 @@ import { Loader } from 'lucide-react';
 
 interface LoadingScreenProps {
   message?: string;
+  subMessage?: string;
 }
 
 const LoadingScreen: React.FC<LoadingScreenProps> = ({ 
-  message = "Loading your data..." 
+  message = "Loading your data...",
+  subMessage = "Getting everything ready for you. This should only take a moment."
 }) => {
   return (
     <div className="fixed inset-0 flex flex-col items-center justify-center bg-background z-50">
@@ -17,7 +19,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
         </div>
         <h2 className="text-xl font-medium text-foreground">{message}</h2>
         <p className="text-sm text-muted-foreground text-center max-w-xs">
-          Getting everything ready for you. This should only take a moment.
+          {subMessage}
         </p>
       </div>
     </div>
