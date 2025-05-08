@@ -9,14 +9,14 @@ interface ChatDrawerContainerProps {
   clubs: Club[];
   selectedLocalClub: Club | null;
   onSelectClub: (club: Club) => void;
+  messages?: Record<string, any[]>;
+  deleteChat: (chatId: string) => void;
+  unreadMessages: Record<string, number>;
   unreadClubs?: Set<string>;
   unreadConversations?: Set<string>;
+  handleNewMessage: (clubId: string, message: any, isOpen: boolean) => void;
   onSendMessage: (message: string, clubId?: string) => void;
   onDeleteMessage?: (messageId: string) => void;
-  messages?: Record<string, any[]>; // Added missing messages prop
-  deleteChat?: () => void; // Added missing deleteChat prop
-  unreadMessages?: Record<string, number>; // Added missing unreadMessages prop
-  handleNewMessage?: () => void; // Added missing handleNewMessage prop
   directMessageUser: {
     userId: string;
     userName: string;
@@ -37,13 +37,20 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = memo(({
   clubs,
   selectedLocalClub,
   onSelectClub,
+  messages = {},
+  deleteChat,
+  unreadMessages,
   unreadClubs = new Set<string>(),
   unreadConversations = new Set<string>(),
+  handleNewMessage,
   onSendMessage,
   onDeleteMessage,
   directMessageUser,
   setDirectMessageUser
 }) => {
+  // Cache key for accessibility
+  const activeCacheKey = activeTab === 'clubs' ? 'clubs' : 'dm';
+
   return (
     <div className="flex-1 overflow-hidden">
       {activeTab === 'clubs' ? (
@@ -51,6 +58,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = memo(({
           clubs={clubs}
           selectedClub={selectedLocalClub}
           onSelectClub={onSelectClub}
+          messages={messages}
           unreadClubs={unreadClubs}
           onSendMessage={onSendMessage}
           onDeleteMessage={onDeleteMessage}

@@ -1,12 +1,12 @@
 
-import React, { memo, useRef } from 'react';
+import React, { memo, useMemo, useRef } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageList from './message/MessageList';
 import { useMessageUser } from './message/useMessageUser';
 import { useMessageNormalization } from './message/useMessageNormalization';
+import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
 import { useCurrentMember } from '@/hooks/chat/messages/useCurrentMember';
 import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
-import { Loader2 } from 'lucide-react';
 
 interface ChatMessagesProps {
   messages: ChatMessage[] | any[];
@@ -22,9 +22,6 @@ interface ChatMessagesProps {
   lastMessageRef?: React.RefObject<HTMLDivElement>;
   formatTime?: (isoString: string) => string;
   scrollRef?: React.RefObject<HTMLDivElement>;
-  isLoading?: boolean;
-  hasMore?: boolean;
-  loadMore?: () => void;
 }
 
 // Use memo to prevent unnecessary re-renders with consistent identity reference
@@ -38,12 +35,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   lastMessageRef: providedLastMessageRef,
   formatTime: providedFormatTime,
   scrollRef: providedScrollRef,
-  isLoading = false,
-  hasMore = false,
-  loadMore
 }) => {
   // Create stable references to prevent recreation
-  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const prevMessageLengthRef = useRef<number>(0);
   
   const {
     currentUserId,
@@ -63,11 +57,18 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
     normalizeMessage
   } = useMessageNormalization(currentUserId, senderId => getMemberName(senderId, currentUserId, clubMembers));
 
-  // Use provided values or defaults
+  // Custom scroll hook that uses stable refs
+  const {
+    scrollRef: defaultScrollRef,
+    lastMessageRef: defaultLastMessageRef,
+    scrollToBottom
+  } = useMessageScroll(messages);
+
+  // Use provided values or defaults - store references to prevent recreation
   const finalUserAvatar = providedUserAvatar || defaultUserAvatar;
-  const finalLastMessageRef = providedLastMessageRef;
+  const finalLastMessageRef = providedLastMessageRef || defaultLastMessageRef;
   const finalFormatTime = providedFormatTime || defaultFormatTime;
-  const finalScrollRef = providedScrollRef;
+  const finalScrollRef = providedScrollRef || defaultScrollRef;
   
   // Handle case when messages is not an array
   if (!Array.isArray(messages)) {
@@ -79,30 +80,37 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
       </div>
     );
   }
-
-  // Function to handle intersection observer for infinite scrolling
-  const handleIntersection = (entries: IntersectionObserverEntry[]) => {
-    if (entries[0].isIntersecting && hasMore && !isLoading && loadMore) {
-      loadMore();
-    }
-  };
   
-  // Set up intersection observer when the component mounts
-  React.useEffect(() => {
-    if (!loadMoreRef.current || !hasMore || !loadMore) return;
+  // Add debug logging to see what's being processed
+  console.log('[ChatMessages] Processing messages array:', messages.length);
+  
+  // Only normalize messages once per unique message set
+  // Using useMemo with messages reference as dependency
+  const normalizedMessages = useMemo(() => {
+    console.log('[ChatMessages] Normalizing messages, count:', messages.length);
+    // Debug log a sample message to see what's coming in
+    if (messages.length > 0) {
+      console.log('[ChatMessages] Sample message before normalization:', messages[messages.length - 1]);
+    }
     
-    const observer = new IntersectionObserver(handleIntersection, {
-      root: null,
-      rootMargin: '100px',
-      threshold: 0.1
-    });
+    const normalized = messages.map(message => normalizeMessage(message));
     
-    observer.observe(loadMoreRef.current);
+    // Debug log the normalized result for comparison
+    if (normalized.length > 0) {
+      console.log('[ChatMessages] Sample normalized message:', normalized[normalized.length - 1]);
+    }
     
-    return () => {
-      observer.disconnect();
-    };
-  }, [hasMore, loadMore, loadMoreRef]);
+    return normalized;
+  }, [messages, normalizeMessage]);
+
+  // Track if messages changed and need scroll
+  if (prevMessageLengthRef.current !== messages.length) {
+    // Use requestAnimationFrame to scroll after render
+    if (messages.length > prevMessageLengthRef.current) {
+      requestAnimationFrame(() => scrollToBottom());
+    }
+    prevMessageLengthRef.current = messages.length;
+  }
 
   // Determine if this is a club chat by checking if there are club members
   const isClubChat = clubMembers.length > 0;
@@ -114,22 +122,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
         isClubChat ? 'h-[calc(73vh-8rem)]' : 'h-[calc(73vh-6rem)]'
       }`}
     >
-      {/* Loading indicator at the top for loading more messages */}
-      {hasMore && (
-        <div 
-          ref={loadMoreRef} 
-          className="py-2 flex justify-center items-center"
-        >
-          {isLoading ? (
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          ) : (
-            <div className="h-6 w-6" /> // Empty spacer
-          )}
-        </div>
-      )}
-      
       <MessageList 
-        messages={messages.map(message => normalizeMessage(message))} 
+        messages={normalizedMessages} 
         clubMembers={clubMembers} 
         isSupport={isSupport} 
         onDeleteMessage={onDeleteMessage} 
@@ -139,16 +133,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
         currentUserId={currentUserId} 
         lastMessageRef={finalLastMessageRef} 
       />
-      
-      {/* Empty messages state */}
-      {messages.length === 0 && !isLoading && (
-        <div className="h-full flex items-center justify-center text-gray-500 text-sm py-4">
-          No messages yet. Start the conversation!
-        </div>
-      )}
-      
-      {/* Add proper spacing at the bottom to ensure visibility above the input bar */}
-      <div className="h-4"></div>
     </div>
   );
 });

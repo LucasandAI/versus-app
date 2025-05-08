@@ -21,7 +21,7 @@ interface MessageItemProps {
 const MessageItem: React.FC<MessageItemProps> = ({
   message,
   isUserMessage,
-  isSupport = false,
+  isSupport,
   onDeleteMessage,
   onSelectUser,
   formatTime,
@@ -29,6 +29,13 @@ const MessageItem: React.FC<MessageItemProps> = ({
 }) => {
   const [canDelete, setCanDelete] = useState(false);
   const { navigateToUserProfile } = useNavigation();
+  
+  // Debug log to see complete sender data
+  console.log(`[MessageItem] Rendering message with id ${message.id}, sender:`, {
+    id: message.sender?.id || 'unknown',
+    name: message.sender?.name || 'unknown',
+    avatar: message.sender?.avatar || 'undefined'
+  });
   
   useEffect(() => {
     const checkDeletePermission = async () => {
@@ -113,6 +120,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
             onClick={!isSupport ? handleProfileClick : undefined}
           >
             {senderName}
+            {message.isSupport && <span className="ml-1 text-blue-500">(Support)</span>}
           </button>
         )}
 

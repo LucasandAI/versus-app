@@ -25,15 +25,13 @@ interface DMConversationProps {
   };
   conversationId: string;
   onBack: () => void;
-  onSendMessage: (text: string) => Promise<void>;
 }
 
 // Use memo to prevent unnecessary re-renders
 const DMConversation: React.FC<DMConversationProps> = memo(({ 
   user, 
   conversationId,
-  onBack,
-  onSendMessage
+  onBack
 }) => {
   const { currentUser } = useApp();
   const { navigateToUserProfile } = useNavigation();
