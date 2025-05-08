@@ -114,66 +114,11 @@ export const useAuth = (): AuthState & AuthActions => {
     }
   };
 
-  const resetPassword = async (email: string, token: string, newPassword: string): Promise<boolean> => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      console.log('[useAuth] Attempting to reset password for email:', email);
-      
-      // First sign out any existing session
-      await safeSupabase.auth.signOut();
-      
-      // Verify OTP and set the new password in a single operation
-      const { error } = await safeSupabase.auth.verifyOtp({
-        email,
-        token,
-        type: 'recovery',
-        options: {
-          password: newPassword,
-        }
-      });
-      
-      if (error) {
-        console.error('[useAuth] Password reset error:', error.message);
-        toast({
-          title: "Password reset failed",
-          description: error.message || "Error updating password",
-          variant: "destructive"
-        });
-        setError(error.message);
-        return false;
-      }
-      
-      // Success! Password has been reset
-      toast({
-        title: "Password updated",
-        description: "Your password has been successfully updated. You can now log in with your new password."
-      });
-      
-      console.log('[useAuth] Password reset successful');
-      return true;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to reset password";
-      setError(message);
-      toast({
-        title: "Password reset failed",
-        description: message,
-        variant: "destructive"
-      });
-      console.error('[useAuth] Password reset error:', message);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return {
     user,
     isLoading,
     error,
     signIn,
-    signOut,
-    resetPassword
+    signOut
   };
 };

@@ -10,5 +10,4 @@ export interface AuthState {
 export interface AuthActions {
   signIn: (email: string, password: string) => Promise<User | null>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string, token: string, newPassword: string) => Promise<boolean>;
 }

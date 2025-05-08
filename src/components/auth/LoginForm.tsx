@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -65,7 +66,7 @@ type VerifyOtpFormValues = z.infer<typeof verifyOtpSchema>;
 type NewPasswordFormValues = z.infer<typeof newPasswordSchema>;
 
 const LoginForm: React.FC = () => {
-  const { signIn, signOut, resetPassword, isLoading: authLoading } = useApp();
+  const { signIn, needsProfileCompletion, setNeedsProfileCompletion } = useApp();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode>('login');
@@ -73,9 +74,6 @@ const LoginForm: React.FC = () => {
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [resetPasswordStep, setResetPasswordStep] = useState<'email' | 'verify' | 'newPassword'>('email');
   const [resetEmail, setResetEmail] = useState('');
-  const [resetToken, setResetToken] = useState<string | null>(null);
-  // Add a formKey state to force re-render of form components
-  const [formKey, setFormKey] = useState(Date.now());
   
   // Profile form state
   const [avatar, setAvatar] = useState<string>('');
@@ -122,19 +120,6 @@ const LoginForm: React.FC = () => {
     }
   }, [needsProfileCompletion]);
 
-  // Reset form fields when password reset dialog or step changes
-  useEffect(() => {
-    if (isResetDialogOpen) {
-      // Reset all forms when dialog opens
-      resetPasswordForm.reset();
-      verifyOtpForm.reset();
-      newPasswordForm.reset({ password: '', confirmPassword: '' });
-      
-      // Update the form key to force re-render of form components
-      setFormKey(Date.now());
-    }
-  }, [isResetDialogOpen, resetPasswordStep]);
-
   // Reset password form
   const resetPasswordForm = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordSchema),
@@ -158,8 +143,6 @@ const LoginForm: React.FC = () => {
       password: '',
       confirmPassword: '',
     },
-    // Setting mode to onChange to validate as user types
-    mode: 'onChange',
   });
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -243,8 +226,7 @@ const LoginForm: React.FC = () => {
     setResetPasswordStep('email');
     resetPasswordForm.reset();
     verifyOtpForm.reset();
-    newPasswordForm.reset({ password: '', confirmPassword: '' });
-    setFormKey(Date.now());
+    newPasswordForm.reset();
   };
 
   const handleResetPassword = async (values: ResetPasswordFormValues) => {
@@ -283,22 +265,17 @@ const LoginForm: React.FC = () => {
     setError(null);
     
     try {
-      // Store the token for use in handleSetNewPassword
-      setResetToken(values.otp);
+      const { error } = await supabase.auth.verifyOtp({
+        email: resetEmail,
+        token: values.otp,
+        type: 'recovery'
+      });
       
-      // We'll just validate the format here, the actual verification
-      // will happen together with password update
-      if (values.otp.length !== 6 || !/^\d+$/.test(values.otp)) {
-        throw new Error("Verification code must be 6 digits");
-      }
+      if (error) throw error;
       
-      // Move to the new password step
       setResetPasswordStep('newPassword');
-      newPasswordForm.reset({ password: '', confirmPassword: '' });
-      setFormKey(Date.now()); // Force re-render form components
-      
       toast({
-        title: "Enter new password",
+        title: "Code verified",
         description: "Please set your new password"
       });
     } catch (error) {
@@ -314,20 +291,23 @@ const LoginForm: React.FC = () => {
   };
 
   const handleSetNewPassword = async (values: NewPasswordFormValues) => {
-    if (isLoading || !resetToken) return;
+    if (isLoading) return;
     
     setIsLoading(true);
     setError(null);
     
     try {
-      // Use the centralized auth hook for password reset
-      const success = await resetPassword(resetEmail, resetToken, values.password);
+      const { error } = await supabase.auth.updateUser({
+        password: values.password
+      });
       
-      if (success) {
-        // Close the reset dialog on success
-        setIsResetDialogOpen(false);
-        setResetToken(null);
-      }
+      if (error) throw error;
+      
+      setIsResetDialogOpen(false);
+      toast({
+        title: "Password updated",
+        description: "Your password has been successfully updated. You can now log in with your new password."
+      });
     } catch (error) {
       console.error('[LoginForm] Password update error:', error);
       toast({
@@ -848,7 +828,7 @@ const LoginForm: React.FC = () => {
         
       case 'newPassword':
         return (
-          <Form {...newPasswordForm} key={formKey}>
+          <Form {...newPasswordForm}>
             <form onSubmit={newPasswordForm.handleSubmit(handleSetNewPassword)} className="space-y-4">
               <FormField
                 control={newPasswordForm.control}
@@ -883,7 +863,6 @@ const LoginForm: React.FC = () => {
                         autoComplete="new-password"
                         disabled={isLoading}
                         {...field}
-                        value={field.value || ''}
                       />
                     </FormControl>
                     <FormMessage />
