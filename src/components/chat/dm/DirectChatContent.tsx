@@ -29,7 +29,7 @@ const DirectChatContent = ({
   const [isSending, setIsSending] = useState(false);
   const { deleteMessage } = useChatActions();
 
-  // Use our new hook to get messages with pagination
+  // Use our hook to get messages with pagination
   const { messages, hasMore, isLoadingMore, loadMoreMessages } = useDirectMessages(
     conversationId,
     globalMessages

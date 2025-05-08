@@ -7,6 +7,8 @@ export const useMessageScroll = (messages: any[]) => {
   const isUserScrolling = useRef<boolean>(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const scrollLockRef = useRef<boolean>(false);
+  const isInitialLoad = useRef<boolean>(true);
+  const lastMessageId = useRef<string | null>(null);
   
   // Optimize scrolling by using a callback with requestAnimationFrame
   const scrollToBottom = useCallback((smooth = true) => {
@@ -73,16 +75,19 @@ export const useMessageScroll = (messages: any[]) => {
     };
   }, []);
 
-  // Only scroll to bottom on initial load or new messages if user isn't scrolling up
+  // Only scroll to bottom on new messages if user isn't scrolling up
   useEffect(() => {
     if (!messages.length) return;
     
+    // Get the latest message ID
+    const latestMessage = messages[messages.length - 1];
+    const currentMessageId = latestMessage?.id;
+    
     // Only auto-scroll if:
-    // 1. This is the first load (previousMessageCount.current === 0)
-    // 2. New messages were added AND user is already at bottom
-    const shouldScroll = 
-      previousMessageCount.current === 0 || 
-      (messages.length > previousMessageCount.current && !isUserScrolling.current);
+    // 1. This is a new message (different ID from last message)
+    // 2. User is already at bottom
+    const isNewMessage = currentMessageId !== lastMessageId.current;
+    const shouldScroll = isNewMessage && !isUserScrolling.current;
     
     if (shouldScroll && !scrollLockRef.current) {
       // Use requestAnimationFrame for smoother scrolling
@@ -91,8 +96,15 @@ export const useMessageScroll = (messages: any[]) => {
       });
     }
     
+    // Update message count and last message ID
     previousMessageCount.current = messages.length;
-  }, [messages.length, scrollToBottom]);
+    lastMessageId.current = currentMessageId;
+    
+    // Reset initial load flag after first render
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false;
+    }
+  }, [messages, scrollToBottom]);
 
   return {
     scrollRef,

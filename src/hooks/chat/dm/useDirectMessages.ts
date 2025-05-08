@@ -15,14 +15,15 @@ export const useDirectMessages = (
   // Keep local state in sync with global messages
   useEffect(() => {
     if (globalMessages[conversationId]) {
+      // Sort messages by timestamp in descending order (newest first)
       const sortedMessages = [...globalMessages[conversationId]].sort((a, b) => 
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
       setMessages(sortedMessages);
       
       // Update oldest message timestamp
       if (sortedMessages.length > 0) {
-        setOldestMessageTimestamp(sortedMessages[0].timestamp);
+        setOldestMessageTimestamp(sortedMessages[sortedMessages.length - 1].timestamp);
       }
     }
   }, [conversationId, globalMessages]);
@@ -32,6 +33,7 @@ export const useDirectMessages = (
     if (!globalMessages[conversationId]?.length) {
       const fetchMessages = async () => {
         try {
+          // Get the most recent messages first
           const { data } = await supabase
             .from('direct_messages')
             .select(`
@@ -48,7 +50,7 @@ export const useDirectMessages = (
               )
             `)
             .eq('conversation_id', conversationId)
-            .order('timestamp', { ascending: true })
+            .order('timestamp', { ascending: false })
             .limit(MESSAGES_PER_PAGE);
 
           if (data) {
@@ -56,7 +58,7 @@ export const useDirectMessages = (
             
             // Update oldest message timestamp
             if (data.length > 0) {
-              setOldestMessageTimestamp(data[0].timestamp);
+              setOldestMessageTimestamp(data[data.length - 1].timestamp);
             }
             
             // Check if there are more messages
@@ -94,15 +96,15 @@ export const useDirectMessages = (
         `)
         .eq('conversation_id', conversationId)
         .lt('timestamp', oldestMessageTimestamp)
-        .order('timestamp', { ascending: true })
+        .order('timestamp', { ascending: false })
         .limit(MESSAGES_PER_PAGE);
 
       if (data) {
-        setMessages(prev => [...data, ...prev]);
+        setMessages(prev => [...prev, ...data]);
         
         // Update oldest message timestamp
         if (data.length > 0) {
-          setOldestMessageTimestamp(data[0].timestamp);
+          setOldestMessageTimestamp(data[data.length - 1].timestamp);
         }
         
         // Check if there are more messages
