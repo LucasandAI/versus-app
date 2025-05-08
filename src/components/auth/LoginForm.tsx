@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -136,13 +135,14 @@ const LoginForm: React.FC = () => {
     },
   });
 
-  // New password form
+  // New password form - adding mode: "onChange" for better validation experience
   const newPasswordForm = useForm<NewPasswordFormValues>({
     resolver: zodResolver(newPasswordSchema),
     defaultValues: {
       password: '',
       confirmPassword: '',
     },
+    mode: "onChange", // This enables validation as the user types
   });
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -451,6 +451,16 @@ const LoginForm: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  // Reset form states when dialog opens/closes or steps change
+  useEffect(() => {
+    if (isResetDialogOpen) {
+      // Reset all forms when dialog opens
+      resetPasswordForm.reset();
+      verifyOtpForm.reset();
+      newPasswordForm.reset();
+    }
+  }, [isResetDialogOpen, resetPasswordStep]); // Added resetPasswordStep dependency to reset forms on step changes
 
   // Render the appropriate form based on the current auth mode
   const renderForm = () => {
@@ -862,7 +872,15 @@ const LoginForm: React.FC = () => {
                         type="password"
                         autoComplete="new-password"
                         disabled={isLoading}
-                        {...field}
+                        value={field.value || ''}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          newPasswordForm.trigger("confirmPassword"); // Trigger validation on change
+                        }}
+                        onBlur={() => {
+                          field.onBlur();
+                          newPasswordForm.trigger("confirmPassword"); // Trigger validation on blur
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -881,7 +899,9 @@ const LoginForm: React.FC = () => {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || 
+                    !newPasswordForm.formState.isValid || 
+                    newPasswordForm.watch('password') !== newPasswordForm.watch('confirmPassword')}
                 >
                   {isLoading ? 'Updating...' : 'Update Password'}
                 </Button>
