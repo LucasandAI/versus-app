@@ -1,5 +1,8 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { ChatMessage } from '@/types/chat';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Hook for managing active club messages that syncs with global message state
@@ -11,27 +14,110 @@ export const useActiveClubMessages = (
   // Use the global messages as the source of truth
   const [messages, setMessages] = useState<any[]>(globalMessages[clubId] || []);
   
+  // Queue for processing incoming messages to prevent UI flickering
+  const messageQueueRef = useRef<any[]>([]);
+  const processingQueueRef = useRef(false);
+  const processedMessagesRef = useRef(new Set<string>());
+  const initialLoadDoneRef = useRef(false);
+  
+  // Process message queue with debouncing using requestAnimationFrame
+  const processMessageQueue = useCallback(() => {
+    if (processingQueueRef.current || messageQueueRef.current.length === 0) return;
+    
+    processingQueueRef.current = true;
+    
+    // Process in the next animation frame to ensure smooth UI updates
+    requestAnimationFrame(() => {
+      const batchToProcess = [...messageQueueRef.current];
+      messageQueueRef.current = [];
+      
+      setMessages(prev => {
+        const updatedMessages = [...prev];
+        let hasChanges = false;
+        
+        batchToProcess.forEach(newMsg => {
+          // Skip if we've already processed this message ID
+          if (processedMessagesRef.current.has(newMsg.id)) return;
+          
+          // Check if message already exists in the array
+          const existingIndex = updatedMessages.findIndex(msg => msg.id === newMsg.id);
+          
+          if (existingIndex >= 0) {
+            // If it's an optimistic message being confirmed, update it
+            if (updatedMessages[existingIndex].optimistic && !newMsg.optimistic) {
+              updatedMessages[existingIndex] = newMsg;
+              hasChanges = true;
+            }
+          } else {
+            // Add new message
+            updatedMessages.push(newMsg);
+            processedMessagesRef.current.add(newMsg.id);
+            hasChanges = true;
+          }
+        });
+        
+        if (hasChanges) {
+          // Sort by timestamp for correct order
+          return updatedMessages.sort(
+            (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+        }
+        
+        return prev;
+      });
+      
+      processingQueueRef.current = false;
+      
+      // Process any new messages that arrived during this batch
+      if (messageQueueRef.current.length > 0) {
+        processMessageQueue();
+      }
+    });
+  }, []);
+
+  // Add a message to the queue for processing
+  const addMessageToQueue = useCallback((message: any) => {
+    messageQueueRef.current.push(message);
+    processMessageQueue();
+  }, [processMessageQueue]);
+  
+  // Create an optimistic message
+  const createOptimisticMessage = useCallback((text: string, userId: string, userName: string, userAvatar?: string) => {
+    const optimisticId = `temp-${uuidv4()}`;
+    const timestamp = new Date().toISOString();
+    
+    return {
+      id: optimisticId,
+      message: text,
+      timestamp,
+      club_id: clubId,
+      sender_id: userId,
+      sender: {
+        id: userId,
+        name: userName,
+        avatar: userAvatar
+      },
+      optimistic: true
+    };
+  }, [clubId]);
+  
   // Keep local state in sync with global messages
   useEffect(() => {
     if (globalMessages[clubId]) {
-      setMessages(globalMessages[clubId]);
+      // Only replace our local state if this is the first load
+      // or if our local state is empty (to prevent flickering)
+      if (!initialLoadDoneRef.current || messages.length === 0) {
+        setMessages(globalMessages[clubId]);
+        initialLoadDoneRef.current = true;
+      }
     }
-  }, [clubId, globalMessages]);
+  }, [clubId, globalMessages, messages.length]);
 
   // Listen for club message events
   useEffect(() => {
     const handleClubMessageReceived = (e: CustomEvent) => {
       if (e.detail.clubId === clubId && e.detail.message) {
-        setMessages(prev => {
-          // Check if message already exists
-          const exists = prev.some(msg => msg.id === e.detail.message.id);
-          if (exists) return prev;
-
-          // Add the new message and sort by timestamp
-          return [...prev, e.detail.message].sort(
-            (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-          );
-        });
+        addMessageToQueue(e.detail.message);
       }
     };
 
@@ -50,12 +136,12 @@ export const useActiveClubMessages = (
       window.removeEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
       window.removeEventListener('clubMessageDeleted', handleClubMessageDeleted as EventListener);
     };
-  }, [clubId]);
+  }, [clubId, addMessageToQueue]);
 
   // Load initial messages for the club if not in global state
   useEffect(() => {
     // Only fetch if we don't have messages for this club yet
-    if (!globalMessages[clubId]?.length) {
+    if (!globalMessages[clubId]?.length && !initialLoadDoneRef.current) {
       const fetchMessages = async () => {
         try {
           const { data } = await supabase
@@ -77,7 +163,11 @@ export const useActiveClubMessages = (
             .limit(50);
 
           if (data) {
+            // Add fetched messages to our processed set to avoid duplicates
+            data.forEach(msg => processedMessagesRef.current.add(msg.id));
+            
             setMessages(data);
+            initialLoadDoneRef.current = true;
           }
         } catch (error) {
           console.error('[useActiveClubMessages] Error fetching club messages:', error);
@@ -88,5 +178,9 @@ export const useActiveClubMessages = (
     }
   }, [clubId, globalMessages]);
 
-  return { messages };
+  return { 
+    messages,
+    addMessageToQueue,
+    createOptimisticMessage
+  };
 };

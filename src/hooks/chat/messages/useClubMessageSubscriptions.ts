@@ -19,8 +19,10 @@ export const useClubMessageSubscriptions = (
   const { markClubMessagesAsRead } = useUnreadMessages();
   
   const selectedClubRef = useRef<string | null>(null);
+  const initializedRef = useRef(false);
   
-  useEffect(() => {
+  // Reset subscriptions when the list of user clubs changes
+  const setupSubscriptions = useCallback(() => {
     // Skip if not authenticated, session not ready, drawer not open, or no clubs
     if (!isSessionReady || !currentUser?.id || !isOpen || !userClubs.length) {
       // Clean up all channels
@@ -30,6 +32,13 @@ export const useClubMessageSubscriptions = (
         channelsRef.current = [];
         activeSubscriptionsRef.current = {};
       }
+      initializedRef.current = false;
+      return;
+    }
+    
+    // Skip if already initialized with the same number of clubs
+    if (initializedRef.current && 
+        Object.keys(activeSubscriptionsRef.current).length === userClubs.length) {
       return;
     }
     
@@ -63,20 +72,6 @@ export const useClubMessageSubscriptions = (
       
     channelsRef.current.push(deletionChannel);
     
-    // Add a global debug subscription to confirm INSERT events
-    const debugGlobalChannel = supabase
-      .channel('debug_all_club_messages')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'club_chat_messages'
-      }, (payload) => {
-        console.log('[GLOBAL DEBUG] New message inserted:', payload);
-      })
-      .subscribe();
-    
-    channelsRef.current.push(debugGlobalChannel);
-    
     // Create a single channel for all club messages
     const clubMessagesChannel = supabase.channel('all_club_messages');
     
@@ -86,8 +81,14 @@ export const useClubMessageSubscriptions = (
         event: 'INSERT',
         schema: 'public',
         table: 'club_chat_messages'
-      }, (payload) => {
-        handleNewMessagePayload(
+      }, async (payload) => {
+        // Check if this message belongs to one of the user's clubs
+        const clubId = payload.new?.club_id;
+        if (!clubId || !userClubs.some(club => club.id === clubId)) {
+          return;
+        }
+
+        await handleNewMessagePayload(
           payload, 
           userClubs, 
           setClubMessages, 
@@ -106,13 +107,21 @@ export const useClubMessageSubscriptions = (
       activeSubscriptionsRef.current[club.id] = true;
     });
     
+    initializedRef.current = true;
+  }, [userClubs, isOpen, setClubMessages, currentUser, isSessionReady, activeSubscriptionsRef]);
+  
+  // Set up subscriptions when dependencies change
+  useEffect(() => {
+    setupSubscriptions();
+    
     return () => {
       console.log('[useClubMessageSubscriptions] Cleaning up channels due to effect cleanup');
       cleanupChannels(channelsRef.current);
       channelsRef.current = [];
       activeSubscriptionsRef.current = {};
+      initializedRef.current = false;
     };
-  }, [userClubs, isOpen, setClubMessages, currentUser?.id, isSessionReady]);
+  }, [userClubs, isOpen, setClubMessages, currentUser?.id, isSessionReady, setupSubscriptions]);
 
   // Listen for club selection changes to track the currently viewed club
   useEffect(() => {

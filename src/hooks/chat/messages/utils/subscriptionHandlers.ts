@@ -46,11 +46,19 @@ export const handleNewMessagePayload = async (
   
   // Get the club ID from the message
   const messageClubId = typedPayload.new.club_id;
+  const messageId = typedPayload.new.id;
   
   // Check if this message belongs to one of the user's clubs
   const isRelevantClub = userClubs.some(club => club.id === messageClubId);
   if (!isRelevantClub) {
     console.log(`[subscriptionHandlers] Message for club ${messageClubId} not relevant to user`);
+    return;
+  }
+  
+  // Skip if this is our own optimistic message
+  if (typedPayload.new.sender_id === currentUser?.id && 
+      String(messageId).startsWith('temp-')) {
+    console.log(`[subscriptionHandlers] Skipping our own optimistic message: ${messageId}`);
     return;
   }
   
@@ -64,14 +72,36 @@ export const handleNewMessagePayload = async (
     setClubMessages(prev => {
       const clubMsgs = prev[clubId] || [];
       
-      // Check if message already exists to prevent duplicates
-      const messageExists = clubMsgs.some(msg => msg.id === messageWithSender.id);
-      if (messageExists) return prev;
-      
-      // Sort messages by timestamp
-      const updatedMessages = [...clubMsgs, messageWithSender].sort(
-        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      // Check if message already exists or is an update to an optimistic message
+      const existingOptimisticIndex = clubMsgs.findIndex(
+        msg => msg.sender_id === messageWithSender.sender_id && 
+               msg.optimistic && 
+               msg.message === messageWithSender.message
       );
+      
+      // The message ID already exists (prevent duplicates)
+      const messageExists = clubMsgs.some(msg => msg.id === messageWithSender.id);
+      
+      if (messageExists) {
+        console.log(`[subscriptionHandlers] Skipping duplicate message: ${messageWithSender.id}`);
+        return prev;
+      }
+      
+      let updatedMessages;
+      
+      if (existingOptimisticIndex >= 0) {
+        // Replace the optimistic message with the real one
+        console.log(`[subscriptionHandlers] Replacing optimistic message with real one: ${messageWithSender.id}`);
+        const newMessages = [...clubMsgs];
+        newMessages[existingOptimisticIndex] = messageWithSender;
+        updatedMessages = newMessages;
+      } else {
+        // Add as a new message and sort
+        console.log(`[subscriptionHandlers] Adding new message: ${messageWithSender.id}`);
+        updatedMessages = [...clubMsgs, messageWithSender].sort(
+          (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+      }
       
       // Create and dispatch a global event with the new message details
       window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
@@ -88,7 +118,7 @@ export const handleNewMessagePayload = async (
     // we need to update the unread count for this club
     if (typedPayload.new.sender_id !== currentUser?.id && 
         (!selectedClubRef || selectedClubRef !== messageClubId)) {
-      window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
+      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
         detail: { clubId: messageClubId } 
       }));
     }

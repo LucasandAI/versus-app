@@ -20,6 +20,7 @@ export interface DirectMessage {
   receiver_id: string;
   text: string;
   timestamp: string;
+  optimistic?: boolean;
 }
 
 export interface ChatState {
