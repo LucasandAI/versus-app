@@ -7,17 +7,36 @@ import { useClubMessageSubscriptions } from '@/hooks/chat/messages/useClubMessag
 
 export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
   const [clubMessages, setClubMessages] = useState<Record<string, any[]>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { currentUser } = useApp();
   const activeSubscriptionsRef = useRef<Record<string, boolean>>({});
+  const hasLoadedRef = useRef<Record<string, boolean>>({});
   
   // Fetch initial messages when drawer opens
   useEffect(() => {
-    if (!isOpen || !currentUser?.id || !userClubs.length) return;
+    if (!isOpen || !currentUser?.id || !userClubs.length) {
+      setIsLoading(false);
+      return;
+    }
     
     const fetchInitialMessages = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
+        
         // Get last 50 messages for each club
         const clubIds = userClubs.map(club => club.id);
+        const unfetchedClubIds = clubIds.filter(id => !hasLoadedRef.current[id]);
+        
+        // Skip fetch if we've already loaded messages for all clubs
+        if (unfetchedClubIds.length === 0) {
+          console.log('[useClubMessages] All club messages already loaded');
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log('[useClubMessages] Fetching messages for clubs:', unfetchedClubIds);
         
         const { data, error } = await supabase
           .from('club_chat_messages')
@@ -33,14 +52,14 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
               avatar
             )
           `)
-          .in('club_id', clubIds)
+          .in('club_id', unfetchedClubIds)
           .order('timestamp', { ascending: false })
           .limit(50);
           
         if (error) throw error;
         
         if (data) {
-          const messagesMap: Record<string, any[]> = {};
+          const messagesMap: Record<string, any[]> = { ...clubMessages };
           
           // Group messages by club_id
           data.forEach(message => {
@@ -57,10 +76,18 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
             );
           });
           
+          // Mark fetched clubs as loaded
+          unfetchedClubIds.forEach(clubId => {
+            hasLoadedRef.current[clubId] = true;
+          });
+          
           setClubMessages(messagesMap);
         }
       } catch (error) {
         console.error('[useClubMessages] Error fetching initial messages:', error);
+        setError('Failed to load club messages');
+      } finally {
+        setIsLoading(false);
       }
     };
     
@@ -70,8 +97,17 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
   // Set up real-time subscription for messages
   useClubMessageSubscriptions(userClubs, isOpen, activeSubscriptionsRef, setClubMessages);
   
+  // Reset loaded state when drawer closes
+  useEffect(() => {
+    if (!isOpen) {
+      hasLoadedRef.current = {};
+    }
+  }, [isOpen]);
+  
   return {
     clubMessages,
-    setClubMessages
+    setClubMessages,
+    isLoading,
+    error
   };
 };

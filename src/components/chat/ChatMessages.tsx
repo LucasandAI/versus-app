@@ -7,6 +7,7 @@ import { useMessageNormalization } from './message/useMessageNormalization';
 import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
 import { useCurrentMember } from '@/hooks/chat/messages/useCurrentMember';
 import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
+import { Spinner } from '@/components/ui/spinner';
 
 interface ChatMessagesProps {
   messages: ChatMessage[] | any[];
@@ -22,6 +23,7 @@ interface ChatMessagesProps {
   lastMessageRef?: React.RefObject<HTMLDivElement>;
   formatTime?: (isoString: string) => string;
   scrollRef?: React.RefObject<HTMLDivElement>;
+  isLoading?: boolean;
 }
 
 // Use memo to prevent unnecessary re-renders with consistent identity reference
@@ -35,6 +37,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   lastMessageRef: providedLastMessageRef,
   formatTime: providedFormatTime,
   scrollRef: providedScrollRef,
+  isLoading = false
 }) => {
   // Create stable references to prevent recreation
   const prevMessageLengthRef = useRef<number>(0);
@@ -122,17 +125,23 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
         isClubChat ? 'h-[calc(73vh-8rem)]' : 'h-[calc(73vh-6rem)]'
       }`}
     >
-      <MessageList 
-        messages={normalizedMessages} 
-        clubMembers={clubMembers} 
-        isSupport={isSupport} 
-        onDeleteMessage={onDeleteMessage} 
-        onSelectUser={onSelectUser} 
-        formatTime={finalFormatTime} 
-        currentUserAvatar={finalUserAvatar} 
-        currentUserId={currentUserId} 
-        lastMessageRef={finalLastMessageRef} 
-      />
+      {isLoading && messages.length === 0 ? (
+        <div className="h-full flex items-center justify-center">
+          <Spinner />
+        </div>
+      ) : (
+        <MessageList 
+          messages={normalizedMessages} 
+          clubMembers={clubMembers} 
+          isSupport={isSupport} 
+          onDeleteMessage={onDeleteMessage} 
+          onSelectUser={onSelectUser} 
+          formatTime={finalFormatTime} 
+          currentUserAvatar={finalUserAvatar} 
+          currentUserId={currentUserId} 
+          lastMessageRef={finalLastMessageRef} 
+        />
+      )}
     </div>
   );
 });

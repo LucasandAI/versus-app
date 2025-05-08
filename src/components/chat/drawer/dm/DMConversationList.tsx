@@ -1,12 +1,12 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import ConversationItem from './ConversationItem';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useApp } from '@/context/AppContext';
 import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
 import SearchBar from './SearchBar';
-import { Search, UserPlus } from 'lucide-react';
+import { ChevronRight, MessageSquarePlus } from 'lucide-react';
 
 interface Props {
   onSelectUser: (userId: string, userName: string, userAvatar: string, conversationId: string) => void;
@@ -20,12 +20,23 @@ const DMConversationList: React.FC<Props> = ({
   unreadConversations: propUnreadConversations
 }) => {
   const { currentUser } = useApp();
-  const { conversations, loading } = useDirectConversationsContext();
+  const { conversations, loading, fetchConversations } = useDirectConversationsContext();
   const { unreadConversations: contextUnreadConversations } = useUnreadMessages();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isInitialized, setIsInitialized] = useState(false);
   
   // Use prop unreadConversations if provided, otherwise use context
   const unreadConversations = propUnreadConversations || contextUnreadConversations || new Set();
+  
+  // Ensure conversations are loaded when component mounts
+  useEffect(() => {
+    if (!isInitialized && currentUser?.id) {
+      console.log('[DMConversationList] Initializing and fetching conversations');
+      fetchConversations().then(() => {
+        setIsInitialized(true);
+      });
+    }
+  }, [currentUser?.id, fetchConversations, isInitialized]);
   
   // Filter out conversations with the current user
   const filteredConversations = useMemo(() => 
@@ -52,7 +63,7 @@ const DMConversationList: React.FC<Props> = ({
       </div>
       
       <div className="flex-1 overflow-auto">
-        {loading ? (
+        {loading && !isInitialized ? (
           <div className="p-4 space-y-3">
             {[1, 2, 3].map((i) => (
               <div key={i} className="flex items-center space-x-3 p-2">

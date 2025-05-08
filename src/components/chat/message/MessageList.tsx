@@ -48,7 +48,7 @@ const MessageList: React.FC<MessageListProps> = memo(({
                            message.sender && 
                            String(message.sender.id) === String(currentUserId);
       const isLastMessage = index === messages.length - 1;
-      const stableKey = messageKeys[index];
+      const stableKey = messageKeys[index] || `msg-${index}-${message.id || 'unknown'}`;
       
       return (
         <div 
@@ -108,6 +108,16 @@ const MessageList: React.FC<MessageListProps> = memo(({
     if (prevLastMsg.id !== nextLastMsg.id) {
       return false; // Re-render if last message changed
     }
+    
+    // Also check for delete operations
+    if (prevProps.messages.length !== nextProps.messages.length) {
+      return false;
+    }
+  }
+  
+  // Check if onDeleteMessage prop changed
+  if (prevProps.onDeleteMessage !== nextProps.onDeleteMessage) {
+    return false;
   }
   
   return true; // Don't re-render otherwise

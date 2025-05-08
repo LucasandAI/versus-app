@@ -69,7 +69,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
           // Get club ID as string to ensure consistent comparison
           const clubId = String(club.id);
           const isUnread = unreadClubs?.has(clubId);
-          const stableKey = clubKeys[clubId];
+          const stableKey = clubKeys[clubId] || `club-${clubId}`;
           
           const lastMessage = lastMessages[club.id];
           const formattedTime = lastMessage?.timestamp 

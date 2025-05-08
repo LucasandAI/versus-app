@@ -16,20 +16,24 @@ export const useActiveDMMessages = (
   userData?: UserData
 ) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isFetched, setIsFetched] = useState(false);
 
   // Fetch initial messages
   useEffect(() => {
+    // Reset state when conversation changes
+    setIsLoading(true);
+    setError(null);
+    setIsFetched(false);
+    
     const fetchMessages = async () => {
       // Don't fetch for new conversations
       if (conversationId === 'new' || !conversationId || !userId || !currentUserId) {
         setMessages([]);
+        setIsLoading(false);
         return;
       }
-
-      setIsLoading(true);
-      setError(null);
 
       try {
         console.log(`[useActiveDMMessages] Fetching messages for conversation: ${conversationId}`);
@@ -64,6 +68,7 @@ export const useActiveDMMessages = (
         setError(err.message || 'Failed to load messages');
       } finally {
         setIsLoading(false);
+        setIsFetched(true);
       }
     };
 
@@ -80,6 +85,7 @@ export const useActiveDMMessages = (
     setMessages, 
     addOptimisticMessage,
     isLoading,
-    error
+    error,
+    isFetched
   };
 };

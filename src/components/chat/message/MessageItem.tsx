@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -43,7 +44,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
       }
     };
     
-    if (onDeleteMessage) {  // Only check if delete functionality is provided
+    // Only check if delete functionality is provided
+    if (onDeleteMessage) {
       checkDeletePermission();
     }
   }, [message.sender?.id, onDeleteMessage]);
@@ -70,7 +72,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
     return message.timestamp;
   };
 
-  // IMPORTANT: Always use the data provided in the message object
+  // Always use the data provided in the message object
   // Never fall back to defaults for name - this ensures consistent display
   const senderName = message.sender?.name || 'Unknown';
   
@@ -128,6 +130,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
       {/* Delete button for user's own messages */}
       {isUserMessage && renderDeleteButton()}
+
+      {/* Delete button for non-user messages (when authorized) */}
+      {!isUserMessage && canDelete && renderDeleteButton()}
     </div>
   );
 };
