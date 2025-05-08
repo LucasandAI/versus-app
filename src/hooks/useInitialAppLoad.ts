@@ -97,7 +97,7 @@ export const useInitialAppLoad = () => {
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [currentUser, isAppReady, setIsAppReady]);
+  }, [currentUser, setIsAppReady]);
 
   return isAppReady;
 };
