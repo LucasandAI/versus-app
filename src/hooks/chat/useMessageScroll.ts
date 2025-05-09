@@ -8,7 +8,6 @@ export const useMessageScroll = (messages: any[]) => {
   const isUserScrolling = useRef<boolean>(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const scrollLockRef = useRef<boolean>(false);
-  const initialLoadRef = useRef<boolean>(true);
   
   // Optimize scrolling by using a callback with requestAnimationFrame
   const scrollToBottom = useCallback((smooth = true) => {
@@ -26,6 +25,12 @@ export const useMessageScroll = (messages: any[]) => {
       if (scrollRef.current) {
         const { scrollHeight, clientHeight } = scrollRef.current;
         scrollRef.current.scrollTop = scrollHeight - clientHeight;
+        
+        // Important: Use behavior: 'auto' to prevent visual jarring
+        // scrollRef.current.scrollTo({
+        //   top: scrollHeight - clientHeight,
+        //   behavior: smooth ? 'smooth' : 'auto'
+        // });
       }
       
       // Release scroll lock after animation completes
@@ -37,7 +42,7 @@ export const useMessageScroll = (messages: any[]) => {
     scrollTimeoutRef.current = null;
   }, []);
 
-  // Track user scrolling with debounced handler
+  // Track user scrolling with debounced handler - use passive event listener
   useEffect(() => {
     let scrollTimer: NodeJS.Timeout | null = null;
     
@@ -47,7 +52,7 @@ export const useMessageScroll = (messages: any[]) => {
       if (!scrollRef.current) return;
       
       const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-      // Consider at bottom if within 50px of bottom
+      // Only consider at bottom if within 50px of bottom
       const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
       
       isUserScrolling.current = !isAtBottom;
@@ -71,54 +76,30 @@ export const useMessageScroll = (messages: any[]) => {
     };
   }, []);
 
-  // Always scroll to bottom on initial load and when new messages arrive
+  // Only scroll to bottom on initial load or new messages if user isn't scrolling up
   useEffect(() => {
     if (!messages.length) return;
     
-    // Always scroll down on first load or when messages appear for the first time
-    const isFirstLoad = previousMessageCount.current === 0 && messages.length > 0;
-    
-    // Always force scroll to bottom on first render
-    if (initialLoadRef.current && messages.length > 0) {
-      initialLoadRef.current = false;
-      setTimeout(() => {
-        scrollToBottom(true);
-      }, 150); // Give a bit more time for rendering
-      return;
-    }
-    
-    // Only auto-scroll if new messages were added at the end AND user is already at bottom
+    // Only auto-scroll if:
+    // 1. This is the first load (previousMessageCount.current === 0)
+    // 2. New messages were added AND user is already at bottom
     const shouldScroll = 
-      isFirstLoad || 
+      previousMessageCount.current === 0 || 
       (messages.length > previousMessageCount.current && !isUserScrolling.current);
     
-    if (shouldScroll) {
-      // Wait longer for first render to ensure all content is loaded
-      const delay = isFirstLoad ? 150 : 50;
-      setTimeout(() => {
-        scrollToBottom(true);
-      }, delay);
+    if (shouldScroll && !scrollLockRef.current) {
+      // Use requestAnimationFrame for smoother scrolling
+      requestAnimationFrame(() => {
+        scrollToBottom(false); // Use false for auto behavior on message update
+      });
     }
     
-    // Update the message count for next comparison
     previousMessageCount.current = messages.length;
-  }, [messages, scrollToBottom]);
-
-  // Immediate scroll to bottom when explicitly called (like after sending a message)
-  const forceScrollToBottom = useCallback(() => {
-    // Reset scroll position to force immediate scroll
-    isUserScrolling.current = false;
-    
-    // Use slightly longer timeout to ensure message is rendered
-    setTimeout(() => {
-      scrollToBottom(true);
-    }, 150);
-  }, [scrollToBottom]);
+  }, [messages.length, scrollToBottom]);
 
   return {
     scrollRef,
     lastMessageRef,
-    scrollToBottom,
-    forceScrollToBottom
+    scrollToBottom
   };
 };

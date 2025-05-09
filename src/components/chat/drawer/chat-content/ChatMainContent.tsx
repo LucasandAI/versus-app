@@ -10,11 +10,7 @@ interface ChatMainContentProps {
   onMatchClick: (club: Club) => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   onSendMessage: (message: string, clubId?: string) => void;
-  onDeleteMessage?: (messageId: string) => void;
   setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
-  loadOlderMessages?: (clubId: string) => Promise<void>;
-  isLoading?: Record<string, boolean>;
-  hasMore?: Record<string, boolean>;
 }
 
 const ChatMainContent: React.FC<ChatMainContentProps> = ({
@@ -23,39 +19,24 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   onMatchClick,
   onSelectUser,
   onSendMessage,
-  onDeleteMessage,
   setClubMessages,
-  loadOlderMessages,
-  isLoading = {},
-  hasMore = {},
 }) => {
+  // Enhanced debugging for component renders and selections
   useEffect(() => {
-    // Dispatch event when a club is selected
-    if (selectedClub?.id) {
-      window.dispatchEvent(new CustomEvent('clubSelected', {
-        detail: { clubId: selectedClub.id }
-      }));
-    }
-    
-    return () => {
-      // Dispatch event when club is deselected
-      window.dispatchEvent(new CustomEvent('clubDeselected'));
-    };
-  }, [selectedClub?.id]);
+    console.log('[ChatMainContent] Rendering with:', {
+      hasSelectedClub: !!selectedClub,
+      clubId: selectedClub?.id
+    });
+  }, [selectedClub]);
 
   // If we have a selected club, render the club content
   if (selectedClub) {
     const clubMessages = messages[selectedClub.id] || [];
-    const isLoadingMore = isLoading[selectedClub.id] || false;
-    const hasMoreMessages = hasMore[selectedClub.id] || false;
-    
-    // Define the load more function for this specific club
-    const handleLoadMore = async () => {
-      if (loadOlderMessages && hasMoreMessages && !isLoadingMore) {
-        console.log('[ChatMainContent] Loading older messages for club:', selectedClub.id);
-        await loadOlderMessages(selectedClub.id);
-      }
-    };
+    console.log('[ChatMainContent] Rendering club messages:', { 
+      clubId: selectedClub.id, 
+      messageCount: clubMessages.length,
+      messageIds: clubMessages.map(m => m.id).join(', ')
+    });
     
     return (
       <div className="flex-1 h-full flex flex-col">
@@ -72,13 +53,9 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
             });
             onSendMessage(message, selectedClub.id);
           }}
-          onDeleteMessage={onDeleteMessage}
           setClubMessages={setClubMessages}
-          clubId={selectedClub.id}
-          globalMessages={messages}
-          onLoadMore={handleLoadMore}
-          hasMore={hasMoreMessages}
-          isLoadingMore={isLoadingMore}
+          clubId={selectedClub.id} // Pass clubId for proper context in ChatInput
+          globalMessages={messages} // Pass the global messages state
         />
       </div>
     );

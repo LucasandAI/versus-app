@@ -29,9 +29,6 @@ interface ChatDrawerContainerProps {
     userAvatar: string;
     conversationId: string;
   } | null>>;
-  loadOlderMessages?: (clubId: string) => Promise<void>;
-  isLoading?: Record<string, boolean>;
-  hasMore?: Record<string, boolean>;
 }
 
 // Memo the container to prevent re-renders
@@ -49,10 +46,7 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = memo(({
   onSendMessage,
   onDeleteMessage,
   directMessageUser,
-  setDirectMessageUser,
-  loadOlderMessages,
-  isLoading,
-  hasMore
+  setDirectMessageUser
 }) => {
   // Cache key for accessibility
   const activeCacheKey = activeTab === 'clubs' ? 'clubs' : 'dm';
@@ -68,9 +62,6 @@ const ChatDrawerContainer: React.FC<ChatDrawerContainerProps> = memo(({
           unreadClubs={unreadClubs}
           onSendMessage={onSendMessage}
           onDeleteMessage={onDeleteMessage}
-          loadOlderMessages={loadOlderMessages}
-          isLoading={isLoading}
-          hasMore={hasMore}
         />
       ) : (
         <DMContainer

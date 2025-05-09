@@ -19,6 +19,7 @@ interface MessageListProps {
   lastMessageRef: React.RefObject<HTMLDivElement>;
 }
 
+// Memoize the component to prevent unnecessary re-renders
 const MessageList: React.FC<MessageListProps> = memo(({
   messages,
   clubMembers,
@@ -33,23 +34,12 @@ const MessageList: React.FC<MessageListProps> = memo(({
   // Use useMemo to avoid recreating message items on every render
   const messageItems = React.useMemo(() => {
     return messages.map((message: ChatMessage, index: number) => {
-      // IMPORTANT: Ensure consistent string comparison of IDs
       const isUserMessage = currentUserId && 
-                          message.sender && 
-                          String(message.sender.id) === String(currentUserId);
-      
-      // Log message alignment check for the first few messages
-      if (index === 0 || index === messages.length - 1 || index % 20 === 0) {
-        console.log('[MessageList] Message alignment check:', {
-          messageId: message.id,
-          senderId: message.sender?.id,
-          currentUserId: currentUserId,
-          isUserMessage: isUserMessage
-        });
-      }
-                          
+                           message.sender && 
+                           String(message.sender.id) === String(currentUserId);
       const isLastMessage = index === messages.length - 1;
       
+      // Use stable key with index to prevent remounting on ID changes
       return (
         <div 
           key={message.id || `msg-${index}`}
@@ -98,11 +88,6 @@ const MessageList: React.FC<MessageListProps> = memo(({
     if (prevLastMsg.id !== nextLastMsg.id) {
       return false; // Re-render if last message changed
     }
-  }
-  
-  // Re-render if current user ID changes (affects message alignment)
-  if (prevProps.currentUserId !== nextProps.currentUserId) {
-    return false;
   }
   
   return true; // Don't re-render otherwise

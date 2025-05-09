@@ -15,6 +15,7 @@ import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
 import DMMessageInput from './DMMessageInput';
 import DMHeader from './DMHeader';
 import { ArrowLeft } from 'lucide-react';
+import { useUserData } from '@/hooks/chat/dm/useUserData';
 
 interface DMConversationProps {
   user: {
@@ -83,15 +84,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   }), [user.id, user.name, user.avatar]);
   
   // Use our hook for active messages - pass the userDataForMessages as source of truth
-  const { 
-    messages, 
-    setMessages, 
-    addOptimisticMessage, 
-    isLoading, 
-    isLoadingMore, 
-    hasMore, 
-    loadOlderMessages 
-  } = useActiveDMMessages(
+  const { messages, setMessages, addOptimisticMessage } = useActiveDMMessages(
     conversationId, 
     user.id,
     currentUser?.id,
@@ -191,13 +184,6 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     }
   }, [currentUser, user, conversationId, addOptimisticMessage, createConversation, scrollToBottom, setMessages]);
   
-  // Handle loading more messages
-  const handleLoadMore = useCallback(() => {
-    if (hasMore && !isLoadingMore) {
-      loadOlderMessages();
-    }
-  }, [hasMore, isLoadingMore, loadOlderMessages]);
-  
   // Club members array for ChatMessages - memoized to prevent recreating
   const clubMembers = useMemo(() => 
     currentUser ? [currentUser] : [], 
@@ -242,9 +228,6 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
             lastMessageRef={lastMessageRef}
             formatTime={formatTime}
             scrollRef={scrollRef}
-            onLoadMore={handleLoadMore}
-            hasMore={hasMore}
-            isLoadingMore={isLoadingMore}
           />
         </div>
         

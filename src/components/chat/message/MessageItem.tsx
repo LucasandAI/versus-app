@@ -30,6 +30,13 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const [canDelete, setCanDelete] = useState(false);
   const { navigateToUserProfile } = useNavigation();
   
+  // Debug log to see complete sender data
+  console.log(`[MessageItem] Rendering message with id ${message.id}, sender:`, {
+    id: message.sender?.id || 'unknown',
+    name: message.sender?.name || 'unknown',
+    avatar: message.sender?.avatar || 'undefined'
+  });
+  
   useEffect(() => {
     const checkDeletePermission = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -69,24 +76,31 @@ const MessageItem: React.FC<MessageItemProps> = ({
   };
 
   // IMPORTANT: Always use the data provided in the message object
+  // Never fall back to defaults for name - this ensures consistent display
   const senderName = message.sender?.name || 'Unknown';
+  
+  // Only use the avatar that was provided, no placeholder
   const senderAvatar = message.sender?.avatar;
 
   const renderDeleteButton = () => {
     if (!isUserMessage || !canDelete || !onDeleteMessage) {
-      return null;
+      return (
+        <div className="w-8 h-8 opacity-0" aria-hidden="true">
+          {/* Placeholder to maintain layout */}
+        </div>
+      );
     }
 
     return (
-      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <MessageDeleteButton onDelete={handleDeleteClick} />
       </div>
     );
   };
 
-  // Use the proper alignment for messages with fixed layout
+  // Use the proper alignment for messages
   return (
-    <div className={`flex ${isUserMessage ? 'justify-end' : 'justify-start'} mb-6 group relative`}>
+    <div className={`flex ${isUserMessage ? 'justify-end mr-4' : 'justify-start ml-4'} mb-6 group`}>
       {/* Avatar appears only for non-user messages */}
       {!isUserMessage && (
         <UserAvatar
@@ -121,18 +135,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
         </div>
       </div>
 
-      {/* User avatar for user's own messages */}
-      {isUserMessage && (
-        <div className="flex items-start ml-2">
-          {renderDeleteButton()}
-          <UserAvatar
-            name="You"
-            image={currentUserAvatar}
-            size="sm"
-            className="flex-shrink-0"
-          />
-        </div>
-      )}
+      {/* Delete button for user's own messages */}
+      {isUserMessage && renderDeleteButton()}
     </div>
   );
 };

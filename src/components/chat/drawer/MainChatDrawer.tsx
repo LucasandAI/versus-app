@@ -9,7 +9,6 @@ import { useChatActions } from '@/hooks/chat/useChatActions';
 import { useApp } from '@/context/AppContext';
 import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
 import { useUnreadMessages } from '@/context/unread-messages';
-import { useClubMessages } from '@/hooks/chat/useClubMessages';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -25,8 +24,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   onOpenChange,
   clubs,
   onNewMessage,
-  clubMessages: externalClubMessages,
-  setClubMessages: externalSetClubMessages
+  clubMessages = {},
+  setClubMessages
 }) => {
   // Use refs for mutable state to avoid re-renders
   const [activeTab, setActiveTab] = useState<"clubs"|"dm">("clubs");
@@ -37,15 +36,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     userAvatar: string;
     conversationId: string;
   } | null>(null);
-  
-  // Use our hook for club messages 
-  const {
-    clubMessages,
-    setClubMessages,
-    loadOlderMessages,
-    isLoading,
-    hasMore
-  } = useClubMessages(clubs, open);
   
   // Store unread sets in refs to avoid re-renders, using memoized copies for rendering
   const { unreadClubs, unreadConversations } = useUnreadMessages();
@@ -143,7 +133,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             clubs={clubs}
             selectedLocalClub={selectedLocalClub}
             onSelectClub={handleSelectClub}
-            messages={externalClubMessages || clubMessages}
+            messages={clubMessages}
             deleteChat={() => {}}
             unreadMessages={{}}
             unreadClubs={unreadClubsRef.current}
@@ -153,9 +143,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             onDeleteMessage={handleDeleteMessage}
             directMessageUser={directMessageUser}
             setDirectMessageUser={setDirectMessageUser}
-            loadOlderMessages={loadOlderMessages}
-            isLoading={isLoading}
-            hasMore={hasMore}
           />
         </DrawerContent>
       </Drawer>

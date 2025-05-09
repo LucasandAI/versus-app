@@ -1,14 +1,12 @@
 
-import React, { memo, useMemo, useEffect } from 'react';
+import React, { memo, useMemo, useRef } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageList from './message/MessageList';
-import LoadMoreButton from './message/LoadMoreButton';
 import { useMessageUser } from './message/useMessageUser';
 import { useMessageNormalization } from './message/useMessageNormalization';
 import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
 import { useCurrentMember } from '@/hooks/chat/messages/useCurrentMember';
 import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
-import Spinner from '../ui/spinner';
 
 interface ChatMessagesProps {
   messages: ChatMessage[] | any[];
@@ -24,11 +22,9 @@ interface ChatMessagesProps {
   lastMessageRef?: React.RefObject<HTMLDivElement>;
   formatTime?: (isoString: string) => string;
   scrollRef?: React.RefObject<HTMLDivElement>;
-  onLoadMore?: () => void;
-  hasMore?: boolean;
-  isLoadingMore?: boolean;
 }
 
+// Use memo to prevent unnecessary re-renders with consistent identity reference
 const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   messages,
   clubMembers,
@@ -39,10 +35,10 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   lastMessageRef: providedLastMessageRef,
   formatTime: providedFormatTime,
   scrollRef: providedScrollRef,
-  onLoadMore,
-  hasMore = false,
-  isLoadingMore = false,
 }) => {
+  // Create stable references to prevent recreation
+  const prevMessageLengthRef = useRef<number>(0);
+  
   const {
     currentUserId,
     currentUserAvatar: defaultUserAvatar
@@ -65,65 +61,15 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   const {
     scrollRef: defaultScrollRef,
     lastMessageRef: defaultLastMessageRef,
-    scrollToBottom,
-    forceScrollToBottom
+    scrollToBottom
   } = useMessageScroll(messages);
 
-  // Use provided values or defaults
+  // Use provided values or defaults - store references to prevent recreation
   const finalUserAvatar = providedUserAvatar || defaultUserAvatar;
   const finalLastMessageRef = providedLastMessageRef || defaultLastMessageRef;
   const finalFormatTime = providedFormatTime || defaultFormatTime;
   const finalScrollRef = providedScrollRef || defaultScrollRef;
   
-  // Scroll to bottom when messages change or on initial render
-  useEffect(() => {
-    if (messages.length > 0) {
-      // Wait for next tick to ensure DOM updates
-      const timer = setTimeout(() => {
-        scrollToBottom();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [messages.length, scrollToBottom]);
-  
-  // Force scroll to bottom when a new message is sent by the current user
-  // This is identified by checking if the last message is from the current user
-  useEffect(() => {
-    if (messages.length > 0) {
-      const lastMessage = messages[messages.length - 1];
-      // If the last message is from the current user, scroll to bottom
-      if (lastMessage.sender?.id === currentUserId) {
-        forceScrollToBottom();
-      }
-    }
-  }, [messages, currentUserId, forceScrollToBottom]);
-
-  // Save scroll position when loading more messages
-  const handleLoadMore = () => {
-    if (onLoadMore && hasMore && !isLoadingMore && finalScrollRef.current) {
-      // Store the current scroll position and height before loading more messages
-      const scrollTop = finalScrollRef.current.scrollTop;
-      const scrollHeight = finalScrollRef.current.scrollHeight;
-      
-      // Load more messages
-      onLoadMore();
-      
-      // After loading, restore scroll position accounting for new content
-      requestAnimationFrame(() => {
-        if (finalScrollRef.current) {
-          const newScrollHeight = finalScrollRef.current.scrollHeight;
-          const heightDifference = newScrollHeight - scrollHeight;
-          finalScrollRef.current.scrollTop = scrollTop + heightDifference;
-        }
-      });
-    }
-  };
-  
-  // Only normalize messages once per unique message set
-  const normalizedMessages = useMemo(() => {
-    return messages.map(message => normalizeMessage(message));
-  }, [messages, normalizeMessage]);
-
   // Handle case when messages is not an array
   if (!Array.isArray(messages)) {
     return (
@@ -133,6 +79,37 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
         </div>
       </div>
     );
+  }
+  
+  // Add debug logging to see what's being processed
+  console.log('[ChatMessages] Processing messages array:', messages.length);
+  
+  // Only normalize messages once per unique message set
+  // Using useMemo with messages reference as dependency
+  const normalizedMessages = useMemo(() => {
+    console.log('[ChatMessages] Normalizing messages, count:', messages.length);
+    // Debug log a sample message to see what's coming in
+    if (messages.length > 0) {
+      console.log('[ChatMessages] Sample message before normalization:', messages[messages.length - 1]);
+    }
+    
+    const normalized = messages.map(message => normalizeMessage(message));
+    
+    // Debug log the normalized result for comparison
+    if (normalized.length > 0) {
+      console.log('[ChatMessages] Sample normalized message:', normalized[normalized.length - 1]);
+    }
+    
+    return normalized;
+  }, [messages, normalizeMessage]);
+
+  // Track if messages changed and need scroll
+  if (prevMessageLengthRef.current !== messages.length) {
+    // Use requestAnimationFrame to scroll after render
+    if (messages.length > prevMessageLengthRef.current) {
+      requestAnimationFrame(() => scrollToBottom());
+    }
+    prevMessageLengthRef.current = messages.length;
   }
 
   // Determine if this is a club chat by checking if there are club members
@@ -145,20 +122,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
         isClubChat ? 'h-[calc(73vh-8rem)]' : 'h-[calc(73vh-6rem)]'
       }`}
     >
-      {/* "Load More" button that only appears if there are more messages to load */}
-      {hasMore && (
-        <LoadMoreButton
-          onLoadMore={handleLoadMore}
-          isLoading={isLoadingMore}
-        />
-      )}
-      
-      {isLoadingMore && (
-        <div className="flex justify-center py-2">
-          <Spinner size="sm" />
-        </div>
-      )}
-      
       <MessageList 
         messages={normalizedMessages} 
         clubMembers={clubMembers} 
