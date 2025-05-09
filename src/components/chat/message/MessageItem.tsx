@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -100,7 +99,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
   // Use the proper alignment for messages
   return (
-    <div className={`flex ${isUserMessage ? 'justify-end mr-4' : 'justify-start ml-4'} mb-6 group`}>
+    <div className={`flex ${isUserMessage ? 'justify-end' : 'justify-start'} px-4 mb-4 group`}>
       {/* Avatar appears only for non-user messages */}
       {!isUserMessage && (
         <UserAvatar
@@ -112,7 +111,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
         />
       )}
 
-      <div className={`flex flex-col ${isUserMessage ? 'items-end' : 'items-start'} max-w-[75%]`}>
+      <div className={`flex flex-col ${isUserMessage ? 'items-end' : 'items-start'} max-w-[85%]`}>
         {/* Sender name appears only for non-user messages */}
         {!isUserMessage && (
           <button
@@ -130,7 +129,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
           isSupport={isSupport}
         />
 
-        <div className={`text-xs text-gray-500 mt-1 ${isUserMessage ? 'pr-1 text-right' : 'pl-1 text-left'} w-full`}>
+        <div className={`text-xs text-gray-500 mt-1 ${isUserMessage ? 'text-right' : 'text-left'} w-full`}>
           {formatTime(getTimestamp())}
         </div>
       </div>
