@@ -59,6 +59,8 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
           selectedClub={selectedClub}
           onSelectClub={onSelectClub}
           unreadClubs={unreadClubs}
+          onSelectUser={handleSelectUser}
+          activeTab="clubs"
         />
       </div>
       <div className="w-3/4">

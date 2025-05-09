@@ -44,6 +44,7 @@ const ChatClubContent: React.FC<ChatClubContentProps> = ({
       <ChatHeader 
         club={club}
         onMatchClick={onMatchClick}
+        onSelectUser={onSelectUser}
       />
       
       <div className="flex-1 overflow-hidden">
