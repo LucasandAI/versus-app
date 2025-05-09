@@ -37,7 +37,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   
   const { unreadClubs, unreadConversations } = useUnreadMessages();
   const { currentUser } = useApp();
-  const { fetchConversations } = useDirectConversationsContext();
+  const { fetchConversations, getOrCreateConversation } = useDirectConversationsContext();
   const { sendMessageToClub, deleteMessage } = useChatActions();
 
   // Get messages based on chat type
@@ -51,6 +51,43 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       fetchConversations();
     }
   }, [open, currentUser?.id, fetchConversations]);
+
+  // Effect to handle openDirectMessage event
+  useEffect(() => {
+    const handleOpenDirectMessage = async (event: CustomEvent) => {
+      const { userId, userName, userAvatar, conversationId } = event.detail;
+      
+      try {
+        // If we have a conversationId, use it directly
+        if (conversationId) {
+          setSelectedChat({
+            type: 'dm',
+            id: conversationId,
+            name: userName,
+            avatar: userAvatar
+          });
+        } else {
+          // Otherwise, get or create a conversation
+          const conversation = await getOrCreateConversation(userId, userName, userAvatar);
+          if (conversation) {
+            setSelectedChat({
+              type: 'dm',
+              id: conversation.conversationId,
+              name: conversation.userName,
+              avatar: conversation.userAvatar
+            });
+          }
+        }
+      } catch (error) {
+        console.error('[MainChatDrawer] Error opening direct message:', error);
+      }
+    };
+
+    window.addEventListener('openDirectMessage', handleOpenDirectMessage as EventListener);
+    return () => {
+      window.removeEventListener('openDirectMessage', handleOpenDirectMessage as EventListener);
+    };
+  }, [getOrCreateConversation]);
 
   const handleSelectChat = useCallback((type: 'club' | 'dm', id: string, name: string, avatar?: string) => {
     setSelectedChat({ type, id, name, avatar });
