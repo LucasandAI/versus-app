@@ -21,7 +21,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
   const { currentUser } = useApp();
   const { conversations: directConversations = [], loading: loadingDMs } = useDirectConversationsContext();
   const { clubs = [], loading: loadingClubs } = useAvailableClubs();
-  const { unreadMessages } = useUnreadMessages();
+  const { unreadMessages = new Set() } = useUnreadMessages();
 
   const isLoading = loadingDMs || loadingClubs;
   const isEmpty = !isLoading && directConversations.length === 0 && clubs.length === 0;
