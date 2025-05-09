@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useUnreadMessages } from '@/context/unread-messages';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { MessageSquare, Users } from 'lucide-react';
+import { useClubLastMessages } from '@/hooks/chat/messages/useClubLastMessages';
 
 interface UnifiedChatListProps {
   onSelectChat: (type: 'club' | 'dm', id: string, name: string, avatar?: string) => void;
@@ -22,6 +23,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
   const { unreadMessages = new Set() } = useUnreadMessages();
 
   const userClubs = currentUser?.clubs || [];
+  const { lastMessages, sortedClubs } = useClubLastMessages(userClubs);
   const isLoading = loadingDMs;
   const isEmpty = !isLoading && directConversations.length === 0 && userClubs.length === 0;
 
@@ -62,12 +64,13 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
       <h1 className="text-4xl font-bold p-4">Messages</h1>
       <div className="flex-1 overflow-auto">
         {/* Club Chats Section */}
-        {userClubs.length > 0 && (
+        {sortedClubs.length > 0 && (
           <div className="mb-4">
             <h2 className="text-sm font-semibold text-gray-500 px-4 py-2">Club Chats</h2>
-            {userClubs.map((club) => {
+            {sortedClubs.map((club) => {
               const isSelected = selectedChatType === 'club' && selectedChatId === club.id;
               const hasUnread = unreadMessages.has(club.id);
+              const lastMessage = lastMessages[club.id];
               
               return (
                 <button
@@ -88,11 +91,23 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <p className="font-medium truncate">{club.name}</p>
+                      {lastMessage?.timestamp && (
+                        <span className="text-xs text-gray-500">
+                          {new Date(lastMessage.timestamp).toLocaleDateString()}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center space-x-2">
                       <Users className="h-4 w-4 text-gray-400" />
                       <p className="text-sm text-gray-500 truncate">
-                        {club.members?.length || 0} members
+                        {lastMessage ? (
+                          <>
+                            <span className="font-medium">{lastMessage.sender?.name}: </span>
+                            {lastMessage.message}
+                          </>
+                        ) : (
+                          `${club.members?.length || 0} members`
+                        )}
                       </p>
                       {hasUnread && (
                         <span className="ml-2 h-2 w-2 rounded-full bg-blue-500" />
