@@ -1,115 +1,151 @@
 import React from 'react';
-import { Club } from '@/types';
 import { useApp } from '@/context/AppContext';
 import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
+import { useAvailableClubs } from '@/hooks/home/useAvailableClubs';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useUnreadMessages } from '@/context/unread-messages';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { MessageSquare, Users } from 'lucide-react';
 
 interface UnifiedChatListProps {
-  clubs: Club[];
-  selectedChat: {
-    type: 'club' | 'dm';
-    id: string;
-  } | null;
   onSelectChat: (type: 'club' | 'dm', id: string, name: string, avatar?: string) => void;
-  unreadClubs?: Set<string>;
-  unreadConversations?: Set<string>;
+  selectedChatId?: string;
+  selectedChatType?: 'club' | 'dm';
 }
 
 const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
-  clubs,
-  selectedChat,
   onSelectChat,
-  unreadClubs = new Set(),
-  unreadConversations = new Set()
+  selectedChatId,
+  selectedChatType
 }) => {
   const { currentUser } = useApp();
-  const { conversations = [] } = useDirectConversationsContext();
+  const { conversations: directConversations = [], loading: loadingDMs } = useDirectConversationsContext();
+  const { clubs = [], loading: loadingClubs } = useAvailableClubs();
+  const { unreadMessages } = useUnreadMessages();
 
-  return (
-    <div className="flex flex-col h-full overflow-y-auto">
-      {/* Club Chats Section */}
-      <div className="p-4">
-        <h3 className="text-sm font-semibold text-gray-500 mb-2">Club Chats</h3>
-        <div className="space-y-2">
-          {clubs.map((club) => (
-            <button
-              key={club.id}
-              onClick={() => onSelectChat('club', club.id, club.name, club.logo)}
-              className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors ${
-                selectedChat?.type === 'club' && selectedChat.id === club.id
-                  ? 'bg-primary/10'
-                  : 'hover:bg-gray-100'
-              }`}
-            >
-              <UserAvatar name={club.name} image={club.logo} size="sm" />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <p className="font-medium truncate">{club.name}</p>
-                  {unreadClubs.has(club.id) && (
-                    <span className="w-2 h-2 rounded-full bg-primary" />
-                  )}
+  const isLoading = loadingDMs || loadingClubs;
+  const isEmpty = !isLoading && directConversations.length === 0 && clubs.length === 0;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-full bg-white">
+        <h1 className="text-4xl font-bold p-4">Messages</h1>
+        <div className="flex-1 overflow-auto">
+          <div className="p-4 space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center space-x-3 p-2">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-full" />
                 </div>
-                <p className="text-sm text-gray-500 truncate">
-                  {club.members?.length || 0} members
-                </p>
               </div>
-            </button>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
+    );
+  }
 
-      {/* Direct Messages Section */}
-      <div className="p-4 border-t">
-        <h3 className="text-sm font-semibold text-gray-500 mb-2">Direct Messages</h3>
-        <div className="space-y-2">
-          {conversations.map((conversation) => {
-            if (!conversation?.participants || !Array.isArray(conversation.participants)) {
-              return null;
-            }
-
-            const otherUser = conversation.participants.find(
-              (p) => p?.id !== currentUser?.id
-            );
-            if (!otherUser) return null;
-
-            return (
-              <button
-                key={conversation.id}
-                onClick={() =>
-                  onSelectChat(
-                    'dm',
-                    conversation.id,
-                    otherUser.name || 'Unknown User',
-                    otherUser.avatar
-                  )
-                }
-                className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors ${
-                  selectedChat?.type === 'dm' && selectedChat.id === conversation.id
-                    ? 'bg-primary/10'
-                    : 'hover:bg-gray-100'
-                }`}
-              >
-                <UserAvatar
-                  name={otherUser.name || 'Unknown User'}
-                  image={otherUser.avatar}
-                  size="sm"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium truncate">{otherUser.name || 'Unknown User'}</p>
-                    {unreadConversations.has(conversation.id) && (
-                      <span className="w-2 h-2 rounded-full bg-primary" />
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-500 truncate">
-                    {conversation.lastMessage?.text || 'No messages yet'}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
+  if (isEmpty) {
+    return (
+      <div className="flex flex-col h-full bg-white">
+        <h1 className="text-4xl font-bold p-4">Messages</h1>
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-gray-500">No conversations yet</p>
         </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-white">
+      <h1 className="text-4xl font-bold p-4">Messages</h1>
+      <div className="flex-1 overflow-auto">
+        {/* Direct Messages Section */}
+        {directConversations.length > 0 && (
+          <div className="mb-4">
+            <h2 className="text-sm font-semibold text-gray-500 px-4 py-2">Direct Messages</h2>
+            {directConversations.map((conversation) => {
+              const isSelected = selectedChatType === 'dm' && selectedChatId === conversation.conversationId;
+              const hasUnread = unreadMessages.has(conversation.conversationId);
+              
+              return (
+                <button
+                  key={conversation.conversationId}
+                  onClick={() => onSelectChat('dm', conversation.conversationId, conversation.userName, conversation.userAvatar)}
+                  className={`w-full flex items-center space-x-3 p-4 hover:bg-gray-50 transition-colors ${
+                    isSelected ? 'bg-gray-100' : ''
+                  }`}
+                >
+                  <UserAvatar
+                    user={{ id: conversation.userId, name: conversation.userName, avatar: conversation.userAvatar }}
+                    size="md"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium truncate">{conversation.userName}</p>
+                      {conversation.timestamp && (
+                        <span className="text-xs text-gray-500">
+                          {new Date(conversation.timestamp).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <MessageSquare className="h-4 w-4 text-gray-400" />
+                      <p className="text-sm text-gray-500 truncate">
+                        {conversation.lastMessage || 'No messages yet'}
+                      </p>
+                      {hasUnread && (
+                        <span className="ml-2 h-2 w-2 rounded-full bg-blue-500" />
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Club Chats Section */}
+        {clubs.length > 0 && (
+          <div>
+            <h2 className="text-sm font-semibold text-gray-500 px-4 py-2">Club Chats</h2>
+            {clubs.map((club) => {
+              const isSelected = selectedChatType === 'club' && selectedChatId === club.id;
+              const hasUnread = unreadMessages.has(club.id);
+              
+              return (
+                <button
+                  key={club.id}
+                  onClick={() => onSelectChat('club', club.id, club.name, club.logo)}
+                  className={`w-full flex items-center space-x-3 p-4 hover:bg-gray-50 transition-colors ${
+                    isSelected ? 'bg-gray-100' : ''
+                  }`}
+                >
+                  <UserAvatar
+                    user={{ id: club.id, name: club.name, avatar: club.logo }}
+                    size="md"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium truncate">{club.name}</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Users className="h-4 w-4 text-gray-400" />
+                      <p className="text-sm text-gray-500 truncate">
+                        {club.members || 0} members
+                      </p>
+                      {hasUnread && (
+                        <span className="ml-2 h-2 w-2 rounded-full bg-blue-500" />
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
