@@ -1,4 +1,3 @@
-
 import React, { memo } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageItem from './MessageItem';
@@ -34,9 +33,17 @@ const MessageList: React.FC<MessageListProps> = memo(({
   // Use useMemo to avoid recreating message items on every render
   const messageItems = React.useMemo(() => {
     return messages.map((message: ChatMessage, index: number) => {
-      const isUserMessage = currentUserId && 
-                           message.sender && 
-                           String(message.sender.id) === String(currentUserId);
+      // Ensure we're comparing string IDs consistently
+      const messageSenderId = message.sender?.id ? String(message.sender.id) : null;
+      const isUserMessage = currentUserId && messageSenderId && String(currentUserId) === messageSenderId;
+      
+      console.log('[MessageList] Message alignment check:', {
+        messageId: message.id,
+        messageSenderId,
+        currentUserId,
+        isUserMessage
+      });
+      
       const isLastMessage = index === messages.length - 1;
       
       // Use stable key with index to prevent remounting on ID changes
