@@ -1,7 +1,6 @@
 import React from 'react';
 import { useApp } from '@/context/AppContext';
 import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
-import { useAvailableClubs } from '@/hooks/home/useAvailableClubs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUnreadMessages } from '@/context/unread-messages';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -20,11 +19,11 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
 }) => {
   const { currentUser } = useApp();
   const { conversations: directConversations = [], loading: loadingDMs } = useDirectConversationsContext();
-  const { clubs = [], loading: loadingClubs } = useAvailableClubs();
   const { unreadMessages = new Set() } = useUnreadMessages();
 
-  const isLoading = loadingDMs || loadingClubs;
-  const isEmpty = !isLoading && directConversations.length === 0 && clubs.length === 0;
+  const userClubs = currentUser?.clubs || [];
+  const isLoading = loadingDMs;
+  const isEmpty = !isLoading && directConversations.length === 0 && userClubs.length === 0;
 
   if (isLoading) {
     return (
@@ -108,10 +107,10 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
         )}
 
         {/* Club Chats Section */}
-        {clubs.length > 0 && (
+        {userClubs.length > 0 && (
           <div>
             <h2 className="text-sm font-semibold text-gray-500 px-4 py-2">Club Chats</h2>
-            {clubs.map((club) => {
+            {userClubs.map((club) => {
               const isSelected = selectedChatType === 'club' && selectedChatId === club.id;
               const hasUnread = unreadMessages.has(club.id);
               
@@ -134,7 +133,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
                     <div className="flex items-center space-x-2">
                       <Users className="h-4 w-4 text-gray-400" />
                       <p className="text-sm text-gray-500 truncate">
-                        {club.members || 0} members
+                        {club.members?.length || 0} members
                       </p>
                       {hasUnread && (
                         <span className="ml-2 h-2 w-2 rounded-full bg-blue-500" />
