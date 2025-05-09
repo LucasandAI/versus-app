@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import { useApp } from '@/context/AppContext';
 import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
@@ -9,6 +10,8 @@ import ChatInput from '../ChatInput';
 import { useNavigation } from '@/hooks/useNavigation';
 import { useChatActions } from '@/hooks/chat/useChatActions';
 import { useUnreadMessages } from '@/context/unread-messages';
+import { ArrowLeft } from 'lucide-react';
+import UserAvatar from '@/components/shared/UserAvatar';
 
 interface UnifiedChatContentProps {
   selectedChat: {
@@ -22,6 +25,7 @@ interface UnifiedChatContentProps {
   onSendMessage: (message: string, chatId: string, type: 'club' | 'dm') => Promise<void>;
   onDeleteMessage?: (messageId: string) => Promise<void>;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
+  onBack: () => void;
 }
 
 const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
@@ -30,7 +34,8 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
   messages,
   onSendMessage,
   onDeleteMessage,
-  onSelectUser
+  onSelectUser,
+  onBack
 }) => {
   const { currentUser } = useApp();
   const { navigateToClubDetail } = useNavigation();
@@ -61,9 +66,15 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
     }
   };
 
-  const handleClubClick = () => {
+  const handleHeaderClick = () => {
     if (selectedChat?.type === 'club' && club) {
       navigateToClubDetail(club.id, club);
+    } else if (selectedChat?.type === 'dm') {
+      // For direct messages, we need to find the other user's ID
+      const otherUserId = selectedChat.id.split('_').find(id => id !== currentUser?.id);
+      if (otherUserId) {
+        navigateToClubDetail(otherUserId);
+      }
     }
   };
 
@@ -87,13 +98,19 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      <ChatHeader
-        club={selectedChat.type === 'club' ? club : undefined}
-        name={selectedChat.name}
-        avatar={selectedChat.avatar}
-        onClubClick={handleClubClick}
-        onSelectUser={onSelectUser}
-      />
+      <div className="border-b p-3 flex items-center">
+        <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <div 
+          onClick={handleHeaderClick} 
+          className="flex-1 flex justify-center items-center gap-2 cursor-pointer hover:text-primary transition-colors px-0 mx-auto"
+        >
+          <UserAvatar name={selectedChat.name} image={selectedChat.avatar} size="sm" />
+          <h3 className="font-semibold">{selectedChat.name}</h3>
+        </div>
+        <div className="w-9"></div>
+      </div>
       
       <div className="flex-1 flex flex-col relative overflow-hidden">
         <div className="flex-1 min-h-0">
