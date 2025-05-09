@@ -10,7 +10,11 @@ interface ChatDrawerContentProps {
   onMatchClick: (club: Club) => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   onSendMessage: (message: string, clubId?: string) => void;
+  onDeleteMessage?: (messageId: string) => void;
   setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
+  loadOlderMessages?: (clubId: string) => Promise<void>;
+  isLoading?: Record<string, boolean>;
+  hasMore?: Record<string, boolean>;
 }
 
 const ChatDrawerContent: React.FC<ChatDrawerContentProps> = ({
@@ -19,7 +23,11 @@ const ChatDrawerContent: React.FC<ChatDrawerContentProps> = ({
   onMatchClick,
   onSelectUser,
   onSendMessage,
+  onDeleteMessage,
   setClubMessages,
+  loadOlderMessages,
+  isLoading,
+  hasMore,
 }) => {
   console.log('[ChatDrawerContent] Rendering with:', { 
     hasSelectedClub: !!selectedClub, 
@@ -39,7 +47,11 @@ const ChatDrawerContent: React.FC<ChatDrawerContentProps> = ({
         onMatchClick={onMatchClick}
         onSelectUser={onSelectUser}
         onSendMessage={onSendMessage}
+        onDeleteMessage={onDeleteMessage}
         setClubMessages={setClubMessages}
+        loadOlderMessages={loadOlderMessages}
+        isLoading={isLoading}
+        hasMore={hasMore}
       />
     </div>
   );

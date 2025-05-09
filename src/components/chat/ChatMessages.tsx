@@ -2,6 +2,7 @@
 import React, { memo, useMemo, useRef } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageList from './message/MessageList';
+import LoadMoreButton from './message/LoadMoreButton';
 import { useMessageUser } from './message/useMessageUser';
 import { useMessageNormalization } from './message/useMessageNormalization';
 import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
@@ -22,6 +23,9 @@ interface ChatMessagesProps {
   lastMessageRef?: React.RefObject<HTMLDivElement>;
   formatTime?: (isoString: string) => string;
   scrollRef?: React.RefObject<HTMLDivElement>;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
 }
 
 // Use memo to prevent unnecessary re-renders with consistent identity reference
@@ -35,6 +39,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   lastMessageRef: providedLastMessageRef,
   formatTime: providedFormatTime,
   scrollRef: providedScrollRef,
+  onLoadMore,
+  hasMore = false,
+  isLoadingMore = false,
 }) => {
   // Create stable references to prevent recreation
   const prevMessageLengthRef = useRef<number>(0);
@@ -105,8 +112,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
 
   // Track if messages changed and need scroll
   if (prevMessageLengthRef.current !== messages.length) {
-    // Use requestAnimationFrame to scroll after render
-    if (messages.length > prevMessageLengthRef.current) {
+    // Only auto-scroll if new messages are added at the end (not when loading older messages)
+    if (messages.length > prevMessageLengthRef.current && !isLoadingMore) {
+      // Use requestAnimationFrame to scroll after render
       requestAnimationFrame(() => scrollToBottom());
     }
     prevMessageLengthRef.current = messages.length;
@@ -122,6 +130,14 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
         isClubChat ? 'h-[calc(73vh-8rem)]' : 'h-[calc(73vh-6rem)]'
       }`}
     >
+      {/* "Load More" button that only appears if there are more messages to load */}
+      {hasMore && onLoadMore && (
+        <LoadMoreButton
+          onLoadMore={onLoadMore}
+          isLoading={isLoadingMore}
+        />
+      )}
+      
       <MessageList 
         messages={normalizedMessages} 
         clubMembers={clubMembers} 

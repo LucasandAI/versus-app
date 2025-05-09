@@ -10,7 +10,11 @@ interface ChatMainContentProps {
   onMatchClick: (club: Club) => void;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   onSendMessage: (message: string, clubId?: string) => void;
+  onDeleteMessage?: (messageId: string) => void;
   setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
+  loadOlderMessages?: (clubId: string) => Promise<void>;
+  isLoading?: Record<string, boolean>;
+  hasMore?: Record<string, boolean>;
 }
 
 const ChatMainContent: React.FC<ChatMainContentProps> = ({
@@ -19,7 +23,11 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   onMatchClick,
   onSelectUser,
   onSendMessage,
+  onDeleteMessage,
   setClubMessages,
+  loadOlderMessages,
+  isLoading = {},
+  hasMore = {},
 }) => {
   // Enhanced debugging for component renders and selections
   useEffect(() => {
@@ -32,10 +40,14 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   // If we have a selected club, render the club content
   if (selectedClub) {
     const clubMessages = messages[selectedClub.id] || [];
+    const isLoadingMore = isLoading[selectedClub.id] || false;
+    const hasMoreMessages = hasMore[selectedClub.id] || false;
+    
     console.log('[ChatMainContent] Rendering club messages:', { 
       clubId: selectedClub.id, 
       messageCount: clubMessages.length,
-      messageIds: clubMessages.map(m => m.id).join(', ')
+      hasMore: hasMoreMessages,
+      isLoading: isLoadingMore
     });
     
     return (
@@ -53,9 +65,13 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
             });
             onSendMessage(message, selectedClub.id);
           }}
+          onDeleteMessage={onDeleteMessage}
           setClubMessages={setClubMessages}
           clubId={selectedClub.id} // Pass clubId for proper context in ChatInput
           globalMessages={messages} // Pass the global messages state
+          onLoadMore={loadOlderMessages ? () => loadOlderMessages(selectedClub.id) : undefined}
+          hasMore={hasMoreMessages}
+          isLoadingMore={isLoadingMore}
         />
       </div>
     );

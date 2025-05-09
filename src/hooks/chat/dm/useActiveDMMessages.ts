@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
@@ -15,6 +16,9 @@ export const useActiveDMMessages = (
 ) => {
   // Local state for messages in this conversation
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const { userCache, fetchUserData } = useUserData();
   
   // Use stable refs to prevent capturing stale values in closures
@@ -219,6 +223,8 @@ export const useActiveDMMessages = (
     }
 
     try {
+      setIsLoading(true);
+      
       const { data } = await supabase
         .from('direct_messages')
         .select(`
@@ -230,12 +236,17 @@ export const useActiveDMMessages = (
           timestamp
         `)
         .eq('conversation_id', conversationId)
-        .order('timestamp', { ascending: true })
+        .order('timestamp', { ascending: false }) // Get most recent first
         .limit(50);
 
       if (data && data.length > 0) {
+        // Sort messages by timestamp (oldest first)
+        const sortedMessages = data.sort(
+          (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+        
         // Transform database records to ChatMessage format
-        const formattedMessages: ChatMessage[] = data.map(msg => {
+        const formattedMessages: ChatMessage[] = sortedMessages.map(msg => {
           const isCurrentUser = msg.sender_id === currentUserId;
           
           // Default values
@@ -248,14 +259,12 @@ export const useActiveDMMessages = (
             if (otherUserDataRef.current) {
               senderName = otherUserDataRef.current.name;
               senderAvatar = otherUserDataRef.current.avatar;
-              console.log(`[useActiveDMMessages] Using authoritative user data for message: id=${msg.id}, name="${senderName}", avatar="${senderAvatar || 'undefined'}"`);
             } 
             // Only fall back to cache if otherUserData is not available
             else if (userCache[msg.sender_id]) {
               const user = userCache[msg.sender_id];
               senderName = user.name;
               senderAvatar = user.avatar;
-              console.log(`[useActiveDMMessages] Using cached user data for message: id=${msg.id}, name="${senderName}", avatar="${senderAvatar || 'undefined'}"`);
             }
           }
           
@@ -278,11 +287,114 @@ export const useActiveDMMessages = (
         });
         
         setMessages(formattedMessages);
+        // If we got fewer than 50 messages, there are no more to load
+        setHasMore(data.length === 50);
+      } else {
+        setMessages([]);
+        setHasMore(false);
       }
     } catch (error) {
       console.error('[useActiveDMMessages] Error fetching DM messages:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, [conversationId, currentUserId, userCache]);
+  
+  // Load older messages function 
+  const loadOlderMessages = useCallback(async () => {
+    // Skip for new conversations
+    if (!conversationId || conversationId === 'new' || !currentUserId || !messages.length) {
+      return;
+    }
+    
+    try {
+      setIsLoadingMore(true);
+      
+      // Get the timestamp of the oldest message we have
+      const oldestMsg = [...messages].sort(
+        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      )[0];
+      
+      if (!oldestMsg) {
+        setHasMore(false);
+        setIsLoadingMore(false);
+        return;
+      }
+      
+      const { data } = await supabase
+        .from('direct_messages')
+        .select(`
+          id, 
+          text, 
+          sender_id, 
+          receiver_id,
+          conversation_id,
+          timestamp
+        `)
+        .eq('conversation_id', conversationId)
+        .lt('timestamp', oldestMsg.timestamp) // Get messages older than our oldest
+        .order('timestamp', { ascending: false }) // Get most recent first
+        .limit(50);
+
+      if (data && data.length > 0) {
+        // Sort messages by timestamp (oldest first)
+        const sortedMessages = data.sort(
+          (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+        
+        // Transform database records to ChatMessage format
+        const formattedMessages: ChatMessage[] = sortedMessages.map(msg => {
+          const isCurrentUser = msg.sender_id === currentUserId;
+          
+          // Default values
+          let senderName = isCurrentUser ? 'You' : 'User';
+          let senderAvatar: string | undefined = undefined;
+          
+          if (!isCurrentUser) {
+            // CRITICAL CHANGE: Always prioritize otherUserData from props
+            if (otherUserDataRef.current) {
+              senderName = otherUserDataRef.current.name;
+              senderAvatar = otherUserDataRef.current.avatar;
+            } 
+            // Only fall back to cache if otherUserData is not available
+            else if (userCache[msg.sender_id]) {
+              const user = userCache[msg.sender_id];
+              senderName = user.name;
+              senderAvatar = user.avatar;
+            }
+          }
+          
+          const msgId = msg.id?.toString();
+          if (msgId) {
+            // Add to processed set to prevent duplicates
+            processedMsgIds.current.add(msgId);
+          }
+          
+          return {
+            id: msg.id,
+            text: msg.text,
+            sender: {
+              id: msg.sender_id,
+              name: senderName,
+              avatar: senderAvatar
+            },
+            timestamp: msg.timestamp
+          };
+        });
+        
+        // Prepend older messages to the current messages array
+        setMessages(prev => [...formattedMessages, ...prev]);
+        // If we got fewer than 50 messages, there are no more to load
+        setHasMore(data.length === 50);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error('[useActiveDMMessages] Error fetching older DM messages:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [conversationId, currentUserId, userCache, messages]);
   
   // Only fetch messages when the conversation changes
   useEffect(() => {
@@ -314,6 +426,12 @@ export const useActiveDMMessages = (
   return useMemo(() => ({
     messages,
     setMessages,
-    addOptimisticMessage
-  }), [messages, addOptimisticMessage]);
+    addOptimisticMessage,
+    isLoading,
+    isLoadingMore,
+    hasMore,
+    loadOlderMessages
+  }), [messages, addOptimisticMessage, isLoading, isLoadingMore, hasMore, loadOlderMessages]);
 };
+
+export default useActiveDMMessages;
