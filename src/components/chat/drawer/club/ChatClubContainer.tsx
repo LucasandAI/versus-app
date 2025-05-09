@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Club } from '@/types';
 import ChatDrawerContent from '../ChatDrawerContent';
-import { BackButton } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import ClubsList from '../../sidebar/ClubsList';
 
