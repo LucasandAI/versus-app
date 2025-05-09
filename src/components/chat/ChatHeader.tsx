@@ -4,22 +4,28 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Club } from '@/types';
 import UserAvatar from '../shared/UserAvatar';
 import { useNavigation } from '@/hooks/useNavigation';
+
 interface ChatHeaderProps {
-  club: Club;
-  onMatchClick: () => void;
-  onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
+  club?: Club;
+  onMatchClick?: () => void;
+  onSelectUser?: (userId: string, name: string, avatar?: string) => void;
   onClubClick?: () => void;
 }
+
 const ChatHeader: React.FC<ChatHeaderProps> = ({
   club,
   onMatchClick,
   onSelectUser,
   onClubClick
 }) => {
+  const { navigateToClubDetail } = useNavigation();
+
+  if (!club) {
+    return null;
+  }
+
   const currentMatch = club.currentMatch;
-  const {
-    navigateToClubDetail
-  } = useNavigation();
+  
   const handleClubClick = () => {
     if (onClubClick) {
       onClubClick();
@@ -27,6 +33,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
       navigateToClubDetail(club.id, club);
     }
   };
+
   return <div className="border-b p-3">
       
       
@@ -75,4 +82,5 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
       </Popover>
     </div>;
 };
+
 export default ChatHeader;

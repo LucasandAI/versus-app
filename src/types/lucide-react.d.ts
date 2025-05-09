@@ -10,5 +10,6 @@ declare module 'lucide-react' {
   export const MessageSquare: FC<IconProps>;
   export const Users: FC<IconProps>;
   export const ArrowLeft: FC<IconProps>;
+  export const Trophy: FC<IconProps>;
   // Add other icons as needed
 } 
