@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Club } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,12 +41,23 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
         if (data) {
           const messagesMap: Record<string, any[]> = {};
           
-          // Group messages by club_id
+          // Group messages by club_id and normalize sender information
           data.forEach(message => {
             if (!messagesMap[message.club_id]) {
               messagesMap[message.club_id] = [];
             }
-            messagesMap[message.club_id].push(message);
+            
+            // Ensure sender information is properly structured
+            const normalizedMessage = {
+              ...message,
+              sender: message.sender || {
+                id: message.sender_id,
+                name: 'Unknown User',
+                avatar: null
+              }
+            };
+            
+            messagesMap[message.club_id].push(normalizedMessage);
           });
           
           // Sort messages by timestamp (oldest first) for each club
@@ -55,6 +65,16 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
             messagesMap[clubId] = messagesMap[clubId].sort(
               (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
             );
+          });
+          
+          console.log('[useClubMessages] Initial messages fetched:', {
+            clubIds: Object.keys(messagesMap),
+            messageCounts: Object.fromEntries(
+              Object.entries(messagesMap).map(([clubId, messages]) => [
+                clubId,
+                messages.length
+              ])
+            )
           });
           
           setClubMessages(messagesMap);
