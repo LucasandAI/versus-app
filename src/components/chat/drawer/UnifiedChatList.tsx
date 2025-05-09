@@ -61,9 +61,53 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
     <div className="flex flex-col h-full bg-white">
       <h1 className="text-4xl font-bold p-4">Messages</h1>
       <div className="flex-1 overflow-auto">
+        {/* Club Chats Section */}
+        {userClubs.length > 0 && (
+          <div className="mb-4">
+            <h2 className="text-sm font-semibold text-gray-500 px-4 py-2">Club Chats</h2>
+            {userClubs.map((club) => {
+              const isSelected = selectedChatType === 'club' && selectedChatId === club.id;
+              const hasUnread = unreadMessages.has(club.id);
+              
+              return (
+                <button
+                  key={club.id}
+                  onClick={() => onSelectChat('club', club.id, club.name, club.logo)}
+                  className={`w-full flex items-center space-x-3 p-4 hover:bg-gray-50 transition-colors ${
+                    isSelected ? 'bg-gray-100' : ''
+                  }`}
+                >
+                  <UserAvatar
+                    user={{ 
+                      id: club.id, 
+                      name: club.name, 
+                      avatar: club.logo || '/placeholder.svg'
+                    }}
+                    size="md"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium truncate">{club.name}</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Users className="h-4 w-4 text-gray-400" />
+                      <p className="text-sm text-gray-500 truncate">
+                        {club.members?.length || 0} members
+                      </p>
+                      {hasUnread && (
+                        <span className="ml-2 h-2 w-2 rounded-full bg-blue-500" />
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {/* Direct Messages Section */}
         {directConversations.length > 0 && (
-          <div className="mb-4">
+          <div>
             <h2 className="text-sm font-semibold text-gray-500 px-4 py-2">Direct Messages</h2>
             {directConversations.map((conversation) => {
               const isSelected = selectedChatType === 'dm' && selectedChatId === conversation.conversationId;
@@ -78,7 +122,11 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
                   }`}
                 >
                   <UserAvatar
-                    user={{ id: conversation.userId, name: conversation.userName, avatar: conversation.userAvatar }}
+                    user={{ 
+                      id: conversation.userId, 
+                      name: conversation.userName, 
+                      avatar: conversation.userAvatar || '/placeholder.svg'
+                    }}
                     size="md"
                   />
                   <div className="flex-1 min-w-0">
@@ -94,46 +142,6 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
                       <MessageSquare className="h-4 w-4 text-gray-400" />
                       <p className="text-sm text-gray-500 truncate">
                         {conversation.lastMessage || 'No messages yet'}
-                      </p>
-                      {hasUnread && (
-                        <span className="ml-2 h-2 w-2 rounded-full bg-blue-500" />
-                      )}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Club Chats Section */}
-        {userClubs.length > 0 && (
-          <div>
-            <h2 className="text-sm font-semibold text-gray-500 px-4 py-2">Club Chats</h2>
-            {userClubs.map((club) => {
-              const isSelected = selectedChatType === 'club' && selectedChatId === club.id;
-              const hasUnread = unreadMessages.has(club.id);
-              
-              return (
-                <button
-                  key={club.id}
-                  onClick={() => onSelectChat('club', club.id, club.name, club.logo)}
-                  className={`w-full flex items-center space-x-3 p-4 hover:bg-gray-50 transition-colors ${
-                    isSelected ? 'bg-gray-100' : ''
-                  }`}
-                >
-                  <UserAvatar
-                    user={{ id: club.id, name: club.name, avatar: club.logo }}
-                    size="md"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="font-medium truncate">{club.name}</p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Users className="h-4 w-4 text-gray-400" />
-                      <p className="text-sm text-gray-500 truncate">
-                        {club.members?.length || 0} members
                       </p>
                       {hasUnread && (
                         <span className="ml-2 h-2 w-2 rounded-full bg-blue-500" />
