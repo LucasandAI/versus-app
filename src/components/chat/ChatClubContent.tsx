@@ -37,12 +37,22 @@ const ChatClubContent: React.FC<ChatClubContentProps> = ({
   isLoadingMore = false,
 }) => {
   const { currentUser } = useApp();
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Log message stats for debugging
+  // Store this reference to notify when the club is selected
   useEffect(() => {
-    console.log(`[ChatClubContent] Rendering with ${messages?.length || 0} messages for club ${club?.name || 'unknown'}`);
-  }, [messages, club]);
+    // Dispatch the club selected event to update real-time message status
+    if (club?.id) {
+      window.dispatchEvent(new CustomEvent('clubSelected', {
+        detail: { clubId: club.id }
+      }));
+    }
+    
+    // Clean up on unmount
+    return () => {
+      window.dispatchEvent(new CustomEvent('clubDeselected'));
+    };
+  }, [club?.id]);
   
   return (
     <>
@@ -59,7 +69,6 @@ const ChatClubContent: React.FC<ChatClubContentProps> = ({
           onSelectUser={onSelectUser}
           onDeleteMessage={onDeleteMessage}
           currentUserAvatar={currentUser?.avatar}
-          scrollRef={scrollRef}
           onLoadMore={onLoadMore}
           hasMore={hasMore}
           isLoadingMore={isLoadingMore}

@@ -37,7 +37,7 @@ export const useMessageScroll = (messages: any[]) => {
     scrollTimeoutRef.current = null;
   }, []);
 
-  // Track user scrolling with debounced handler - use passive event listener
+  // Track user scrolling with debounced handler
   useEffect(() => {
     let scrollTimer: NodeJS.Timeout | null = null;
     
@@ -47,7 +47,7 @@ export const useMessageScroll = (messages: any[]) => {
       if (!scrollRef.current) return;
       
       const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-      // Only consider at bottom if within 50px of bottom
+      // Consider at bottom if within 50px of bottom
       const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
       
       isUserScrolling.current = !isAtBottom;
@@ -71,42 +71,54 @@ export const useMessageScroll = (messages: any[]) => {
     };
   }, []);
 
-  // Scroll to bottom when messages change
+  // Always scroll to bottom on initial load and when new messages arrive
   useEffect(() => {
     if (!messages.length) return;
     
     // Always scroll down on first load or when messages appear for the first time
     const isFirstLoad = previousMessageCount.current === 0 && messages.length > 0;
     
-    // Only auto-scroll in two scenarios:
-    // 1. First load or first messages appearing
-    // 2. New messages were added at the end AND user is already at bottom
-    const shouldScroll = 
-      isFirstLoad || 
-      (messages.length > previousMessageCount.current && !isUserScrolling.current);
-    
-    if (shouldScroll && !scrollLockRef.current) {
-      // Use requestAnimationFrame for smoother scrolling
-      requestAnimationFrame(() => {
-        scrollToBottom(true);
-      });
-    }
-    
-    // If this is the initial render with messages, always scroll to bottom
+    // Always force scroll to bottom on first render
     if (initialLoadRef.current && messages.length > 0) {
       initialLoadRef.current = false;
       setTimeout(() => {
         scrollToBottom(true);
-      }, 100);
+      }, 150); // Give a bit more time for rendering
+      return;
+    }
+    
+    // Only auto-scroll if new messages were added at the end AND user is already at bottom
+    const shouldScroll = 
+      isFirstLoad || 
+      (messages.length > previousMessageCount.current && !isUserScrolling.current);
+    
+    if (shouldScroll) {
+      // Wait longer for first render to ensure all content is loaded
+      const delay = isFirstLoad ? 150 : 50;
+      setTimeout(() => {
+        scrollToBottom(true);
+      }, delay);
     }
     
     // Update the message count for next comparison
     previousMessageCount.current = messages.length;
   }, [messages, scrollToBottom]);
 
+  // Immediate scroll to bottom when explicitly called (like after sending a message)
+  const forceScrollToBottom = useCallback(() => {
+    // Reset scroll position to force immediate scroll
+    isUserScrolling.current = false;
+    
+    // Use slightly longer timeout to ensure message is rendered
+    setTimeout(() => {
+      scrollToBottom(true);
+    }, 150);
+  }, [scrollToBottom]);
+
   return {
     scrollRef,
     lastMessageRef,
-    scrollToBottom
+    scrollToBottom,
+    forceScrollToBottom
   };
 };

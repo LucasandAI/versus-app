@@ -1,9 +1,10 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Club } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import { useClubMessageSubscriptions } from '@/hooks/chat/messages/useClubMessageSubscriptions';
+import { toast } from '@/hooks/use-toast';
 
 export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
   const [clubMessages, setClubMessages] = useState<Record<string, any[]>>({});
@@ -11,6 +12,45 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
   const [hasMore, setHasMore] = useState<Record<string, boolean>>({});
   const { currentUser } = useApp();
   const activeSubscriptionsRef = useRef<Record<string, boolean>>({});
+  const pageSize = 50;
+  
+  // Function to format messages with sender details
+  const formatMessagesWithSender = useCallback(async (messages: any[]) => {
+    if (!messages.length) return [];
+    
+    try {
+      // Get unique sender IDs from messages
+      const senderIds = [...new Set(messages.map(msg => msg.sender_id))];
+      
+      if (!senderIds.length) return messages;
+      
+      // Fetch sender details
+      const { data: users } = await supabase
+        .from('users')
+        .select('id, name, avatar')
+        .in('id', senderIds);
+        
+      const userMap = (users || []).reduce((map: Record<string, any>, user) => {
+        map[user.id] = user;
+        return map;
+      }, {});
+      
+      // Map messages with sender details
+      return messages.map(message => ({
+        id: message.id,
+        text: message.message, // Map message content to text field
+        club_id: message.club_id,
+        timestamp: message.timestamp,
+        sender: userMap[message.sender_id] || {
+          id: message.sender_id,
+          name: 'Unknown User'
+        }
+      }));
+    } catch (error) {
+      console.error('Error formatting messages with sender:', error);
+      return messages;
+    }
+  }, []);
   
   // Fetch initial messages when drawer opens
   useEffect(() => {
@@ -35,16 +75,11 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
             message, 
             sender_id, 
             club_id, 
-            timestamp,
-            sender:sender_id (
-              id, 
-              name, 
-              avatar
-            )
+            timestamp
           `)
           .in('club_id', clubIds)
           .order('timestamp', { ascending: false })
-          .limit(50);
+          .limit(pageSize);
           
         if (error) throw error;
         
@@ -53,22 +88,20 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
           const hasMoreMap: Record<string, boolean> = {};
           
           // Group messages by club_id
-          data.forEach(message => {
-            if (!messagesMap[message.club_id]) {
-              messagesMap[message.club_id] = [];
-              // If we got exactly 50 messages, assume there might be more
-              hasMoreMap[message.club_id] = true;
-            }
-            messagesMap[message.club_id].push(message);
-          });
-          
-          // Sort messages by timestamp (oldest first) for each club
-          Object.keys(messagesMap).forEach(clubId => {
-            // We fetched in descending order, so when we reverse we'll have oldest first
-            messagesMap[clubId] = messagesMap[clubId].sort(
+          for (const clubId of clubIds) {
+            const clubMessages = data.filter(msg => msg.club_id === clubId);
+            
+            // Format messages with sender details
+            const formattedMessages = await formatMessagesWithSender(clubMessages);
+            
+            // Sort messages by timestamp (oldest first)
+            messagesMap[clubId] = formattedMessages.sort(
               (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
             );
-          });
+            
+            // If we got exactly pageSize messages, assume there might be more
+            hasMoreMap[clubId] = clubMessages.length === pageSize;
+          }
           
           setClubMessages(messagesMap);
           setHasMore(hasMoreMap);
@@ -88,11 +121,17 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
           notLoadingState[club.id] = false;
         });
         setIsLoading(notLoadingState);
+        
+        toast({
+          title: "Error",
+          description: "Failed to load club messages",
+          variant: "destructive"
+        });
       }
     };
     
     fetchInitialMessages();
-  }, [isOpen, currentUser?.id, userClubs]);
+  }, [isOpen, currentUser?.id, userClubs, formatMessagesWithSender]);
   
   // Set up real-time subscription for messages
   useClubMessageSubscriptions(userClubs, isOpen, activeSubscriptionsRef, setClubMessages);
@@ -122,23 +161,21 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
           message, 
           sender_id, 
           club_id, 
-          timestamp,
-          sender:sender_id (
-            id, 
-            name, 
-            avatar
-          )
+          timestamp
         `)
         .eq('club_id', clubId)
         .lt('timestamp', oldestMessage.timestamp) // Get messages older than our oldest
         .order('timestamp', { ascending: false })
-        .limit(50);
+        .limit(pageSize);
         
       if (error) throw error;
       
       if (data && data.length > 0) {
+        // Format messages with sender details
+        const formattedMessages = await formatMessagesWithSender(data);
+        
         // Sort the newly fetched messages (oldest first)
-        const olderMessages = data.sort(
+        const olderMessages = formattedMessages.sort(
           (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
         );
         
@@ -148,16 +185,23 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
           [clubId]: [...olderMessages, ...prev[clubId]]
         }));
         
-        // If we got less than 50 messages, assume there are no more
-        setHasMore(prev => ({ ...prev, [clubId]: data.length === 50 }));
+        // If we got less than pageSize messages, assume there are no more
+        setHasMore(prev => ({ ...prev, [clubId]: data.length === pageSize }));
       } else {
         // No older messages found
         setHasMore(prev => ({ ...prev, [clubId]: false }));
       }
+      
+      setIsLoading(prev => ({ ...prev, [clubId]: false }));
     } catch (error) {
       console.error('[useClubMessages] Error fetching older messages:', error);
-    } finally {
       setIsLoading(prev => ({ ...prev, [clubId]: false }));
+      
+      toast({
+        title: "Error",
+        description: "Failed to load older messages",
+        variant: "destructive"
+      });
     }
   };
   

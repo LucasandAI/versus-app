@@ -30,13 +30,6 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const [canDelete, setCanDelete] = useState(false);
   const { navigateToUserProfile } = useNavigation();
   
-  // Debug log to see complete sender data and alignment
-  console.log(`[MessageItem] Rendering message with id ${message.id}:`, {
-    senderId: message.sender?.id || 'unknown',
-    isUserMessage: isUserMessage,
-    text: message.text?.substring(0, 20) || 'no text'
-  });
-  
   useEffect(() => {
     const checkDeletePermission = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -76,10 +69,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   };
 
   // IMPORTANT: Always use the data provided in the message object
-  // Never fall back to defaults for name - this ensures consistent display
   const senderName = message.sender?.name || 'Unknown';
-  
-  // Only use the avatar that was provided, no placeholder
   const senderAvatar = message.sender?.avatar;
 
   const renderDeleteButton = () => {
@@ -88,15 +78,15 @@ const MessageItem: React.FC<MessageItemProps> = ({
     }
 
     return (
-      <div className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
         <MessageDeleteButton onDelete={handleDeleteClick} />
       </div>
     );
   };
 
-  // Use the proper alignment for messages
+  // Use the proper alignment for messages with fixed layout
   return (
-    <div className={`flex ${isUserMessage ? 'justify-end mr-4' : 'justify-start ml-4'} mb-6 group`}>
+    <div className={`flex ${isUserMessage ? 'justify-end' : 'justify-start'} mb-6 group relative`}>
       {/* Avatar appears only for non-user messages */}
       {!isUserMessage && (
         <UserAvatar

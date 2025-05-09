@@ -1,5 +1,5 @@
 
-import React, { memo, useMemo, useRef, useEffect } from 'react';
+import React, { memo, useMemo, useEffect } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageList from './message/MessageList';
 import LoadMoreButton from './message/LoadMoreButton';
@@ -29,7 +29,6 @@ interface ChatMessagesProps {
   isLoadingMore?: boolean;
 }
 
-// Use memo to prevent unnecessary re-renders with consistent identity reference
 const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   messages,
   clubMembers,
@@ -44,12 +43,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   hasMore = false,
   isLoadingMore = false,
 }) => {
-  // Create stable references to prevent recreation
-  const prevMessageLengthRef = useRef<number>(0);
-  const scrollPositionRef = useRef<number>(0);
-  const scrollHeightRef = useRef<number>(0);
-  const firstRenderRef = useRef<boolean>(true);
-  
   const {
     currentUserId,
     currentUserAvatar: defaultUserAvatar
@@ -72,66 +65,65 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   const {
     scrollRef: defaultScrollRef,
     lastMessageRef: defaultLastMessageRef,
-    scrollToBottom
+    scrollToBottom,
+    forceScrollToBottom
   } = useMessageScroll(messages);
 
-  // Use provided values or defaults - store references to prevent recreation
+  // Use provided values or defaults
   const finalUserAvatar = providedUserAvatar || defaultUserAvatar;
   const finalLastMessageRef = providedLastMessageRef || defaultLastMessageRef;
   const finalFormatTime = providedFormatTime || defaultFormatTime;
   const finalScrollRef = providedScrollRef || defaultScrollRef;
   
-  // Force scroll to bottom on initial render and when messages change
+  // Scroll to bottom when messages change or on initial render
   useEffect(() => {
-    // Use a small timeout to ensure the DOM is updated
-    const timer = setTimeout(() => {
-      scrollToBottom();
-    }, 50);
-    
-    return () => clearTimeout(timer);
-  }, [scrollToBottom, messages.length]);
+    if (messages.length > 0) {
+      // Wait for next tick to ensure DOM updates
+      const timer = setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [messages.length, scrollToBottom]);
   
-  // Save scroll position before loading more messages
+  // Force scroll to bottom when a new message is sent by the current user
+  // This is identified by checking if the last message is from the current user
+  useEffect(() => {
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      // If the last message is from the current user, scroll to bottom
+      if (lastMessage.sender?.id === currentUserId) {
+        forceScrollToBottom();
+      }
+    }
+  }, [messages, currentUserId, forceScrollToBottom]);
+
+  // Save scroll position when loading more messages
   const handleLoadMore = () => {
     if (onLoadMore && hasMore && !isLoadingMore && finalScrollRef.current) {
-      // Store the current scroll position and height
-      scrollPositionRef.current = finalScrollRef.current.scrollTop;
-      scrollHeightRef.current = finalScrollRef.current.scrollHeight;
+      // Store the current scroll position and height before loading more messages
+      const scrollTop = finalScrollRef.current.scrollTop;
+      const scrollHeight = finalScrollRef.current.scrollHeight;
       
-      // Now load more messages
+      // Load more messages
       onLoadMore();
+      
+      // After loading, restore scroll position accounting for new content
+      requestAnimationFrame(() => {
+        if (finalScrollRef.current) {
+          const newScrollHeight = finalScrollRef.current.scrollHeight;
+          const heightDifference = newScrollHeight - scrollHeight;
+          finalScrollRef.current.scrollTop = scrollTop + heightDifference;
+        }
+      });
     }
   };
   
-  // Restore scroll position after loading more messages
-  useEffect(() => {
-    if (isLoadingMore === false && prevMessageLengthRef.current < messages.length && scrollHeightRef.current > 0) {
-      // The loading has finished and we have more messages
-      requestAnimationFrame(() => {
-        if (finalScrollRef.current) {
-          // Calculate how much the content height has changed
-          const newScrollHeight = finalScrollRef.current.scrollHeight;
-          const scrollHeightDelta = newScrollHeight - scrollHeightRef.current;
-          
-          // Adjust scroll position to maintain the same relative position
-          finalScrollRef.current.scrollTop = scrollPositionRef.current + scrollHeightDelta;
-          
-          // Reset stored heights
-          scrollHeightRef.current = 0;
-        }
-      });
-    } else if (firstRenderRef.current && messages.length > 0) {
-      // For first render with messages, scroll to bottom
-      firstRenderRef.current = false;
-      requestAnimationFrame(() => {
-        scrollToBottom();
-      });
-    }
-    
-    // Update previous message count
-    prevMessageLengthRef.current = messages.length;
-  }, [messages.length, isLoadingMore, finalScrollRef, scrollToBottom]);
-  
+  // Only normalize messages once per unique message set
+  const normalizedMessages = useMemo(() => {
+    return messages.map(message => normalizeMessage(message));
+  }, [messages, normalizeMessage]);
+
   // Handle case when messages is not an array
   if (!Array.isArray(messages)) {
     return (
@@ -142,28 +134,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
       </div>
     );
   }
-  
-  // Add debug logging to see what's being processed
-  console.log('[ChatMessages] Processing messages array:', messages.length);
-  
-  // Only normalize messages once per unique message set
-  // Using useMemo with messages reference as dependency
-  const normalizedMessages = useMemo(() => {
-    console.log('[ChatMessages] Normalizing messages, count:', messages.length);
-    // Debug log a sample message to see what's coming in
-    if (messages.length > 0) {
-      console.log('[ChatMessages] Sample message before normalization:', messages[messages.length - 1]);
-    }
-    
-    const normalized = messages.map(message => normalizeMessage(message));
-    
-    // Debug log the normalized result for comparison
-    if (normalized.length > 0) {
-      console.log('[ChatMessages] Sample normalized message:', normalized[normalized.length - 1]);
-    }
-    
-    return normalized;
-  }, [messages, normalizeMessage]);
 
   // Determine if this is a club chat by checking if there are club members
   const isClubChat = clubMembers.length > 0;

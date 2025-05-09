@@ -29,13 +29,19 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   isLoading = {},
   hasMore = {},
 }) => {
-  // Enhanced debugging for component renders and selections
   useEffect(() => {
-    console.log('[ChatMainContent] Rendering with:', {
-      hasSelectedClub: !!selectedClub,
-      clubId: selectedClub?.id
-    });
-  }, [selectedClub]);
+    // Dispatch event when a club is selected
+    if (selectedClub?.id) {
+      window.dispatchEvent(new CustomEvent('clubSelected', {
+        detail: { clubId: selectedClub.id }
+      }));
+    }
+    
+    return () => {
+      // Dispatch event when club is deselected
+      window.dispatchEvent(new CustomEvent('clubDeselected'));
+    };
+  }, [selectedClub?.id]);
 
   // If we have a selected club, render the club content
   if (selectedClub) {
@@ -43,16 +49,9 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
     const isLoadingMore = isLoading[selectedClub.id] || false;
     const hasMoreMessages = hasMore[selectedClub.id] || false;
     
-    console.log('[ChatMainContent] Rendering club messages:', { 
-      clubId: selectedClub.id, 
-      messageCount: clubMessages.length,
-      hasMore: hasMoreMessages,
-      isLoading: isLoadingMore
-    });
-    
     // Define the load more function for this specific club
     const handleLoadMore = async () => {
-      if (loadOlderMessages) {
+      if (loadOlderMessages && hasMoreMessages && !isLoadingMore) {
         console.log('[ChatMainContent] Loading older messages for club:', selectedClub.id);
         await loadOlderMessages(selectedClub.id);
       }
@@ -75,8 +74,8 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
           }}
           onDeleteMessage={onDeleteMessage}
           setClubMessages={setClubMessages}
-          clubId={selectedClub.id} // Pass clubId for proper context in ChatInput
-          globalMessages={messages} // Pass the global messages state
+          clubId={selectedClub.id}
+          globalMessages={messages}
           onLoadMore={handleLoadMore}
           hasMore={hasMoreMessages}
           isLoadingMore={isLoadingMore}
