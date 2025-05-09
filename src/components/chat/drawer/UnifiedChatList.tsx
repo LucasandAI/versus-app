@@ -24,7 +24,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
   unreadConversations = new Set()
 }) => {
   const { currentUser } = useApp();
-  const { conversations } = useDirectConversationsContext();
+  const { conversations = [] } = useDirectConversationsContext();
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
@@ -64,8 +64,12 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
         <h3 className="text-sm font-semibold text-gray-500 mb-2">Direct Messages</h3>
         <div className="space-y-2">
           {conversations.map((conversation) => {
+            if (!conversation?.participants || !Array.isArray(conversation.participants)) {
+              return null;
+            }
+
             const otherUser = conversation.participants.find(
-              (p) => p.id !== currentUser?.id
+              (p) => p?.id !== currentUser?.id
             );
             if (!otherUser) return null;
 
@@ -76,7 +80,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
                   onSelectChat(
                     'dm',
                     conversation.id,
-                    otherUser.name,
+                    otherUser.name || 'Unknown User',
                     otherUser.avatar
                   )
                 }
@@ -87,13 +91,13 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
                 }`}
               >
                 <UserAvatar
-                  name={otherUser.name}
+                  name={otherUser.name || 'Unknown User'}
                   image={otherUser.avatar}
                   size="sm"
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <p className="font-medium truncate">{otherUser.name}</p>
+                    <p className="font-medium truncate">{otherUser.name || 'Unknown User'}</p>
                     {unreadConversations.has(conversation.id) && (
                       <span className="w-2 h-2 rounded-full bg-primary" />
                     )}
