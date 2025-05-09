@@ -10,13 +10,13 @@ interface LoadMoreButtonProps {
 
 const LoadMoreButton: React.FC<LoadMoreButtonProps> = ({ onLoadMore, isLoading }) => {
   return (
-    <div className="flex justify-center py-2">
+    <div className="flex justify-center py-2 sticky top-0 z-10 bg-white/90 backdrop-blur-sm">
       <Button
-        variant="ghost"
+        variant="secondary"
         size="sm"
         onClick={onLoadMore}
         disabled={isLoading}
-        className="text-xs text-muted-foreground hover:text-primary"
+        className="text-xs hover:bg-primary/20"
       >
         {isLoading ? (
           <div className="flex items-center">

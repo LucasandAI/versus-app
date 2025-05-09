@@ -1,8 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Club } from '@/types';
-import ChatSidebarContent from '../ChatSidebarContent';
 import ChatDrawerContent from '../ChatDrawerContent';
+import { BackButton } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
+import ClubsList from '../../sidebar/ClubsList';
 
 interface ChatClubContainerProps {
   clubs: Club[];
@@ -51,19 +53,39 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
     );
   }
 
-  return (
-    <div className="flex h-full">
-      <div className="w-1/4 border-r">
-        <ChatSidebarContent 
+  // Show full width club list when no club is selected
+  if (!selectedClub) {
+    return (
+      <div className="w-full h-full">
+        <ClubsList 
           clubs={clubs}
           selectedClub={selectedClub}
           onSelectClub={onSelectClub}
+          unreadCounts={{}}
           unreadClubs={unreadClubs}
           onSelectUser={handleSelectUser}
-          activeTab="clubs"
+          setChatToDelete={() => {}}
         />
       </div>
-      <div className="w-3/4">
+    );
+  }
+
+  // Show full width chat content when a club is selected
+  return (
+    <div className="w-full h-full flex flex-col">
+      <div className="border-b p-3 flex items-center">
+        <button 
+          onClick={() => onSelectClub(null as any)} 
+          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <div className="flex-1 flex justify-center">
+          <h2 className="text-lg font-semibold">{selectedClub.name}</h2>
+        </div>
+        <div className="w-10"></div> {/* For balanced spacing */}
+      </div>
+      <div className="flex-1 overflow-hidden">
         <ChatDrawerContent 
           selectedClub={selectedClub}
           messages={messages}

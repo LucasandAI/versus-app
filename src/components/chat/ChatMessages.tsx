@@ -1,5 +1,5 @@
 
-import React, { memo, useMemo, useRef } from 'react';
+import React, { memo, useMemo, useRef, useEffect } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageList from './message/MessageList';
 import LoadMoreButton from './message/LoadMoreButton';
@@ -8,6 +8,7 @@ import { useMessageNormalization } from './message/useMessageNormalization';
 import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
 import { useCurrentMember } from '@/hooks/chat/messages/useCurrentMember';
 import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
+import Spinner from '../ui/spinner';
 
 interface ChatMessagesProps {
   messages: ChatMessage[] | any[];
@@ -45,6 +46,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
 }) => {
   // Create stable references to prevent recreation
   const prevMessageLengthRef = useRef<number>(0);
+  const scrollPositionRef = useRef<number>(0);
+  const scrollHeightRef = useRef<number>(0);
   
   const {
     currentUserId,
@@ -76,6 +79,41 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   const finalLastMessageRef = providedLastMessageRef || defaultLastMessageRef;
   const finalFormatTime = providedFormatTime || defaultFormatTime;
   const finalScrollRef = providedScrollRef || defaultScrollRef;
+  
+  // Save scroll position before loading more messages
+  const handleLoadMore = () => {
+    if (onLoadMore && hasMore && !isLoadingMore && finalScrollRef.current) {
+      // Store the current scroll position and height
+      scrollPositionRef.current = finalScrollRef.current.scrollTop;
+      scrollHeightRef.current = finalScrollRef.current.scrollHeight;
+      
+      // Now load more messages
+      onLoadMore();
+    }
+  };
+  
+  // Restore scroll position after loading more messages
+  useEffect(() => {
+    if (isLoadingMore === false && prevMessageLengthRef.current < messages.length && scrollHeightRef.current > 0) {
+      // The loading has finished and we have more messages
+      requestAnimationFrame(() => {
+        if (finalScrollRef.current) {
+          // Calculate how much the content height has changed
+          const newScrollHeight = finalScrollRef.current.scrollHeight;
+          const scrollHeightDelta = newScrollHeight - scrollHeightRef.current;
+          
+          // Adjust scroll position to maintain the same relative position
+          finalScrollRef.current.scrollTop = scrollPositionRef.current + scrollHeightDelta;
+          
+          // Reset stored heights
+          scrollHeightRef.current = 0;
+        }
+      });
+    }
+    
+    // Update previous message count
+    prevMessageLengthRef.current = messages.length;
+  }, [messages.length, isLoadingMore, finalScrollRef]);
   
   // Handle case when messages is not an array
   if (!Array.isArray(messages)) {
@@ -110,16 +148,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
     return normalized;
   }, [messages, normalizeMessage]);
 
-  // Track if messages changed and need scroll
-  if (prevMessageLengthRef.current !== messages.length) {
-    // Only auto-scroll if new messages are added at the end (not when loading older messages)
-    if (messages.length > prevMessageLengthRef.current && !isLoadingMore) {
-      // Use requestAnimationFrame to scroll after render
-      requestAnimationFrame(() => scrollToBottom());
-    }
-    prevMessageLengthRef.current = messages.length;
-  }
-
   // Determine if this is a club chat by checking if there are club members
   const isClubChat = clubMembers.length > 0;
 
@@ -131,11 +159,17 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
       }`}
     >
       {/* "Load More" button that only appears if there are more messages to load */}
-      {hasMore && onLoadMore && (
+      {hasMore && (
         <LoadMoreButton
-          onLoadMore={onLoadMore}
+          onLoadMore={handleLoadMore}
           isLoading={isLoadingMore}
         />
+      )}
+      
+      {isLoadingMore && (
+        <div className="flex justify-center py-2">
+          <Spinner size="sm" />
+        </div>
       )}
       
       <MessageList 

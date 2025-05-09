@@ -8,6 +8,7 @@ export const useMessageScroll = (messages: any[]) => {
   const isUserScrolling = useRef<boolean>(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const scrollLockRef = useRef<boolean>(false);
+  const initialLoadRef = useRef<boolean>(true);
   
   // Optimize scrolling by using a callback with requestAnimationFrame
   const scrollToBottom = useCallback((smooth = true) => {
@@ -25,12 +26,6 @@ export const useMessageScroll = (messages: any[]) => {
       if (scrollRef.current) {
         const { scrollHeight, clientHeight } = scrollRef.current;
         scrollRef.current.scrollTop = scrollHeight - clientHeight;
-        
-        // Important: Use behavior: 'auto' to prevent visual jarring
-        // scrollRef.current.scrollTo({
-        //   top: scrollHeight - clientHeight,
-        //   behavior: smooth ? 'smooth' : 'auto'
-        // });
       }
       
       // Release scroll lock after animation completes
@@ -80,21 +75,30 @@ export const useMessageScroll = (messages: any[]) => {
   useEffect(() => {
     if (!messages.length) return;
     
-    // Only auto-scroll if:
-    // 1. This is the first load (previousMessageCount.current === 0)
-    // 2. New messages were added AND user is already at bottom
+    // Always scroll down on first load or when messages appear for the first time
+    const isFirstLoad = previousMessageCount.current === 0 && messages.length > 0;
+    
+    // Only auto-scroll in two scenarios:
+    // 1. First load or first messages appearing
+    // 2. New messages were added at the end AND user is already at bottom
     const shouldScroll = 
-      previousMessageCount.current === 0 || 
+      isFirstLoad || 
       (messages.length > previousMessageCount.current && !isUserScrolling.current);
     
     if (shouldScroll && !scrollLockRef.current) {
       // Use requestAnimationFrame for smoother scrolling
       requestAnimationFrame(() => {
-        scrollToBottom(false); // Use false for auto behavior on message update
+        scrollToBottom(true);
       });
     }
     
+    // Update the message count for next comparison
     previousMessageCount.current = messages.length;
+    
+    // After initial load, reset the flag
+    if (isFirstLoad) {
+      initialLoadRef.current = false;
+    }
   }, [messages.length, scrollToBottom]);
 
   return {
