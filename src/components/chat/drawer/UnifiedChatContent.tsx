@@ -38,7 +38,7 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
   onBack
 }) => {
   const { currentUser } = useApp();
-  const { navigateToClubDetail } = useNavigation();
+  const { navigateToClubDetail, navigateToUserProfile } = useNavigation();
   const { markClubMessagesAsRead, markConversationAsRead } = useUnreadMessages();
   const [isSending, setIsSending] = useState(false);
 
@@ -73,7 +73,7 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
       // For direct messages, we need to find the other user's ID
       const otherUserId = selectedChat.id.split('_').find(id => id !== currentUser?.id);
       if (otherUserId) {
-        navigateToClubDetail(otherUserId);
+        navigateToUserProfile(otherUserId, selectedChat.name, selectedChat.avatar);
       }
     }
   };
