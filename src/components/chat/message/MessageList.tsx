@@ -31,12 +31,26 @@ const MessageList: React.FC<MessageListProps> = memo(({
   currentUserId,
   lastMessageRef
 }) => {
+  // Log current user ID for debugging
+  console.log('[MessageList] Rendering with currentUserId:', currentUserId);
+  
   // Use useMemo to avoid recreating message items on every render
   const messageItems = React.useMemo(() => {
     return messages.map((message: ChatMessage, index: number) => {
+      // Compare as strings to handle different formats of IDs
       const isUserMessage = currentUserId && 
-                           message.sender && 
-                           String(message.sender.id) === String(currentUserId);
+                          message.sender && 
+                          String(message.sender.id) === String(currentUserId);
+      
+      if (index === 0 || index % 20 === 0) {
+        console.log('[MessageList] Message alignment check:', {
+          messageId: message.id,
+          senderId: message.sender?.id,
+          currentUserId: currentUserId,
+          isUserMessage: isUserMessage
+        });
+      }
+                          
       const isLastMessage = index === messages.length - 1;
       
       // Use stable key with index to prevent remounting on ID changes

@@ -48,6 +48,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   const prevMessageLengthRef = useRef<number>(0);
   const scrollPositionRef = useRef<number>(0);
   const scrollHeightRef = useRef<number>(0);
+  const firstRenderRef = useRef<boolean>(true);
   
   const {
     currentUserId,
@@ -80,6 +81,16 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   const finalFormatTime = providedFormatTime || defaultFormatTime;
   const finalScrollRef = providedScrollRef || defaultScrollRef;
   
+  // Force scroll to bottom on initial render and when messages change
+  useEffect(() => {
+    // Use a small timeout to ensure the DOM is updated
+    const timer = setTimeout(() => {
+      scrollToBottom();
+    }, 50);
+    
+    return () => clearTimeout(timer);
+  }, [scrollToBottom, messages.length]);
+  
   // Save scroll position before loading more messages
   const handleLoadMore = () => {
     if (onLoadMore && hasMore && !isLoadingMore && finalScrollRef.current) {
@@ -109,11 +120,17 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
           scrollHeightRef.current = 0;
         }
       });
+    } else if (firstRenderRef.current && messages.length > 0) {
+      // For first render with messages, scroll to bottom
+      firstRenderRef.current = false;
+      requestAnimationFrame(() => {
+        scrollToBottom();
+      });
     }
     
     // Update previous message count
     prevMessageLengthRef.current = messages.length;
-  }, [messages.length, isLoadingMore, finalScrollRef]);
+  }, [messages.length, isLoadingMore, finalScrollRef, scrollToBottom]);
   
   // Handle case when messages is not an array
   if (!Array.isArray(messages)) {

@@ -71,7 +71,7 @@ export const useMessageScroll = (messages: any[]) => {
     };
   }, []);
 
-  // Only scroll to bottom on initial load or new messages if user isn't scrolling up
+  // Scroll to bottom when messages change
   useEffect(() => {
     if (!messages.length) return;
     
@@ -92,14 +92,17 @@ export const useMessageScroll = (messages: any[]) => {
       });
     }
     
+    // If this is the initial render with messages, always scroll to bottom
+    if (initialLoadRef.current && messages.length > 0) {
+      initialLoadRef.current = false;
+      setTimeout(() => {
+        scrollToBottom(true);
+      }, 100);
+    }
+    
     // Update the message count for next comparison
     previousMessageCount.current = messages.length;
-    
-    // After initial load, reset the flag
-    if (isFirstLoad) {
-      initialLoadRef.current = false;
-    }
-  }, [messages.length, scrollToBottom]);
+  }, [messages, scrollToBottom]);
 
   return {
     scrollRef,

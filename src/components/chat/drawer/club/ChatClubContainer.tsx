@@ -5,6 +5,8 @@ import ChatDrawerContent from '../ChatDrawerContent';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import ClubsList from '../../sidebar/ClubsList';
+import { useNavigation } from '@/hooks/useNavigation';
+import UserAvatar from '@/components/shared/UserAvatar';
 
 interface ChatClubContainerProps {
   clubs: Club[];
@@ -31,6 +33,8 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   isLoading,
   hasMore
 }) => {
+  const { navigateToClubDetail } = useNavigation();
+  
   const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
     // Dispatch event to open DM with selected user
     const openDmEvent = new CustomEvent('openDirectMessage', {
@@ -43,6 +47,12 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
     });
     
     window.dispatchEvent(openDmEvent);
+  };
+  
+  const handleClubHeaderClick = () => {
+    if (selectedClub) {
+      navigateToClubDetail(selectedClub.id, selectedClub);
+    }
   };
   
   if (clubs.length === 0) {
@@ -73,14 +83,22 @@ const ChatClubContainer: React.FC<ChatClubContainerProps> = ({
   // Show full width chat content when a club is selected
   return (
     <div className="w-full h-full flex flex-col">
-      <div className="border-b p-3 flex items-center">
+      <div className="border-b p-3 flex items-center cursor-pointer" onClick={handleClubHeaderClick}>
         <button 
-          onClick={() => onSelectClub(null as any)} 
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent triggering the header click
+            onSelectClub(null as any);
+          }} 
           className="p-2 rounded-full hover:bg-gray-100 transition-colors"
         >
           <ArrowLeft size={20} />
         </button>
-        <div className="flex-1 flex justify-center">
+        <div className="flex-1 flex items-center justify-center gap-2">
+          <UserAvatar 
+            name={selectedClub.name}
+            image={selectedClub.logo || ''}
+            size="sm"
+          />
           <h2 className="text-lg font-semibold">{selectedClub.name}</h2>
         </div>
         <div className="w-10"></div> {/* For balanced spacing */}

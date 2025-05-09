@@ -50,6 +50,14 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
       isLoading: isLoadingMore
     });
     
+    // Define the load more function for this specific club
+    const handleLoadMore = async () => {
+      if (loadOlderMessages) {
+        console.log('[ChatMainContent] Loading older messages for club:', selectedClub.id);
+        await loadOlderMessages(selectedClub.id);
+      }
+    };
+    
     return (
       <div className="flex-1 h-full flex flex-col">
         <ChatClubContent 
@@ -69,7 +77,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
           setClubMessages={setClubMessages}
           clubId={selectedClub.id} // Pass clubId for proper context in ChatInput
           globalMessages={messages} // Pass the global messages state
-          onLoadMore={loadOlderMessages ? () => loadOlderMessages(selectedClub.id) : undefined}
+          onLoadMore={handleLoadMore}
           hasMore={hasMoreMessages}
           isLoadingMore={isLoadingMore}
         />

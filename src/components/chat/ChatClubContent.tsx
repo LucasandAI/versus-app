@@ -1,5 +1,5 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Club } from '@/types';
 import ChatMessages from './ChatMessages';
 import ChatHeader from './ChatHeader';
@@ -39,6 +39,11 @@ const ChatClubContent: React.FC<ChatClubContentProps> = ({
   const { currentUser } = useApp();
   const scrollRef = useRef<HTMLDivElement>(null);
   
+  // Log message stats for debugging
+  useEffect(() => {
+    console.log(`[ChatClubContent] Rendering with ${messages?.length || 0} messages for club ${club?.name || 'unknown'}`);
+  }, [messages, club]);
+  
   return (
     <>
       <ChatHeader 
@@ -50,7 +55,7 @@ const ChatClubContent: React.FC<ChatClubContentProps> = ({
       <div className="flex-1 overflow-hidden">
         <ChatMessages 
           messages={messages} 
-          clubMembers={[]} 
+          clubMembers={club.members || []} 
           onSelectUser={onSelectUser}
           onDeleteMessage={onDeleteMessage}
           currentUserAvatar={currentUser?.avatar}

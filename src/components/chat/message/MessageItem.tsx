@@ -30,11 +30,11 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const [canDelete, setCanDelete] = useState(false);
   const { navigateToUserProfile } = useNavigation();
   
-  // Debug log to see complete sender data
-  console.log(`[MessageItem] Rendering message with id ${message.id}, sender:`, {
-    id: message.sender?.id || 'unknown',
-    name: message.sender?.name || 'unknown',
-    avatar: message.sender?.avatar || 'undefined'
+  // Debug log to see complete sender data and alignment
+  console.log(`[MessageItem] Rendering message with id ${message.id}:`, {
+    senderId: message.sender?.id || 'unknown',
+    isUserMessage: isUserMessage,
+    text: message.text?.substring(0, 20) || 'no text'
   });
   
   useEffect(() => {
@@ -84,11 +84,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
   const renderDeleteButton = () => {
     if (!isUserMessage || !canDelete || !onDeleteMessage) {
-      return (
-        <div className="w-8 h-8 opacity-0" aria-hidden="true">
-          {/* Placeholder to maintain layout */}
-        </div>
-      );
+      return null;
     }
 
     return (
@@ -135,8 +131,18 @@ const MessageItem: React.FC<MessageItemProps> = ({
         </div>
       </div>
 
-      {/* Delete button for user's own messages */}
-      {isUserMessage && renderDeleteButton()}
+      {/* User avatar for user's own messages */}
+      {isUserMessage && (
+        <div className="flex items-start ml-2">
+          {renderDeleteButton()}
+          <UserAvatar
+            name="You"
+            image={currentUserAvatar}
+            size="sm"
+            className="flex-shrink-0"
+          />
+        </div>
+      )}
     </div>
   );
 };
