@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Club } from '@/types';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { useChatActions } from '@/hooks/chat/useChatActions';
@@ -109,33 +109,30 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     return directMessages;
   };
 
+  const handleBack = () => {
+    setSelectedChat(null);
+  };
+
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="h-[80vh] rounded-t-xl p-0 flex flex-col">
-        <div className="flex h-full">
-          {/* Chat List Sidebar */}
-          <div className="w-80 border-r">
-            <UnifiedChatList
-              clubs={clubs}
-              selectedChat={selectedChat}
-              onSelectChat={handleSelectChat}
-              unreadClubs={unreadClubs}
-              unreadConversations={unreadConversations}
-            />
-          </div>
-
-          {/* Chat Content */}
-          <div className="flex-1">
-            <UnifiedChatContent
-              selectedChat={selectedChat}
-              club={selectedClub}
-              messages={getMessages()}
-              onSendMessage={handleSendMessage}
-              onDeleteMessage={handleDeleteMessage}
-              onSelectUser={handleSelectUser}
-            />
-          </div>
-        </div>
+        {selectedChat ? (
+          <UnifiedChatContent
+            selectedChat={selectedChat}
+            club={selectedClub}
+            messages={getMessages()}
+            onSendMessage={handleSendMessage}
+            onDeleteMessage={handleDeleteMessage}
+            onSelectUser={handleSelectUser}
+            onBack={handleBack}
+          />
+        ) : (
+          <UnifiedChatList
+            onSelectChat={handleSelectChat}
+            selectedChatId={selectedChat?.id}
+            selectedChatType={selectedChat?.type}
+          />
+        )}
       </DrawerContent>
     </Drawer>
   );
