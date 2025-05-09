@@ -47,15 +47,23 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
               messagesMap[message.club_id] = [];
             }
             
-            // Ensure sender information is properly structured
+            // Ensure sender information is properly structured and check if message is from current user
             const normalizedMessage = {
               ...message,
               sender: message.sender || {
                 id: message.sender_id,
                 name: 'Unknown User',
                 avatar: null
-              }
+              },
+              isUserMessage: String(message.sender_id) === String(currentUser.id)
             };
+            
+            console.log('[useClubMessages] Normalizing message:', {
+              messageId: message.id,
+              senderId: message.sender_id,
+              currentUserId: currentUser.id,
+              isUserMessage: normalizedMessage.isUserMessage
+            });
             
             messagesMap[message.club_id].push(normalizedMessage);
           });
