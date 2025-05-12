@@ -3,11 +3,22 @@ import { Club } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import { useClubMessageSubscriptions } from '@/hooks/chat/messages/useClubMessageSubscriptions';
+import { useMessageNormalization } from '@/components/chat/message/useMessageNormalization';
 
 export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
   const [clubMessages, setClubMessages] = useState<Record<string, any[]>>({});
   const { currentUser } = useApp();
   const activeSubscriptionsRef = useRef<Record<string, boolean>>({});
+  
+  // Get the message normalization function
+  const { normalizeMessage } = useMessageNormalization(
+    currentUser?.id || null,
+    (senderId) => {
+      // This is a fallback that should rarely be used since we're fetching sender info
+      const club = userClubs.find(c => c.members?.some(m => m.id === senderId));
+      return club?.members?.find(m => m.id === senderId)?.name || 'Unknown User';
+    }
+  );
   
   // Fetch initial messages when drawer opens
   useEffect(() => {
@@ -41,24 +52,16 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
         if (data) {
           const messagesMap: Record<string, any[]> = {};
           
-          // Group messages by club_id and normalize sender information
+          // Group messages by club_id and normalize messages
           data.forEach(message => {
             if (!messagesMap[message.club_id]) {
               messagesMap[message.club_id] = [];
             }
             
-            // Ensure sender information is properly structured and check if message is from current user
-            const normalizedMessage = {
-              ...message,
-              sender: message.sender || {
-                id: message.sender_id,
-                name: 'Unknown User',
-                avatar: null
-              },
-              isUserMessage: String(message.sender_id) === String(currentUser.id)
-            };
+            // Use the same normalization logic as the rest of the app
+            const normalizedMessage = normalizeMessage(message);
             
-            console.log('[useClubMessages] Normalizing message:', {
+            console.log('[useClubMessages] Normalized message:', {
               messageId: message.id,
               senderId: message.sender_id,
               currentUserId: currentUser.id,
@@ -93,7 +96,7 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
     };
     
     fetchInitialMessages();
-  }, [isOpen, currentUser?.id, userClubs]);
+  }, [isOpen, currentUser?.id, userClubs, normalizeMessage]);
   
   // Set up real-time subscription for messages
   useClubMessageSubscriptions(userClubs, isOpen, activeSubscriptionsRef, setClubMessages);
