@@ -153,6 +153,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
           />
         ) : (
           <UnifiedChatList
+            key={open ? 'open' : 'closed'}
             onSelectChat={handleSelectChat}
             selectedChatId={selectedChat?.id}
             selectedChatType={selectedChat?.type}
