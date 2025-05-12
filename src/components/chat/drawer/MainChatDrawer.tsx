@@ -38,10 +38,10 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const { unreadClubs, unreadConversations } = useUnreadMessages();
   const { currentUser } = useApp();
   const { fetchConversations, getOrCreateConversation } = useDirectConversationsContext();
-  const { sendMessageToClub, deleteMessage } = useChatActions();
+  const { sendMessageToClub, sendDirectMessage, deleteMessage } = useChatActions();
 
   // Get messages based on chat type
-  const { messages: directMessages } = useDirectMessages(
+  const { messages: directMessages, setMessages: setDirectMessages } = useDirectMessages(
     selectedChat?.type === 'dm' ? selectedChat.id : null
   );
 
@@ -96,30 +96,18 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const handleSendMessage = useCallback(async (message: string, chatId: string, type: 'club' | 'dm') => {
     if (type === 'club' && setClubMessages) {
       await sendMessageToClub(chatId, message, setClubMessages);
-    } else if (type === 'dm') {
-      // Handle DM message sending
-      const { data, error } = await supabase
-        .from('direct_messages')
-        .insert({
-          text: message,
-          sender_id: currentUser?.id,
-          conversation_id: chatId
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('[MainChatDrawer] Error sending DM:', error);
-        throw error;
-      }
+    } else if (type === 'dm' && setDirectMessages) {
+      await sendDirectMessage(chatId, message, setDirectMessages);
     }
-  }, [sendMessageToClub, setClubMessages, currentUser?.id]);
+  }, [sendMessageToClub, sendDirectMessage, setClubMessages, setDirectMessages]);
 
   const handleDeleteMessage = useCallback(async (messageId: string) => {
-    if (setClubMessages) {
+    if (selectedChat?.type === 'club' && setClubMessages) {
       await deleteMessage(messageId, setClubMessages);
+    } else if (selectedChat?.type === 'dm' && setDirectMessages) {
+      await deleteMessage(messageId, undefined, setDirectMessages);
     }
-  }, [deleteMessage, setClubMessages]);
+  }, [deleteMessage, selectedChat?.type, setClubMessages, setDirectMessages]);
 
   const handleSelectUser = useCallback((userId: string, userName: string, userAvatar?: string) => {
     const event = new CustomEvent('openDirectMessage', {

@@ -137,5 +137,5 @@ export const useDirectMessages = (conversationId: string | null) => {
     };
   }, [conversationId, currentUser?.id]);
 
-  return { messages };
+  return { messages, setMessages };
 }; 
