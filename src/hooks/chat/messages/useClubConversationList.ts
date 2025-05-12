@@ -18,6 +18,7 @@ export function useClubConversationList(clubs: Club[]) {
       .eq('club_id', clubId)
       .order('timestamp', { ascending: false })
       .limit(1);
+    console.log('[fetchLastMessage]', { clubId, data, error });
     if (error) return null;
     return data && data[0] ? data[0] : null;
   };
@@ -54,6 +55,7 @@ export function useClubConversationList(clubs: Club[]) {
   React.useEffect(() => {
     if (!clubs.length) return;
     const clubIds = clubs.map(c => c.id);
+    console.log('[useClubConversationList] Subscribing to club_chat_messages for clubIds:', clubIds);
     const channel = supabase
       .channel('club-conversation-list-realtime')
       .on('postgres_changes', {
@@ -61,7 +63,8 @@ export function useClubConversationList(clubs: Club[]) {
         schema: 'public',
         table: 'club_chat_messages',
         filter: `club_id=in.(${clubIds.map(id => `'${id}'`).join(',')})`
-      }, async () => {
+      }, async (payload) => {
+        console.log('[useClubConversationList] Real-time event received:', payload);
         await fetchAll();
       })
       .subscribe();
