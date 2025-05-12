@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { DMConversation } from '../types';
 import { toast } from '@/hooks/use-toast';
@@ -99,7 +98,7 @@ export const buildFinalConversations = (
       userId: otherUserId,
       userName: user.name,
       userAvatar: user.avatar || '/placeholder.svg',
-      lastMessage: latestMessage ? latestMessage.text : '',
+      lastMessage: latestMessage && typeof latestMessage.text === 'string' ? latestMessage.text : '',
       timestamp: latestMessage ? latestMessage.timestamp : conv.created_at
     };
   }).filter(Boolean); // Filter out any null entries (self-conversations)
