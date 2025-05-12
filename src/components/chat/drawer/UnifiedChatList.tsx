@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
 import { useUnreadMessages } from '@/context/unread-messages';
-import { useClubLastMessages } from '@/hooks/chat/messages/useClubLastMessages';
+import { useClubConversationList } from '@/hooks/chat/messages/useClubConversationList';
 import UserAvatar from '@/components/shared/UserAvatar';
 import { MessageSquare, Search as SearchIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,7 +27,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
   const [isSearching, setIsSearching] = useState(false);
 
   const userClubs = currentUser?.clubs || [];
-  const { lastMessages, sortedClubs } = useClubLastMessages(userClubs);
+  const clubConversations = useClubConversationList(userClubs);
 
   const isLoading = loadingDMs;
   const isEmpty = !isLoading && directConversations.length === 0 && userClubs.length === 0;
@@ -113,14 +113,12 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
       </div>
 
       {/* Club Chats Section */}
-      {sortedClubs.length > 0 && (
+      {clubConversations.length > 0 && (
         <div className="mb-4">
           <h2 className="text-sm font-semibold text-gray-500 px-4 py-2">Club Chats</h2>
-          {sortedClubs.map((club) => {
+          {clubConversations.map(({ club, lastMessage }) => {
             const isSelected = selectedChatType === 'club' && selectedChatId === club.id;
             const hasUnread = unreadMessages.has(`club:${club.id}`);
-            const lastMessage = lastMessages[club.id];
-            
             return (
               <button
                 key={club.id}
@@ -148,7 +146,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
                     <p className="text-sm text-gray-500 truncate">
                       {lastMessage ? (
                         <>
-                          <span className="font-medium">{lastMessage.sender?.name}: </span>
+                          <span className="font-medium">{lastMessage.sender_username || lastMessage.sender?.name}: </span>
                           {lastMessage.message}
                         </>
                       ) : (
