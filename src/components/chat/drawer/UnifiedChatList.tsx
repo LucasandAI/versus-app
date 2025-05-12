@@ -172,7 +172,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
         {directConversations.map((conversation) => {
           const isSelected = selectedChatType === 'dm' && selectedChatId === conversation.conversationId;
           const hasUnread = unreadMessages.has(`dm:${conversation.conversationId}`);
-          
+
           return (
             <button
               key={conversation.conversationId}
@@ -189,23 +189,16 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <p className="font-medium truncate">{conversation.userName}</p>
-                  {conversation.lastMessage?.timestamp && (
+                  {conversation.timestamp && (
                     <span className="text-xs text-gray-500">
-                      {new Date(conversation.lastMessage.timestamp).toLocaleDateString()}
+                      {new Date(conversation.timestamp).toLocaleDateString()}
                     </span>
                   )}
                 </div>
                 <div className="flex items-center space-x-2">
                   <MessageSquare className="h-4 w-4 text-gray-400" />
                   <p className="text-sm text-gray-500 truncate">
-                    {conversation.lastMessage ? (
-                      <>
-                        <span className="font-medium">{conversation.lastMessage.sender?.name}: </span>
-                        {conversation.lastMessage.text}
-                      </>
-                    ) : (
-                      "No messages yet"
-                    )}
+                    {conversation.lastMessage ? conversation.lastMessage : "No messages yet"}
                   </p>
                   {hasUnread && (
                     <span className="ml-2 h-2 w-2 rounded-full bg-blue-500" />
