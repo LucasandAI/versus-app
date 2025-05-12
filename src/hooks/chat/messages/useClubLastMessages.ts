@@ -1,13 +1,12 @@
-
-import { useEffect, useState } from 'react';
+import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
 
 export const useClubLastMessages = (clubs: Club[]) => {
-  const [lastMessages, setLastMessages] = useState<Record<string, any>>({});
-  const [sortedClubs, setSortedClubs] = useState<Club[]>([]);
+  const [lastMessages, setLastMessages] = React.useState<Record<string, any>>({});
+  const [sortedClubs, setSortedClubs] = React.useState<Club[]>([]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!clubs.length) {
       setSortedClubs([]);
       return;
@@ -80,9 +79,9 @@ export const useClubLastMessages = (clubs: Club[]) => {
           table: 'club_chat_messages',
           filter: clubs.length > 0 ? `club_id=in.(${clubs.map(c => `'${c.id}'`).join(',')})` : undefined
         },
-        () => {
-          console.log('[useClubLastMessages] Received realtime message update');
-          fetchLatestMessages(); // Refresh messages when changes occur
+        (payload) => {
+          console.log('[useClubLastMessages] Received realtime message update:', payload.eventType);
+          fetchLatestMessages(); // Refresh messages when changes occur (including DELETE)
         }
       )
       .subscribe();
