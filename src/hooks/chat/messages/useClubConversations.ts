@@ -7,6 +7,14 @@ export interface ClubConversation {
   lastMessage: any | null;
 }
 
+function normalizeMessage(msg: any): any {
+  if (!msg) return null;
+  return {
+    ...msg,
+    text: msg.text || msg.message || '',
+  };
+}
+
 export function useClubConversations(clubs: Club[]) {
   const [conversations, setConversations] = React.useState<ClubConversation[]>([]);
 
@@ -19,7 +27,7 @@ export function useClubConversations(clubs: Club[]) {
       .order('timestamp', { ascending: false })
       .limit(1);
     if (error) return null;
-    return data && data[0] ? data[0] : null;
+    return data && data[0] ? normalizeMessage(data[0]) : null;
   };
 
   // Initial fetch and setup
@@ -40,7 +48,7 @@ export function useClubConversations(clubs: Club[]) {
       const latestByClub: Record<string, any> = {};
       data.forEach(msg => {
         if (!latestByClub[msg.club_id]) {
-          latestByClub[msg.club_id] = msg;
+          latestByClub[msg.club_id] = normalizeMessage(msg);
         }
       });
       const arr: ClubConversation[] = clubs.map(club => ({
