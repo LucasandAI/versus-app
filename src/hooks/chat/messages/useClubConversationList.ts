@@ -55,6 +55,7 @@ export function useClubConversationList(clubs: Club[]) {
 
   // Real-time subscription: on any event, re-fetch all
   React.useEffect(() => {
+    console.log('[useClubConversationList] Real-time effect running with clubs:', clubs.map(c => c.id));
     if (!clubs.length) return;
     const clubIds = clubs.map(c => c.id);
     console.log('[useClubConversationList] Setting up real-time subscription for clubIds:', clubIds);
