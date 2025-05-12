@@ -81,29 +81,8 @@ export const useClubLastMessages = (clubs: Club[]) => {
         },
         (payload) => {
           console.log('[useClubLastMessages] Real-time event:', payload);
-          const msg = payload.new || payload.old;
-          console.log('[useClubLastMessages] EventType:', payload.eventType, 'club_id:', msg?.club_id, 'msg:', msg);
-          if (!msg || !msg.club_id) return;
-          if (payload.eventType === 'DELETE') {
-            // On delete, refetch the latest message for this club
-            fetchLatestMessages();
-          } else {
-            // On insert/update, update lastMessages for this club
-            setLastMessages(prev => ({
-              ...prev,
-              [msg.club_id]: msg
-            }));
-            // Also update sorted clubs
-            setSortedClubs(prev => {
-              // Resort clubs by latest timestamp
-              const clubsWithTimestamps = prev.map(club => {
-                const lastMessage = club.id === msg.club_id ? msg : lastMessages[club.id];
-                const lastTimestamp = lastMessage ? new Date(lastMessage.timestamp).getTime() : 0;
-                return { club, lastTimestamp };
-              });
-              return clubsWithTimestamps.sort((a, b) => b.lastTimestamp - a.lastTimestamp).map(item => item.club);
-            });
-          }
+          // On any event, refetch the latest messages for all clubs
+          fetchLatestMessages();
         }
       )
       .subscribe();
