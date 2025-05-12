@@ -4,14 +4,9 @@ import { Club } from '@/types';
 
 export const useClubLastMessages = (clubs: Club[]) => {
   const [lastMessages, setLastMessages] = React.useState<Record<string, any>>({});
-  const [sortedClubs, setSortedClubs] = React.useState<Club[]>([]);
-  const [forceUpdate, setForceUpdate] = React.useState(0); // dummy state to force re-render
 
   React.useEffect(() => {
-    if (!clubs.length) {
-      setSortedClubs([]);
-      return;
-    }
+    if (!clubs.length) return;
 
     const fetchLatestMessages = async () => {
       const clubIds = clubs.map(club => club.id);
@@ -42,30 +37,6 @@ export const useClubLastMessages = (clubs: Club[]) => {
       }, {});
 
       setLastMessages(latestMessages);
-      
-      // Sort clubs by most recent message timestamp - no memoization, direct sorting on every update
-      const clubsWithTimestamps = clubs.map(club => {
-        const lastMessage = latestMessages[club.id];
-        // Use the message timestamp or a default old date if no messages
-        const lastTimestamp = lastMessage ? 
-          new Date(lastMessage.timestamp).getTime() : 
-          0;
-        
-        return {
-          club,
-          lastTimestamp
-        };
-      });
-      
-      // Sort by timestamp (most recent first) - No memoization, direct sorting
-      const sorted = clubsWithTimestamps
-        .sort((a, b) => b.lastTimestamp - a.lastTimestamp)
-        .map(item => item.club);
-        
-      // Update sorted clubs directly
-      setSortedClubs(sorted);
-      setForceUpdate(f => f + 1); // force re-render
-      console.log('[useClubLastMessages] Setting sorted clubs and forcing update:', sorted);
     };
 
     fetchLatestMessages();
@@ -84,21 +55,6 @@ export const useClubLastMessages = (clubs: Club[]) => {
       return data && data[0] ? data[0] : null;
     };
 
-    const updateAndResort = (updatedLastMessages: Record<string, any>) => {
-      setLastMessages(updatedLastMessages);
-      // Resort clubs by latest timestamp
-      const clubsWithTimestamps = clubs.map(club => {
-        const lastMessage = updatedLastMessages[club.id];
-        const lastTimestamp = lastMessage ? new Date(lastMessage.timestamp).getTime() : 0;
-        return { club, lastTimestamp };
-      });
-      const sorted = clubsWithTimestamps
-        .sort((a, b) => b.lastTimestamp - a.lastTimestamp)
-        .map(item => item.club);
-      setSortedClubs(sorted);
-      setForceUpdate(f => f + 1);
-    };
-
     // Set up realtime subscription for new messages
     const channel = supabase
       .channel('club-last-messages')
@@ -114,15 +70,14 @@ export const useClubLastMessages = (clubs: Club[]) => {
           console.log('[useClubLastMessages] Real-time event:', payload);
           const msg = payload.new || payload.old;
           if (!msg || !msg.club_id) return;
+          
           if (payload.eventType === 'DELETE') {
             // On delete, refetch the latest message for this club only
             const latest = await fetchLatestMessageForClub(msg.club_id);
-            const updatedLastMessages = { ...lastMessages, [msg.club_id]: latest };
-            updateAndResort(updatedLastMessages);
+            setLastMessages(prev => ({ ...prev, [msg.club_id]: latest }));
           } else {
             // On insert/update, update lastMessages for this club only
-            const updatedLastMessages = { ...lastMessages, [msg.club_id]: msg };
-            updateAndResort(updatedLastMessages);
+            setLastMessages(prev => ({ ...prev, [msg.club_id]: msg }));
           }
         }
       )
@@ -133,14 +88,10 @@ export const useClubLastMessages = (clubs: Club[]) => {
     };
   }, [clubs]);
 
-  // Return without any memoization to ensure fresh data on each render
   return { 
-    lastMessages, 
-    sortedClubs: sortedClubs.length > 0 ? sortedClubs : clubs,
+    lastMessages,
     _debug: { 
-      lastMessagesKeys: Object.keys(lastMessages),
-      sortedClubIds: sortedClubs.map(c => c.id),
-      forceUpdate
+      lastMessagesKeys: Object.keys(lastMessages)
     }
   };
 };
