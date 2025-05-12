@@ -8,6 +8,7 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
   const [clubMessages, setClubMessages] = useState<Record<string, any[]>>({});
   const { currentUser } = useApp();
   const activeSubscriptionsRef = useRef<Record<string, boolean>>({});
+  const initialMessagesFetchedRef = useRef<Record<string, boolean>>({});
   
   // Fetch initial messages when drawer opens
   useEffect(() => {
@@ -73,6 +74,8 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
             messagesMap[clubId] = messagesMap[clubId].sort(
               (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
             );
+            // Mark this club's messages as fetched
+            initialMessagesFetchedRef.current[clubId] = true;
           });
           
           console.log('[useClubMessages] Initial messages fetched:', {
@@ -92,7 +95,11 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
       }
     };
     
-    fetchInitialMessages();
+    // Only fetch messages for clubs that haven't been fetched yet
+    const unfetchedClubs = userClubs.filter(club => !initialMessagesFetchedRef.current[club.id]);
+    if (unfetchedClubs.length > 0) {
+      fetchInitialMessages();
+    }
   }, [isOpen, currentUser?.id, userClubs]);
   
   // Set up real-time subscription for messages
