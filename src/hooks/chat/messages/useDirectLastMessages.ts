@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useDirectLastMessages(conversationIds: string[]) {
-  const [lastMessages, setLastMessages] = useState<Record<string, { text: string; timestamp: string }>>({});
+  const [lastMessages, setLastMessages] = React.useState<Record<string, { text: string; timestamp: string }>>({});
+  const processedIds = React.useRef(new Set<string>());
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!conversationIds.length) {
       setLastMessages({});
       return;
@@ -45,11 +46,29 @@ export function useDirectLastMessages(conversationIds: string[]) {
           schema: 'public',
           table: 'direct_messages',
         },
-        (payload) => {
+        async (payload) => {
           const msg = payload.new;
-          if (conversationIds.includes(msg.conversation_id)) {
-            fetchLastMessages();
+          if (!msg || !conversationIds.includes(msg.conversation_id)) return;
+
+          // Skip if we've already processed this message
+          const msgId = msg.id?.toString();
+          if (msgId && processedIds.current.has(msgId)) {
+            console.log('[useDirectLastMessages] Skipping duplicate message:', msgId);
+            return;
           }
+
+          if (msgId) {
+            processedIds.current.add(msgId);
+          }
+
+          // Update the last message for this conversation
+          setLastMessages(prev => ({
+            ...prev,
+            [msg.conversation_id]: {
+              text: msg.text,
+              timestamp: msg.timestamp
+            }
+          }));
         }
       )
       .subscribe();
@@ -57,6 +76,7 @@ export function useDirectLastMessages(conversationIds: string[]) {
     return () => {
       isMounted = false;
       channel.unsubscribe();
+      processedIds.current.clear();
     };
   }, [JSON.stringify(conversationIds)]);
 
