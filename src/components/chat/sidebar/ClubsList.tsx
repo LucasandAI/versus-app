@@ -3,6 +3,7 @@ import { Club } from '@/types';
 import UserAvatar from '../../shared/UserAvatar';
 import ClubMembersPopover from './ClubMembersPopover';
 import { useNavigation } from '@/hooks/useNavigation';
+import { formatDistanceToNow } from 'date-fns';
 import { useUnreadMessages } from '@/context/unread-messages';
 import { Badge } from '@/components/ui/badge';
 
@@ -63,7 +64,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
       <h1 className="text-4xl font-bold mb-4">Clubs</h1>
       
       <div className="divide-y">
-        {clubs.map(club => {
+        {sortedClubs.map(club => {
           // Get club ID as string to ensure consistent comparison
           const clubId = String(club.id);
           const isUnread = unreadClubs.has(clubId);
@@ -71,7 +72,10 @@ const ClubsList: React.FC<ClubsListProps> = ({
           console.log(`[ClubsList] Rendering club ${club.name} (${clubId}), isUnread:`, isUnread);
           
           const lastMessage = lastMessages[club.id];
-          
+          const formattedTime = lastMessage?.timestamp 
+            ? formatDistanceToNow(new Date(lastMessage.timestamp), { addSuffix: false })
+            : '';
+            
           return (
             <div 
               key={`${club.id}-${isUnread ? 'unread' : 'read'}-${unreadKey}`}
@@ -86,24 +90,48 @@ const ClubsList: React.FC<ClubsListProps> = ({
                 size="lg"
                 className="flex-shrink-0 mr-3"
               />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium truncate">{club.name}</h3>
+
+              <div className="flex-1 min-w-0 overflow-hidden">
+                <div className="flex items-center justify-between mb-1">
+                  <h2 className={`text-lg truncate max-w-[60%] ${isUnread ? 'font-bold' : 'font-medium'}`}>
+                    {club.name}
+                  </h2>
+                  {formattedTime && (
+                    <span className={`text-xs ${isUnread ? 'font-bold' : 'text-gray-500'} flex-shrink-0 ml-auto`}>
+                      {formattedTime}
+                    </span>
+                  )}
                 </div>
-                {lastMessage && (
-                  <p className="text-sm text-gray-500 truncate">
-                    {truncateMessage(lastMessage.message)}
+                
+                <div className="flex items-center">
+                  <p className={`text-sm truncate flex-1 ${isUnread ? 'text-gray-900' : 'text-gray-600'}`}>
+                    {lastMessage ? (
+                      <>
+                        <span className={isUnread ? 'font-bold' : 'font-medium'}>
+                          {lastMessage.sender?.name || 'Unknown'}:
+                        </span>{' '}
+                        {truncateMessage(lastMessage.message)}
+                      </>
+                    ) : (
+                      "No messages yet"
+                    )}
                   </p>
-                )}
-              </div>
-              {isUnread && (
-                <div className="ml-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                  New
+                  {isUnread && (
+                    <Badge variant="dot" className="ml-2" />
+                  )}
                 </div>
-              )}
+                
+                <ClubMembersPopover club={club} onSelectUser={onSelectUser} />
+              </div>
             </div>
           );
         })}
+        
+        {clubs.length === 0 && (
+          <div className="text-center py-4 text-sm text-gray-500">
+            You don't have any clubs yet
+          </div>
+        )}
       </div>
     </div>
   );

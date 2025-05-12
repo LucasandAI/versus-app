@@ -40,8 +40,8 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   const { setCurrentView, setSelectedUser } = useApp();
   const [chatToDelete, setChatToDelete] = React.useState<{id: string, name: string} | null>(null);
 
-  // Get lastMessages only
-  const { lastMessages } = useClubLastMessages(clubs);
+  // LIFTED: Get lastMessages and sortedClubs here
+  const { lastMessages, sortedClubs } = useClubLastMessages(clubs);
 
   const handleDeleteChat = () => {
     if (chatToDelete && onDeleteChat) {
@@ -67,7 +67,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
           onSelectUser={onSelectUser}
           setChatToDelete={setChatToDelete}
           lastMessages={lastMessages}
-          sortedClubs={clubs}
+          sortedClubs={sortedClubs}
         />
       )}
 
