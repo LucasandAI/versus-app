@@ -12,7 +12,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import ClubsList from './sidebar/ClubsList';
-import { useClubConversationsContext } from '@/context/ClubConversationsContext';
+import { useClubConversationList } from '@/hooks/chat/messages/useClubConversationList';
 
 interface ChatSidebarProps {
   clubs: Club[];
@@ -37,10 +37,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
 }) => {
   const { setCurrentView, setSelectedUser } = useApp();
   const [chatToDelete, setChatToDelete] = React.useState<{id: string, name: string} | null>(null);
-  const { clubConversations } = useClubConversationsContext();
-
-  // Key to force re-render when conversations change
-  const conversationsKey = clubConversations.map(c => `${c.club.id}:${c.lastMessage?.id || ''}:${c.lastMessage?.timestamp || ''}`).join('|');
+  const clubConversations = useClubConversationList(clubs);
 
   const handleDeleteChat = () => {
     if (chatToDelete && onDeleteChat) {
@@ -48,16 +45,12 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
       setChatToDelete(null);
     }
   };
-  
-  // Create a key for forced re-renders
-  const unreadKey = JSON.stringify([...unreadClubs].sort());
 
   return (
     <div className="flex-1 overflow-auto bg-white">
       {/* Only show clubs when the clubs tab is active */}
       {activeTab === "clubs" && (
         <ClubsList
-          key={`clubs-list-${unreadKey}-${conversationsKey}`}
           clubConversations={clubConversations}
           selectedClub={selectedClub}
           onSelectClub={onSelectClub}
@@ -67,8 +60,6 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
           setChatToDelete={setChatToDelete}
         />
       )}
-
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!chatToDelete} onOpenChange={(open) => !open && setChatToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
