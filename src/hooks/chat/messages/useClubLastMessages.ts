@@ -2,12 +2,13 @@ import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
 
-export const useClubLastMessages = (clubs: Club[] = []) => {
+export const useClubLastMessages = (clubs: Club[]) => {
   const [lastMessages, setLastMessages] = React.useState<Record<string, any>>({});
+  const [sortedClubs, setSortedClubs] = React.useState<Club[]>([]);
 
   React.useEffect(() => {
-    if (!clubs?.length) {
-      setLastMessages({});
+    if (!clubs.length) {
+      setSortedClubs([]);
       return;
     }
 
@@ -32,7 +33,7 @@ export const useClubLastMessages = (clubs: Club[] = []) => {
       }
 
       // Group messages by club_id and take only the most recent one
-      const latestMessages = (data || []).reduce((acc: Record<string, any>, message) => {
+      const latestMessages = data.reduce((acc: Record<string, any>, message) => {
         if (!acc[message.club_id]) {
           acc[message.club_id] = message;
         }
@@ -40,23 +41,32 @@ export const useClubLastMessages = (clubs: Club[] = []) => {
       }, {});
 
       setLastMessages(latestMessages);
+      
+      // Sort clubs by most recent message timestamp - no memoization, direct sorting on every update
+      const clubsWithTimestamps = clubs.map(club => {
+        const lastMessage = latestMessages[club.id];
+        // Use the message timestamp or a default old date if no messages
+        const lastTimestamp = lastMessage ? 
+          new Date(lastMessage.timestamp).getTime() : 
+          0;
+        
+        return {
+          club,
+          lastTimestamp
+        };
+      });
+      
+      // Sort by timestamp (most recent first) - No memoization, direct sorting
+      const sorted = clubsWithTimestamps
+        .sort((a, b) => b.lastTimestamp - a.lastTimestamp)
+        .map(item => item.club);
+        
+      // Update sorted clubs directly
+      console.log('[useClubLastMessages] Setting sorted clubs:', sorted);
+      setSortedClubs(sorted);
     };
 
     fetchLatestMessages();
-
-    const fetchLatestMessageForClub = async (clubId: string) => {
-      const { data, error } = await supabase
-        .from('club_chat_messages')
-        .select(`*, sender:sender_id ( id, name )`)
-        .eq('club_id', clubId)
-        .order('timestamp', { ascending: false })
-        .limit(1);
-      if (error) {
-        console.error('[useClubLastMessages] Error fetching latest message for club:', clubId, error);
-        return null;
-      }
-      return data?.[0] || null;
-    };
 
     // Set up realtime subscription for new messages
     const channel = supabase
@@ -69,19 +79,9 @@ export const useClubLastMessages = (clubs: Club[] = []) => {
           table: 'club_chat_messages',
           filter: clubs.length > 0 ? `club_id=in.(${clubs.map(c => `'${c.id}'`).join(',')})` : undefined
         },
-        async (payload) => {
-          console.log('[useClubLastMessages] Real-time event:', payload);
-          const msg = payload.new || payload.old;
-          if (!msg?.club_id) return;
-          
-          if (payload.eventType === 'DELETE') {
-            // On delete, refetch the latest message for this club only
-            const latest = await fetchLatestMessageForClub(msg.club_id);
-            setLastMessages(prev => ({ ...prev, [msg.club_id]: latest }));
-          } else {
-            // On insert/update, update lastMessages for this club only
-            setLastMessages(prev => ({ ...prev, [msg.club_id]: msg }));
-          }
+        (payload) => {
+          console.log('[useClubLastMessages] Received realtime message update:', payload.eventType);
+          fetchLatestMessages(); // Refresh messages when changes occur (including DELETE)
         }
       )
       .subscribe();
@@ -91,10 +91,13 @@ export const useClubLastMessages = (clubs: Club[] = []) => {
     };
   }, [clubs]);
 
+  // Return without any memoization to ensure fresh data on each render
   return { 
-    lastMessages,
+    lastMessages, 
+    sortedClubs: sortedClubs.length > 0 ? sortedClubs : clubs,
     _debug: { 
-      lastMessagesKeys: Object.keys(lastMessages)
+      lastMessagesKeys: Object.keys(lastMessages),
+      sortedClubIds: sortedClubs.map(c => c.id) 
     }
   };
 };

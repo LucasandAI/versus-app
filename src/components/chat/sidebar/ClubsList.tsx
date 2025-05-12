@@ -1,9 +1,11 @@
-import React from 'react';
+
+import React, { useEffect } from 'react';
 import { Club } from '@/types';
 import UserAvatar from '../../shared/UserAvatar';
 import ClubMembersPopover from './ClubMembersPopover';
 import { useNavigation } from '@/hooks/useNavigation';
 import { formatDistanceToNow } from 'date-fns';
+import { useClubLastMessages } from '@/hooks/chat/messages/useClubLastMessages';
 import { useUnreadMessages } from '@/context/unread-messages';
 import { Badge } from '@/components/ui/badge';
 
@@ -19,8 +21,6 @@ interface ClubsListProps {
     name: string;
     isTicket: boolean;
   } | null) => void;
-  lastMessages: Record<string, any>;
-  sortedClubs: Club[];
 }
 
 const ClubsList: React.FC<ClubsListProps> = ({
@@ -30,17 +30,16 @@ const ClubsList: React.FC<ClubsListProps> = ({
   onSelectUser,
   unreadClubs: propUnreadClubs,
   setChatToDelete,
-  lastMessages,
-  sortedClubs,
 }) => {
   const { navigateToClubDetail } = useNavigation();
+  const { lastMessages, sortedClubs } = useClubLastMessages(clubs);
   const { unreadClubs: contextUnreadClubs, markClubMessagesAsRead } = useUnreadMessages();
   
   // Use either the passed props (preferred) or fall back to context
   const unreadClubs = propUnreadClubs || contextUnreadClubs;
   
   // Add a debug effect to log unread clubs when they change
-  React.useEffect(() => {
+  useEffect(() => {
     console.log('[ClubsList] unreadClubs set updated:', Array.from(unreadClubs));
     console.log('[ClubsList] Using prop unread clubs?', !!propUnreadClubs);
   }, [unreadClubs, propUnreadClubs]);
