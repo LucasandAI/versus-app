@@ -1,7 +1,7 @@
 import React from 'react';
 import { Club } from '@/types';
 import ChatSidebar from '../ChatSidebar';
-import { ClubMessagesProvider } from '@/context/ClubMessagesContext';
+import { ClubConversationsProvider } from '@/context/ClubConversationsContext';
 
 interface ChatSidebarContentProps {
   clubs: Club[];
@@ -28,7 +28,7 @@ const ChatSidebarContent: React.FC<ChatSidebarContentProps> = ({
   const unreadKey = JSON.stringify([...unreadClubs].sort());
   
   return (
-    <ClubMessagesProvider clubs={clubs} isOpen={true}>
+    <ClubConversationsProvider clubs={clubs}>
       <div className="h-full flex flex-col overflow-hidden">
         <ChatSidebar
           key={`chat-sidebar-${unreadKey}`}
@@ -42,7 +42,7 @@ const ChatSidebarContent: React.FC<ChatSidebarContentProps> = ({
           activeTab={activeTab}
         />
       </div>
-    </ClubMessagesProvider>
+    </ClubConversationsProvider>
   );
 };
 
