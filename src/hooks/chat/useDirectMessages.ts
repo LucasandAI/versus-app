@@ -96,6 +96,12 @@ export const useDirectMessages = (conversationId: string | null) => {
         async (payload) => {
           const newMessage = payload.new;
           
+          // Skip if we already have this message
+          if (messages.some(msg => msg.id === newMessage.id)) {
+            console.log('[useDirectMessages] Skipping duplicate message:', newMessage.id);
+            return;
+          }
+          
           // Fetch sender data for the new message
           const { data: userData } = await supabase
             .from('users')
@@ -115,7 +121,13 @@ export const useDirectMessages = (conversationId: string | null) => {
             isUserMessage: String(newMessage.sender_id) === String(currentUser.id)
           };
           
-          setMessages(prev => [...prev, normalizedMessage]);
+          setMessages(prev => {
+            // Double check we don't have this message
+            if (prev.some(msg => msg.id === newMessage.id)) {
+              return prev;
+            }
+            return [...prev, normalizedMessage];
+          });
         }
       )
       .on(
