@@ -13,15 +13,14 @@ const MessageContent: React.FC<MessageContentProps> = ({
   isUserMessage,
   isSupport,
 }) => {
-  // Use distinctive styling based on message ownership and type
   return (
     <div 
-      className={`p-3 rounded-2xl break-words max-w-[85%] ${
+      className={`p-3 rounded-lg break-words ${
         isUserMessage 
-          ? 'bg-primary text-white ml-auto rounded-tr-none' 
+          ? 'bg-primary text-white' 
           : isSupport
-            ? 'bg-blue-100 text-blue-800 rounded-tl-none'
-            : 'bg-gray-100 text-gray-800 rounded-tl-none'
+            ? 'bg-blue-100 text-blue-800'
+            : 'bg-gray-100 text-gray-800'
       }`}
     >
       {message.text}

@@ -3,9 +3,8 @@ import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
 import MessageContent from './MessageContent';
 import { supabase } from '@/integrations/supabase/client';
-import { useState, useEffect } from 'react';
-import { useNavigation } from '@/hooks/useNavigation';
 import MessageDeleteButton from './MessageDeleteButton';
+import { useNavigation } from '@/hooks/useNavigation';
 
 interface MessageItemProps {
   message: ChatMessage;
@@ -22,21 +21,14 @@ const MessageItem: React.FC<MessageItemProps> = ({
   isUserMessage,
   isSupport,
   onDeleteMessage,
-  onSelectUser,
   formatTime,
-  currentUserAvatar
+  currentUserAvatar,
+  onSelectUser
 }) => {
-  const [canDelete, setCanDelete] = useState(false);
+  const [canDelete, setCanDelete] = React.useState(false);
   const { navigateToUserProfile } = useNavigation();
   
-  // Debug log to see complete sender data
-  console.log(`[MessageItem] Rendering message with id ${message.id}, sender:`, {
-    id: message.sender?.id || 'unknown',
-    name: message.sender?.name || 'unknown',
-    avatar: message.sender?.avatar || 'undefined'
-  });
-  
-  useEffect(() => {
+  React.useEffect(() => {
     const checkDeletePermission = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) return;
@@ -61,7 +53,6 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
   const handleProfileClick = () => {
     if (!isSupport && message.sender) {
-      console.log('[MessageItem] Profile clicked, using sender data:', message.sender);
       navigateToUserProfile(message.sender.id, message.sender.name, message.sender.avatar);
     }
   };
@@ -74,51 +65,25 @@ const MessageItem: React.FC<MessageItemProps> = ({
     return message.timestamp;
   };
 
-  // IMPORTANT: Always use the data provided in the message object
-  // Never fall back to defaults for name - this ensures consistent display
-  const senderName = message.sender?.name || 'Unknown';
-  
-  // Only use the avatar that was provided, no placeholder
-  const senderAvatar = message.sender?.avatar;
-
-  const renderDeleteButton = () => {
-    if (!isUserMessage || !canDelete || !onDeleteMessage) {
-      return (
-        <div className="w-8 h-8 opacity-0" aria-hidden="true">
-          {/* Placeholder to maintain layout */}
-        </div>
-      );
-    }
-
-    return (
-      <div className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <MessageDeleteButton onDelete={handleDeleteClick} />
-      </div>
-    );
-  };
-
-  // Use the proper alignment for messages
   return (
-    <div className={`flex ${isUserMessage ? 'justify-end' : 'justify-start'} px-4 mb-4 group`}>
-      {/* Avatar appears only for non-user messages */}
+    <div className={`flex ${isUserMessage ? 'justify-end mr-4' : 'justify-start'} mb-6 group`}>
       {!isUserMessage && (
         <UserAvatar
-          name={senderName}
-          image={senderAvatar}
+          name={message.sender.name || "Unknown"}
+          image={message.sender.avatar}
           size="sm"
           className={`flex-shrink-0 mr-2 ${!isSupport ? 'cursor-pointer hover:opacity-80' : ''}`}
           onClick={!isSupport ? handleProfileClick : undefined}
         />
       )}
 
-      <div className={`flex flex-col ${isUserMessage ? 'items-end' : 'items-start'} max-w-[85%]`}>
-        {/* Sender name appears only for non-user messages */}
+      <div className="flex flex-col items-end max-w-[75%]">
         {!isUserMessage && (
           <button
             className={`text-xs text-gray-500 mb-1 ${!isSupport ? 'cursor-pointer hover:text-primary' : ''} text-left w-full`}
             onClick={!isSupport ? handleProfileClick : undefined}
           >
-            {senderName}
+            {message.sender.name || "Unknown"}
             {message.isSupport && <span className="ml-1 text-blue-500">(Support)</span>}
           </button>
         )}
@@ -129,13 +94,18 @@ const MessageItem: React.FC<MessageItemProps> = ({
           isSupport={isSupport}
         />
 
-        <div className={`text-xs text-gray-500 mt-1 ${isUserMessage ? 'text-right' : 'text-left'} w-full`}>
+        <div className="text-xs text-gray-500 mt-1 pr-1 w-full text-right">
           {formatTime(getTimestamp())}
         </div>
       </div>
 
-      {/* Delete button for user's own messages */}
-      {isUserMessage && renderDeleteButton()}
+      {isUserMessage && canDelete && onDeleteMessage && !isSupport && (
+        <div className="ml-2">
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+            <MessageDeleteButton onDelete={handleDeleteClick} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
