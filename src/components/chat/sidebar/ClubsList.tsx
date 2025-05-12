@@ -7,8 +7,13 @@ import { formatDistanceToNow } from 'date-fns';
 import { useUnreadMessages } from '@/context/unread-messages';
 import { Badge } from '@/components/ui/badge';
 
+export interface ClubConversation {
+  club: Club;
+  lastMessage: any | null;
+}
+
 interface ClubsListProps {
-  clubs: Club[];
+  clubConversations: ClubConversation[];
   selectedClub: Club | null;
   onSelectClub: (club: Club) => void;
   unreadCounts: Record<string, number>;
@@ -19,32 +24,26 @@ interface ClubsListProps {
     name: string;
     isTicket: boolean;
   } | null) => void;
-  lastMessages: Record<string, any>;
-  sortedClubs: Club[];
 }
 
 const ClubsList: React.FC<ClubsListProps> = ({
-  clubs,
+  clubConversations,
   selectedClub,
   onSelectClub,
   onSelectUser,
   unreadClubs: propUnreadClubs,
   setChatToDelete,
-  lastMessages,
-  sortedClubs,
+  unreadCounts,
 }) => {
   const { navigateToClubDetail } = useNavigation();
   const { unreadClubs: contextUnreadClubs, markClubMessagesAsRead } = useUnreadMessages();
-  
-  // Use either the passed props (preferred) or fall back to context
   const unreadClubs = propUnreadClubs || contextUnreadClubs;
-  
-  // Add a debug effect to log unread clubs when they change
+
   React.useEffect(() => {
     console.log('[ClubsList] unreadClubs set updated:', Array.from(unreadClubs));
     console.log('[ClubsList] Using prop unread clubs?', !!propUnreadClubs);
   }, [unreadClubs, propUnreadClubs]);
-  
+
   const handleClubClick = (club: Club, e: React.MouseEvent) => {
     e.preventDefault();
     onSelectClub(club);
@@ -56,53 +55,41 @@ const ClubsList: React.FC<ClubsListProps> = ({
     return text?.length > 50 ? `${text.substring(0, 50)}...` : text;
   };
 
-  // Create a key that will change whenever unread status changes
   const unreadKey = Array.from(unreadClubs).join(',');
 
   return (
     <div className="p-3">
       <h1 className="text-4xl font-bold mb-4">Clubs</h1>
-      
       <div className="divide-y">
-        {sortedClubs.map(club => {
-          // Get club ID as string to ensure consistent comparison
+        {clubConversations.map(({ club, lastMessage }) => {
           const clubId = String(club.id);
           const isUnread = unreadClubs.has(clubId);
-          
-          console.log(`[ClubsList] Rendering club ${club.name} (${clubId}), isUnread:`, isUnread);
-          
-          const lastMessage = lastMessages[club.id];
-          const formattedTime = lastMessage?.timestamp 
+          const formattedTime = lastMessage?.timestamp
             ? formatDistanceToNow(new Date(lastMessage.timestamp), { addSuffix: false })
             : '';
-            
           return (
-            <div 
+            <div
               key={`${club.id}-${isUnread ? 'unread' : 'read'}-${unreadKey}`}
               className={`flex items-start px-4 py-3 cursor-pointer hover:bg-gray-50 relative group
                 ${selectedClub?.id === club.id ? 'bg-primary/10 text-primary' : ''}
                 ${isUnread ? 'font-medium' : ''}`}
               onClick={(e) => handleClubClick(club, e)}
             >
-              <UserAvatar 
-                name={club.name} 
-                image={club.logo || ''} 
+              <UserAvatar
+                name={club.name}
+                image={club.logo || ''}
                 size="lg"
                 className="flex-shrink-0 mr-3"
               />
-
               <div className="flex-1 min-w-0 overflow-hidden">
                 <div className="flex items-center justify-between mb-1">
-                  <h2 className={`text-lg truncate max-w-[60%] ${isUnread ? 'font-bold' : 'font-medium'}`}>
-                    {club.name}
-                  </h2>
+                  <h2 className={`text-lg truncate max-w-[60%] ${isUnread ? 'font-bold' : 'font-medium'}`}>{club.name}</h2>
                   {formattedTime && (
                     <span className={`text-xs ${isUnread ? 'font-bold' : 'text-gray-500'} flex-shrink-0 ml-auto`}>
                       {formattedTime}
                     </span>
                   )}
                 </div>
-                
                 <div className="flex items-center">
                   <p className={`text-sm truncate flex-1 ${isUnread ? 'text-gray-900' : 'text-gray-600'}`}>
                     {lastMessage ? (
@@ -110,24 +97,20 @@ const ClubsList: React.FC<ClubsListProps> = ({
                         <span className={isUnread ? 'font-bold' : 'font-medium'}>
                           {lastMessage.sender?.name || 'Unknown'}:
                         </span>{' '}
-                        {truncateMessage(lastMessage.text || lastMessage.message)}
+                        {truncateMessage(lastMessage.text)}
                       </>
                     ) : (
                       "No messages yet"
                     )}
                   </p>
-                  {isUnread && (
-                    <Badge variant="dot" className="ml-2" />
-                  )}
+                  {isUnread && <Badge variant="dot" className="ml-2" />}
                 </div>
-                
                 <ClubMembersPopover club={club} onSelectUser={onSelectUser} />
               </div>
             </div>
           );
         })}
-        
-        {clubs.length === 0 && (
+        {clubConversations.length === 0 && (
           <div className="text-center py-4 text-sm text-gray-500">
             You don't have any clubs yet
           </div>
