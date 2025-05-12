@@ -8,6 +8,7 @@ export interface ClubConversationPreview {
 }
 
 export function useClubConversationList(clubs: Club[]) {
+  console.log('[useClubConversationList] Hook called with clubs:', clubs.map(c => c.id));
   const [conversations, setConversations] = React.useState<ClubConversationPreview[]>([]);
 
   // Helper to fetch the latest message for a club from the view
@@ -41,6 +42,7 @@ export function useClubConversationList(clubs: Club[]) {
       return tB - tA;
     });
     setConversations(previews);
+    console.log('[useClubConversationList] fetchAll setConversations:', previews);
   }, [clubs]);
 
   // Initial fetch
@@ -55,7 +57,7 @@ export function useClubConversationList(clubs: Club[]) {
   React.useEffect(() => {
     if (!clubs.length) return;
     const clubIds = clubs.map(c => c.id);
-    console.log('[useClubConversationList] Subscribing to club_chat_messages for clubIds:', clubIds);
+    console.log('[useClubConversationList] Setting up real-time subscription for clubIds:', clubIds);
     const channel = supabase
       .channel('club-conversation-list-realtime')
       .on('postgres_changes', {
@@ -71,5 +73,6 @@ export function useClubConversationList(clubs: Club[]) {
     return () => { supabase.removeChannel(channel); };
   }, [clubs, fetchAll]);
 
+  console.log('[useClubConversationList] Returning conversations:', conversations);
   return conversations;
 } 
