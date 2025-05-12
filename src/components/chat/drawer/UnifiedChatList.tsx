@@ -144,7 +144,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
                   <div className="flex items-center space-x-2">
                     <MessageSquare className="h-4 w-4 text-gray-400" />
                     <p className="text-sm text-gray-500 truncate">
-                      {lastMessage ? (
+                      {lastMessage && lastMessage.message ? (
                         <>
                           <span className="font-medium">{lastMessage.sender_username || lastMessage.sender?.name}: </span>
                           {lastMessage.message}
