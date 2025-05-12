@@ -1,5 +1,4 @@
-
-import React, { useEffect } from 'react';
+import * as React from 'react';
 import { useApp } from '@/context/AppContext';
 import ConnectScreen from '@/components/ConnectScreen';
 import HomeView from '@/components/home/HomeView';
@@ -19,6 +18,8 @@ const Index: React.FC = () => {
 
   console.log('[Index] Current view:', currentView, 'Current user:', currentUser ? currentUser.id : 'null');
   console.log('[Index] Needs profile completion:', needsProfileCompletion);
+
+  const memoizedClubs = React.useMemo(() => currentUser?.clubs || [], [currentUser?.clubs]);
 
   const renderView = () => {
     // If there's no user, always show the connect screen
@@ -65,7 +66,7 @@ const Index: React.FC = () => {
         <ChatDrawer 
           open={chatDrawerOpen} 
           onOpenChange={open => open ? openChatDrawer() : closeChatDrawer()}
-          clubs={currentUser.clubs || []}
+          clubs={memoizedClubs}
         />
       )}
       <Toaster />
