@@ -80,8 +80,28 @@ export const useClubLastMessages = (clubs: Club[]) => {
           filter: clubs.length > 0 ? `club_id=in.(${clubs.map(c => `'${c.id}'`).join(',')})` : undefined
         },
         (payload) => {
-          console.log('[useClubLastMessages] Received realtime message update:', payload.eventType);
-          fetchLatestMessages(); // Refresh messages when changes occur (including DELETE)
+          const msg = payload.new || payload.old;
+          if (!msg || !msg.club_id) return;
+          if (payload.eventType === 'DELETE') {
+            // On delete, refetch the latest message for this club
+            fetchLatestMessages();
+          } else {
+            // On insert/update, update lastMessages for this club
+            setLastMessages(prev => ({
+              ...prev,
+              [msg.club_id]: msg
+            }));
+            // Also update sorted clubs
+            setSortedClubs(prev => {
+              // Resort clubs by latest timestamp
+              const clubsWithTimestamps = prev.map(club => {
+                const lastMessage = club.id === msg.club_id ? msg : lastMessages[club.id];
+                const lastTimestamp = lastMessage ? new Date(lastMessage.timestamp).getTime() : 0;
+                return { club, lastTimestamp };
+              });
+              return clubsWithTimestamps.sort((a, b) => b.lastTimestamp - a.lastTimestamp).map(item => item.club);
+            });
+          }
         }
       )
       .subscribe();
