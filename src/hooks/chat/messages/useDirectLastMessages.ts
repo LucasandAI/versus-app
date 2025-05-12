@@ -10,6 +10,8 @@ export function useDirectLastMessages(conversationIds: string[]) {
       return;
     }
 
+    let isMounted = true;
+
     const fetchLastMessages = async () => {
       const { data, error } = await supabase
         .from('direct_messages')
@@ -17,7 +19,7 @@ export function useDirectLastMessages(conversationIds: string[]) {
         .in('conversation_id', conversationIds)
         .order('timestamp', { ascending: false });
 
-      if (error) {
+      if (error || !isMounted) {
         setLastMessages({});
         return;
       }
@@ -33,39 +35,30 @@ export function useDirectLastMessages(conversationIds: string[]) {
 
     fetchLastMessages();
 
-    // Real-time subscription for new direct messages
+    // Real-time subscription for all direct message changes
     const channel = supabase
       .channel('realtime-direct-messages')
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'direct_messages',
         },
         (payload) => {
           const msg = payload.new;
           if (conversationIds.includes(msg.conversation_id)) {
-            setLastMessages((prev) => {
-              // Only update if the new message is newer
-              const prevMsg = prev[msg.conversation_id];
-              if (!prevMsg || new Date(msg.timestamp) > new Date(prevMsg.timestamp)) {
-                return {
-                  ...prev,
-                  [msg.conversation_id]: { text: msg.text, timestamp: msg.timestamp },
-                };
-              }
-              return prev;
-            });
+            fetchLastMessages();
           }
         }
       )
       .subscribe();
 
     return () => {
+      isMounted = false;
       channel.unsubscribe();
     };
-  }, [conversationIds.join(',')]);
+  }, [JSON.stringify(conversationIds)]);
 
   return lastMessages;
 } 
