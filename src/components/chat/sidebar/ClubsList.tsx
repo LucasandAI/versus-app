@@ -95,9 +95,9 @@ const ClubsList: React.FC<ClubsListProps> = ({
                     {lastMessage ? (
                       <>
                         <span className={isUnread ? 'font-bold' : 'font-medium'}>
-                          {lastMessage.sender?.name || 'Unknown'}:
+                          {lastMessage.sender_username || 'Unknown'}:
                         </span>{' '}
-                        {truncateMessage(lastMessage.text)}
+                        {truncateMessage(lastMessage.message)}
                       </>
                     ) : (
                       "No messages yet"
