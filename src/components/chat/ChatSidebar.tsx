@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import ClubsList from './sidebar/ClubsList';
 import { useClubPreviewData } from '@/hooks/chat/messages/useClubPreviewData';
+import { useClubMessagesContext } from '@/context/ClubMessagesContext';
 
 interface ChatSidebarProps {
   clubs: Club[];
@@ -23,7 +24,6 @@ interface ChatSidebarProps {
   unreadClubs?: Set<string>;
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   activeTab?: "clubs" | "dm";
-  clubMessages?: Record<string, any[]>;
 }
 
 const ChatSidebar: React.FC<ChatSidebarProps> = ({ 
@@ -34,11 +34,11 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   unreadCounts = {},
   unreadClubs = new Set(),
   onSelectUser,
-  activeTab = "clubs",
-  clubMessages = {}
+  activeTab = "clubs"
 }) => {
   const { setCurrentView, setSelectedUser } = useApp();
   const [chatToDelete, setChatToDelete] = React.useState<{id: string, name: string} | null>(null);
+  const { clubMessages } = useClubMessagesContext();
 
   // LIFTED: Get lastMessages and sortedClubs here
   const { lastMessages, sortedClubs } = useClubPreviewData(clubs, clubMessages);

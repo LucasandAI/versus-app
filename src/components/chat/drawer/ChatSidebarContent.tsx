@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { Club } from '@/types';
 import ChatSidebar from '../ChatSidebar';
+import { ClubMessagesProvider } from '@/context/ClubMessagesContext';
 
 interface ChatSidebarContentProps {
   clubs: Club[];
@@ -28,19 +28,21 @@ const ChatSidebarContent: React.FC<ChatSidebarContentProps> = ({
   const unreadKey = JSON.stringify([...unreadClubs].sort());
   
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <ChatSidebar
-        key={`chat-sidebar-${unreadKey}`}
-        clubs={clubs}
-        selectedClub={selectedClub}
-        onSelectClub={onSelectClub}
-        onDeleteChat={onDeleteChat}
-        unreadCounts={unreadCounts}
-        unreadClubs={unreadClubs}
-        onSelectUser={onSelectUser}
-        activeTab={activeTab}
-      />
-    </div>
+    <ClubMessagesProvider clubs={clubs} isOpen={true}>
+      <div className="h-full flex flex-col overflow-hidden">
+        <ChatSidebar
+          key={`chat-sidebar-${unreadKey}`}
+          clubs={clubs}
+          selectedClub={selectedClub}
+          onSelectClub={onSelectClub}
+          onDeleteChat={onDeleteChat}
+          unreadCounts={unreadCounts}
+          unreadClubs={unreadClubs}
+          onSelectUser={onSelectUser}
+          activeTab={activeTab}
+        />
+      </div>
+    </ClubMessagesProvider>
   );
 };
 
