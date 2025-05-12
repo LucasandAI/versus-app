@@ -33,18 +33,11 @@ const MessageList: React.FC<MessageListProps> = memo(({
   // Use useMemo to avoid recreating message items on every render
   const messageItems = React.useMemo(() => {
     return messages.map((message: ChatMessage | any, index: number) => {
-      // Check both sender.id and sender_id for compatibility
-      const messageSenderId = message.sender?.id 
-        ? String(message.sender.id) 
-        : message.sender_id 
-          ? String(message.sender_id)
-          : null;
-      const isUserMessage = currentUserId && messageSenderId && String(currentUserId) === messageSenderId;
+      // Use the isUserMessage flag from the normalized message
+      const isUserMessage = message.isUserMessage;
       
-      console.log('[MessageList] Message alignment check:', {
+      console.log('[MessageList] Using normalized message alignment:', {
         messageId: message.id,
-        messageSenderId,
-        currentUserId,
         isUserMessage,
         hasSender: !!message.sender,
         hasSenderId: !!message.sender_id
@@ -71,7 +64,7 @@ const MessageList: React.FC<MessageListProps> = memo(({
         </div>
       );
     });
-  }, [messages, currentUserId, lastMessageRef, isSupport, onDeleteMessage, onSelectUser, formatTime, currentUserAvatar]);
+  }, [messages, lastMessageRef, isSupport, onDeleteMessage, onSelectUser, formatTime, currentUserAvatar]);
 
   return (
     <div className="flex-1 px-0 py-2">

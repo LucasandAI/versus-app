@@ -4,14 +4,16 @@ export const useMessageNormalization = (currentUserId: string | null, getMemberN
   const normalizeMessage = (message: any): ChatMessage => {
     console.log('[useMessageNormalization] Normalizing message:', message);
     
-    // Determine if message is from current user
+    // Determine if message is from current user - check all possible sender ID locations
     const messageSenderId = message.sender?.id || message.sender_id;
     const isUserMessage = currentUserId && messageSenderId && String(currentUserId) === String(messageSenderId);
     
     console.log('[useMessageNormalization] Message sender check:', {
       messageSenderId,
       currentUserId,
-      isUserMessage
+      isUserMessage,
+      hasSender: !!message.sender,
+      hasSenderId: !!message.sender_id
     });
     
     // More robust check for a complete sender object with required properties
@@ -29,8 +31,8 @@ export const useMessageNormalization = (currentUserId: string | null, getMemberN
         text: message.text !== undefined ? message.text : message.message,
         sender: {
           id: String(message.sender.id),
-          name: message.sender.name, // Preserve the name exactly as provided
-          avatar: message.sender.avatar // Preserve the avatar exactly as provided
+          name: message.sender.name,
+          avatar: message.sender.avatar
         },
         timestamp: message.timestamp || message.created_at || new Date().toISOString(),
         isSupport: Boolean(message.isSupport),
@@ -43,7 +45,6 @@ export const useMessageNormalization = (currentUserId: string | null, getMemberN
     if (message.sender && typeof message.sender === 'object') {
       console.log('[useMessageNormalization] Message has sender object but may need enhancement:', message.sender);
       
-      // CRITICAL CHANGE: Never fall back to getMemberName if we already have a name in sender
       const senderName = typeof message.sender.name === 'string' && message.sender.name !== '' 
                         ? message.sender.name 
                         : getMemberName(message.sender.id);
@@ -58,7 +59,7 @@ export const useMessageNormalization = (currentUserId: string | null, getMemberN
         id: message.id,
         text: message.message || message.text,
         sender: {
-          id: message.sender.id,
+          id: String(message.sender.id),
           name: senderName,
           avatar: senderAvatar
         },
@@ -75,7 +76,7 @@ export const useMessageNormalization = (currentUserId: string | null, getMemberN
         id: message.id,
         text: message.message,
         sender: {
-          id: message.sender_id,
+          id: String(message.sender_id),
           name: getMemberName(message.sender_id),
           avatar: undefined
         },
