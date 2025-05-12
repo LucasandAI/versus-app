@@ -4,8 +4,14 @@ import { Club } from '@/types';
 
 export const useClubLastMessages = (clubs: Club[]) => {
   const [lastMessages, setLastMessages] = React.useState<Record<string, any>>({});
+  const lastMessagesRef = React.useRef<Record<string, any>>({});
   const [sortedClubs, setSortedClubs] = React.useState<Club[]>([]);
   const [forceUpdate, setForceUpdate] = React.useState(0); // dummy state to force re-render
+
+  // Always keep the ref in sync with state
+  React.useEffect(() => {
+    lastMessagesRef.current = lastMessages;
+  }, [lastMessages]);
 
   React.useEffect(() => {
     if (!clubs.length) {
@@ -86,6 +92,7 @@ export const useClubLastMessages = (clubs: Club[]) => {
 
     const updateAndResort = (updatedLastMessages: Record<string, any>) => {
       setLastMessages(updatedLastMessages);
+      lastMessagesRef.current = updatedLastMessages;
       // Resort clubs by latest timestamp
       const clubsWithTimestamps = clubs.map(club => {
         const lastMessage = updatedLastMessages[club.id];
@@ -117,11 +124,11 @@ export const useClubLastMessages = (clubs: Club[]) => {
           if (payload.eventType === 'DELETE') {
             // On delete, refetch the latest message for this club only
             const latest = await fetchLatestMessageForClub(msg.club_id);
-            const updatedLastMessages = { ...lastMessages, [msg.club_id]: latest };
+            const updatedLastMessages = { ...lastMessagesRef.current, [msg.club_id]: latest };
             updateAndResort(updatedLastMessages);
           } else {
             // On insert/update, update lastMessages for this club only
-            const updatedLastMessages = { ...lastMessages, [msg.club_id]: msg };
+            const updatedLastMessages = { ...lastMessagesRef.current, [msg.club_id]: msg };
             updateAndResort(updatedLastMessages);
           }
         }
