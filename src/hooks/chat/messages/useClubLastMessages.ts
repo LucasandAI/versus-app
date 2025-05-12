@@ -5,6 +5,7 @@ import { Club } from '@/types';
 export const useClubLastMessages = (clubs: Club[]) => {
   const [lastMessages, setLastMessages] = React.useState<Record<string, any>>({});
   const [sortedClubs, setSortedClubs] = React.useState<Club[]>([]);
+  const [forceUpdate, setForceUpdate] = React.useState(0); // dummy state to force re-render
 
   React.useEffect(() => {
     if (!clubs.length) {
@@ -62,8 +63,9 @@ export const useClubLastMessages = (clubs: Club[]) => {
         .map(item => item.club);
         
       // Update sorted clubs directly
-      console.log('[useClubLastMessages] Setting sorted clubs:', sorted);
       setSortedClubs(sorted);
+      setForceUpdate(f => f + 1); // force re-render
+      console.log('[useClubLastMessages] Setting sorted clubs and forcing update:', sorted);
     };
 
     fetchLatestMessages();
@@ -98,7 +100,8 @@ export const useClubLastMessages = (clubs: Club[]) => {
     sortedClubs: sortedClubs.length > 0 ? sortedClubs : clubs,
     _debug: { 
       lastMessagesKeys: Object.keys(lastMessages),
-      sortedClubIds: sortedClubs.map(c => c.id) 
+      sortedClubIds: sortedClubs.map(c => c.id),
+      forceUpdate
     }
   };
 };
