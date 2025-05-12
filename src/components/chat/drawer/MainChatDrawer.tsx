@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Club } from '@/types';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { useChatActions } from '@/hooks/chat/useChatActions';
@@ -28,7 +29,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   clubMessages = {},
   setClubMessages
 }) => {
-  const [selectedChat, setSelectedChat] = useState<{
+  const [selectedChat, setSelectedChat] = React.useState<{
     type: 'club' | 'dm';
     id: string;
     name: string;
@@ -89,11 +90,11 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     };
   }, [getOrCreateConversation]);
 
-  const handleSelectChat = useCallback((type: 'club' | 'dm', id: string, name: string, avatar?: string) => {
+  const handleSelectChat = React.useCallback((type: 'club' | 'dm', id: string, name: string, avatar?: string) => {
     setSelectedChat({ type, id, name, avatar });
   }, []);
 
-  const handleSendMessage = useCallback(async (message: string, chatId: string, type: 'club' | 'dm') => {
+  const handleSendMessage = React.useCallback(async (message: string, chatId: string, type: 'club' | 'dm') => {
     if (type === 'club' && setClubMessages) {
       await sendMessageToClub(chatId, message, setClubMessages);
     } else if (type === 'dm' && setDirectMessages) {
@@ -101,7 +102,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     }
   }, [sendMessageToClub, sendDirectMessage, setClubMessages, setDirectMessages]);
 
-  const handleDeleteMessage = useCallback(async (messageId: string) => {
+  const handleDeleteMessage = React.useCallback(async (messageId: string) => {
     if (selectedChat?.type === 'club' && setClubMessages) {
       await deleteMessage(messageId, setClubMessages);
     } else if (selectedChat?.type === 'dm' && setDirectMessages) {
@@ -109,7 +110,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     }
   }, [deleteMessage, selectedChat?.type, setClubMessages, setDirectMessages]);
 
-  const handleSelectUser = useCallback((userId: string, userName: string, userAvatar?: string) => {
+  const handleSelectUser = React.useCallback((userId: string, userName: string, userAvatar?: string) => {
     const event = new CustomEvent('openDirectMessage', {
       detail: {
         userId,
@@ -134,7 +135,13 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     return directMessages;
   };
 
-  const [listKey, setListKey] = useState(0);
+  const [listKey, setListKey] = React.useState(0);
+
+  useEffect(() => {
+    if (open) {
+      setListKey((k) => k + 1);
+    }
+  }, [open]);
 
   const handleBack = () => {
     setSelectedChat(null);
