@@ -279,12 +279,11 @@ export const useChatActions = () => {
       return true;
     }
 
-    // Determine if this is a club or direct message
-    const isDirectMessage = messageId.includes('dm-') || !messageId.includes('club-');
-    const table = isDirectMessage ? 'direct_messages' : 'club_chat_messages';
+    // Determine if this is a club or direct message based on which setter is provided
+    const table = setClubMessages ? 'club_chat_messages' : 'direct_messages';
 
     try {
-      console.log(`[useChatActions] Deleting ${isDirectMessage ? 'direct' : 'club'} message from Supabase:`, messageId);
+      console.log(`[useChatActions] Deleting message from Supabase table ${table}:`, messageId);
       
       const { error } = await supabase
         .from(table)
@@ -307,12 +306,12 @@ export const useChatActions = () => {
           .single();
         
         if (message) {
-          if (isDirectMessage && setDirectMessages) {
+          if (table === 'direct_messages' && setDirectMessages) {
             setDirectMessages(prev => [...prev, {
               ...message,
               isUserMessage: String(message.sender_id) === String(currentUser?.id)
             }]);
-          } else if (!isDirectMessage && setClubMessages) {
+          } else if (table === 'club_chat_messages' && setClubMessages) {
             setClubMessages(prevMessages => {
               const clubId = message.club_id;
               const clubMessages = prevMessages[clubId] || [];
