@@ -69,6 +69,9 @@ export function useDirectLastMessages(conversationIds: string[]) {
               timestamp: msg.timestamp
             }
           }));
+
+          // Force a refetch to ensure we have the latest data
+          fetchLastMessages();
         }
       )
       .subscribe();
