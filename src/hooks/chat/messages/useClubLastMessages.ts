@@ -2,11 +2,14 @@ import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
 
-export const useClubLastMessages = (clubs: Club[]) => {
+export const useClubLastMessages = (clubs: Club[] = []) => {
   const [lastMessages, setLastMessages] = React.useState<Record<string, any>>({});
 
   React.useEffect(() => {
-    if (!clubs.length) return;
+    if (!clubs?.length) {
+      setLastMessages({});
+      return;
+    }
 
     const fetchLatestMessages = async () => {
       const clubIds = clubs.map(club => club.id);
@@ -29,7 +32,7 @@ export const useClubLastMessages = (clubs: Club[]) => {
       }
 
       // Group messages by club_id and take only the most recent one
-      const latestMessages = data.reduce((acc: Record<string, any>, message) => {
+      const latestMessages = (data || []).reduce((acc: Record<string, any>, message) => {
         if (!acc[message.club_id]) {
           acc[message.club_id] = message;
         }
@@ -52,7 +55,7 @@ export const useClubLastMessages = (clubs: Club[]) => {
         console.error('[useClubLastMessages] Error fetching latest message for club:', clubId, error);
         return null;
       }
-      return data && data[0] ? data[0] : null;
+      return data?.[0] || null;
     };
 
     // Set up realtime subscription for new messages
@@ -69,7 +72,7 @@ export const useClubLastMessages = (clubs: Club[]) => {
         async (payload) => {
           console.log('[useClubLastMessages] Real-time event:', payload);
           const msg = payload.new || payload.old;
-          if (!msg || !msg.club_id) return;
+          if (!msg?.club_id) return;
           
           if (payload.eventType === 'DELETE') {
             // On delete, refetch the latest message for this club only
