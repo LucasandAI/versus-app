@@ -7,7 +7,11 @@ export function useClubPreviewData(clubs: Club[], clubMessages: Record<string, a
     const lastMessages: Record<string, any> = {};
     const clubsWithTimestamps = clubs.map(club => {
       const messages = clubMessages[club.id] || [];
-      const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+      // Always find the message with the highest timestamp
+      const lastMessage = messages.reduce((latest, msg) => {
+        if (!latest) return msg;
+        return new Date(msg.timestamp).getTime() > new Date(latest.timestamp).getTime() ? msg : latest;
+      }, null);
       if (lastMessage) {
         lastMessages[club.id] = lastMessage;
       }
@@ -17,6 +21,7 @@ export function useClubPreviewData(clubs: Club[], clubMessages: Record<string, a
     const sortedClubs = clubsWithTimestamps
       .sort((a, b) => b.lastTimestamp - a.lastTimestamp)
       .map(item => item.club);
+    console.log('[useClubPreviewData] Recalculated preview data', { lastMessages, sortedClubs });
     return { lastMessages, sortedClubs };
   }, [clubs, clubMessages]);
 
