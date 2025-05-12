@@ -3,7 +3,7 @@ import { ChatMessage } from '@/types/chat';
 import MessageItem from './MessageItem';
 
 interface MessageListProps {
-  messages: ChatMessage[];
+  messages: (ChatMessage | any)[];
   clubMembers: Array<{
     id: string;
     name: string;
@@ -32,16 +32,22 @@ const MessageList: React.FC<MessageListProps> = memo(({
 }) => {
   // Use useMemo to avoid recreating message items on every render
   const messageItems = React.useMemo(() => {
-    return messages.map((message: ChatMessage, index: number) => {
-      // Ensure we're comparing string IDs consistently
-      const messageSenderId = message.sender?.id ? String(message.sender.id) : null;
+    return messages.map((message: ChatMessage | any, index: number) => {
+      // Check both sender.id and sender_id for compatibility
+      const messageSenderId = message.sender?.id 
+        ? String(message.sender.id) 
+        : message.sender_id 
+          ? String(message.sender_id)
+          : null;
       const isUserMessage = currentUserId && messageSenderId && String(currentUserId) === messageSenderId;
       
       console.log('[MessageList] Message alignment check:', {
         messageId: message.id,
         messageSenderId,
         currentUserId,
-        isUserMessage
+        isUserMessage,
+        hasSender: !!message.sender,
+        hasSenderId: !!message.sender_id
       });
       
       const isLastMessage = index === messages.length - 1;
