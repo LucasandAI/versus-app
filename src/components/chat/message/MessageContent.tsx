@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
 
@@ -17,12 +16,12 @@ const MessageContent: React.FC<MessageContentProps> = ({
   // Use distinctive styling based on message ownership and type
   return (
     <div 
-      className={`p-3 rounded-lg break-words ${
+      className={`p-3 rounded-2xl break-words max-w-[85%] ${
         isUserMessage 
-          ? 'bg-primary text-white' 
+          ? 'bg-primary text-white ml-auto rounded-tr-none' 
           : isSupport
-            ? 'bg-blue-100 text-blue-800'
-            : 'bg-gray-100 text-gray-800'
+            ? 'bg-blue-100 text-blue-800 rounded-tl-none'
+            : 'bg-gray-100 text-gray-800 rounded-tl-none'
       }`}
     >
       {message.text}

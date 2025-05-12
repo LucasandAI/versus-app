@@ -1,4 +1,3 @@
-
 import { useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { DMConversation } from './types';
@@ -73,6 +72,8 @@ export const useConversationsFetcher = (isMounted: React.MutableRefObject<boolea
 
         const [userResult, messagesResult] = await Promise.all([userPromise, messagesPromise]);
 
+        console.log('[useConversationsFetcher] messagesResult:', messagesResult.data);
+
         if (!isMounted.current) return;
 
         if (userResult.error) throw userResult.error;
@@ -81,6 +82,7 @@ export const useConversationsFetcher = (isMounted: React.MutableRefObject<boolea
         // Step 5: Process fetched data
         const userMap = createUserMap(userResult.data);
         const latestMessageMap = createLatestMessageMap(messagesResult.data);
+        console.log('[useConversationsFetcher] latestMessageMap:', latestMessageMap);
 
         // Step 6: Build final conversation objects
         const updatedConversations = buildFinalConversations(validConversations, userId, userMap, latestMessageMap)

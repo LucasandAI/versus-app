@@ -11,5 +11,6 @@ declare module 'lucide-react' {
   export const Users: FC<IconProps>;
   export const ArrowLeft: FC<IconProps>;
   export const Trophy: FC<IconProps>;
+  export const ChevronDown: FC<IconProps>;
   // Add other icons as needed
 } 

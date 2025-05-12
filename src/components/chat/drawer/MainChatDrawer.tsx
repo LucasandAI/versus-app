@@ -134,8 +134,11 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     return directMessages;
   };
 
+  const [listKey, setListKey] = useState(0);
+
   const handleBack = () => {
     setSelectedChat(null);
+    setListKey((k) => k + 1);
   };
 
   return (
@@ -153,7 +156,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
           />
         ) : (
           <UnifiedChatList
-            key={open ? 'open' : 'closed'}
+            key={listKey}
             onSelectChat={handleSelectChat}
             selectedChatId={selectedChat?.id}
             selectedChatType={selectedChat?.type}

@@ -1,25 +1,17 @@
-
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from './AppContext';
 import { toast } from '@/hooks/use-toast';
-
-interface Conversation {
-  conversationId: string;
-  userId: string;
-  userName: string;
-  userAvatar: string;
-  lastMessage?: string;
-  timestamp?: string;  // Added timestamp property
-}
+import { useConversationsFetcher } from '@/hooks/chat/dm/useConversationsFetcher';
+import { DMConversation } from '@/hooks/chat/dm/types';
 
 interface DirectConversationsContextValue {
-  conversations: Conversation[];
+  conversations: DMConversation[];
   loading: boolean;
   hasLoaded: boolean;
   fetchConversations: (forceRefresh?: boolean) => Promise<void>;
   refreshConversations: () => Promise<void>;
-  getOrCreateConversation: (userId: string, userName: string, userAvatar?: string) => Promise<Conversation | null>;
+  getOrCreateConversation: (userId: string, userName: string, userAvatar?: string) => Promise<DMConversation | null>;
 }
 
 const DirectConversationsContext = createContext<DirectConversationsContextValue>({
@@ -34,10 +26,12 @@ const DirectConversationsContext = createContext<DirectConversationsContextValue
 export const useDirectConversationsContext = () => useContext(DirectConversationsContext);
 
 export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversations, setConversations] = useState<DMConversation[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
   const { currentUser } = useApp();
+  const isMounted = useRef(true);
+  const { debouncedFetchConversations } = useConversationsFetcher(isMounted);
 
   const fetchConversations = useCallback(async (forceRefresh = false) => {
     if (!forceRefresh && hasLoaded) {
@@ -55,83 +49,12 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
     try {
       console.log('[DirectConversationsProvider] Fetching conversations for user:', currentUser.id);
       
-      // Get all conversations where the current user is a participant
-      const { data: conversationsData, error: conversationsError } = await supabase
-        .from('direct_conversations')
-        .select(`
-          id,
-          user1_id,
-          user2_id
-        `)
-        .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`);
-        
-      if (conversationsError) {
-        throw conversationsError;
-      }
-      
-      if (!conversationsData || conversationsData.length === 0) {
-        setConversations([]);
-        setHasLoaded(true);
-        setLoading(false);
-        return;
-      }
-      
-      // Get the other participant's details for each conversation
-      const conversationsWithUserDetails: Conversation[] = [];
-      
-      for (const conv of conversationsData) {
-        // Skip self-conversations if any
-        if (conv.user1_id === conv.user2_id) {
-          console.log('[DirectConversationsProvider] Skipping self-conversation:', conv.id);
-          continue;
+      await debouncedFetchConversations(currentUser.id, setLoading, (convs: DMConversation[]) => {
+        if (isMounted.current) {
+          setConversations(convs);
+          setHasLoaded(true);
         }
-        
-        // Determine which user is the other participant
-        const otherUserId = conv.user1_id === currentUser.id ? conv.user2_id : conv.user1_id;
-        
-        // Get other user's details
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('id, name, avatar')
-          .eq('id', otherUserId)
-          .single();
-          
-        if (userError) {
-          console.error('[DirectConversationsProvider] Error fetching user data:', userError);
-          continue;
-        }
-        
-        // Get latest message
-        const { data: latestMessage, error: messageError } = await supabase
-          .from('direct_messages')
-          .select('text, timestamp')
-          .eq('conversation_id', conv.id)
-          .order('timestamp', { ascending: false })
-          .limit(1);
-          
-        if (messageError) {
-          console.error('[DirectConversationsProvider] Error fetching latest message:', messageError);
-        }
-        
-        conversationsWithUserDetails.push({
-          conversationId: conv.id,
-          userId: userData.id,
-          userName: userData.name,
-          userAvatar: userData.avatar || '/placeholder.svg',
-          lastMessage: latestMessage && latestMessage[0] ? latestMessage[0].text : undefined,
-          timestamp: latestMessage && latestMessage[0] ? latestMessage[0].timestamp : undefined
-        });
-      }
-      
-      // Sort conversations by last message time (most recent first)
-      conversationsWithUserDetails.sort((a, b) => {
-        if (!a.timestamp) return 1;
-        if (!b.timestamp) return -1;
-        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
       });
-      
-      setConversations(conversationsWithUserDetails);
-      setHasLoaded(true);
       
     } catch (error) {
       console.error('[DirectConversationsProvider] Error fetching conversations:', error);
@@ -141,9 +64,11 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+      }
     }
-  }, [currentUser?.id, hasLoaded]);
+  }, [currentUser?.id, hasLoaded, debouncedFetchConversations]);
   
   const refreshConversations = useCallback(async () => {
     await fetchConversations(true);
@@ -153,7 +78,7 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
     userId: string, 
     userName: string, 
     userAvatar = '/placeholder.svg'
-  ): Promise<Conversation | null> => {
+  ): Promise<DMConversation | null> => {
     if (!currentUser?.id) {
       console.warn('[DirectConversationsProvider] Cannot get conversation, no current user');
       return null;
@@ -203,11 +128,13 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
       }
       
       // Create conversation object
-      const conversation: Conversation = {
+      const conversation: DMConversation = {
         conversationId,
         userId,
         userName,
-        userAvatar
+        userAvatar,
+        lastMessage: '',
+        timestamp: new Date().toISOString()
       };
       
       // Update local state
@@ -231,6 +158,14 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
       return null;
     }
   }, [currentUser?.id, conversations]);
+  
+  // Cleanup effect
+  React.useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
   
   const contextValue: DirectConversationsContextValue = {
     conversations,
