@@ -29,6 +29,8 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
   const userClubs = currentUser?.clubs || [];
   const clubConversations = useClubConversationList(userClubs);
 
+  console.log('[UnifiedChatList] Rendering clubConversations:', clubConversations);
+
   const isLoading = loadingDMs;
   const isEmpty = !isLoading && directConversations.length === 0 && userClubs.length === 0;
 
