@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
+import { ChatMessage } from '@/types/chat';
 
 export const useDirectMessages = (conversationId: string | null) => {
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const { currentUser } = useApp();
 
   // Fetch initial messages
@@ -12,6 +13,8 @@ export const useDirectMessages = (conversationId: string | null) => {
 
     const fetchMessages = async () => {
       try {
+        console.log('[useDirectMessages] Fetching messages for conversation:', conversationId);
+        
         const { data, error } = await supabase
           .from('direct_messages')
           .select(`
@@ -19,7 +22,7 @@ export const useDirectMessages = (conversationId: string | null) => {
             text,
             sender_id,
             conversation_id,
-            created_at,
+            timestamp,
             sender:sender_id (
               id,
               name,
@@ -27,13 +30,27 @@ export const useDirectMessages = (conversationId: string | null) => {
             )
           `)
           .eq('conversation_id', conversationId)
-          .order('created_at', { ascending: true })
+          .order('timestamp', { ascending: true })
           .limit(50);
 
         if (error) throw error;
 
         if (data) {
-          setMessages(data);
+          // Normalize messages
+          const normalizedMessages = data.map(message => ({
+            id: message.id,
+            text: message.text,
+            timestamp: message.timestamp,
+            sender: message.sender || {
+              id: message.sender_id,
+              name: 'Unknown User',
+              avatar: null
+            },
+            isUserMessage: String(message.sender_id) === String(currentUser.id)
+          }));
+          
+          console.log('[useDirectMessages] Normalized messages:', normalizedMessages);
+          setMessages(normalizedMessages);
         }
       } catch (error) {
         console.error('[useDirectMessages] Error fetching messages:', error);
@@ -54,7 +71,19 @@ export const useDirectMessages = (conversationId: string | null) => {
           filter: `conversation_id=eq.${conversationId}`
         },
         (payload) => {
-          setMessages(prev => [...prev, payload.new]);
+          const newMessage = payload.new;
+          const normalizedMessage = {
+            id: newMessage.id,
+            text: newMessage.text,
+            timestamp: newMessage.timestamp,
+            sender: newMessage.sender || {
+              id: newMessage.sender_id,
+              name: 'Unknown User',
+              avatar: null
+            },
+            isUserMessage: String(newMessage.sender_id) === String(currentUser.id)
+          };
+          setMessages(prev => [...prev, normalizedMessage]);
         }
       )
       .on(
