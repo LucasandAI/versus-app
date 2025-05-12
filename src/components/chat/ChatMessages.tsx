@@ -1,4 +1,3 @@
-
 import React, { memo, useMemo, useRef } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageList from './message/MessageList';
@@ -93,7 +92,27 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
       console.log('[ChatMessages] Sample message before normalization:', messages[messages.length - 1]);
     }
     
-    const normalized = messages.map(message => normalizeMessage(message));
+    const normalized = messages.map(message => {
+      // First normalize the message
+      const normalizedMessage = normalizeMessage(message);
+      
+      // Then explicitly check if it's a user message
+      const messageSenderId = normalizedMessage.sender?.id;
+      const isUserMessage = currentUserId && messageSenderId && String(currentUserId) === String(messageSenderId);
+      
+      console.log('[ChatMessages] Message alignment check:', {
+        messageId: normalizedMessage.id,
+        messageSenderId,
+        currentUserId,
+        isUserMessage
+      });
+      
+      // Return the normalized message with the correct isUserMessage flag
+      return {
+        ...normalizedMessage,
+        isUserMessage
+      };
+    });
     
     // Debug log the normalized result for comparison
     if (normalized.length > 0) {
@@ -101,7 +120,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
     }
     
     return normalized;
-  }, [messages, normalizeMessage]);
+  }, [messages, normalizeMessage, currentUserId]);
 
   // Track if messages changed and need scroll
   if (prevMessageLengthRef.current !== messages.length) {
