@@ -167,6 +167,22 @@ export const useChatActions = () => {
         setMessages(prev => [...prev, optimisticMessage]);
       }
 
+      // Get the other user's ID from the conversation
+      const { data: conversation, error: convError } = await supabase
+        .from('direct_conversations')
+        .select('user1_id, user2_id')
+        .eq('id', conversationId)
+        .single();
+
+      if (convError) {
+        throw convError;
+      }
+
+      // Determine the receiver_id (the other user in the conversation)
+      const receiver_id = conversation.user1_id === currentUser.id 
+        ? conversation.user2_id 
+        : conversation.user1_id;
+
       // Insert message into database
       const { data: insertedMessage, error: insertError } = await supabase
         .from('direct_messages')
@@ -174,6 +190,7 @@ export const useChatActions = () => {
           conversation_id: conversationId,
           text: messageText,
           sender_id: currentUser.id,
+          receiver_id: receiver_id,
           timestamp: new Date().toISOString()
         })
         .select()
