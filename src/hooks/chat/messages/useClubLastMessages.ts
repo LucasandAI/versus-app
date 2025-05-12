@@ -80,7 +80,9 @@ export const useClubLastMessages = (clubs: Club[]) => {
           filter: clubs.length > 0 ? `club_id=in.(${clubs.map(c => `'${c.id}'`).join(',')})` : undefined
         },
         (payload) => {
+          console.log('[useClubLastMessages] Real-time event:', payload);
           const msg = payload.new || payload.old;
+          console.log('[useClubLastMessages] EventType:', payload.eventType, 'club_id:', msg?.club_id, 'msg:', msg);
           if (!msg || !msg.club_id) return;
           if (payload.eventType === 'DELETE') {
             // On delete, refetch the latest message for this club
