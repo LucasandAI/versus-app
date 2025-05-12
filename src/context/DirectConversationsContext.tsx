@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from './AppContext';
 import { toast } from '@/hooks/use-toast';
@@ -14,7 +14,7 @@ interface DirectConversationsContextValue {
   getOrCreateConversation: (userId: string, userName: string, userAvatar?: string) => Promise<DMConversation | null>;
 }
 
-const DirectConversationsContext = createContext<DirectConversationsContextValue>({
+const DirectConversationsContext = React.createContext<DirectConversationsContextValue>({
   conversations: [],
   loading: false,
   hasLoaded: false,
@@ -23,17 +23,17 @@ const DirectConversationsContext = createContext<DirectConversationsContextValue
   getOrCreateConversation: async () => null,
 });
 
-export const useDirectConversationsContext = () => useContext(DirectConversationsContext);
+export const useDirectConversationsContext = () => React.useContext(DirectConversationsContext);
 
 export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [conversations, setConversations] = useState<DMConversation[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const [conversations, setConversations] = React.useState<DMConversation[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [hasLoaded, setHasLoaded] = React.useState(false);
   const { currentUser } = useApp();
-  const isMounted = useRef(true);
+  const isMounted = React.useRef(true);
   const { debouncedFetchConversations } = useConversationsFetcher(isMounted);
 
-  const fetchConversations = useCallback(async (forceRefresh = false) => {
+  const fetchConversations = React.useCallback(async (forceRefresh = false) => {
     if (!forceRefresh && hasLoaded) {
       console.log('[DirectConversationsProvider] Using cached conversations');
       return;
@@ -70,11 +70,11 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
     }
   }, [currentUser?.id, hasLoaded, debouncedFetchConversations]);
   
-  const refreshConversations = useCallback(async () => {
+  const refreshConversations = React.useCallback(async () => {
     await fetchConversations(true);
   }, [fetchConversations]);
   
-  const getOrCreateConversation = useCallback(async (
+  const getOrCreateConversation = React.useCallback(async (
     userId: string, 
     userName: string, 
     userAvatar = '/placeholder.svg'
@@ -166,6 +166,48 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
       isMounted.current = false;
     };
   }, []);
+  
+  // Real-time subscription for direct_messages
+  React.useEffect(() => {
+    if (!currentUser?.id) return;
+    const channel = supabase
+      .channel('realtime-conversations-list')
+      .on('postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'direct_messages',
+        },
+        (payload) => {
+          const msg = payload.new || payload.old;
+          if (!msg || (!msg.conversation_id && !msg.id)) return;
+          setConversations(prev => {
+            // Find the conversation
+            return prev.map(conv => {
+              if (conv.conversationId === msg.conversation_id) {
+                if (payload.eventType === 'DELETE') {
+                  // On delete, refetch the latest message for this conversation
+                  // (for simplicity, just clear lastMessage and timestamp; a full refetch will restore it)
+                  return { ...conv, lastMessage: '', timestamp: conv.timestamp };
+                } else {
+                  // On insert/update, update lastMessage and timestamp
+                  return {
+                    ...conv,
+                    lastMessage: msg.text,
+                    timestamp: msg.timestamp
+                  };
+                }
+              }
+              return conv;
+            });
+          });
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser?.id]);
   
   const contextValue: DirectConversationsContextValue = {
     conversations,
