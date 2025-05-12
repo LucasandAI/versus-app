@@ -11,6 +11,9 @@ export function useClubConversationList(clubs: Club[]) {
   console.log('[useClubConversationList] Hook called with clubs:', clubs.map(c => c.id));
   const [conversations, setConversations] = React.useState<ClubConversationPreview[]>([]);
 
+  // Memoize clubIds for effect dependencies
+  const clubIds = React.useMemo(() => clubs.map(c => c.id), [clubs]);
+
   // Helper to fetch the latest message for a club from the view
   const fetchLastMessage = async (clubId: string) => {
     const { data, error } = await supabase
@@ -24,15 +27,16 @@ export function useClubConversationList(clubs: Club[]) {
     return data && data[0] ? data[0] : null;
   };
 
-  // Fetch all latest messages for all clubs
+  // Memoize fetchAll to only depend on clubIds
   const fetchAll = React.useCallback(async () => {
-    if (!clubs.length) {
+    if (!clubIds.length) {
       setConversations([]);
       return;
     }
     const previews: ClubConversationPreview[] = await Promise.all(
-      clubs.map(async (club) => {
-        const lastMessage = await fetchLastMessage(club.id);
+      clubIds.map(async (clubId) => {
+        const club = clubs.find(c => c.id === clubId);
+        const lastMessage = await fetchLastMessage(clubId);
         return { club, lastMessage };
       })
     );
@@ -43,22 +47,17 @@ export function useClubConversationList(clubs: Club[]) {
     });
     setConversations(previews);
     console.log('[useClubConversationList] fetchAll setConversations:', previews);
-  }, [clubs]);
+  }, [clubIds, clubs]);
 
   // Initial fetch
   React.useEffect(() => {
-    let isMounted = true;
-    if (!isMounted) return;
     fetchAll();
-    return () => { isMounted = false; };
   }, [fetchAll]);
 
   // Real-time subscription: on any event, re-fetch all
   React.useEffect(() => {
     console.log('[useClubConversationList] Real-time effect running with clubs:', clubs.map(c => c.id));
-    if (!clubs.length) return;
-    const clubIds = clubs.map(c => c.id);
-    console.log('[useClubConversationList] Setting up real-time subscription for clubIds:', clubIds);
+    if (!clubIds.length) return;
     const channel = supabase
       .channel('club-conversation-list-realtime')
       .on('postgres_changes', {
@@ -72,7 +71,7 @@ export function useClubConversationList(clubs: Club[]) {
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [clubs, fetchAll]);
+  }, [clubIds, fetchAll]);
 
   console.log('[useClubConversationList] Returning conversations:', conversations);
   return conversations;
