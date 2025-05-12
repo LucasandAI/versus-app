@@ -12,7 +12,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import ClubsList from './sidebar/ClubsList';
-import { useClubLastMessages } from '@/hooks/chat/messages/useClubLastMessages';
+import { useClubPreviewData } from '@/hooks/chat/messages/useClubPreviewData';
 
 interface ChatSidebarProps {
   clubs: Club[];
@@ -41,7 +41,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   const [chatToDelete, setChatToDelete] = React.useState<{id: string, name: string} | null>(null);
 
   // LIFTED: Get lastMessages and sortedClubs here
-  const { lastMessages, sortedClubs } = useClubLastMessages(clubs);
+  const { lastMessages, sortedClubs } = useClubPreviewData(clubs, clubMessages);
 
   const handleDeleteChat = () => {
     if (chatToDelete && onDeleteChat) {
