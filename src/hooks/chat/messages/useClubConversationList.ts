@@ -10,11 +10,11 @@ export interface ClubConversationPreview {
 export function useClubConversationList(clubs: Club[]) {
   const [conversations, setConversations] = React.useState<ClubConversationPreview[]>([]);
 
-  // Helper to fetch the latest message for a club
+  // Helper to fetch the latest message for a club, joining sender info
   const fetchLastMessage = async (clubId: string) => {
     const { data, error } = await supabase
       .from('club_chat_messages')
-      .select('*')
+      .select('*, sender:sender_id(id, name, avatar)')
       .eq('club_id', clubId)
       .order('timestamp', { ascending: false })
       .limit(1);
