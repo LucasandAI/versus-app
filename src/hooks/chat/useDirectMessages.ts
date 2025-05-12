@@ -9,45 +9,68 @@ export const useDirectMessages = (conversationId: string | null) => {
 
   // Fetch initial messages
   useEffect(() => {
-    if (!conversationId || !currentUser?.id) return;
+    if (!conversationId || !currentUser?.id || conversationId === 'new') return;
 
     const fetchMessages = async () => {
       try {
         console.log('[useDirectMessages] Fetching messages for conversation:', conversationId);
         
+        // First fetch messages
         const { data, error } = await supabase
           .from('direct_messages')
           .select(`
             id,
             text,
             sender_id,
-            conversation_id,
-            timestamp,
-            sender:sender_id (
-              id,
-              name,
-              avatar
-            )
+            timestamp
           `)
           .eq('conversation_id', conversationId)
-          .order('timestamp', { ascending: true })
-          .limit(50);
+          .order('timestamp', { ascending: true });
 
         if (error) throw error;
 
         if (data) {
-          // Normalize messages
-          const normalizedMessages = data.map(message => ({
-            id: message.id,
-            text: message.text,
-            timestamp: message.timestamp,
-            sender: message.sender || {
+          // Get unique sender IDs
+          const senderIds = [...new Set(data.map(msg => msg.sender_id))];
+          let userMap: Record<string, any> = {};
+          
+          // Fetch user data for all senders
+          if (senderIds.length > 0) {
+            const { data: usersData, error: usersError } = await supabase
+              .from('users')
+              .select('id, name, avatar')
+              .in('id', senderIds);
+              
+            if (usersError) {
+              console.error('[useDirectMessages] Error fetching user data:', usersError);
+            } else {
+              userMap = (usersData || []).reduce((acc: Record<string, any>, user) => {
+                acc[user.id] = user;
+                return acc;
+              }, {});
+            }
+          }
+
+          // Normalize messages with user data
+          const normalizedMessages = data.map(message => {
+            const senderInfo = userMap[message.sender_id] || {
               id: message.sender_id,
               name: 'Unknown User',
               avatar: null
-            },
-            isUserMessage: String(message.sender_id) === String(currentUser.id)
-          }));
+            };
+
+            return {
+              id: message.id,
+              text: message.text,
+              timestamp: message.timestamp,
+              sender: {
+                id: senderInfo.id,
+                name: senderInfo.name,
+                avatar: senderInfo.avatar
+              },
+              isUserMessage: String(message.sender_id) === String(currentUser.id)
+            };
+          });
           
           console.log('[useDirectMessages] Normalized messages:', normalizedMessages);
           setMessages(normalizedMessages);
@@ -70,19 +93,28 @@ export const useDirectMessages = (conversationId: string | null) => {
           table: 'direct_messages',
           filter: `conversation_id=eq.${conversationId}`
         },
-        (payload) => {
+        async (payload) => {
           const newMessage = payload.new;
+          
+          // Fetch sender data for the new message
+          const { data: userData } = await supabase
+            .from('users')
+            .select('id, name, avatar')
+            .eq('id', newMessage.sender_id)
+            .single();
+            
           const normalizedMessage = {
             id: newMessage.id,
             text: newMessage.text,
             timestamp: newMessage.timestamp,
-            sender: newMessage.sender || {
+            sender: userData || {
               id: newMessage.sender_id,
               name: 'Unknown User',
               avatar: null
             },
             isUserMessage: String(newMessage.sender_id) === String(currentUser.id)
           };
+          
           setMessages(prev => [...prev, normalizedMessage]);
         }
       )
