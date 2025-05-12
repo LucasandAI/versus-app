@@ -99,11 +99,15 @@ const MessageItem: React.FC<MessageItemProps> = ({
         </div>
       </div>
 
-      {isUserMessage && canDelete && onDeleteMessage && !isSupport && (
+      {isUserMessage && !isSupport && (
         <div className="ml-2">
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-            <MessageDeleteButton onDelete={handleDeleteClick} />
-          </div>
+          {canDelete && onDeleteMessage ? (
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+              <MessageDeleteButton onDelete={handleDeleteClick} />
+            </div>
+          ) : (
+            <div className="w-8 h-8 opacity-0" aria-hidden="true"></div>
+          )}
         </div>
       )}
     </div>
