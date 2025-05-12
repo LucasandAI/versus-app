@@ -164,7 +164,13 @@ export const useChatActions = () => {
       
       // Update local state with optimistic message
       if (setMessages) {
-        setMessages(prev => [...prev, optimisticMessage]);
+        setMessages(prev => {
+          // Check if we already have a message with this temp ID
+          if (prev.some(msg => msg.id === tempId)) {
+            return prev;
+          }
+          return [...prev, optimisticMessage];
+        });
       }
 
       // Get the other user's ID from the conversation
@@ -216,8 +222,11 @@ export const useChatActions = () => {
       
       // Replace optimistic message with real one
       if (setMessages && insertedMessage) {
-        setMessages(prev => prev.map(msg => 
-          msg.id === tempId ? {
+        setMessages(prev => {
+          // First remove any existing messages with this temp ID
+          const filtered = prev.filter(msg => msg.id !== tempId);
+          // Then add the real message
+          return [...filtered, {
             ...insertedMessage,
             isUserMessage: true,
             sender: {
@@ -225,8 +234,8 @@ export const useChatActions = () => {
               name: currentUser.name,
               avatar: currentUser.avatar
             }
-          } : msg
-        ));
+          }];
+        });
       }
       
       return insertedMessage;
