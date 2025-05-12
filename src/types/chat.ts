@@ -1,4 +1,3 @@
-
 import { Club } from './index';
 
 export interface ChatMessage {
@@ -12,6 +11,7 @@ export interface ChatMessage {
   timestamp: string;
   isSupport?: boolean;
   optimistic?: boolean;
+  isUserMessage?: boolean;
 }
 
 export interface DirectMessage {

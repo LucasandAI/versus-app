@@ -1,9 +1,18 @@
-
 import { ChatMessage } from '@/types/chat';
 
 export const useMessageNormalization = (currentUserId: string | null, getMemberName: (senderId: string) => string) => {
   const normalizeMessage = (message: any): ChatMessage => {
     console.log('[useMessageNormalization] Normalizing message:', message);
+    
+    // Determine if message is from current user
+    const messageSenderId = message.sender?.id || message.sender_id;
+    const isUserMessage = currentUserId && messageSenderId && String(currentUserId) === String(messageSenderId);
+    
+    console.log('[useMessageNormalization] Message sender check:', {
+      messageSenderId,
+      currentUserId,
+      isUserMessage
+    });
     
     // More robust check for a complete sender object with required properties
     if (
@@ -25,7 +34,8 @@ export const useMessageNormalization = (currentUserId: string | null, getMemberN
         },
         timestamp: message.timestamp || message.created_at || new Date().toISOString(),
         isSupport: Boolean(message.isSupport),
-        optimistic: Boolean(message.optimistic)
+        optimistic: Boolean(message.optimistic),
+        isUserMessage
       };
     }
     
@@ -53,7 +63,8 @@ export const useMessageNormalization = (currentUserId: string | null, getMemberN
           avatar: senderAvatar
         },
         timestamp: message.timestamp || message.created_at || new Date().toISOString(),
-        isSupport: Boolean(message.isSupport)
+        isSupport: Boolean(message.isSupport),
+        isUserMessage
       };
     }
     
@@ -69,7 +80,8 @@ export const useMessageNormalization = (currentUserId: string | null, getMemberN
           avatar: undefined
         },
         timestamp: message.timestamp || message.created_at || new Date().toISOString(),
-        isSupport: false
+        isSupport: false,
+        isUserMessage
       };
     }
     
@@ -84,7 +96,8 @@ export const useMessageNormalization = (currentUserId: string | null, getMemberN
         avatar: message.sender?.avatar || undefined
       },
       timestamp: message.timestamp || message.created_at || new Date().toISOString(),
-      isSupport: false
+      isSupport: false,
+      isUserMessage
     };
   };
 
