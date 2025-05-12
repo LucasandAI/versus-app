@@ -42,6 +42,8 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   // Map for ClubsList
   const lastMessages = Object.fromEntries(clubConversations.map(c => [c.club.id, c.lastMessage]));
   const sortedClubs = clubConversations.map(c => c.club);
+  // Key to force re-render when conversations change
+  const conversationsKey = clubConversations.map(c => `${c.club.id}:${c.lastMessage?.id || ''}:${c.lastMessage?.timestamp || ''}`).join('|');
 
   const handleDeleteChat = () => {
     if (chatToDelete && onDeleteChat) {
@@ -58,7 +60,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
       {/* Only show clubs when the clubs tab is active */}
       {activeTab === "clubs" && (
         <ClubsList
-          key={`clubs-list-${unreadKey}`}
+          key={`clubs-list-${unreadKey}-${conversationsKey}`}
           clubs={clubs}
           selectedClub={selectedClub}
           onSelectClub={onSelectClub}
