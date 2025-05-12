@@ -70,6 +70,35 @@ export const useClubLastMessages = (clubs: Club[]) => {
 
     fetchLatestMessages();
 
+    const fetchLatestMessageForClub = async (clubId: string) => {
+      const { data, error } = await supabase
+        .from('club_chat_messages')
+        .select(`*, sender:sender_id ( id, name )`)
+        .eq('club_id', clubId)
+        .order('timestamp', { ascending: false })
+        .limit(1);
+      if (error) {
+        console.error('[useClubLastMessages] Error fetching latest message for club:', clubId, error);
+        return null;
+      }
+      return data && data[0] ? data[0] : null;
+    };
+
+    const updateAndResort = (updatedLastMessages: Record<string, any>) => {
+      setLastMessages(updatedLastMessages);
+      // Resort clubs by latest timestamp
+      const clubsWithTimestamps = clubs.map(club => {
+        const lastMessage = updatedLastMessages[club.id];
+        const lastTimestamp = lastMessage ? new Date(lastMessage.timestamp).getTime() : 0;
+        return { club, lastTimestamp };
+      });
+      const sorted = clubsWithTimestamps
+        .sort((a, b) => b.lastTimestamp - a.lastTimestamp)
+        .map(item => item.club);
+      setSortedClubs(sorted);
+      setForceUpdate(f => f + 1);
+    };
+
     // Set up realtime subscription for new messages
     const channel = supabase
       .channel('club-last-messages')
@@ -81,10 +110,20 @@ export const useClubLastMessages = (clubs: Club[]) => {
           table: 'club_chat_messages',
           filter: clubs.length > 0 ? `club_id=in.(${clubs.map(c => `'${c.id}'`).join(',')})` : undefined
         },
-        (payload) => {
+        async (payload) => {
           console.log('[useClubLastMessages] Real-time event:', payload);
-          // On any event, refetch the latest messages for all clubs
-          fetchLatestMessages();
+          const msg = payload.new || payload.old;
+          if (!msg || !msg.club_id) return;
+          if (payload.eventType === 'DELETE') {
+            // On delete, refetch the latest message for this club only
+            const latest = await fetchLatestMessageForClub(msg.club_id);
+            const updatedLastMessages = { ...lastMessages, [msg.club_id]: latest };
+            updateAndResort(updatedLastMessages);
+          } else {
+            // On insert/update, update lastMessages for this club only
+            const updatedLastMessages = { ...lastMessages, [msg.club_id]: msg };
+            updateAndResort(updatedLastMessages);
+          }
         }
       )
       .subscribe();
