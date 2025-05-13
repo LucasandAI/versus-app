@@ -56,8 +56,20 @@ export const handleNewMessagePayload = async (
   
   console.log(`[subscriptionHandlers] 🔥 New message received for club ${messageClubId}:`, typedPayload.new?.id);
   
-  // Directly update state with message data, but also fetch sender details
-  // This ensures optimistic UI update while fetching complete data
+  // First, immediately update the UI with the message and basic sender info
+  // This ensures instant preview update in the conversation list
+  const senderName = "Loading..."; // Temporary placeholder
+  const tempMessage = {
+    ...typedPayload.new,
+    isUserMessage: typedPayload.new?.sender_id === currentUser?.id,
+    sender: {
+      id: typedPayload.new?.sender_id,
+      name: currentUser?.id === typedPayload.new?.sender_id ? "You" : senderName
+    },
+    sender_username: currentUser?.id === typedPayload.new?.sender_id ? "You" : senderName
+  };
+  
+  // First update with the temporary message (instant UI feedback)
   setClubMessages(prev => {
     const clubMsgs = prev[messageClubId] || [];
     
@@ -65,12 +77,6 @@ export const handleNewMessagePayload = async (
     const messageExists = clubMsgs.some(msg => msg.id === typedPayload.new?.id);
     if (messageExists) return prev;
 
-    // Create a temporary message object with the data we have
-    const tempMessage = {
-      ...typedPayload.new,
-      isUserMessage: typedPayload.new?.sender_id === currentUser?.id
-    };
-    
     // Sort messages by timestamp
     const updatedMessages = [...clubMsgs, tempMessage].sort(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
@@ -88,7 +94,7 @@ export const handleNewMessagePayload = async (
   });
   
   // In parallel, fetch complete sender details
-  if (typedPayload.new?.sender_id) {
+  if (typedPayload.new?.sender_id && typedPayload.new.sender_id !== currentUser?.id) {
     try {
       const { data: senderData } = await supabase
         .from('users')
@@ -103,7 +109,11 @@ export const handleNewMessagePayload = async (
           
           const updatedMessages = clubMsgs.map(msg => 
             msg.id === typedPayload.new?.id 
-              ? { ...msg, sender: senderData }
+              ? { 
+                  ...msg, 
+                  sender: senderData,
+                  sender_username: senderData.name
+                }
               : msg
           );
           

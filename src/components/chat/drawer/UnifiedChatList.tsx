@@ -7,7 +7,8 @@ import { useClubConversationList } from '@/hooks/chat/messages/useClubConversati
 import UserAvatar from '@/components/shared/UserAvatar';
 import { MessageSquare, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { toast } from '@/components/ui/use-toast';
+import { formatDistanceToNow } from 'date-fns';
 
 interface UnifiedChatListProps {
   onSelectChat: (type: 'club' | 'dm', id: string, name: string, avatar?: string) => void;
@@ -29,8 +30,6 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
 
   const userClubs = currentUser?.clubs || [];
   const clubConversations = useClubConversationList(userClubs);
-
-  console.log('[UnifiedChatList] Rendering clubConversations:', clubConversations);
 
   const isLoading = loadingDMs;
   const isEmpty = !isLoading && directConversations.length === 0 && userClubs.length === 0;
@@ -71,6 +70,14 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
       onSelectChat('dm', conversation.conversationId, conversation.userName, conversation.userAvatar);
       setSearchQuery('');
       setSearchResults([]);
+    }
+  };
+
+  const formatTimeAgo = (timestamp: string) => {
+    try {
+      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
+    } catch (e) {
+      return '';
     }
   };
 
@@ -140,7 +147,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
                     <p className="font-medium truncate">{club.name}</p>
                     {lastMessage?.timestamp && (
                       <span className="text-xs text-gray-500">
-                        {new Date(lastMessage.timestamp).toLocaleDateString()}
+                        {formatTimeAgo(lastMessage.timestamp)}
                       </span>
                     )}
                   </div>
@@ -149,7 +156,9 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
                     <p className="text-sm text-gray-500 truncate">
                       {lastMessage && lastMessage.message ? (
                         <>
-                          <span className="font-medium">{lastMessage.sender_username || lastMessage.sender?.name}: </span>
+                          <span className="font-medium">
+                            {lastMessage.sender?.name || lastMessage.sender_username || 'Unknown'}:
+                          </span>{' '}
                           {lastMessage.message}
                         </>
                       ) : (
@@ -192,7 +201,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
                   <p className="font-medium truncate">{conversation.userName}</p>
                   {conversation.timestamp && (
                     <span className="text-xs text-gray-500">
-                      {new Date(conversation.timestamp).toLocaleDateString()}
+                      {formatTimeAgo(conversation.timestamp)}
                     </span>
                   )}
                 </div>

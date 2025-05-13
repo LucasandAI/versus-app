@@ -13,13 +13,12 @@ const UnreadMessagesContext = createContext<UnreadMessagesContextType>({
   unreadConversations: new Set<string>(),
   unreadClubs: new Set<string>(),
   markClubMessagesAsRead: async () => {},
-  markConversationAsRead: async () => {},
+  markDirectConversationAsRead: async () => {},
   fetchUnreadCounts: async () => {},
   
   // Properties from original interface
   unreadClubMessages: new Set<string>(),
   unreadDirectMessageConversations: new Set<string>(),
-  markDirectConversationAsRead: async () => {},
   unreadMessagesCount: 0
 });
 
