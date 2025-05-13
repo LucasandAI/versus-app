@@ -1,19 +1,32 @@
+
 import { useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import { ChatMessage } from '@/types/chat';
 
-// Define a helper type for direct messages
-interface DirectMessageData {
+// Define a type guard for direct messages
+const isDirectMessage = (message: any): message is {
   conversation_id: string;
   id: string;
   receiver_id: string;
   sender_id: string;
   text: string;
   timestamp: string;
-  [key: string]: any;
-}
+} => {
+  return message && 'conversation_id' in message && 'text' in message;
+};
+
+// Define a type guard for club messages
+const isClubMessage = (message: any): message is {
+  club_id: string;
+  id: string;
+  message: string;
+  sender_id: string;
+  timestamp: string;
+} => {
+  return message && 'club_id' in message && 'message' in message;
+};
 
 export const useChatActions = () => {
   const { currentUser } = useApp();
@@ -319,7 +332,7 @@ export const useChatActions = () => {
           .single();
         
         if (message) {
-          if (table === 'direct_messages' && setDirectMessages) {
+          if (table === 'direct_messages' && setDirectMessages && isDirectMessage(message)) {
             setDirectMessages(prev => [...prev, {
               id: message.id,
               text: message.text || "",
@@ -331,7 +344,7 @@ export const useChatActions = () => {
                 avatar: currentUser?.id === message.sender_id ? currentUser?.avatar : undefined
               }
             }]);
-          } else if (table === 'club_chat_messages' && setClubMessages && message.club_id) {
+          } else if (table === 'club_chat_messages' && setClubMessages && isClubMessage(message)) {
             setClubMessages(prevMessages => {
               const clubId = message.club_id;
               const clubMessages = prevMessages[clubId] || [];

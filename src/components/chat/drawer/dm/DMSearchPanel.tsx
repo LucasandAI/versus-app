@@ -6,7 +6,7 @@ import UserSearchResults from './UserSearchResults';
 import { ArrowLeft } from 'lucide-react';
 
 interface DMSearchPanelProps {
-  onSelect: (userId: string, userName: string, userAvatar: string) => Promise<void>;
+  onSelect: (userId: string, userName: string, userAvatar: string) => Promise<void> | void;
   onBack: () => void;
 }
 

@@ -10,7 +10,7 @@ export interface DMConversationListProps {
     userId: string;
     userName: string;
     userAvatar?: string;
-    lastMessage?: string;
+    lastMessage?: string | { text: string; timestamp: string };
     timestamp?: string;
   }>;
   onConversationSelect: (userId: string, userName: string, userAvatar?: string, conversationId?: string) => void;
@@ -26,6 +26,21 @@ const DMConversationList: React.FC<DMConversationListProps> = ({
   unreadConversations,
   selectedUserId
 }) => {
+  // Helper function to extract text from lastMessage whether it's string or object
+  const getLastMessageText = (lastMessage?: string | { text: string; timestamp: string }): string => {
+    if (!lastMessage) return '';
+    return typeof lastMessage === 'string' ? lastMessage : lastMessage.text;
+  };
+
+  // Helper function to get timestamp
+  const getTimestamp = (conversation: any): string => {
+    if (conversation.timestamp) return conversation.timestamp;
+    if (conversation.lastMessage && typeof conversation.lastMessage !== 'string') {
+      return conversation.lastMessage.timestamp;
+    }
+    return '';
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b flex justify-between items-center">
@@ -59,8 +74,8 @@ const DMConversationList: React.FC<DMConversationListProps> = ({
               key={conversation.conversationId}
               userName={conversation.userName}
               userAvatar={conversation.userAvatar}
-              lastMessage={conversation.lastMessage}
-              timestamp={conversation.timestamp}
+              lastMessage={getLastMessageText(conversation.lastMessage)}
+              timestamp={getTimestamp(conversation)}
               isUnread={unreadConversations.has(conversation.conversationId)}
               isSelected={selectedUserId === conversation.userId}
               onClick={() => onConversationSelect(

@@ -26,6 +26,11 @@ interface DeletePayload {
   [key: string]: any;
 }
 
+// Type guard to check if payload contains club_id
+function hasClubId(payload: any): payload is { new: { club_id: string } } {
+  return payload && payload.new && typeof payload.new.club_id === 'string';
+}
+
 export const handleNewMessagePayload = async (
   payload: RealtimePostgresChangesPayload<{
     [key: string]: any;
@@ -36,7 +41,7 @@ export const handleNewMessagePayload = async (
   selectedClubRef: string | null
 ) => {
   // Make sure we have a valid payload with club_id
-  if (!payload.new || !payload.new.club_id) {
+  if (!hasClubId(payload)) {
     console.log('[subscriptionHandlers] Invalid payload, missing club_id:', payload);
     return;
   }
@@ -45,7 +50,7 @@ export const handleNewMessagePayload = async (
   console.log('[subscriptionHandlers] Received message payload:', typedPayload);
   
   // Get the club ID from the message
-  const messageClubId = typedPayload.new.club_id;
+  const messageClubId = typedPayload.new!.club_id!;
   
   // Check if this message belongs to one of the user's clubs
   const isRelevantClub = userClubs.some(club => club.id === messageClubId);

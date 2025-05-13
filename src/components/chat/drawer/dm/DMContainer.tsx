@@ -8,11 +8,27 @@ import DMConversationList from './DMConversationList';
 import DMConversation from './DMConversation';
 import DMSearchPanel from './DMSearchPanel';
 
-type DMContainerProps = {
-  onSelectUser: (userId: string, userName: string, userAvatar?: string, conversationId?: string) => void;
+export type DMContainerProps = {
+  directMessageUser: {
+    userId: string;
+    userName: string;
+    userAvatar: string;
+    conversationId: string;
+  } | null;
+  setDirectMessageUser: React.Dispatch<React.SetStateAction<{
+    userId: string;
+    userName: string;
+    userAvatar: string;
+    conversationId: string;
+  } | null>>;
+  unreadConversations?: Set<string>;
 };
 
-const DMContainer: React.FC<DMContainerProps> = ({ onSelectUser }) => {
+const DMContainer: React.FC<DMContainerProps> = ({ 
+  directMessageUser, 
+  setDirectMessageUser,
+  unreadConversations = new Set<string>()
+}) => {
   const [selectedUser, setSelectedUser] = useState<{
     id: string;
     name: string;
@@ -23,7 +39,12 @@ const DMContainer: React.FC<DMContainerProps> = ({ onSelectUser }) => {
   const { currentUser } = useApp();
   const navigate = useNavigate();
   const { conversations, getOrCreateConversation } = useDirectConversationsContext();
-  const { unreadConversations } = useUnreadMessages();
+  const { unreadConversations: contextUnreadConversations } = useUnreadMessages();
+
+  // Use provided unreadConversations or fall back to context
+  const effectiveUnreadConversations = unreadConversations.size > 0 
+    ? unreadConversations 
+    : contextUnreadConversations;
 
   const handleUserSelect = async (userId: string, userName: string, userAvatar?: string, conversationId?: string) => {
     if (userId === currentUser?.id) {
@@ -79,7 +100,9 @@ const DMContainer: React.FC<DMContainerProps> = ({ onSelectUser }) => {
         />
       ) : isSearching ? (
         <DMSearchPanel
-          onSelectUser={handleUserSelect}
+          onSelect={(userId, userName, userAvatar) => 
+            handleUserSelect(userId, userName, userAvatar)
+          }
           onBack={() => setIsSearching(false)}
         />
       ) : (
@@ -89,7 +112,7 @@ const DMContainer: React.FC<DMContainerProps> = ({ onSelectUser }) => {
             handleUserSelect(userId, userName, userAvatar, conversationId)
           }
           onNewChat={() => setIsSearching(true)}
-          unreadConversations={unreadConversations}
+          unreadConversations={effectiveUnreadConversations}
           selectedUserId={selectedUser?.id || ''}
         />
       )}

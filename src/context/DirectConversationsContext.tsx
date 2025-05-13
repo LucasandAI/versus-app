@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from './AppContext';
@@ -33,10 +32,12 @@ interface RealtimeMessagePayload {
     id?: string;
     text?: string;
     timestamp?: string;
+    [key: string]: any;
   };
   old?: {
     conversation_id?: string;
     id?: string;
+    [key: string]: any;
   };
   eventType?: 'INSERT' | 'UPDATE' | 'DELETE';
 }
@@ -197,6 +198,7 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
         (payload: RealtimeMessagePayload) => {
           const msg = payload.new || payload.old;
           if (!msg || (!msg.conversation_id && !msg.id)) return;
+          
           setConversations(prev => {
             // Find the conversation
             return prev.map(conv => {
@@ -205,12 +207,12 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
                   // On delete, refetch the latest message for this conversation
                   // (for simplicity, just clear lastMessage and timestamp; a full refetch will restore it)
                   return { ...conv, lastMessage: '', timestamp: conv.timestamp };
-                } else if (msg.text && msg.timestamp) {
+                } else if (payload.new && payload.new.text && payload.new.timestamp) {
                   // On insert/update, update lastMessage and timestamp
                   return {
                     ...conv,
-                    lastMessage: msg.text,
-                    timestamp: msg.timestamp
+                    lastMessage: payload.new.text,
+                    timestamp: payload.new.timestamp
                   };
                 }
               }

@@ -14,6 +14,7 @@ const UnreadMessagesContext = createContext<UnreadMessagesContextType>({
   unreadClubs: new Set<string>(),
   markClubMessagesAsRead: async () => {},
   markDirectConversationAsRead: async () => {},
+  markConversationAsRead: async () => {}, // Added missing method
   fetchUnreadCounts: async () => {},
   
   // Properties from original interface
