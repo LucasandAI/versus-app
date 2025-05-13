@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Club } from '@/types';
 import UserAvatar from '../../shared/UserAvatar';
@@ -6,11 +7,7 @@ import { useNavigation } from '@/hooks/useNavigation';
 import { formatDistanceToNow } from 'date-fns';
 import { useUnreadMessages } from '@/context/unread-messages';
 import { Badge } from '@/components/ui/badge';
-
-export interface ClubConversation {
-  club: Club;
-  lastMessage: any | null;
-}
+import { ClubConversation } from '@/hooks/chat/messages/useClubConversations';
 
 interface ClubsListProps {
   clubConversations: ClubConversation[];
@@ -22,7 +19,7 @@ interface ClubsListProps {
   setChatToDelete: (data: {
     id: string;
     name: string;
-    isTicket: boolean;
+    isTicket?: boolean;
   } | null) => void;
 }
 

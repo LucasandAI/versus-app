@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Club } from '@/types';
 import { useApp } from '@/context/AppContext';
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import ClubsList from './sidebar/ClubsList';
 import { useClubConversationList } from '@/hooks/chat/messages/useClubConversationList';
+import { ClubConversation } from '@/hooks/chat/messages/useClubConversations';
 
 interface ChatSidebarProps {
   clubs: Club[];

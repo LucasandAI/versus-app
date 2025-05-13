@@ -21,6 +21,7 @@ export interface ClubConversation {
 
 interface MessagePayload {
   new: {
+    id: string;
     club_id: string;
     message: string;
     sender_id: string;
@@ -140,7 +141,8 @@ export const useClubConversations = (clubs: Club[]): ClubConversation[] => {
                   setLastMessages(prev => {
                     // Make sure we're still dealing with the same message
                     const currentMsg = prev[clubId];
-                    if (currentMsg && currentMsg.id === newMessage.id) {
+                    // Check if currentMsg and newMessage exists and have ids to compare
+                    if (currentMsg && newMessage.id && currentMsg.id === newMessage.id) {
                       return {
                         ...prev,
                         [clubId]: {

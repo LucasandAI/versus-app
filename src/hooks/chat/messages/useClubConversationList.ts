@@ -2,24 +2,11 @@
 import { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import { useClubLastMessages } from './useClubLastMessages';
+import { ClubConversation } from './useClubConversations';
 
-interface ClubConversationListItem {
-  club: Club;
-  lastMessage?: {
-    message: string;
-    sender_id?: string;
-    sender?: {
-      id: string;
-      name: string;
-      avatar?: string;
-    };
-    sender_username?: string;
-    timestamp: string;
-  } | null;
-}
-
-export const useClubConversationList = (clubs: Club[]): ClubConversationListItem[] => {
-  const [clubConversationList, setClubConversationList] = useState<ClubConversationListItem[]>([]);
+// Make this interface match ClubConversation from useClubConversations.ts
+export const useClubConversationList = (clubs: Club[]): ClubConversation[] => {
+  const [clubConversationList, setClubConversationList] = useState<ClubConversation[]>([]);
   const { lastMessages, isLoading, senderCache } = useClubLastMessages(clubs);
   
   useEffect(() => {
@@ -36,7 +23,7 @@ export const useClubConversationList = (clubs: Club[]): ClubConversationListItem
           sender_username: lastMessage.sender?.name || 
                           (senderCache[lastMessage.sender_id]?.name || 'Unknown'),
           timestamp: lastMessage.timestamp
-        } : null
+        } : null // This lastMessage is always defined, but may be null
       };
     });
     
