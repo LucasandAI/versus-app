@@ -14,6 +14,7 @@ interface ChatHeaderProps {
   onBack?: () => void;
   onSelectUser?: (userId: string, name: string, avatar?: string) => void;
   onClubClick?: () => void;
+  onMatchClick?: () => void; // Added this prop to match the expected signature
 }
 
 const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -23,7 +24,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   avatar,
   onBack,
   onSelectUser,
-  onClubClick
+  onClubClick,
+  onMatchClick
 }) => {
   const { navigateToClubDetail } = useNavigation();
 
@@ -40,6 +42,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
       onBack();
     } else if (onClubClick) {
       onClubClick();
+    } else if (onMatchClick) {
+      onMatchClick();
     } else if (club) {
       navigateToClubDetail(club.id, club);
     }

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -44,7 +45,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
     checkDeletePermission();
   }, [message.sender?.id]);
   
-  const handleDeleteClick = () => {
+  const handleDeleteClick = (messageId: string) => {
     if (canDelete && onDeleteMessage && message.id) {
       console.log('[MessageItem] Delete button clicked for message:', message.id);
       onDeleteMessage(message.id);
@@ -102,7 +103,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
       {isUserMessage && !isSupport && (
         <div className="ml-2">
           <div className={`transition-opacity ${canDelete && onDeleteMessage ? 'opacity-0 group-hover:opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}> 
-            <MessageDeleteButton onDelete={handleDeleteClick} />
+            <MessageDeleteButton messageId={message.id} onDelete={() => handleDeleteClick(message.id)} />
           </div>
         </div>
       )}

@@ -2,8 +2,8 @@
 export interface UnreadMessagesContextType {
   unreadClubMessages: Set<string>;
   unreadDirectMessageConversations: Set<string>;
-  markClubMessagesAsRead: (clubId: string) => void;
-  markDirectConversationAsRead: (conversationId: string) => void;
+  markClubMessagesAsRead: (clubId: string) => Promise<void>;
+  markDirectConversationAsRead: (conversationId: string) => Promise<void>;
   unreadMessagesCount: number;
   
   // Add missing properties
@@ -14,4 +14,7 @@ export interface UnreadMessagesContextType {
   directMessageUnreadCounts: Record<string, number>;
   refreshUnreadCounts: () => Promise<void>;
   fetchUnreadCounts: () => Promise<void>;
+  
+  // Renamed property to match implementation
+  markConversationAsRead: (conversationId: string) => Promise<void>;
 }

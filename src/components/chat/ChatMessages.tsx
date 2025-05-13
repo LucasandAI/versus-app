@@ -1,3 +1,4 @@
+
 import React, { memo, useMemo, useRef } from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageList from './message/MessageList';
@@ -17,6 +18,7 @@ interface ChatMessagesProps {
   isSupport?: boolean;
   onDeleteMessage?: (messageId: string) => void;
   onSelectUser?: (userId: string, userName: string, userAvatar?: string) => void;
+  onUserClick?: (userId: string, userName: string) => void; // Added for backward compatibility
   currentUserAvatar?: string;
   lastMessageRef?: React.RefObject<HTMLDivElement>;
   formatTime?: (isoString: string) => string;
@@ -30,6 +32,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   isSupport = false,
   onDeleteMessage,
   onSelectUser,
+  onUserClick, // Added for backward compatibility
   currentUserAvatar: providedUserAvatar,
   lastMessageRef: providedLastMessageRef,
   formatTime: providedFormatTime,
@@ -68,6 +71,15 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
   const finalLastMessageRef = providedLastMessageRef || defaultLastMessageRef;
   const finalFormatTime = providedFormatTime || defaultFormatTime;
   const finalScrollRef = providedScrollRef || defaultScrollRef;
+  
+  // Handle onSelectUser/onUserClick compatibility
+  const handleSelectUser = (userId: string, userName: string, userAvatar?: string) => {
+    if (onSelectUser) {
+      onSelectUser(userId, userName, userAvatar);
+    } else if (onUserClick) {
+      onUserClick(userId, userName);
+    }
+  };
   
   // Handle case when messages is not an array
   if (!Array.isArray(messages)) {
@@ -146,7 +158,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({
         clubMembers={clubMembers} 
         isSupport={isSupport} 
         onDeleteMessage={onDeleteMessage} 
-        onSelectUser={onSelectUser} 
+        onSelectUser={handleSelectUser}
         formatTime={finalFormatTime} 
         currentUserAvatar={finalUserAvatar} 
         currentUserId={currentUserId} 

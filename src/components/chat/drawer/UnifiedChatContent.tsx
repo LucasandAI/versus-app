@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Club } from '@/types';
@@ -39,7 +40,7 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
 }) => {
   const { currentUser } = useApp();
   const { navigateToClubDetail, navigateToUserProfile } = useNavigation();
-  const { markClubMessagesAsRead, markConversationAsRead } = useUnreadMessages();
+  const { markClubMessagesAsRead, markDirectConversationAsRead } = useUnreadMessages();
   const [isSending, setIsSending] = useState(false);
 
   // Mark messages as read when chat is selected
@@ -47,11 +48,11 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
     if (selectedChat) {
       if (selectedChat.type === 'club') {
         markClubMessagesAsRead(selectedChat.id);
-      } else {
-        markConversationAsRead(selectedChat.id);
+      } else if (selectedChat.type === 'dm') {
+        markDirectConversationAsRead(selectedChat.id);
       }
     }
-  }, [selectedChat, markClubMessagesAsRead, markConversationAsRead]);
+  }, [selectedChat, markClubMessagesAsRead, markDirectConversationAsRead]);
 
   const handleSendMessage = async (message: string) => {
     if (!selectedChat) return;
@@ -135,4 +136,4 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
   );
 };
 
-export default UnifiedChatContent; 
+export default UnifiedChatContent;

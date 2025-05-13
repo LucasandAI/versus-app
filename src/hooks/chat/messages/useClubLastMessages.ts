@@ -1,157 +1,119 @@
 
-import React from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Club } from '@/types';
 
+interface ClubMessage {
+  message: string;
+  sender_id: string;
+  club_id: string;
+  timestamp: string;
+  sender?: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  [key: string]: any;
+}
+
+interface MessagePayload {
+  new: {
+    club_id: string;
+    message: string;
+    sender_id: string;
+    timestamp: string;
+    [key: string]: any;
+  };
+}
+
 export const useClubLastMessages = (clubs: Club[]) => {
-  const [lastMessages, setLastMessages] = React.useState<Record<string, any>>({});
-  const lastMessagesRef = React.useRef<Record<string, any>>({});
-  const [sortedClubs, setSortedClubs] = React.useState<Club[]>([]);
-  const [forceUpdate, setForceUpdate] = React.useState(0); // dummy state to force re-render
+  const [lastMessages, setLastMessages] = useState<Record<string, ClubMessage>>({});
+  const clubsRef = useRef<Club[]>(clubs);
 
-  // Always keep the ref in sync with state
-  React.useEffect(() => {
-    lastMessagesRef.current = lastMessages;
-  }, [lastMessages]);
+  // Update the reference when clubs change
+  useEffect(() => {
+    clubsRef.current = clubs;
+  }, [clubs]);
 
-  React.useEffect(() => {
-    if (!clubs.length) {
-      setSortedClubs([]);
-      return;
-    }
+  // Fetch last messages for all clubs on mount and when clubs change
+  useEffect(() => {
+    const fetchLastMessages = async () => {
+      if (clubs.length === 0) return;
 
-    const fetchLatestMessages = async () => {
-      const clubIds = clubs.map(club => club.id);
-      
-      const { data, error } = await supabase
-        .from('club_chat_messages')
-        .select(`
-          *,
-          sender:sender_id (
+      try {
+        const { data: messages, error } = await supabase
+          .from('club_chat_messages')
+          .select(`
             id,
-            name
-          )
-        `)
-        .in('club_id', clubIds)
-        .order('timestamp', { ascending: false });
+            message,
+            sender_id,
+            club_id,
+            timestamp,
+            sender:sender_id(id, name, avatar)
+          `)
+          .in('club_id', clubs.map(club => club.id))
+          .order('timestamp', { ascending: false })
+          .limit(100);
 
-      if (error) {
-        console.error('[useClubLastMessages] Error fetching messages:', error);
-        return;
-      }
-
-      // Group messages by club_id and take only the most recent one
-      const latestMessages = data.reduce((acc: Record<string, any>, message) => {
-        if (!acc[message.club_id]) {
-          acc[message.club_id] = message;
+        if (error) {
+          console.error('Error fetching club messages:', error);
+          return;
         }
-        return acc;
-      }, {});
 
-      setLastMessages(latestMessages);
-      
-      // Sort clubs by most recent message timestamp - no memoization, direct sorting on every update
-      const clubsWithTimestamps = clubs.map(club => {
-        const lastMessage = latestMessages[club.id];
-        // Use the message timestamp or a default old date if no messages
-        const lastTimestamp = lastMessage ? 
-          new Date(lastMessage.timestamp).getTime() : 
-          0;
-        
-        return {
-          club,
-          lastTimestamp
-        };
-      });
-      
-      // Sort by timestamp (most recent first) - No memoization, direct sorting
-      const sorted = clubsWithTimestamps
-        .sort((a, b) => b.lastTimestamp - a.lastTimestamp)
-        .map(item => item.club);
-        
-      // Update sorted clubs directly
-      setSortedClubs(sorted);
-      setForceUpdate(f => f + 1); // force re-render
-      console.log('[useClubLastMessages] Setting sorted clubs and forcing update:', sorted);
-    };
+        // Group messages by club and get the last message for each
+        const clubLastMessages: Record<string, ClubMessage> = {};
+        messages?.forEach(message => {
+          if (message.club_id) {
+            if (!clubLastMessages[message.club_id] || 
+                new Date(message.timestamp) > new Date(clubLastMessages[message.club_id].timestamp)) {
+              clubLastMessages[message.club_id] = message;
+            }
+          }
+        });
 
-    fetchLatestMessages();
-
-    const fetchLatestMessageForClub = async (clubId: string) => {
-      const { data, error } = await supabase
-        .from('club_chat_messages')
-        .select(`*, sender:sender_id ( id, name )`)
-        .eq('club_id', clubId)
-        .order('timestamp', { ascending: false })
-        .limit(1);
-      if (error) {
-        console.error('[useClubLastMessages] Error fetching latest message for club:', clubId, error);
-        return null;
+        setLastMessages(clubLastMessages);
+      } catch (error) {
+        console.error('Failed to fetch last messages:', error);
       }
-      return data && data[0] ? data[0] : null;
     };
 
-    const updateAndResort = (updatedLastMessages: Record<string, any>) => {
-      setLastMessages(updatedLastMessages);
-      lastMessagesRef.current = updatedLastMessages;
-      // Resort clubs by latest timestamp
-      const clubsWithTimestamps = clubs.map(club => {
-        const lastMessage = updatedLastMessages[club.id];
-        const lastTimestamp = lastMessage ? new Date(lastMessage.timestamp).getTime() : 0;
-        return { club, lastTimestamp };
-      });
-      const sorted = clubsWithTimestamps
-        .sort((a, b) => b.lastTimestamp - a.lastTimestamp)
-        .map(item => item.club);
-      setSortedClubs(sorted);
-      setForceUpdate(f => f + 1);
-    };
+    fetchLastMessages();
+  }, [clubs]);
 
-    // Set up realtime subscription for new messages
+  // Subscribe to realtime updates for club messages
+  useEffect(() => {
     const channel = supabase
       .channel('club-last-messages')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'club_chat_messages',
-          filter: clubs.length > 0 ? `club_id=in.(${clubs.map(c => `'${c.id}'`).join(',')})` : undefined
-        },
-        async (payload) => {
-          console.log('[useClubLastMessages] Real-time event:', payload);
-          // Try to get club_id from either new or old payload
-          const messageClubId = payload.new?.club_id || payload.old?.club_id;
-          
-          if (!messageClubId) return;
-          
-          if (payload.eventType === 'DELETE') {
-            // On delete, refetch the latest message for this club only
-            const latest = await fetchLatestMessageForClub(messageClubId);
-            const updatedLastMessages = { ...lastMessagesRef.current, [messageClubId]: latest };
-            updateAndResort(updatedLastMessages);
-          } else {
-            // On insert/update, update lastMessages for this club only
-            const updatedLastMessages = { ...lastMessagesRef.current, [messageClubId]: payload.new };
-            updateAndResort(updatedLastMessages);
+      .on('postgres_changes', 
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'club_chat_messages' 
+        }, 
+        (payload: RealtimePostgresChangesPayload<any>) => {
+          // Type guard to check if payload has correct structure
+          if (payload && payload.new && 'club_id' in payload.new) {
+            const typedPayload = payload as unknown as MessagePayload;
+            const clubId = typedPayload.new.club_id;
+            
+            // Check if this club is relevant to the user
+            const isRelevantClub = clubsRef.current.some(club => club.id === clubId);
+            if (!isRelevantClub) return;
+
+            // Update with the new message
+            setLastMessages(prev => ({
+              ...prev,
+              [clubId]: typedPayload.new as ClubMessage
+            }));
           }
-        }
-      )
+        })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [clubs]);
+  }, []);
 
-  // Return without any memoization to ensure fresh data on each render
-  return { 
-    lastMessages, 
-    sortedClubs: sortedClubs.length > 0 ? sortedClubs : clubs,
-    _debug: { 
-      lastMessagesKeys: Object.keys(lastMessages),
-      sortedClubIds: sortedClubs.map(c => c.id),
-      forceUpdate
-    }
-  };
+  return lastMessages;
 };

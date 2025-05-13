@@ -1,25 +1,19 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { User } from 'lucide-react'; // Changed from UserX to User
+import { CircleUser } from 'lucide-react';
 
-interface EmptyRequestsProps {
+export interface EmptyRequestsProps {
   clubName: string;
 }
 
-const EmptyRequests: React.FC<EmptyRequestsProps> = ({ clubName }) => {
+export const EmptyRequests: React.FC<EmptyRequestsProps> = ({ clubName }) => {
   return (
-    <div className="flex flex-col items-center justify-center py-10 text-center">
-      <div className="bg-gray-100 p-4 rounded-full mb-4">
-        <User size={32} className="text-gray-400" />
-      </div>
-      <h3 className="text-xl font-semibold mb-2">No Pending Requests</h3>
-      <p className="text-gray-500 mb-4 max-w-sm">
-        There are no pending join requests for {clubName} at this time.
+    <div className="flex flex-col items-center justify-center p-8 text-center">
+      <CircleUser className="w-16 h-16 text-gray-300 mb-4" />
+      <h3 className="text-lg font-semibold mb-2">No Join Requests</h3>
+      <p className="text-gray-500">
+        {clubName} doesn't have any pending join requests at the moment.
       </p>
-      <Button variant="outline">Invite Members</Button>
     </div>
   );
 };
-
-export default EmptyRequests;

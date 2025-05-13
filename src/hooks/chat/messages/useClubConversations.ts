@@ -1,125 +1,139 @@
 
-import { useCallback, useEffect, useState } from 'react';
-import { Club } from '@/types';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { Club } from '@/types';
 
 export interface ClubConversation {
   club: Club;
-  lastMessage: {
-    id: string;
-    club_id: string;
-    sender_id: string;
+  lastMessage?: {
     message: string;
-    timestamp: string;
-    sender_name?: string;
     sender?: {
       id: string;
       name: string;
       avatar?: string;
     };
+    sender_username?: string;
+    timestamp: string;
   } | null;
 }
 
-export function useClubConversations(clubs: Club[]) {
+interface MessagePayload {
+  new: {
+    club_id: string;
+    message: string;
+    sender_id: string;
+    timestamp: string;
+    [key: string]: any;
+  };
+}
+
+export const useClubConversations = (clubs: Club[]): ClubConversation[] => {
   const [clubConversations, setClubConversations] = useState<ClubConversation[]>([]);
+  const [lastMessages, setLastMessages] = useState<Record<string, any>>({});
+  const clubsRef = useRef<Club[]>(clubs);
 
-  const fetchLastMessages = useCallback(async () => {
-    try {
-      if (!clubs.length) return [];
-      
-      const clubIds = clubs.map(club => club.id);
-      
-      // Get the most recent message for each club
-      const { data: lastMessagesData, error: messagesError } = await supabase
-        .from('club_chat_messages')
-        .select(`
-          id,
-          club_id,
-          sender_id,
-          message,
-          timestamp,
-          sender:sender_id (
-            id,
-            name,
-            avatar
-          )
-        `)
-        .in('club_id', clubIds)
-        .order('timestamp', { ascending: false });
-
-      if (messagesError) {
-        console.error('[useClubConversations] Error fetching messages:', messagesError);
-        return [];
-      }
-
-      // Group by club_id and take the first (most recent) message for each club
-      const latestMessagesMap: Record<string, any> = {};
-      
-      if (lastMessagesData) {
-        lastMessagesData.forEach(message => {
-          if (!latestMessagesMap[message.club_id] || 
-              new Date(message.timestamp) > new Date(latestMessagesMap[message.club_id].timestamp)) {
-            latestMessagesMap[message.club_id] = message;
-          }
-        });
-      }
-
-      // Create club conversations with last messages
-      const updatedConversations = clubs.map(club => ({
-        club,
-        lastMessage: latestMessagesMap[club.id] || null
-      }));
-
-      // Sort by most recent message timestamp
-      return updatedConversations.sort((a, b) => {
-        const aTimestamp = a.lastMessage ? new Date(a.lastMessage.timestamp).getTime() : 0;
-        const bTimestamp = b.lastMessage ? new Date(b.lastMessage.timestamp).getTime() : 0;
-        return bTimestamp - aTimestamp;
-      });
-    } catch (error) {
-      console.error('[useClubConversations] Error in fetchLastMessages:', error);
-      return [];
-    }
+  // Update the reference when clubs change
+  useEffect(() => {
+    clubsRef.current = clubs;
   }, [clubs]);
 
-  // Initial fetch of last messages
+  // Fetch last messages for all clubs on mount and when clubs change
   useEffect(() => {
-    const loadConversations = async () => {
-      const conversations = await fetchLastMessages();
-      setClubConversations(conversations);
+    const fetchLastMessages = async () => {
+      if (clubs.length === 0) return;
+
+      try {
+        const { data: messages, error } = await supabase
+          .from('club_chat_messages')
+          .select(`
+            id,
+            message,
+            sender_id,
+            club_id,
+            timestamp,
+            sender:sender_id(id, name, avatar)
+          `)
+          .in('club_id', clubs.map(club => club.id))
+          .order('timestamp', { ascending: false })
+          .limit(100);
+
+        if (error) {
+          console.error('Error fetching club messages:', error);
+          return;
+        }
+
+        // Group messages by club and get the last message for each
+        const clubLastMessages: Record<string, any> = {};
+        messages?.forEach(message => {
+          if (message.club_id) {
+            if (!clubLastMessages[message.club_id] || 
+                new Date(message.timestamp) > new Date(clubLastMessages[message.club_id].timestamp)) {
+              clubLastMessages[message.club_id] = message;
+            }
+          }
+        });
+
+        setLastMessages(clubLastMessages);
+      } catch (error) {
+        console.error('Failed to fetch last messages:', error);
+      }
     };
 
-    loadConversations();
-  }, [fetchLastMessages]);
+    fetchLastMessages();
+  }, [clubs]);
 
-  // Subscribe to message updates
+  // Subscribe to realtime updates for club messages
   useEffect(() => {
-    if (!clubs.length) return;
-
     const channel = supabase
-      .channel('club_conversation_updates')
+      .channel('club-messages')
       .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'club_chat_messages' },
-        async (payload) => {
-          // Make sure payload.new or payload.old exists and has club_id
-          const messageClubId = payload.new?.club_id || payload.old?.club_id;
-          
-          if (!messageClubId) return;
-          
-          // Check if this club belongs to our list
-          const isRelevantClub = clubs.some(club => club.id === messageClubId);
-          if (!isRelevantClub) return;
-          
-          // Refetch all conversations to ensure we have the latest data
-          const conversations = await fetchLastMessages();
-          setClubConversations(conversations);
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'club_chat_messages' 
+        }, 
+        (payload: RealtimePostgresChangesPayload<any>) => {
+          // Type guard to check if payload has correct structure
+          if (payload && payload.new && 'club_id' in payload.new) {
+            const typedPayload = payload as unknown as MessagePayload;
+            const clubId = typedPayload.new.club_id;
+            
+            // Check if this club is relevant to the user
+            const isRelevantClub = clubsRef.current.some(club => club.id === clubId);
+            if (!isRelevantClub) return;
+
+            // Update with the new message
+            setLastMessages(prev => ({
+              ...prev,
+              [clubId]: typedPayload.new
+            }));
+          }
         })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [clubs, fetchLastMessages]);
+  }, []);
+
+  // Combine clubs with their last messages
+  useEffect(() => {
+    const conversations: ClubConversation[] = clubs.map(club => {
+      const lastMessage = lastMessages[club.id];
+      return {
+        club,
+        lastMessage: lastMessage ? {
+          message: lastMessage.message,
+          sender: lastMessage.sender,
+          sender_username: lastMessage.sender?.name || 'Unknown',
+          timestamp: lastMessage.timestamp
+        } : null
+      };
+    });
+
+    setClubConversations(conversations);
+  }, [clubs, lastMessages]);
 
   return clubConversations;
-}
+};

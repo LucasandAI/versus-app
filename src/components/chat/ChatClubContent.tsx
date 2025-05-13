@@ -1,8 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import ChatHeader from './ChatHeader';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import { Club } from '@/types';
+import { useChatActions } from '@/hooks/chat/useChatActions';
 
 interface ChatClubContentProps {
   club: Club;
@@ -11,6 +13,9 @@ interface ChatClubContentProps {
   onSelectUser: (userId: string, userName: string, userAvatar?: string) => void;
   onSendMessage: (message: string, clubId?: string) => void; 
   onDeleteMessage?: (messageId: string) => void;
+  setClubMessages?: React.Dispatch<React.SetStateAction<Record<string, any[]>>>;
+  clubId?: string;
+  globalMessages?: Record<string, any[]>;
 }
 
 const ChatClubContent: React.FC<ChatClubContentProps> = ({
@@ -19,20 +24,34 @@ const ChatClubContent: React.FC<ChatClubContentProps> = ({
   onMatchClick,
   onSelectUser,
   onSendMessage,
-  onDeleteMessage
+  onDeleteMessage,
+  setClubMessages,
+  clubId,
+  globalMessages
 }) => {
-  // You can add any state or useEffect hooks here if needed
+  const { deleteMessage } = useChatActions();
   
-  // Update the ChatHeader usage to match the expected props
+  const handleDeleteMessage = async (messageId: string) => {
+    if (onDeleteMessage) {
+      await onDeleteMessage(messageId);
+    } else if (setClubMessages) {
+      await deleteMessage(messageId, setClubMessages);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       <ChatHeader
         club={club}
-        onMatchClick={onMatchClick || (() => {})}
         onSelectUser={onSelectUser}
-        onClubClick={() => {}} // Add default empty handler
+        onClubClick={onMatchClick || (() => {})}
       />
-      <ChatMessages messages={messages} onDeleteMessage={onDeleteMessage} onUserClick={(userId, userName) => onSelectUser(userId, userName)} />
+      <ChatMessages 
+        messages={messages} 
+        clubMembers={club.members || []}
+        onDeleteMessage={handleDeleteMessage}
+        onSelectUser={onSelectUser}
+      />
       <ChatInput onSendMessage={(message) => onSendMessage(message, club.id)} />
     </div>
   );

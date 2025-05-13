@@ -53,9 +53,13 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
             });
             onSendMessage(message, selectedClub.id);
           }}
+          onDeleteMessage={(messageId) => {
+            console.log('[ChatMainContent] Deleting message:', messageId);
+            // Handle message deletion
+          }}
           setClubMessages={setClubMessages}
-          clubId={selectedClub.id} // Pass clubId for proper context in ChatInput
-          globalMessages={messages} // Pass the global messages state
+          clubId={selectedClub.id}
+          globalMessages={messages}
         />
       </div>
     );

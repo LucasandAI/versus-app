@@ -4,6 +4,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import { ChatMessage } from '@/types/chat';
 
+// Define a helper type for direct messages
+interface DirectMessageData {
+  conversation_id: string;
+  id: string;
+  receiver_id: string;
+  sender_id: string;
+  text: string;
+  timestamp: string;
+  [key: string]: any;
+}
+
 export const useChatActions = () => {
   const { currentUser } = useApp();
 
@@ -225,9 +236,11 @@ export const useChatActions = () => {
         setMessages(prev => {
           // First remove any existing messages with this temp ID
           const filtered = prev.filter(msg => msg.id !== tempId);
-          // Then add the real message
+          // Then add the real message with proper ChatMessage format
           return [...filtered, {
-            ...insertedMessage,
+            id: insertedMessage.id,
+            text: insertedMessage.text,
+            timestamp: insertedMessage.timestamp,
             isUserMessage: true,
             sender: {
               id: currentUser.id,
@@ -308,10 +321,17 @@ export const useChatActions = () => {
         if (message) {
           if (table === 'direct_messages' && setDirectMessages) {
             setDirectMessages(prev => [...prev, {
-              ...message,
-              isUserMessage: String(message.sender_id) === String(currentUser?.id)
+              id: message.id,
+              text: message.text || "",
+              timestamp: message.timestamp || new Date().toISOString(),
+              isUserMessage: String(message.sender_id) === String(currentUser?.id),
+              sender: {
+                id: message.sender_id,
+                name: currentUser?.id === message.sender_id ? currentUser?.name || "You" : "Unknown",
+                avatar: currentUser?.id === message.sender_id ? currentUser?.avatar : undefined
+              }
             }]);
-          } else if (table === 'club_chat_messages' && setClubMessages) {
+          } else if (table === 'club_chat_messages' && setClubMessages && message.club_id) {
             setClubMessages(prevMessages => {
               const clubId = message.club_id;
               const clubMessages = prevMessages[clubId] || [];

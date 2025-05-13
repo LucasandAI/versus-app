@@ -2,6 +2,7 @@
 import React, { useEffect, memo } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnreadMessages } from '@/context/unread-messages';
+import { Club } from '@/types';
 
 interface DrawerHeaderProps {
   activeTab: "clubs" | "dm";
