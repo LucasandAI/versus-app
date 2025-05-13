@@ -5,12 +5,12 @@ import { supabase } from '@/integrations/supabase/client';
 
 // Type for new message payload
 interface MessagePayload {
-  new?: {
-    id?: string;
-    club_id?: string;
-    sender_id?: string;
-    message?: string;
-    timestamp?: string;
+  new: {
+    id: string;
+    club_id: string;
+    sender_id: string;
+    message: string;
+    timestamp: string;
     [key: string]: any;
   };
   [key: string]: any;
@@ -18,9 +18,9 @@ interface MessagePayload {
 
 // Type for delete message payload
 interface DeletePayload {
-  old?: {
-    id?: string;
-    club_id?: string;
+  old: {
+    id: string;
+    club_id: string;
     [key: string]: any;
   };
   [key: string]: any;
@@ -28,7 +28,11 @@ interface DeletePayload {
 
 // Type guard to check if payload contains club_id
 function hasClubId(payload: any): payload is { new: { club_id: string } } {
-  return payload && payload.new && typeof payload.new.club_id === 'string';
+  return payload && 
+         payload.new && 
+         typeof payload.new === 'object' && 
+         'club_id' in payload.new &&
+         typeof payload.new.club_id === 'string';
 }
 
 export const handleNewMessagePayload = async (
@@ -42,15 +46,15 @@ export const handleNewMessagePayload = async (
 ) => {
   // Make sure we have a valid payload with club_id
   if (!hasClubId(payload)) {
-    console.log('[subscriptionHandlers] Invalid payload, missing club_id:', payload);
+    console.log('[subscriptionHandlers] Invalid payload or missing club_id:', payload);
     return;
   }
   
   const typedPayload = payload as unknown as MessagePayload;
-  console.log('[subscriptionHandlers] Received message payload:', typedPayload);
+  console.log('[subscriptionHandlers] Received message payload:', typedPayload.new.id);
   
   // Get the club ID from the message
-  const messageClubId = typedPayload.new!.club_id!;
+  const messageClubId = typedPayload.new.club_id;
   
   // Check if this message belongs to one of the user's clubs
   const isRelevantClub = userClubs.some(club => club.id === messageClubId);
@@ -59,19 +63,20 @@ export const handleNewMessagePayload = async (
     return;
   }
   
-  console.log(`[subscriptionHandlers] 🔥 New message received for club ${messageClubId}:`, typedPayload.new?.id);
+  console.log(`[subscriptionHandlers] 🔥 New message received for club ${messageClubId}:`, typedPayload.new.id);
   
-  // First, immediately update the UI with the message and basic sender info
-  // This ensures instant preview update in the conversation list
-  const senderName = "Loading..."; // Temporary placeholder
+  // Create a temporary message object with sender info
+  const isCurrentUser = typedPayload.new.sender_id === currentUser?.id;
+  const senderName = isCurrentUser ? "You" : "Loading...";
+  
   const tempMessage = {
     ...typedPayload.new,
-    isUserMessage: typedPayload.new?.sender_id === currentUser?.id,
+    isUserMessage: isCurrentUser,
     sender: {
-      id: typedPayload.new?.sender_id,
-      name: currentUser?.id === typedPayload.new?.sender_id ? "You" : senderName
-    },
-    sender_username: currentUser?.id === typedPayload.new?.sender_id ? "You" : senderName
+      id: typedPayload.new.sender_id,
+      name: senderName,
+      avatar: isCurrentUser ? currentUser?.avatar : undefined
+    }
   };
   
   // First update with the temporary message (instant UI feedback)
@@ -79,7 +84,7 @@ export const handleNewMessagePayload = async (
     const clubMsgs = prev[messageClubId] || [];
     
     // Check if message already exists to prevent duplicates
-    const messageExists = clubMsgs.some(msg => msg.id === typedPayload.new?.id);
+    const messageExists = clubMsgs.some(msg => msg.id === typedPayload.new.id);
     if (messageExists) return prev;
 
     // Sort messages by timestamp
@@ -98,8 +103,8 @@ export const handleNewMessagePayload = async (
     };
   });
   
-  // In parallel, fetch complete sender details
-  if (typedPayload.new?.sender_id && typedPayload.new.sender_id !== currentUser?.id) {
+  // In parallel, fetch complete sender details (only for other users' messages)
+  if (!isCurrentUser) {
     try {
       const { data: senderData } = await supabase
         .from('users')
@@ -113,7 +118,7 @@ export const handleNewMessagePayload = async (
           const clubMsgs = prev[messageClubId] || [];
           
           const updatedMessages = clubMsgs.map(msg => 
-            msg.id === typedPayload.new?.id 
+            msg.id === typedPayload.new.id 
               ? { 
                   ...msg, 
                   sender: senderData,
@@ -135,9 +140,8 @@ export const handleNewMessagePayload = async (
   
   // If the message is from another user and NOT the currently viewed club,
   // we need to update the unread count for this club
-  if (typedPayload.new.sender_id !== currentUser?.id && 
-      (!selectedClubRef || selectedClubRef !== messageClubId)) {
-    window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
+  if (!isCurrentUser && (!selectedClubRef || selectedClubRef !== messageClubId)) {
+    window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
       detail: { clubId: messageClubId } 
     }));
   }
@@ -149,37 +153,40 @@ export const handleMessageDeletion = (
   }>,
   setClubMessages: React.Dispatch<React.SetStateAction<Record<string, any[]>>>
 ) => {
+  // Type guard to check if payload has the expected structure
+  if (!payload.old || typeof payload.old !== 'object' || !('id' in payload.old) || !('club_id' in payload.old)) {
+    console.log('[subscriptionHandlers] Invalid deletion payload:', payload);
+    return;
+  }
+  
   const typedPayload = payload as unknown as DeletePayload;
+  console.log('[subscriptionHandlers] Message deletion event received:', typedPayload.old.id);
   
-  console.log('[subscriptionHandlers] Message deletion event received:', typedPayload);
+  const deletedMessageId = typedPayload.old.id;
+  const clubId = typedPayload.old.club_id;
   
-  if (typedPayload.old && typedPayload.old.id && typedPayload.old.club_id) {
-    const deletedMessageId = typedPayload.old.id;
-    const clubId = typedPayload.old.club_id;
+  setClubMessages(prev => {
+    if (!prev[clubId]) return prev;
     
-    setClubMessages(prev => {
-      if (!prev[clubId]) return prev;
+    const updatedClubMessages = prev[clubId].filter(msg => {
+      const msgId = typeof msg.id === 'string' ? msg.id : 
+                  (msg.id ? String(msg.id) : null);
+      const deleteId = typeof deletedMessageId === 'string' ? deletedMessageId : 
+                      String(deletedMessageId);
       
-      const updatedClubMessages = prev[clubId].filter(msg => {
-        const msgId = typeof msg.id === 'string' ? msg.id : 
-                    (msg.id ? String(msg.id) : null);
-        const deleteId = typeof deletedMessageId === 'string' ? deletedMessageId : 
-                        String(deletedMessageId);
-        
-        return msgId !== deleteId;
-      });
-      
-      return {
-        ...prev,
-        [clubId]: updatedClubMessages
-      };
+      return msgId !== deleteId;
     });
     
-    // Dispatch an event for the message deletion
-    window.dispatchEvent(new CustomEvent('clubMessageDeleted', { 
-      detail: { clubId, messageId: deletedMessageId } 
-    }));
-  }
+    return {
+      ...prev,
+      [clubId]: updatedClubMessages
+    };
+  });
+  
+  // Dispatch an event for the message deletion
+  window.dispatchEvent(new CustomEvent('clubMessageDeleted', { 
+    detail: { clubId, messageId: deletedMessageId } 
+  }));
 };
 
 // Fetch user details for a message sender

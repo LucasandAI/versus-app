@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
 import { useUnreadMessages } from '@/context/unread-messages';
@@ -27,12 +27,54 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [senderCache, setSenderCache] = useState<Record<string, {name: string, avatar?: string}>>({});
 
   const userClubs = currentUser?.clubs || [];
   const clubConversations = useClubConversationList(userClubs);
 
   const isLoading = loadingDMs;
   const isEmpty = !isLoading && directConversations.length === 0 && userClubs.length === 0;
+
+  // Pre-load sender details for club messages
+  useEffect(() => {
+    const loadSenderDetails = async () => {
+      const senderIds = new Set<string>();
+      
+      clubConversations.forEach(conv => {
+        if (conv.lastMessage?.sender_id && !senderCache[conv.lastMessage.sender_id]) {
+          senderIds.add(conv.lastMessage.sender_id);
+        }
+      });
+      
+      if (senderIds.size === 0) return;
+      
+      try {
+        const { data } = await supabase
+          .from('users')
+          .select('id, name, avatar')
+          .in('id', Array.from(senderIds));
+          
+        if (data && data.length > 0) {
+          const newCache = { ...senderCache };
+          data.forEach(user => {
+            newCache[user.id] = { name: user.name, avatar: user.avatar };
+          });
+          setSenderCache(newCache);
+        }
+      } catch (error) {
+        console.error('[UnifiedChatList] Error loading sender details:', error);
+      }
+    };
+    
+    loadSenderDetails();
+  }, [clubConversations]);
+  
+  const getSenderName = (senderId: string | undefined, fallbackName: string | undefined): string => {
+    if (!senderId) return fallbackName || 'Unknown';
+    if (senderId === currentUser?.id) return 'You';
+    if (senderCache[senderId]) return senderCache[senderId].name;
+    return fallbackName || 'Unknown';
+  };
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
@@ -129,6 +171,10 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
           {clubConversations.map(({ club, lastMessage }) => {
             const isSelected = selectedChatType === 'club' && selectedChatId === club.id;
             const hasUnread = unreadClubs.has(club.id);
+            const senderName = lastMessage?.sender_id ? 
+                              getSenderName(lastMessage.sender_id, lastMessage.sender?.name) : 
+                              'Unknown';
+                              
             return (
               <button
                 key={club.id}
@@ -157,7 +203,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
                       {lastMessage && lastMessage.message ? (
                         <>
                           <span className="font-medium">
-                            {lastMessage.sender?.name || lastMessage.sender_username || 'Unknown'}:
+                            {senderName}:
                           </span>{' '}
                           {lastMessage.message}
                         </>

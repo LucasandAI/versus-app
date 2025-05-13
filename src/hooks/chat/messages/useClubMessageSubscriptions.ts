@@ -1,12 +1,8 @@
-
-import { useEffect, useRef, useCallback } from 'react';
-import { Club } from '@/types';
-import { RealtimeChannel } from '@supabase/supabase-js';
-import { cleanupChannels } from './utils/subscriptionUtils';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useApp } from '@/context/AppContext';
-import { useUnreadMessages } from '@/context/unread-messages';
+import { Club } from '@/types';
 import { handleNewMessagePayload, handleMessageDeletion } from './utils/subscriptionHandlers';
+import { useApp } from '@/context/AppContext';
 
 export const useClubMessageSubscriptions = (
   userClubs: Club[],
@@ -14,136 +10,93 @@ export const useClubMessageSubscriptions = (
   activeSubscriptionsRef: React.MutableRefObject<Record<string, boolean>>,
   setClubMessages: React.Dispatch<React.SetStateAction<Record<string, any[]>>>
 ) => {
-  const channelsRef = useRef<RealtimeChannel[]>([]);
-  const { currentUser, isSessionReady } = useApp();
-  const { markClubMessagesAsRead } = useUnreadMessages();
-  
+  const { currentUser } = useApp();
   const selectedClubRef = useRef<string | null>(null);
+  const clubsRef = useRef<Club[]>(userClubs);
   
+  // Keep clubs reference updated
   useEffect(() => {
-    // Skip if not authenticated, session not ready, drawer not open, or no clubs
-    if (!isSessionReady || !currentUser?.id || !isOpen || !userClubs.length) {
-      // Clean up all channels
-      if (channelsRef.current.length > 0) {
-        console.log('[useClubMessageSubscriptions] Cleaning up channels - not ready or drawer closed');
-        cleanupChannels(channelsRef.current);
-        channelsRef.current = [];
-        activeSubscriptionsRef.current = {};
-      }
-      return;
-    }
+    clubsRef.current = userClubs;
+  }, [userClubs]);
+  
+  // Handle selected club changes from events
+  useEffect(() => {
+    const handleClubSelect = (event: CustomEvent) => {
+      selectedClubRef.current = event.detail.clubId;
+    };
     
-    console.log('[useClubMessageSubscriptions] Setting up subscriptions for clubs:', userClubs.length);
+    window.addEventListener('clubSelected', handleClubSelect as EventListener);
+    return () => {
+      window.removeEventListener('clubSelected', handleClubSelect as EventListener);
+    };
+  }, []);
+  
+  // Set up real-time subscription for all clubs
+  useEffect(() => {
+    // Don't subscribe if not open or no clubs
+    if (!isOpen || userClubs.length === 0 || !currentUser?.id) return;
     
-    // Clean up previous channels before creating new ones
-    if (channelsRef.current.length > 0) {
-      console.log('[useClubMessageSubscriptions] Cleaning up previous channels');
-      cleanupChannels(channelsRef.current);
-      channelsRef.current = [];
-    }
+    console.log('[useClubMessageSubscriptions] Setting up subscription for clubs:', userClubs.length);
     
-    activeSubscriptionsRef.current = {};
+    // Create a channel for all clubs
+    const clubIds = userClubs.map(club => club.id).join(',');
+    const channelId = `clubs-${clubIds.substring(0, 20)}`; // Truncate to keep channelId reasonable
     
-    // Set up subscription for message deletions
-    const deletionChannel = supabase.channel('club-message-deletions');
-    deletionChannel
+    // Set up a single channel for all inserts
+    const channel = supabase
+      .channel(channelId)
       .on('postgres_changes', 
-          { 
-            event: 'DELETE', 
-            schema: 'public', 
-            table: 'club_chat_messages',
-            filter: userClubs.length > 0 ? 
-              `club_id=in.(${userClubs.map(club => `'${club.id}'`).join(',')})` : 
-              undefined
-          },
-          (payload) => {
-            handleMessageDeletion(payload, setClubMessages);
-          })
-      .subscribe();
-      
-    channelsRef.current.push(deletionChannel);
-    
-    // Add a global debug subscription to confirm INSERT events
-    const debugGlobalChannel = supabase
-      .channel('debug_all_club_messages')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'club_chat_messages'
-      }, (payload) => {
-        console.log('[GLOBAL DEBUG] New message inserted:', payload);
-      })
-      .subscribe();
-    
-    channelsRef.current.push(debugGlobalChannel);
-    
-    // Create a single channel for all club messages
-    const clubMessagesChannel = supabase.channel('all_club_messages');
-    
-    // Subscribe to all club chat messages without filter
-    clubMessagesChannel
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'club_chat_messages'
-      }, (payload) => {
-        // Make sure we have the necessary fields in the payload
-        if (!payload.new || !payload.new.club_id || !payload.new.id) {
-          console.log('[useClubMessageSubscriptions] Skipping invalid payload:', payload);
-          return;
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'club_chat_messages',
+          filter: userClubs.length > 0 ? `club_id=in.(${userClubs.map(c => `'${c.id}'`).join(',')})` : undefined
+        }, 
+        (payload) => {
+          console.log('[useClubMessageSubscriptions] New message detected');
+          handleNewMessagePayload(
+            payload, 
+            clubsRef.current, 
+            setClubMessages, 
+            currentUser, 
+            selectedClubRef.current
+          );
         }
-        
-        handleNewMessagePayload(
-          payload, 
-          userClubs, 
-          setClubMessages, 
-          currentUser, 
-          selectedClubRef.current
-        );
-      })
+      )
+      .on('postgres_changes', 
+        { 
+          event: 'DELETE', 
+          schema: 'public', 
+          table: 'club_chat_messages',
+          filter: userClubs.length > 0 ? `club_id=in.(${userClubs.map(c => `'${c.id}'`).join(',')})` : undefined
+        }, 
+        (payload) => {
+          console.log('[useClubMessageSubscriptions] Message deletion detected');
+          handleMessageDeletion(payload, setClubMessages);
+        }
+      )
       .subscribe((status) => {
-        console.log('[useClubMessageSubscriptions] All club messages channel status:', status);
+        console.log(`[useClubMessageSubscriptions] Subscription status: ${status}`);
       });
-
-    channelsRef.current.push(clubMessagesChannel);
     
-    // Set active subscriptions for each club
+    // Mark all clubs as subscribed
+    const updatedSubs = { ...activeSubscriptionsRef.current };
     userClubs.forEach(club => {
-      activeSubscriptionsRef.current[club.id] = true;
+      updatedSubs[club.id] = true;
     });
+    activeSubscriptionsRef.current = updatedSubs;
     
+    // Cleanup
     return () => {
-      console.log('[useClubMessageSubscriptions] Cleaning up channels due to effect cleanup');
-      cleanupChannels(channelsRef.current);
-      channelsRef.current = [];
-      activeSubscriptionsRef.current = {};
+      console.log('[useClubMessageSubscriptions] Cleaning up channel');
+      supabase.removeChannel(channel);
+      
+      // Mark all clubs as unsubscribed
+      const updatedSubs = { ...activeSubscriptionsRef.current };
+      userClubs.forEach(club => {
+        delete updatedSubs[club.id];
+      });
+      activeSubscriptionsRef.current = updatedSubs;
     };
-  }, [userClubs, isOpen, setClubMessages, currentUser?.id, isSessionReady]);
-
-  // Listen for club selection changes to track the currently viewed club
-  useEffect(() => {
-    const handleClubSelected = (e: CustomEvent) => {
-      const clubId = e.detail?.clubId;
-      if (clubId) {
-        selectedClubRef.current = clubId;
-        
-        // Mark club messages as read when selected
-        if (currentUser?.id) {
-          markClubMessagesAsRead(clubId);
-        }
-      }
-    };
-
-    const handleClubDeselected = () => {
-      selectedClubRef.current = null;
-    };
-
-    window.addEventListener('clubSelected', handleClubSelected as EventListener);
-    window.addEventListener('clubDeselected', handleClubDeselected);
-
-    return () => {
-      window.removeEventListener('clubSelected', handleClubSelected as EventListener);
-      window.removeEventListener('clubDeselected', handleClubDeselected);
-    };
-  }, [currentUser?.id, markClubMessagesAsRead]);
+  }, [isOpen, userClubs, currentUser?.id, setClubMessages]);
 };

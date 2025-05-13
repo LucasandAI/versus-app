@@ -98,7 +98,7 @@ export const useJoinRequest = (clubId: string) => {
     setHasPendingRequest(false);
     
     try {
-      // Delete the request directly
+      // Delete the request directly instead of updating status
       const { error } = await supabase
         .from('club_requests')
         .delete()

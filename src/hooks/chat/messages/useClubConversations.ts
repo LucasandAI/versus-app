@@ -8,6 +8,7 @@ export interface ClubConversation {
   club: Club;
   lastMessage?: {
     message: string;
+    sender_id?: string; // Added sender_id for direct access
     sender?: {
       id: string;
       name: string;
@@ -32,6 +33,7 @@ export const useClubConversations = (clubs: Club[]): ClubConversation[] => {
   const [clubConversations, setClubConversations] = useState<ClubConversation[]>([]);
   const [lastMessages, setLastMessages] = useState<Record<string, any>>({});
   const clubsRef = useRef<Club[]>(clubs);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Update the reference when clubs change
   useEffect(() => {
@@ -43,40 +45,45 @@ export const useClubConversations = (clubs: Club[]): ClubConversation[] => {
     const fetchLastMessages = async () => {
       if (clubs.length === 0) return;
 
+      setIsLoading(true);
       try {
-        const { data: messages, error } = await supabase
-          .from('club_chat_messages')
-          .select(`
-            id,
-            message,
-            sender_id,
-            club_id,
-            timestamp,
-            sender:sender_id(id, name, avatar)
-          `)
-          .in('club_id', clubs.map(club => club.id))
-          .order('timestamp', { ascending: false })
-          .limit(100);
-
-        if (error) {
-          console.error('Error fetching club messages:', error);
-          return;
-        }
-
-        // Group messages by club and get the last message for each
+        // Use a more efficient query to get only 1 message per club
+        const clubIds = clubs.map(club => club.id);
+        const queries = clubIds.map(clubId => 
+          supabase
+            .from('club_chat_messages')
+            .select(`
+              id,
+              message,
+              sender_id,
+              club_id,
+              timestamp,
+              sender:sender_id(id, name, avatar)
+            `)
+            .eq('club_id', clubId)
+            .order('timestamp', { ascending: false })
+            .limit(1)
+        );
+        
+        // Run queries in parallel
+        const results = await Promise.all(queries);
+        
+        // Process results
         const clubLastMessages: Record<string, any> = {};
-        messages?.forEach(message => {
-          if (message.club_id) {
-            if (!clubLastMessages[message.club_id] || 
-                new Date(message.timestamp) > new Date(clubLastMessages[message.club_id].timestamp)) {
-              clubLastMessages[message.club_id] = message;
-            }
+        results.forEach((result, index) => {
+          const { data, error } = result;
+          if (error) {
+            console.error(`Error fetching club messages for ${clubIds[index]}:`, error);
+          } else if (data && data.length > 0) {
+            clubLastMessages[clubIds[index]] = data[0];
           }
         });
 
         setLastMessages(clubLastMessages);
       } catch (error) {
         console.error('Failed to fetch last messages:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -85,13 +92,17 @@ export const useClubConversations = (clubs: Club[]): ClubConversation[] => {
 
   // Subscribe to realtime updates for club messages
   useEffect(() => {
+    if (clubs.length === 0) return;
+    
+    const clubIds = clubs.map(club => club.id);
     const channel = supabase
       .channel('club-messages')
       .on('postgres_changes', 
         { 
           event: 'INSERT', 
           schema: 'public', 
-          table: 'club_chat_messages' 
+          table: 'club_chat_messages',
+          filter: `club_id=in.(${clubIds.join(',')})`
         }, 
         (payload: RealtimePostgresChangesPayload<any>) => {
           // Type guard to check if payload has correct structure
@@ -99,15 +110,49 @@ export const useClubConversations = (clubs: Club[]): ClubConversation[] => {
             const typedPayload = payload as unknown as MessagePayload;
             const clubId = typedPayload.new.club_id;
             
-            // Check if this club is relevant to the user
-            const isRelevantClub = clubsRef.current.some(club => club.id === clubId);
-            if (!isRelevantClub) return;
+            console.log('[useClubConversations] Realtime update for club:', clubId);
 
-            // Update with the new message
+            // Update with the new message immediately
+            const newMessage = {
+              ...typedPayload.new,
+              // Add a temporary sender object that will be replaced when we fetch the real data
+              sender: {
+                id: typedPayload.new.sender_id,
+                name: 'Loading...',
+                avatar: undefined
+              }
+            };
+            
             setLastMessages(prev => ({
               ...prev,
-              [clubId]: typedPayload.new
+              [clubId]: newMessage
             }));
+            
+            // Fetch the actual sender details
+            supabase
+              .from('users')
+              .select('id, name, avatar')
+              .eq('id', typedPayload.new.sender_id)
+              .single()
+              .then(({ data, error }) => {
+                if (!error && data) {
+                  // Update with complete sender data
+                  setLastMessages(prev => {
+                    // Make sure we're still dealing with the same message
+                    const currentMsg = prev[clubId];
+                    if (currentMsg && currentMsg.id === newMessage.id) {
+                      return {
+                        ...prev,
+                        [clubId]: {
+                          ...currentMsg,
+                          sender: data
+                        }
+                      };
+                    }
+                    return prev;
+                  });
+                }
+              });
           }
         })
       .subscribe();
@@ -115,7 +160,7 @@ export const useClubConversations = (clubs: Club[]): ClubConversation[] => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [clubs]);
 
   // Combine clubs with their last messages
   useEffect(() => {
@@ -125,6 +170,7 @@ export const useClubConversations = (clubs: Club[]): ClubConversation[] => {
         club,
         lastMessage: lastMessage ? {
           message: lastMessage.message,
+          sender_id: lastMessage.sender_id, // Added sender_id
           sender: lastMessage.sender,
           sender_username: lastMessage.sender?.name || 'Unknown',
           timestamp: lastMessage.timestamp
