@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Club } from '@/types';
@@ -38,11 +38,30 @@ export const useClubLastMessages = (clubs: Club[]) => {
   const clubsRef = useRef<Club[]>(clubs);
   const { currentUser } = useApp();
   const [senderCache, setSenderCache] = useState<Record<string, {name: string, avatar?: string}>>({});
-
+  const lastUpdateTimestamp = useRef<Record<string, number>>({});
+  
   // Update the reference when clubs change
   useEffect(() => {
     clubsRef.current = clubs;
   }, [clubs]);
+
+  // Force re-render when messages change
+  const forceUpdate = useCallback((clubId: string) => {
+    // Track the last update timestamp to avoid too frequent re-renders
+    const now = Date.now();
+    if (now - (lastUpdateTimestamp.current[clubId] || 0) < 500) {
+      return; // Skip updates that are too close together
+    }
+    lastUpdateTimestamp.current[clubId] = now;
+    
+    // Force update by creating a new object with the same data
+    setLastMessages(prev => ({...prev}));
+    
+    // Dispatch a global event for components that might need to update
+    window.dispatchEvent(new CustomEvent('clubMessagesUpdated', {
+      detail: { clubId }
+    }));
+  }, []);
 
   // Pre-load all user data for caching
   useEffect(() => {
@@ -76,7 +95,7 @@ export const useClubLastMessages = (clubs: Club[]) => {
     };
     
     fetchAllSenderData();
-  }, [lastMessages, clubs]);
+  }, [lastMessages, clubs, senderCache]);
 
   // Fetch last messages for all clubs on mount and when clubs change
   useEffect(() => {
@@ -85,18 +104,24 @@ export const useClubLastMessages = (clubs: Club[]) => {
 
       setIsLoading(true);
       try {
+        console.log('[useClubLastMessages] Fetching initial last messages for clubs:', clubs.map(c => c.id));
+        
         // Use the view to get last messages with sender names
         const clubIds = clubs.map(club => club.id);
         const queries = clubIds.map(clubId => 
           supabase
-            .from('club_chat_messages_with_usernames')
+            .from('club_chat_messages')
             .select(`
-              message_id,
-              message,
-              sender_id,
-              club_id,
+              id, 
+              message, 
+              sender_id, 
+              club_id, 
               timestamp,
-              sender_name
+              sender:sender_id (
+                id, 
+                name, 
+                avatar
+              )
             `)
             .eq('club_id', clubId)
             .order('timestamp', { ascending: false })
@@ -115,21 +140,22 @@ export const useClubLastMessages = (clubs: Club[]) => {
           } else if (data && data.length > 0) {
             // Map from view structure to ClubMessage structure
             clubLastMessages[clubIds[index]] = {
-              id: data[0].message_id,
+              id: data[0].id,
               message: data[0].message,
               sender_id: data[0].sender_id,
               club_id: data[0].club_id,
               timestamp: data[0].timestamp,
-              sender: {
+              sender: data[0].sender || {
                 id: data[0].sender_id,
-                name: data[0].sender_name || 'Unknown',
-                avatar: undefined // We'll fetch avatars separately if needed
+                name: 'Unknown',
+                avatar: undefined
               }
             };
           }
         });
 
-        setLastMessages(clubLastMessages);
+        setLastMessages(prev => ({...prev, ...clubLastMessages}));
+        console.log('[useClubLastMessages] Initial last messages fetched:', Object.keys(clubLastMessages).length);
       } catch (error) {
         console.error('Failed to fetch last messages:', error);
       } finally {
@@ -140,23 +166,26 @@ export const useClubLastMessages = (clubs: Club[]) => {
     fetchLastMessages();
   }, [clubs]);
 
-  // Subscribe to realtime updates for club messages using the view
+  // Subscribe to real-time updates for club messages
   useEffect(() => {
     if (clubs.length === 0) return;
     
     const clubIds = clubs.map(club => club.id);
     console.log('[useClubLastMessages] Setting up subscription for clubs:', clubIds);
     
+    // Use a listener that works with the original table, not the view
     const channel = supabase
-      .channel('club-last-messages-view')
+      .channel('club-last-messages')
       .on('postgres_changes', 
         { 
           event: 'INSERT', 
           schema: 'public', 
-          table: 'club_chat_messages_with_usernames',
-          filter: `club_id=in.(${clubIds.map(id => `'${id}'`).join(',')})`
+          table: 'club_chat_messages',
+          filter: clubIds.length > 0 ? `club_id=in.(${clubIds.join(',')})` : undefined
         }, 
-        (payload: RealtimePostgresChangesPayload<any>) => {
+        async (payload: RealtimePostgresChangesPayload<any>) => {
+          console.log('[useClubLastMessages] Received real-time message:', payload);
+          
           // Type guard to check if payload has correct structure
           if (!payload || !payload.new || !payload.new.club_id) {
             console.log('[useClubLastMessages] Invalid payload received:', payload);
@@ -171,68 +200,77 @@ export const useClubLastMessages = (clubs: Club[]) => {
           const isRelevantClub = clubsRef.current.some(club => club.id === clubId);
           if (!isRelevantClub) return;
 
-          console.log(`[useClubLastMessages] New message from view for club ${clubId}: ${typedPayload.new.message}`);
+          console.log(`[useClubLastMessages] New message for club ${clubId}: ${typedPayload.new.message}`);
           
-          // Create a message with sender info directly from the view
+          // We need to fetch the sender info if it's not the current user
+          let senderInfo = { 
+            id: typedPayload.new.sender_id,
+            name: isCurrentUser ? 'You' : 'Unknown'
+          };
+          
+          // If it's not the current user and we have cached sender info, use it
+          if (!isCurrentUser && senderCache[typedPayload.new.sender_id]) {
+            senderInfo = {
+              id: typedPayload.new.sender_id,
+              name: senderCache[typedPayload.new.sender_id].name,
+              avatar: senderCache[typedPayload.new.sender_id].avatar
+            };
+          }
+          // If it's not cached and not current user, fetch sender info
+          else if (!isCurrentUser) {
+            try {
+              const { data } = await supabase
+                .from('users')
+                .select('id, name, avatar')
+                .eq('id', typedPayload.new.sender_id)
+                .single();
+                
+              if (data) {
+                senderInfo = {
+                  id: data.id,
+                  name: data.name,
+                  avatar: data.avatar
+                };
+                
+                // Update sender cache
+                setSenderCache(prev => ({
+                  ...prev,
+                  [data.id]: { name: data.name, avatar: data.avatar }
+                }));
+              }
+            } catch (error) {
+              console.error('[useClubLastMessages] Error fetching sender:', error);
+            }
+          }
+          
+          // Create a message with sender info
           const newMessage: ClubMessage = {
             id: typedPayload.new.id,
             message: typedPayload.new.message,
             sender_id: typedPayload.new.sender_id,
             club_id: typedPayload.new.club_id,
             timestamp: typedPayload.new.timestamp,
-            sender: {
-              id: typedPayload.new.sender_id,
-              name: isCurrentUser ? 'You' : (typedPayload.new.sender_name || 'Unknown'),
-              avatar: isCurrentUser ? currentUser?.avatar : undefined
-            }
+            sender: senderInfo
           };
           
-          // Update with the new message immediately - no need for separate query
+          // Update with the new message
           setLastMessages(prev => ({
             ...prev,
             [clubId]: newMessage
           }));
-
-          // If this is not from the current user, we could still fetch avatar if needed
-          if (!isCurrentUser && !senderCache[typedPayload.new.sender_id]) {
-            // Fetch just the avatar if needed
-            supabase
-              .from('users')
-              .select('id, avatar')
-              .eq('id', typedPayload.new.sender_id)
-              .single()
-              .then(({ data, error }) => {
-                if (!error && data) {
-                  // Update sender cache with avatar
-                  setSenderCache(prev => ({
-                    ...prev,
-                    [typedPayload.new.sender_id]: {
-                      name: typedPayload.new.sender_name || 'Unknown',
-                      avatar: data.avatar
-                    }
-                  }));
-                  
-                  // Update message with avatar
-                  setLastMessages(prev => ({
-                    ...prev,
-                    [clubId]: {
-                      ...prev[clubId],
-                      sender: {
-                        ...prev[clubId].sender,
-                        avatar: data.avatar
-                      }
-                    }
-                  }));
-                }
-              });
-          }
+          
+          // Force re-render for this club
+          forceUpdate(clubId);
         })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[useClubLastMessages] Subscription status:', status);
+      });
 
     return () => {
+      console.log('[useClubLastMessages] Cleaning up subscription');
       supabase.removeChannel(channel);
     };
-  }, [clubs, currentUser?.id, senderCache]);
+  }, [clubs, currentUser?.id, senderCache, forceUpdate]);
 
   return {
     lastMessages,

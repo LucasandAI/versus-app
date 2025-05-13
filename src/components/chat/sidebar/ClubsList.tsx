@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Club } from '@/types';
 import UserAvatar from '../../shared/UserAvatar';
 import ClubMembersPopover from './ClubMembersPopover';
@@ -35,14 +35,28 @@ const ClubsList: React.FC<ClubsListProps> = ({
   const { navigateToClubDetail } = useNavigation();
   const { unreadClubs: contextUnreadClubs, markClubMessagesAsRead } = useUnreadMessages();
   const unreadClubs = propUnreadClubs || contextUnreadClubs;
-  const [updateKey, setUpdateKey] = React.useState(Date.now());
+  const [updateKey, setUpdateKey] = useState(Date.now());
 
-  // Force re-render when conversations change
-  React.useEffect(() => {
+  // Force re-render when conversations change or when messages are updated
+  useEffect(() => {
     setUpdateKey(Date.now());
+    console.log('[ClubsList] Re-rendering with conversations:', clubConversations.length);
   }, [clubConversations]);
+  
+  // Listen for clubMessagesUpdated events
+  useEffect(() => {
+    const handleMessagesUpdated = () => {
+      console.log('[ClubsList] Message update detected, forcing re-render');
+      setUpdateKey(Date.now());
+    };
+    
+    window.addEventListener('clubMessagesUpdated', handleMessagesUpdated);
+    return () => {
+      window.removeEventListener('clubMessagesUpdated', handleMessagesUpdated);
+    };
+  }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     console.log('[ClubsList] unreadClubs set updated:', Array.from(unreadClubs));
     console.log('[ClubsList] Using prop unread clubs?', !!propUnreadClubs);
   }, [unreadClubs, propUnreadClubs]);
@@ -61,7 +75,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
   const unreadKey = Array.from(unreadClubs).join(',');
 
   return (
-    <div className="p-3">
+    <div className="p-3" key={`clubs-list-${updateKey}-${unreadKey}`}>
       <h1 className="text-4xl font-bold mb-4">Clubs</h1>
       <div className="divide-y">
         {clubConversations.map(({ club, lastMessage }) => {
@@ -72,7 +86,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
             : '';
           return (
             <div
-              key={`${club.id}-${isUnread ? 'unread' : 'read'}-${updateKey}`}
+              key={`${club.id}-${isUnread ? 'unread' : 'read'}-${lastMessage?.timestamp || 'no-msg'}-${updateKey}`}
               className={`flex items-start px-4 py-3 cursor-pointer hover:bg-gray-50 relative group
                 ${selectedClub?.id === club.id ? 'bg-primary/10 text-primary' : ''}
                 ${isUnread ? 'font-medium' : ''}`}

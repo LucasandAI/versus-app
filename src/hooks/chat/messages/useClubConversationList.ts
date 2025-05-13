@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Club } from '@/types';
 import { useClubLastMessages } from './useClubLastMessages';
 import { ClubConversation } from './useClubConversations';
@@ -8,6 +8,21 @@ import { ClubConversation } from './useClubConversations';
 export const useClubConversationList = (clubs: Club[]): ClubConversation[] => {
   const [clubConversationList, setClubConversationList] = useState<ClubConversation[]>([]);
   const { lastMessages, isLoading, senderCache } = useClubLastMessages(clubs);
+  const [updateKey, setUpdateKey] = useState(Date.now());
+  
+  // Create a handler for global update events
+  const handleMessagesUpdated = useCallback(() => {
+    console.log('[useClubConversationList] Message update detected, refreshing list');
+    setUpdateKey(Date.now());
+  }, []);
+  
+  // Listen for club messages updated events
+  useEffect(() => {
+    window.addEventListener('clubMessagesUpdated', handleMessagesUpdated);
+    return () => {
+      window.removeEventListener('clubMessagesUpdated', handleMessagesUpdated);
+    };
+  }, [handleMessagesUpdated]);
   
   useEffect(() => {
     // Map clubs to their conversations with last messages
@@ -35,8 +50,9 @@ export const useClubConversationList = (clubs: Club[]): ClubConversation[] => {
       return timeB - timeA; // Descending order (newest first)
     });
     
+    console.log('[useClubConversationList] Updating conversation list with', sortedConversations.length, 'conversations');
     setClubConversationList(sortedConversations);
-  }, [clubs, lastMessages, senderCache]);
+  }, [clubs, lastMessages, senderCache, updateKey]);
   
   return clubConversationList;
 };
