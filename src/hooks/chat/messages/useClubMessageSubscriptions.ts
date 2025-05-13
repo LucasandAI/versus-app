@@ -5,7 +5,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import { cleanupChannels } from './utils/subscriptionUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
-import { useUnreadMessages } from '@/context/UnreadMessagesContext';
+import { useUnreadMessages } from '@/context/unread-messages';
 import { handleNewMessagePayload, handleMessageDeletion } from './utils/subscriptionHandlers';
 
 export const useClubMessageSubscriptions = (
@@ -87,6 +87,12 @@ export const useClubMessageSubscriptions = (
         schema: 'public',
         table: 'club_chat_messages'
       }, (payload) => {
+        // Make sure we have the necessary fields in the payload
+        if (!payload.new || !payload.new.club_id || !payload.new.id) {
+          console.log('[useClubMessageSubscriptions] Skipping invalid payload:', payload);
+          return;
+        }
+        
         handleNewMessagePayload(
           payload, 
           userClubs, 

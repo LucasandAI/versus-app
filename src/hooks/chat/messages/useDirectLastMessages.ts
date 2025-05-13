@@ -1,87 +1,118 @@
-import React from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export function useDirectLastMessages(conversationIds: string[]) {
-  const [lastMessages, setLastMessages] = React.useState<Record<string, { text: string; timestamp: string }>>({});
-  const processedIds = React.useRef(new Set<string>());
+interface LastDirectMessage {
+  conversation_id: string;
+  text: string;
+  timestamp: string;
+}
 
-  React.useEffect(() => {
-    if (!conversationIds.length) {
-      setLastMessages({});
-      return;
-    }
+export const useDirectLastMessages = (userId: string | undefined) => {
+  const [lastMessages, setLastMessages] = useState<Record<string, LastDirectMessage>>({});
+  const lastMessagesRef = useRef<Record<string, LastDirectMessage>>({});
 
-    let isMounted = true;
+  // Keep reference in sync with state
+  useEffect(() => {
+    lastMessagesRef.current = lastMessages;
+  }, [lastMessages]);
 
-    const fetchLastMessages = async () => {
-      const { data, error } = await supabase
-        .from('direct_messages')
-        .select('conversation_id, text, timestamp')
-        .in('conversation_id', conversationIds)
-        .order('timestamp', { ascending: false });
+  useEffect(() => {
+    if (!userId) return;
 
-      if (error || !isMounted) {
-        setLastMessages({});
-        return;
-      }
+    // Initial fetch of latest messages
+    const fetchInitialMessages = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('direct_messages')
+          .select('id, conversation_id, sender_id, receiver_id, text, timestamp')
+          .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+          .order('timestamp', { ascending: false });
 
-      const map: Record<string, { text: string; timestamp: string }> = {};
-      for (const msg of data) {
-        if (!map[msg.conversation_id]) {
-          map[msg.conversation_id] = { text: msg.text, timestamp: msg.timestamp };
+        if (error) throw error;
+
+        if (data) {
+          // Process to get latest message per conversation
+          const latestMessages: Record<string, LastDirectMessage> = {};
+
+          data.forEach(message => {
+            const conversationId = message.conversation_id;
+            if (!conversationId) return;
+
+            if (!latestMessages[conversationId] || 
+                new Date(message.timestamp) > new Date(latestMessages[conversationId].timestamp)) {
+              latestMessages[conversationId] = {
+                conversation_id: conversationId,
+                text: message.text || '',
+                timestamp: message.timestamp
+              };
+            }
+          });
+
+          setLastMessages(latestMessages);
         }
+      } catch (error) {
+        console.error('[useDirectLastMessages] Error fetching messages:', error);
       }
-      setLastMessages(map);
     };
 
-    fetchLastMessages();
+    fetchInitialMessages();
 
-    // Real-time subscription for all direct message changes
-    const channel = supabase
-      .channel('realtime-direct-messages')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'direct_messages',
-        },
-        async (payload) => {
-          const msg = payload.new;
-          if (!msg || !conversationIds.includes(msg.conversation_id)) return;
-
-          // Skip if we've already processed this message
-          const msgId = msg.id?.toString();
-          if (msgId && processedIds.current.has(msgId)) {
-            console.log('[useDirectLastMessages] Skipping duplicate message:', msgId);
-            return;
-          }
-
-          if (msgId) {
-            processedIds.current.add(msgId);
-          }
-
-          // Update the last message for this conversation
-          setLastMessages(prev => ({
-            ...prev,
-            [msg.conversation_id]: {
-              text: msg.text,
-              timestamp: msg.timestamp
+    // Subscribe to real-time updates
+    const channel = supabase.channel('direct-messages-last')
+      .on('postgres_changes', 
+          {
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'direct_messages',
+            filter: `sender_id=eq.${userId}` 
+          },
+          (payload) => {
+            const msg = payload.new;
+            if (!msg) return;
+            const conversationId = msg.conversation_id;
+            
+            if (conversationId) {
+              // Update the last message for this conversation
+              setLastMessages(prev => ({
+                ...prev,
+                [conversationId]: {
+                  conversation_id: conversationId,
+                  text: msg.text || '',
+                  timestamp: msg.timestamp || new Date().toISOString()
+                }
+              }));
             }
-          }));
-
-          // Force a refetch to ensure we have the latest data
-          fetchLastMessages();
-        }
-      )
+          })
+      .on('postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'direct_messages',
+            filter: `receiver_id=eq.${userId}`
+          },
+          (payload) => {
+            const msg = payload.new;
+            if (!msg) return;
+            const conversationId = msg.conversation_id;
+            
+            if (conversationId) {
+              // Update the last message for this conversation
+              setLastMessages(prev => ({
+                ...prev,
+                [conversationId]: {
+                  conversation_id: conversationId,
+                  text: msg.text || '',
+                  timestamp: msg.timestamp || new Date().toISOString()
+                }
+              }));
+            }
+          })
       .subscribe();
 
     return () => {
-      isMounted = false;
-      channel.unsubscribe();
-      processedIds.current.clear();
+      supabase.removeChannel(channel);
     };
-  }, [JSON.stringify(conversationIds)]);
+  }, [userId]);
 
   return lastMessages;
-} 
+};

@@ -1,6 +1,6 @@
-
-import React, { useState, useEffect } from 'react';
-import { Bell, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Bell, Trash } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { NotificationList } from '../notifications/NotificationList';
 import { Notification } from '@/types';
@@ -8,7 +8,6 @@ import { markAllNotificationsAsRead } from '@/lib/notificationUtils';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Badge } from '@/components/ui/badge';
 import { useApp } from '@/context/AppContext';
 import { useInitialAppLoad } from '@/hooks/useInitialAppLoad';
 
@@ -160,7 +159,7 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
                 className="text-xs text-red-500 hover:text-red-700 flex items-center" 
                 onClick={handleClearAll}
               >
-                <Trash2 className="h-3 w-3 mr-1" />
+                <Trash className="h-3 w-3 mr-1" />
                 Clear All
               </Button>
             )}

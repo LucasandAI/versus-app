@@ -1,7 +1,6 @@
-
-import React from 'react';
-import { Trash } from 'lucide-react';
-import { TooltipProvider, TooltipContent, TooltipTrigger, Tooltip } from '@/components/ui/tooltip';
+import React, { useState } from 'react';
+import { Trash } from 'lucide-react'; // Fixed icon import
+import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,28 +11,27 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog';
 
 interface MessageDeleteButtonProps {
-  onDelete: () => void;
+  messageId: string;
+  onDelete: (messageId: string) => void;
 }
 
-const MessageDeleteButton: React.FC<MessageDeleteButtonProps> = ({ onDelete }) => {
+const MessageDeleteButton: React.FC<MessageDeleteButtonProps> = ({ messageId, onDelete }) => {
+  const [open, setOpen] = useState(false);
+
+  const handleDelete = () => {
+    onDelete(messageId);
+    setOpen(false);
+  };
+
   return (
-    <AlertDialog>
+    <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <button className="p-1 rounded-full text-gray-400 hover:text-red-500 transition-colors">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Trash className="h-4 w-4" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Delete message</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </button>
+        <Button variant="ghost" size="sm" className="hover:bg-gray-200 rounded-full">
+          <Trash className="h-4 w-4" />
+        </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -44,10 +42,7 @@ const MessageDeleteButton: React.FC<MessageDeleteButtonProps> = ({ onDelete }) =
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={onDelete}
-            className="bg-red-500 hover:bg-red-600"
-          >
+          <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">
             Delete
           </AlertDialogAction>
         </AlertDialogFooter>

@@ -1,9 +1,10 @@
-
 import React from 'react';
+import { format } from 'date-fns';
 import { Notification } from '@/types';
 import { NotificationItem } from './NotificationItem';
-import { Button } from '../ui/button';
-import { Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Trash } from 'lucide-react';
 
 interface NotificationListProps {
   notifications: Notification[];

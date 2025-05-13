@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
 import { useUnreadMessages } from '@/context/unread-messages';
 import { useClubConversationList } from '@/hooks/chat/messages/useClubConversationList';
 import UserAvatar from '@/components/shared/UserAvatar';
-import { MessageSquare, Search as SearchIcon } from 'lucide-react';
+import { MessageSquare, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -21,7 +22,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
 }) => {
   const { currentUser } = useApp();
   const { conversations: directConversations = [], loading: loadingDMs, getOrCreateConversation } = useDirectConversationsContext();
-  const { unreadMessages = new Set() } = useUnreadMessages();
+  const { unreadClubs, unreadConversations } = useUnreadMessages();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -87,7 +88,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
       <div className="p-4 border-b">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <SearchIcon className="h-5 w-5 text-gray-400" />
+            <Search className="h-5 w-5 text-gray-400" />
           </div>
           <input
             type="text"
@@ -120,7 +121,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
           <h2 className="text-sm font-semibold text-gray-500 px-4 py-2">Club Chats</h2>
           {clubConversations.map(({ club, lastMessage }) => {
             const isSelected = selectedChatType === 'club' && selectedChatId === club.id;
-            const hasUnread = unreadMessages.has(`club:${club.id}`);
+            const hasUnread = unreadClubs.has(club.id);
             return (
               <button
                 key={club.id}
@@ -171,7 +172,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
         <h2 className="text-sm font-semibold text-gray-500 px-4 py-2">Direct Messages</h2>
         {directConversations.map((conversation) => {
           const isSelected = selectedChatType === 'dm' && selectedChatId === conversation.conversationId;
-          const hasUnread = unreadMessages.has(`dm:${conversation.conversationId}`);
+          const hasUnread = unreadConversations.has(conversation.conversationId);
 
           return (
             <button
@@ -219,4 +220,4 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
   );
 };
 
-export default UnifiedChatList; 
+export default UnifiedChatList;

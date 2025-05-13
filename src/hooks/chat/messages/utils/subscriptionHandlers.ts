@@ -35,14 +35,14 @@ export const handleNewMessagePayload = async (
   currentUser: any,
   selectedClubRef: string | null
 ) => {
-  const typedPayload = payload as unknown as MessagePayload;
-  
-  console.log('[subscriptionHandlers] Received message payload:', typedPayload);
-  
-  if (!typedPayload.new || !typedPayload.new.club_id) {
-    console.log('[subscriptionHandlers] Invalid payload, missing club_id:', typedPayload);
+  // Make sure we have a valid payload with club_id
+  if (!payload.new || !payload.new.club_id) {
+    console.log('[subscriptionHandlers] Invalid payload, missing club_id:', payload);
     return;
   }
+  
+  const typedPayload = payload as unknown as MessagePayload;
+  console.log('[subscriptionHandlers] Received message payload:', typedPayload);
   
   // Get the club ID from the message
   const messageClubId = typedPayload.new.club_id;
@@ -56,42 +56,75 @@ export const handleNewMessagePayload = async (
   
   console.log(`[subscriptionHandlers] 🔥 New message received for club ${messageClubId}:`, typedPayload.new?.id);
   
-  const messageWithSender = await fetchSenderDetails(typedPayload.new);
+  // Directly update state with message data, but also fetch sender details
+  // This ensures optimistic UI update while fetching complete data
+  setClubMessages(prev => {
+    const clubMsgs = prev[messageClubId] || [];
+    
+    // Check if message already exists to prevent duplicates
+    const messageExists = clubMsgs.some(msg => msg.id === typedPayload.new?.id);
+    if (messageExists) return prev;
+
+    // Create a temporary message object with the data we have
+    const tempMessage = {
+      ...typedPayload.new,
+      isUserMessage: typedPayload.new?.sender_id === currentUser?.id
+    };
+    
+    // Sort messages by timestamp
+    const updatedMessages = [...clubMsgs, tempMessage].sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+    
+    // Create and dispatch a global event with the new message details
+    window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
+      detail: { clubId: messageClubId, message: tempMessage } 
+    }));
+    
+    return {
+      ...prev,
+      [messageClubId]: updatedMessages
+    };
+  });
   
-  if (messageWithSender) {
-    const clubId = messageWithSender.club_id;
-    
-    setClubMessages(prev => {
-      const clubMsgs = prev[clubId] || [];
-      
-      // Check if message already exists to prevent duplicates
-      const messageExists = clubMsgs.some(msg => msg.id === messageWithSender.id);
-      if (messageExists) return prev;
-      
-      // Sort messages by timestamp
-      const updatedMessages = [...clubMsgs, messageWithSender].sort(
-        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      );
-      
-      // Create and dispatch a global event with the new message details
-      window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
-        detail: { clubId, message: messageWithSender } 
-      }));
-      
-      return {
-        ...prev,
-        [clubId]: updatedMessages
-      };
-    });
-    
-    // If the message is from another user and NOT the currently viewed club,
-    // we need to update the unread count for this club
-    if (typedPayload.new.sender_id !== currentUser?.id && 
-        (!selectedClubRef || selectedClubRef !== messageClubId)) {
-      window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
-        detail: { clubId: messageClubId } 
-      }));
+  // In parallel, fetch complete sender details
+  if (typedPayload.new?.sender_id) {
+    try {
+      const { data: senderData } = await supabase
+        .from('users')
+        .select('id, name, avatar')
+        .eq('id', typedPayload.new.sender_id)
+        .single();
+
+      if (senderData) {
+        // Once we have sender data, update the message with complete info
+        setClubMessages(prev => {
+          const clubMsgs = prev[messageClubId] || [];
+          
+          const updatedMessages = clubMsgs.map(msg => 
+            msg.id === typedPayload.new?.id 
+              ? { ...msg, sender: senderData }
+              : msg
+          );
+          
+          return {
+            ...prev,
+            [messageClubId]: updatedMessages
+          };
+        });
+      }
+    } catch (error) {
+      console.error('[subscriptionHandlers] Error fetching sender details:', error);
     }
+  }
+  
+  // If the message is from another user and NOT the currently viewed club,
+  // we need to update the unread count for this club
+  if (typedPayload.new.sender_id !== currentUser?.id && 
+      (!selectedClubRef || selectedClubRef !== messageClubId)) {
+    window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
+      detail: { clubId: messageClubId } 
+    }));
   }
 };
 

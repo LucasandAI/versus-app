@@ -75,12 +75,17 @@ export const UnreadMessagesProvider: React.FC<{ children: React.ReactNode }> = (
     directMessageUnreadCounts,
     refreshUnreadCounts,
     
-    // Add the missing properties
     unreadConversations,
     unreadClubs,
     markClubMessagesAsRead,
     markConversationAsRead,
-    fetchUnreadCounts
+    fetchUnreadCounts,
+    
+    // Properties from original interface
+    unreadClubMessages: unreadClubs, // Map to equivalent properties
+    unreadDirectMessageConversations: unreadConversations,
+    markDirectConversationAsRead: markConversationAsRead,
+    unreadMessagesCount: totalUnreadCount
   };
 
   return (

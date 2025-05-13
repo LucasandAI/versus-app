@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
@@ -119,16 +120,19 @@ export const useClubLastMessages = (clubs: Club[]) => {
         },
         async (payload) => {
           console.log('[useClubLastMessages] Real-time event:', payload);
-          const msg = payload.new || payload.old;
-          if (!msg || !msg.club_id) return;
+          // Try to get club_id from either new or old payload
+          const messageClubId = payload.new?.club_id || payload.old?.club_id;
+          
+          if (!messageClubId) return;
+          
           if (payload.eventType === 'DELETE') {
             // On delete, refetch the latest message for this club only
-            const latest = await fetchLatestMessageForClub(msg.club_id);
-            const updatedLastMessages = { ...lastMessagesRef.current, [msg.club_id]: latest };
+            const latest = await fetchLatestMessageForClub(messageClubId);
+            const updatedLastMessages = { ...lastMessagesRef.current, [messageClubId]: latest };
             updateAndResort(updatedLastMessages);
           } else {
             // On insert/update, update lastMessages for this club only
-            const updatedLastMessages = { ...lastMessagesRef.current, [msg.club_id]: msg };
+            const updatedLastMessages = { ...lastMessagesRef.current, [messageClubId]: payload.new };
             updateAndResort(updatedLastMessages);
           }
         }

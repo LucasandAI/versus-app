@@ -33,6 +33,7 @@ declare module 'lucide-react' {
   export const Plus: FC<IconProps>;
   export const Minus: FC<IconProps>;
   export const Trash: FC<IconProps>;
+  export const Trash2: FC<IconProps>; // Added
   export const MoreHorizontal: FC<IconProps>;
   export const Edit: FC<IconProps>;
   export const PanelLeft: FC<IconProps>;
@@ -41,12 +42,14 @@ declare module 'lucide-react' {
   export const UserCog: FC<IconProps>;
   export const UserMinus: FC<IconProps>;
   export const UserPlus: FC<IconProps>;
+  export const UserX: FC<IconProps>; // Added
   
   // Media icons
   export const Image: FC<IconProps>;
   export const Camera: FC<IconProps>;
   
   // Status/alert icons
+  export const Loader: FC<IconProps>; // Added
   export const Loader2: FC<IconProps>;
   export const AlertCircle: FC<IconProps>;
   export const HelpCircle: FC<IconProps>;
@@ -77,6 +80,9 @@ declare module 'lucide-react' {
   export const Award: FC<IconProps>;
   export const Settings: FC<IconProps>;
   export const Share2: FC<IconProps>;
+  export const SearchIcon: FC<IconProps>; // Added
+  export const InfoIcon: FC<IconProps>; // Added
+  export const Watch: FC<IconProps>; // Added
   
   // Social media
   export const Instagram: FC<IconProps>;

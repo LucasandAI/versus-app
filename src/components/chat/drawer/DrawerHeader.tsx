@@ -1,6 +1,5 @@
 
 import React, { useEffect, memo } from 'react';
-import { Club } from '@/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnreadMessages } from '@/context/unread-messages';
 
@@ -16,7 +15,7 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
   setActiveTab,
   selectedClub 
 }) => {
-  const { unreadConversations, unreadClubs, markClubMessagesAsRead } = useUnreadMessages();
+  const { unreadClubs, unreadConversations, markClubMessagesAsRead } = useUnreadMessages();
 
   // Mark club messages as read when a club is selected and the clubs tab is active
   useEffect(() => {
@@ -28,16 +27,16 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
   
   // Use useMemo for stable rendering of unread indicators
   const clubsUnreadBadge = React.useMemo(() => {
-    return unreadClubs.size > 0 ? (
+    return unreadClubs && unreadClubs.size > 0 ? (
       <span className="h-2 w-2 bg-red-500 rounded-full inline-block ml-1"></span>
     ) : null;
-  }, [unreadClubs.size]);
+  }, [unreadClubs]);
 
   const dmUnreadBadge = React.useMemo(() => {
-    return unreadConversations.size > 0 ? (
+    return unreadConversations && unreadConversations.size > 0 ? (
       <span className="h-2 w-2 bg-red-500 rounded-full inline-block ml-1"></span>
     ) : null;
-  }, [unreadConversations.size]);
+  }, [unreadConversations]);
   
   return (
     <div className="px-4 py-2 border-b">
