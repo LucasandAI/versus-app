@@ -813,6 +813,46 @@ export type Database = {
       }
     }
     Views: {
+      club_chat_messages_with_usernames: {
+        Row: {
+          club_id: string | null
+          message: string | null
+          message_id: string | null
+          sender_id: string | null
+          sender_name: string | null
+          timestamp: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_chat_messages_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "club_chat_messages_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["away_club_id"]
+          },
+          {
+            foreignKeyName: "club_chat_messages_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["home_club_id"]
+          },
+          {
+            foreignKeyName: "club_chat_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       view_full_match_info: {
         Row: {
           away_club_division: string | null
