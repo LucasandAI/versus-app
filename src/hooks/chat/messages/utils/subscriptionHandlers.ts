@@ -11,6 +11,7 @@ interface MessagePayload {
     sender_id: string;
     message: string;
     timestamp: string;
+    sender_name?: string;
     [key: string]: any;
   };
   [key: string]: any;
@@ -67,7 +68,7 @@ export const handleNewMessagePayload = async (
   
   // Create a temporary message object with sender info
   const isCurrentUser = typedPayload.new.sender_id === currentUser?.id;
-  const senderName = isCurrentUser ? "You" : "Loading...";
+  const senderName = isCurrentUser ? "You" : (typedPayload.new.sender_name || "Loading...");
   
   const tempMessage = {
     ...typedPayload.new,
@@ -104,7 +105,8 @@ export const handleNewMessagePayload = async (
   });
   
   // In parallel, fetch complete sender details (only for other users' messages)
-  if (!isCurrentUser) {
+  // and only if sender_name is not already provided
+  if (!isCurrentUser && !typedPayload.new.sender_name) {
     try {
       const { data: senderData } = await supabase
         .from('users')

@@ -35,6 +35,12 @@ const ClubsList: React.FC<ClubsListProps> = ({
   const { navigateToClubDetail } = useNavigation();
   const { unreadClubs: contextUnreadClubs, markClubMessagesAsRead } = useUnreadMessages();
   const unreadClubs = propUnreadClubs || contextUnreadClubs;
+  const [updateKey, setUpdateKey] = React.useState(Date.now());
+
+  // Force re-render when conversations change
+  React.useEffect(() => {
+    setUpdateKey(Date.now());
+  }, [clubConversations]);
 
   React.useEffect(() => {
     console.log('[ClubsList] unreadClubs set updated:', Array.from(unreadClubs));
@@ -66,7 +72,7 @@ const ClubsList: React.FC<ClubsListProps> = ({
             : '';
           return (
             <div
-              key={`${club.id}-${isUnread ? 'unread' : 'read'}-${unreadKey}`}
+              key={`${club.id}-${isUnread ? 'unread' : 'read'}-${updateKey}`}
               className={`flex items-start px-4 py-3 cursor-pointer hover:bg-gray-50 relative group
                 ${selectedClub?.id === club.id ? 'bg-primary/10 text-primary' : ''}
                 ${isUnread ? 'font-medium' : ''}`}

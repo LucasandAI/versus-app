@@ -23,11 +23,19 @@ export const useClubConversationList = (clubs: Club[]): ClubConversation[] => {
           sender_username: lastMessage.sender?.name || 
                           (senderCache[lastMessage.sender_id]?.name || 'Unknown'),
           timestamp: lastMessage.timestamp
-        } : null // This lastMessage is always defined, but may be null
+        } : null
       };
     });
     
-    setClubConversationList(conversationList);
+    // Sort conversation list by timestamp (newest first) to ensure that
+    // new messages appear at the top
+    const sortedConversations = [...conversationList].sort((a, b) => {
+      const timeA = a.lastMessage?.timestamp ? new Date(a.lastMessage.timestamp).getTime() : 0;
+      const timeB = b.lastMessage?.timestamp ? new Date(b.lastMessage.timestamp).getTime() : 0;
+      return timeB - timeA; // Descending order (newest first)
+    });
+    
+    setClubConversationList(sortedConversations);
   }, [clubs, lastMessages, senderCache]);
   
   return clubConversationList;
