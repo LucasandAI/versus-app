@@ -72,12 +72,22 @@ const DMConversationList: React.FC<DMConversationListProps> = ({
           conversations.map((conversation) => (
             <ConversationItem
               key={conversation.conversationId}
-              userName={conversation.userName}
-              userAvatar={conversation.userAvatar}
-              lastMessage={getLastMessageText(conversation.lastMessage)}
-              timestamp={getTimestamp(conversation)}
-              isUnread={unreadConversations.has(conversation.conversationId)}
-              isSelected={selectedUserId === conversation.userId}
+              id={conversation.conversationId}
+              name={conversation.userName}
+              avatar={conversation.userAvatar}
+              lastMessage={
+                typeof conversation.lastMessage === 'string' 
+                  ? { 
+                      text: conversation.lastMessage, 
+                      timestamp: conversation.timestamp || new Date().toISOString() 
+                    } 
+                  : conversation.lastMessage || { 
+                      text: 'No messages yet', 
+                      timestamp: conversation.timestamp || new Date().toISOString() 
+                    }
+              }
+              unread={unreadConversations.has(conversation.conversationId)}
+              isActive={selectedUserId === conversation.userId}
               onClick={() => onConversationSelect(
                 conversation.userId, 
                 conversation.userName, 
