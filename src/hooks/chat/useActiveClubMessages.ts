@@ -1,31 +1,33 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ChatMessage } from '@/types/chat';
 
 /**
- * Hook for managing active club messages with real-time synchronization
- * 
- * @param clubId The ID of the club to get messages for
- * @param globalMessages The global messages state from the parent component
- * @returns Object containing the current messages for the club
+ * Hook to sync with global club messages and handle real-time updates
  */
-export const useActiveClubMessages = (
-  clubId: string | undefined,
+export function useActiveClubMessages(
+  clubId?: string,
   globalMessages: Record<string, any[]> = {}
-) => {
-  const [messages, setMessages] = useState<any[]>([]);
-
-  // Update local state when club changes or global messages change
-  useEffect(() => {
-    if (!clubId) {
-      setMessages([]);
-      return;
-    }
-
-    const clubMessages = globalMessages[clubId] || [];
-    console.log(`[useActiveClubMessages] Updating messages for club ${clubId}, found ${clubMessages.length} messages`);
-    setMessages(clubMessages);
+) {
+  const [localMessages, setLocalMessages] = useState<any[]>([]);
+  
+  // Memoize the messages from the global state to avoid unnecessary renders
+  const messagesFromGlobal = useMemo(() => {
+    if (!clubId) return [];
+    return globalMessages[clubId] || [];
   }, [clubId, globalMessages]);
-
-  return { messages };
-};
+  
+  // Keep local state in sync with global state
+  useEffect(() => {
+    if (clubId && messagesFromGlobal) {
+      console.log('[useActiveClubMessages] Syncing messages for club:', clubId, messagesFromGlobal.length);
+      setLocalMessages(messagesFromGlobal);
+    } else {
+      setLocalMessages([]);
+    }
+  }, [clubId, messagesFromGlobal]);
+  
+  return {
+    messages: localMessages,
+    setMessages: setLocalMessages
+  };
+}

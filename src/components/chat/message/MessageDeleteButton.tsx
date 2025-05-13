@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash } from 'lucide-react';
 import { TooltipProvider, TooltipContent, TooltipTrigger, Tooltip } from '@/components/ui/tooltip';
 import {
   AlertDialog,
@@ -25,7 +26,7 @@ const MessageDeleteButton: React.FC<MessageDeleteButtonProps> = ({ onDelete }) =
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Trash2 className="h-4 w-4" />
+                <Trash className="h-4 w-4" />
               </TooltipTrigger>
               <TooltipContent>
                 <p>Delete message</p>

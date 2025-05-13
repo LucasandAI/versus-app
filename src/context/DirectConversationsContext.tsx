@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from './AppContext';
@@ -24,6 +25,21 @@ const DirectConversationsContext = React.createContext<DirectConversationsContex
 });
 
 export const useDirectConversationsContext = () => React.useContext(DirectConversationsContext);
+
+// Define payload types for real-time updates
+interface RealtimeMessagePayload {
+  new?: {
+    conversation_id?: string;
+    id?: string;
+    text?: string;
+    timestamp?: string;
+  };
+  old?: {
+    conversation_id?: string;
+    id?: string;
+  };
+  eventType?: 'INSERT' | 'UPDATE' | 'DELETE';
+}
 
 export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [conversations, setConversations] = React.useState<DMConversation[]>([]);
@@ -178,7 +194,7 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
           schema: 'public',
           table: 'direct_messages',
         },
-        (payload) => {
+        (payload: RealtimeMessagePayload) => {
           const msg = payload.new || payload.old;
           if (!msg || (!msg.conversation_id && !msg.id)) return;
           setConversations(prev => {
@@ -189,7 +205,7 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
                   // On delete, refetch the latest message for this conversation
                   // (for simplicity, just clear lastMessage and timestamp; a full refetch will restore it)
                   return { ...conv, lastMessage: '', timestamp: conv.timestamp };
-                } else {
+                } else if (msg.text && msg.timestamp) {
                   // On insert/update, update lastMessage and timestamp
                   return {
                     ...conv,

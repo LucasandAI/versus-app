@@ -19,11 +19,17 @@ const DMConversationList: React.FC<Props> = ({
 }) => {
   const { currentUser } = useApp();
   const { conversations, loading } = useDirectConversationsContext();
+  const { unreadDirectMessageConversations } = useUnreadMessages();
   
   const isEmpty = !loading && conversations.length === 0;
   
+  // Use the context data if no prop is provided
+  const effectiveUnreadConversations = unreadConversations.size > 0 
+    ? unreadConversations 
+    : unreadDirectMessageConversations;
+  
   // Debug logging to check the unread conversations
-  console.log('[DMConversationList] unreadConversations:', Array.from(unreadConversations));
+  console.log('[DMConversationList] unreadConversations:', Array.from(effectiveUnreadConversations));
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -52,17 +58,18 @@ const DMConversationList: React.FC<Props> = ({
             {conversations
               .filter(conversation => conversation.userId !== currentUser?.id)
               .map((conversation) => {
-                const isUnread = unreadConversations.has(conversation.conversationId);
+                const isUnread = effectiveUnreadConversations.has(conversation.conversationId);
                 console.log(`[DMConversationList] Conversation ${conversation.conversationId} isUnread: ${isUnread}`);
                 
                 return (
                   <ConversationItem
                     key={conversation.conversationId}
-                    conversation={{
-                      ...conversation,
-                      lastMessage: conversation.lastMessage || '',
-                      timestamp: conversation.timestamp || ''
-                    }}
+                    userId={conversation.userId}
+                    userName={conversation.userName}
+                    userAvatar={conversation.userAvatar}
+                    lastMessage={conversation.lastMessage || ''}
+                    timestamp={conversation.timestamp || ''}
+                    conversationId={conversation.conversationId}
                     isSelected={selectedUserId === conversation.userId}
                     isUnread={isUnread}
                     onSelect={() => onSelectUser(
