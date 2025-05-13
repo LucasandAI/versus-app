@@ -1,37 +1,31 @@
 
 import { useState, useEffect } from 'react';
+import { ChatMessage } from '@/types/chat';
 
-export function useActiveClubMessages(
-  clubId: string | undefined | null,
+/**
+ * Hook for managing active club messages with real-time synchronization
+ * 
+ * @param clubId The ID of the club to get messages for
+ * @param globalMessages The global messages state from the parent component
+ * @returns Object containing the current messages for the club
+ */
+export const useActiveClubMessages = (
+  clubId: string | undefined,
   globalMessages: Record<string, any[]> = {}
-) {
+) => {
   const [messages, setMessages] = useState<any[]>([]);
-  
-  // Update local messages when global messages change or clubId changes
+
+  // Update local state when club changes or global messages change
   useEffect(() => {
     if (!clubId) {
       setMessages([]);
       return;
     }
-    
+
     const clubMessages = globalMessages[clubId] || [];
-    console.log(`[useActiveClubMessages] Setting messages for club ${clubId}:`, clubMessages.length);
+    console.log(`[useActiveClubMessages] Updating messages for club ${clubId}, found ${clubMessages.length} messages`);
     setMessages(clubMessages);
-    
-    // Also listen for global events that might indicate new messages
-    const handleClubMessageReceived = (event: CustomEvent) => {
-      if (event.detail && event.detail.clubId === clubId) {
-        const updatedMessages = globalMessages[clubId] || [];
-        console.log(`[useActiveClubMessages] Event update for club ${clubId}:`, updatedMessages.length);
-        setMessages(updatedMessages);
-      }
-    };
-    
-    window.addEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
-    return () => {
-      window.removeEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
-    };
   }, [clubId, globalMessages]);
-  
+
   return { messages };
-}
+};

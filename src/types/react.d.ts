@@ -1,8 +1,11 @@
+
+import * as ReactNamespace from 'react';
+
 declare module 'react' {
-  export * from 'react';
-  export default React;
+  export = ReactNamespace;
+  export as namespace React;
 }
 
 declare module 'react/jsx-runtime' {
   export * from 'react/jsx-runtime';
-} 
+}

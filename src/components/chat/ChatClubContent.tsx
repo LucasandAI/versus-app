@@ -87,10 +87,10 @@ const ChatClubContent = ({
   return (
     <div className="flex flex-col h-full">
       <ChatHeader 
-        club={club}
-        onMatchClick={onMatchClick}
-        onSelectUser={onSelectUser}
-        onClubClick={handleClubClick}
+        title={club?.name || 'Club Chat'}
+        subtitle={`${club?.members?.length || 0} members`}
+        avatar={club?.logo || '/placeholder.svg'}
+        onBack={handleClubClick}
       />
       
       <div className="flex-1 flex flex-col relative overflow-hidden">
