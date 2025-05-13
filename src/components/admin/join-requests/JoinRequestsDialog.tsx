@@ -101,7 +101,7 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
               ))}
             </div>
           ) : (
-            <EmptyRequests />
+            <EmptyRequests clubName={club.name} />
           )}
         </div>
       </DialogContent>

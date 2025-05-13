@@ -6,7 +6,7 @@ export interface EmptyRequestsProps {
   clubName: string;
 }
 
-export const EmptyRequests: React.FC<EmptyRequestsProps> = ({ clubName }) => {
+const EmptyRequests: React.FC<EmptyRequestsProps> = ({ clubName }) => {
   return (
     <div className="flex flex-col items-center justify-center p-8 text-center">
       <CircleUser className="w-16 h-16 text-gray-300 mb-4" />
@@ -17,3 +17,5 @@ export const EmptyRequests: React.FC<EmptyRequestsProps> = ({ clubName }) => {
     </div>
   );
 };
+
+export default EmptyRequests;
