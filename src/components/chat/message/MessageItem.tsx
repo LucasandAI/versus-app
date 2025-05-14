@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -14,6 +15,7 @@ interface MessageItemProps {
   onSelectUser?: (userId: string, userName: string, userAvatar?: string) => void;
   formatTime: (isoString: string) => string;
   currentUserAvatar: string;
+  isLastMessage?: boolean;
 }
 
 const MessageItem: React.FC<MessageItemProps> = ({
@@ -23,7 +25,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
   onDeleteMessage,
   formatTime,
   currentUserAvatar,
-  onSelectUser
+  onSelectUser,
+  isLastMessage = false
 }) => {
   const [canDelete, setCanDelete] = React.useState(false);
   const { navigateToUserProfile } = useNavigation();
@@ -66,7 +69,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   };
 
   return (
-    <div className={`flex ${isUserMessage ? 'justify-end' : 'justify-start'} mb-6 group`}>
+    <div className={`flex ${isUserMessage ? 'justify-end' : 'justify-start'} ${isLastMessage ? 'mb-2' : 'mb-6'} group`}>
       {!isUserMessage && (
         <UserAvatar
           name={message.sender.name || "Unknown"}

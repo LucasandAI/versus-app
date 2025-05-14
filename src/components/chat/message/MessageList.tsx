@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import MessageItem from './MessageItem';
@@ -30,7 +31,7 @@ const MessageList: React.FC<MessageListProps> = ({
   lastMessageRef,
 }) => {
   return (
-    <div className="px-4 py-2 mb-4">
+    <div className="px-4 py-2 mb-0">
       {messages.length === 0 ? (
         <div className="h-full flex items-center justify-center text-gray-500 text-sm py-8">
           No messages yet. Start the conversation!
@@ -45,7 +46,7 @@ const MessageList: React.FC<MessageListProps> = ({
             <div 
               key={message.id}
               ref={isLastMessage ? lastMessageRef : undefined}
-              className="mb-4"
+              className={`${isLastMessage ? 'mb-1' : 'mb-4'}`}
             >
               <MessageItem
                 message={message}
@@ -55,6 +56,7 @@ const MessageList: React.FC<MessageListProps> = ({
                 onSelectUser={onSelectUser}
                 formatTime={formatTime}
                 currentUserAvatar={currentUserAvatar}
+                isLastMessage={isLastMessage}
               />
             </div>
           );

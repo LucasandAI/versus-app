@@ -123,7 +123,7 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
           />
         </div>
         
-        <div className="absolute bottom-0 left-0 right-0 bg-white">
+        <div className="sticky bottom-0 left-0 right-0 bg-white">
           <ChatInput
             onSendMessage={handleSendMessage}
             conversationType={selectedChat.type}
