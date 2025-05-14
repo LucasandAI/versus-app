@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ChatMessage } from '@/types/chat';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -95,7 +94,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
           isSupport={isSupport}
         />
 
-        <div className="text-xs text-gray-500 mt-1 pr-1 w-full text-right">
+        <div className="text-xs text-gray-500 mt-1 pr-1 w-full text-left">
           {formatTime(getTimestamp())}
         </div>
       </div>
