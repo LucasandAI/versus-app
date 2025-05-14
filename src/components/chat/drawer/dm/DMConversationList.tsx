@@ -41,6 +41,15 @@ const DMConversationList: React.FC<DMConversationListProps> = ({
     return '';
   };
 
+  // Sort conversations by timestamp (most recent first)
+  const sortedConversations = React.useMemo(() => {
+    return [...conversations].sort((a, b) => {
+      const timestampA = getTimestamp(a);
+      const timestampB = getTimestamp(b);
+      return new Date(timestampB).getTime() - new Date(timestampA).getTime();
+    });
+  }, [conversations]);
+
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b flex justify-between items-center">
@@ -56,7 +65,7 @@ const DMConversationList: React.FC<DMConversationListProps> = ({
       </div>
       
       <div className="flex-1 overflow-y-auto">
-        {conversations.length === 0 ? (
+        {sortedConversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-500 p-4 text-center">
             <p>No conversations yet</p>
             <Button 
@@ -69,7 +78,7 @@ const DMConversationList: React.FC<DMConversationListProps> = ({
             </Button>
           </div>
         ) : (
-          conversations.map((conversation) => (
+          sortedConversations.map((conversation) => (
             <ConversationItem
               key={conversation.conversationId}
               id={conversation.conversationId}

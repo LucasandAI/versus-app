@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from './AppContext';
@@ -50,6 +51,11 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
   const isMounted = React.useRef(true);
   const { debouncedFetchConversations } = useConversationsFetcher(isMounted);
 
+  // Helper function to sort conversations by timestamp
+  const sortConversationsByTimestamp = (convs: DMConversation[]): DMConversation[] => {
+    return [...convs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  };
+
   const fetchConversations = React.useCallback(async (forceRefresh = false) => {
     if (!forceRefresh && hasLoaded) {
       console.log('[DirectConversationsProvider] Using cached conversations');
@@ -68,7 +74,7 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
       
       await debouncedFetchConversations(currentUser.id, setLoading, (convs: DMConversation[]) => {
         if (isMounted.current) {
-          setConversations(convs);
+          setConversations(convs); // conversations are already sorted in fetcher
           setHasLoaded(true);
         }
       });
@@ -160,7 +166,10 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
         if (prev.some(c => c.conversationId === conversationId)) {
           return prev;
         }
-        return [conversation, ...prev];
+        
+        // Add new conversation and sort
+        const updatedConversations = [conversation, ...prev];
+        return sortConversationsByTimestamp(updatedConversations);
       });
       
       return conversation;
@@ -200,8 +209,8 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
           if (!msg || (!msg.conversation_id && !msg.id)) return;
           
           setConversations(prev => {
-            // Find the conversation
-            return prev.map(conv => {
+            // Find and update the conversation
+            const updatedConversations = prev.map(conv => {
               if (conv.conversationId === msg.conversation_id) {
                 if (payload.eventType === 'DELETE') {
                   // On delete, refetch the latest message for this conversation
@@ -218,6 +227,9 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
               }
               return conv;
             });
+            
+            // Sort conversations by timestamp (most recent first)
+            return sortConversationsByTimestamp(updatedConversations);
           });
         }
       )

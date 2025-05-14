@@ -1,3 +1,4 @@
+
 import { useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { DMConversation } from './types';
@@ -86,7 +87,8 @@ export const useConversationsFetcher = (isMounted: React.MutableRefObject<boolea
 
         // Step 6: Build final conversation objects
         const updatedConversations = buildFinalConversations(validConversations, userId, userMap, latestMessageMap)
-          .filter(conv => conv.userId !== userId); // Filter out self-conversations
+          .filter(conv => conv.userId !== userId) // Filter out self-conversations
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); // Sort by most recent message
 
         if (isMounted.current) {
           setConversations(updatedConversations);
