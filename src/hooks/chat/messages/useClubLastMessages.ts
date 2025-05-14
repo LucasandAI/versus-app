@@ -1,9 +1,9 @@
-
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Club } from '@/types';
 import { useApp } from '@/context/AppContext';
+import { MessageSender } from '@/types/chat';
 
 interface ClubMessage {
   id: string;
@@ -11,11 +11,7 @@ interface ClubMessage {
   sender_id: string;
   club_id: string;
   timestamp: string;
-  sender?: {
-    id: string;
-    name: string;
-    avatar?: string;
-  };
+  sender?: MessageSender;
   [key: string]: any;
 }
 
@@ -203,7 +199,7 @@ export const useClubLastMessages = (clubs: Club[]) => {
           console.log(`[useClubLastMessages] New message for club ${clubId}: ${typedPayload.new.message}`);
           
           // We need to fetch the sender info if it's not the current user
-          let senderInfo = { 
+          let senderInfo: MessageSender = { 
             id: typedPayload.new.sender_id,
             name: isCurrentUser ? 'You' : 'Unknown'
           };

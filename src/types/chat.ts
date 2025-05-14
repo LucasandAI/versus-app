@@ -1,3 +1,4 @@
+
 import { Club } from './index';
 
 export interface ChatMessage {
@@ -34,4 +35,11 @@ export interface SupportTicket {
   subject: string;
   createdAt: string;
   messages: ChatMessage[];
+}
+
+// Adding a type definition for the sender in chat messages to include avatar
+export interface MessageSender {
+  id: string;
+  name: string;
+  avatar?: string;
 }
