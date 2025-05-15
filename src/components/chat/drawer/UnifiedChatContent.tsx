@@ -1,7 +1,9 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import { useApp } from '@/context/AppContext';
+import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
 import { supabase } from '@/integrations/supabase/client';
 import ChatHeader from '../ChatHeader';
 import ChatMessages from '../ChatMessages';
@@ -9,10 +11,8 @@ import ChatInput from '../ChatInput';
 import { useNavigation } from '@/hooks/useNavigation';
 import { useChatActions } from '@/hooks/chat/useChatActions';
 import { useUnreadMessages } from '@/context/unread-messages';
-import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
 import { ArrowLeft } from 'lucide-react';
 import UserAvatar from '@/components/shared/UserAvatar';
-import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
 
 interface UnifiedChatContentProps {
   selectedChat: {
@@ -40,54 +40,19 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
 }) => {
   const { currentUser } = useApp();
   const { navigateToClubDetail, navigateToUserProfile } = useNavigation();
-  const { markDirectMessagesAsRead, markClubMessagesAsRead } = useMessageReadStatus();
+  const { markClubMessagesAsRead, markDirectConversationAsRead } = useUnreadMessages();
   const [isSending, setIsSending] = useState(false);
-
-  useEffect(() => {
-    // When component unmounts, mark the conversation as inactive
-    return () => {
-      if (selectedChat) {
-        if (selectedChat.type === 'club') {
-          window.dispatchEvent(new CustomEvent('clubInactive', { 
-            detail: { clubId: selectedChat.id } 
-          }));
-        } else if (selectedChat.type === 'dm') {
-          window.dispatchEvent(new CustomEvent('conversationInactive', { 
-            detail: { conversationId: selectedChat.id } 
-          }));
-        }
-      }
-    };
-  }, [selectedChat]);
 
   // Mark messages as read when chat is selected
   useEffect(() => {
     if (selectedChat) {
-      console.log(`[UnifiedChatContent] Selected ${selectedChat.type} chat:`, selectedChat.id);
-      
       if (selectedChat.type === 'club') {
-        // Mark club as active to prevent new notifications while viewing
-        window.dispatchEvent(new CustomEvent('clubActive', { 
-          detail: { clubId: selectedChat.id } 
-        }));
-        
-        if (currentUser) {
-          console.log(`[UnifiedChatContent] Marking club ${selectedChat.id} messages as read`);
-          markClubMessagesAsRead(selectedChat.id, currentUser.id);
-        }
+        markClubMessagesAsRead(selectedChat.id);
       } else if (selectedChat.type === 'dm') {
-        // Mark conversation as active to prevent new notifications while viewing
-        window.dispatchEvent(new CustomEvent('conversationActive', { 
-          detail: { conversationId: selectedChat.id } 
-        }));
-        
-        if (currentUser) {
-          console.log(`[UnifiedChatContent] Marking DM ${selectedChat.id} as read`);
-          markDirectMessagesAsRead(selectedChat.id, currentUser.id);
-        }
+        markDirectConversationAsRead(selectedChat.id);
       }
     }
-  }, [selectedChat, currentUser, markClubMessagesAsRead, markDirectMessagesAsRead]);
+  }, [selectedChat, markClubMessagesAsRead, markDirectConversationAsRead]);
 
   const handleSendMessage = async (message: string) => {
     if (!selectedChat) return;

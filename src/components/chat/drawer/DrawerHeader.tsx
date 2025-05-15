@@ -1,9 +1,8 @@
-import React, { useEffect, memo, useState } from 'react';
+
+import React, { useEffect, memo } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnreadMessages } from '@/context/unread-messages';
 import { Club } from '@/types';
-import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
-import { useApp } from '@/context/AppContext';
 
 interface DrawerHeaderProps {
   activeTab: "clubs" | "dm";
@@ -17,55 +16,28 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
   setActiveTab,
   selectedClub 
 }) => {
-  const { unreadClubs, unreadConversations } = useUnreadMessages();
-  const { markClubMessagesAsRead } = useMessageReadStatus();
-  const { currentUser } = useApp();
+  const { unreadClubs, unreadConversations, markClubMessagesAsRead } = useUnreadMessages();
 
-  // Directly mark club messages as read when a club is selected and the clubs tab is active
+  // Mark club messages as read when a club is selected and the clubs tab is active
   useEffect(() => {
-    if (activeTab === "clubs" && selectedClub && currentUser) {
-      console.log(`[DrawerHeader] Marking club ${selectedClub.id} messages as read`);
-      
-      // Mark the club as active to prevent new unread notifications
-      window.dispatchEvent(new CustomEvent('clubActive', { 
-        detail: { clubId: selectedClub.id } 
-      }));
-      
-      // Mark messages as read
-      markClubMessagesAsRead(selectedClub.id, currentUser.id);
+    if (activeTab === "clubs" && selectedClub) {
+      console.log(`[DrawerHeader] Marking club ${selectedClub.id} messages as read (selectedClub present and clubs tab active)`);
+      markClubMessagesAsRead(selectedClub.id);
     }
-  }, [activeTab, selectedClub, markClubMessagesAsRead, currentUser]);
+  }, [activeTab, selectedClub, markClubMessagesAsRead]);
   
-  // Listen for unread message updates to ensure badge is accurate
-  const [clubsHaveUnread, setClubsHaveUnread] = useState(unreadClubs && unreadClubs.size > 0);
-  const [dmsHaveUnread, setDmsHaveUnread] = useState(unreadConversations && unreadConversations.size > 0);
-  
-  useEffect(() => {
-    setClubsHaveUnread(unreadClubs && unreadClubs.size > 0);
-    setDmsHaveUnread(unreadConversations && unreadConversations.size > 0);
-    
-    const handleUnreadUpdated = () => {
-      setClubsHaveUnread(unreadClubs && unreadClubs.size > 0);
-      setDmsHaveUnread(unreadConversations && unreadConversations.size > 0);
-    };
-    
-    window.addEventListener('unreadMessagesUpdated', handleUnreadUpdated);
-    window.addEventListener('messagesMarkedAsRead', handleUnreadUpdated);
-    
-    return () => {
-      window.removeEventListener('unreadMessagesUpdated', handleUnreadUpdated);
-      window.removeEventListener('messagesMarkedAsRead', handleUnreadUpdated);
-    };
-  }, [unreadClubs, unreadConversations]);
-  
-  // Use useState for stable rendering of unread indicators
-  const clubsUnreadBadge = clubsHaveUnread ? (
-    <span className="h-2 w-2 bg-red-500 rounded-full inline-block ml-1" data-testid="club-unread-badge"></span>
-  ) : null;
+  // Use useMemo for stable rendering of unread indicators
+  const clubsUnreadBadge = React.useMemo(() => {
+    return unreadClubs && unreadClubs.size > 0 ? (
+      <span className="h-2 w-2 bg-red-500 rounded-full inline-block ml-1"></span>
+    ) : null;
+  }, [unreadClubs]);
 
-  const dmUnreadBadge = dmsHaveUnread ? (
-    <span className="h-2 w-2 bg-red-500 rounded-full inline-block ml-1" data-testid="dm-unread-badge"></span>
-  ) : null;
+  const dmUnreadBadge = React.useMemo(() => {
+    return unreadConversations && unreadConversations.size > 0 ? (
+      <span className="h-2 w-2 bg-red-500 rounded-full inline-block ml-1"></span>
+    ) : null;
+  }, [unreadConversations]);
   
   return (
     <div className="px-4 py-2 border-b">

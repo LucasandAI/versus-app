@@ -34,54 +34,6 @@ export const useUnreadSubscriptions = ({
     };
   }, [markConversationAsUnread, markClubAsUnread, fetchUnreadCounts]);
   
-  // Track active conversations to prevent marking them as unread
-  // This will be updated via custom events
-  const activeConversationsRef = useRef<Set<string>>(new Set());
-  const activeClubsRef = useRef<Set<string>>(new Set());
-  
-  // Setup event listeners for active conversation tracking
-  useEffect(() => {
-    const handleConversationActive = (e: CustomEvent) => {
-      if (e.detail?.conversationId) {
-        console.log('[useUnreadSubscriptions] Conversation active:', e.detail.conversationId);
-        activeConversationsRef.current.add(e.detail.conversationId);
-      }
-    };
-    
-    const handleClubActive = (e: CustomEvent) => {
-      if (e.detail?.clubId) {
-        console.log('[useUnreadSubscriptions] Club active:', e.detail.clubId);
-        activeClubsRef.current.add(e.detail.clubId);
-      }
-    };
-    
-    const handleConversationInactive = (e: CustomEvent) => {
-      if (e.detail?.conversationId && activeConversationsRef.current.has(e.detail.conversationId)) {
-        console.log('[useUnreadSubscriptions] Conversation inactive:', e.detail.conversationId);
-        activeConversationsRef.current.delete(e.detail.conversationId);
-      }
-    };
-    
-    const handleClubInactive = (e: CustomEvent) => {
-      if (e.detail?.clubId && activeClubsRef.current.has(e.detail.clubId)) {
-        console.log('[useUnreadSubscriptions] Club inactive:', e.detail.clubId);
-        activeClubsRef.current.delete(e.detail.clubId);
-      }
-    };
-    
-    window.addEventListener('conversationActive', handleConversationActive as EventListener);
-    window.addEventListener('clubActive', handleClubActive as EventListener);
-    window.addEventListener('conversationInactive', handleConversationInactive as EventListener);
-    window.addEventListener('clubInactive', handleClubInactive as EventListener);
-    
-    return () => {
-      window.removeEventListener('conversationActive', handleConversationActive as EventListener);
-      window.removeEventListener('clubActive', handleClubActive as EventListener);
-      window.removeEventListener('conversationInactive', handleConversationInactive as EventListener);
-      window.removeEventListener('clubInactive', handleClubInactive as EventListener);
-    };
-  }, []);
-  
   useEffect(() => {
     if (!isSessionReady || !currentUserId) return;
     
@@ -94,42 +46,24 @@ export const useUnreadSubscriptions = ({
     
     // Batch-process updates with RAF to avoid flickering
     const processUpdates = () => {
-      // Process direct message updates
       if (pendingUpdates.size > 0) {
-        console.log('[useUnreadSubscriptions] Processing DM updates:', Array.from(pendingUpdates));
-        
         pendingUpdates.forEach(conversationId => {
-          // Skip if conversation is currently active/open
-          if (activeConversationsRef.current.has(conversationId)) {
-            console.log('[useUnreadSubscriptions] Skipping active conversation:', conversationId);
-            return;
-          }
           handlersRef.current.markConversationAsUnread(conversationId);
         });
         pendingUpdates.clear();
       }
       
-      // Process club updates
       if (pendingClubUpdates.size > 0) {
-        console.log('[useUnreadSubscriptions] Processing club updates:', Array.from(pendingClubUpdates));
-        
         pendingClubUpdates.forEach(clubId => {
-          // Skip if club is currently active/open
-          if (activeClubsRef.current.has(clubId)) {
-            console.log('[useUnreadSubscriptions] Skipping active club:', clubId);
-            return;
-          }
           handlersRef.current.markClubAsUnread(clubId);
         });
         pendingClubUpdates.clear();
       }
       
-      // Dispatch unread messages updated event
-      // This needs to happen even if we filtered out all updates due to active conversations
-      // So that other components know to check their unread counts
-      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', {
-        detail: { timestamp: Date.now() }
-      }));
+      // Only dispatch one event regardless of how many updates
+      if (pendingUpdates.size > 0 || pendingClubUpdates.size > 0) {
+        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+      }
       
       updateTimeout = null;
     };
@@ -139,7 +73,7 @@ export const useUnreadSubscriptions = ({
       if (updateTimeout) return;
       updateTimeout = setTimeout(() => {
         requestAnimationFrame(processUpdates);
-      }, 50); // Reduced from 100ms to 50ms for faster response
+      }, 100);
     };
     
     // Set up real-time subscriptions for new messages
@@ -153,8 +87,7 @@ export const useUnreadSubscriptions = ({
           },
           (payload) => {
             if (payload.new.receiver_id === currentUserId) {
-              console.log('[useUnreadSubscriptions] New DM detected:', payload.new.conversation_id);
-              // Queue the update
+              // Queue the update instead of processing immediately
               pendingUpdates.add(payload.new.conversation_id);
               queueUpdate();
             }
@@ -171,8 +104,7 @@ export const useUnreadSubscriptions = ({
           },
           (payload) => {
             if (payload.new.sender_id !== currentUserId) {
-              console.log('[useUnreadSubscriptions] New club message detected:', payload.new.club_id);
-              // Queue the update
+              // Queue the update instead of processing immediately
               pendingClubUpdates.add(payload.new.club_id);
               queueUpdate();
             }
