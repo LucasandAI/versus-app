@@ -44,19 +44,23 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   } = useChatDrawerGlobal();
   
   const {
-    totalUnreadCount
+    totalUnreadCount,
+    refreshUnreadCounts
   } = useUnreadMessages();
   
   const navigate = useNavigate();
   
+  // Use unreadCount as a state that can be updated independently
   const [badgeCount, setBadgeCount] = useState(totalUnreadCount);
   const [notificationsCount, setNotificationsCount] = useState(notifications.length);
   const [helpDialogOpen, setHelpDialogOpen] = useState(false);
   
-  console.log("[HomeHeader] Rendering with notifications:", notifications.length, notifications);
+  // Debug log for initial render
+  console.log("[HomeHeader] Rendering with notifications:", notifications.length, notifications, "Initial unread count:", totalUnreadCount);
 
-  // Update badge count when totalUnreadCount changes
+  // Keep badgeCount updated when totalUnreadCount changes from the context
   useEffect(() => {
+    console.log("[HomeHeader] totalUnreadCount changed to:", totalUnreadCount);
     setBadgeCount(totalUnreadCount);
   }, [totalUnreadCount]);
   
@@ -65,32 +69,53 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     setNotificationsCount(notifications.length);
   }, [notifications]);
 
-  // Listen for unreadMessagesUpdated event to update badge count
+  // Listen for unreadMessagesUpdated event to update badge count immediately
   useEffect(() => {
-    const handleUnreadMessagesUpdated = () => {
-      setTimeout(() => {
-        // This will trigger a re-render that will pick up the latest totalUnreadCount
+    // Using non-arrow function for named function in logs
+    function handleUnreadMessagesUpdated(e: Event) {
+      console.log("[HomeHeader] Received unreadMessagesUpdated event", (e as CustomEvent).detail);
+      
+      // Refresh the counts from the database for accuracy
+      refreshUnreadCounts().then(() => {
+        // After refresh, update the badge count from context
         setBadgeCount(prev => {
-          console.log("[HomeHeader] Updating badge count to:", totalUnreadCount);
-          return totalUnreadCount;
+          const newCount = totalUnreadCount;
+          console.log(`[HomeHeader] Updating badge count: ${prev} -> ${newCount}`);
+          return newCount;
         });
-      }, 100);
-    };
+      });
+    }
     
-    const handleNotificationsUpdated = () => {
-      setTimeout(() => {
-        setNotificationsCount(notifications.length);
-      }, 100);
-    };
+    function handleMessagesMarkedAsRead(e: Event) {
+      console.log("[HomeHeader] Received messagesMarkedAsRead event", (e as CustomEvent).detail);
+      
+      // Refresh the counts immediately when messages are marked as read
+      refreshUnreadCounts().then(() => {
+        setBadgeCount(prev => {
+          const newCount = totalUnreadCount;
+          console.log(`[HomeHeader] Immediate badge update after read: ${prev} -> ${newCount}`);
+          return newCount;
+        });
+      });
+    }
     
+    function handleNotificationsUpdated() {
+      console.log("[HomeHeader] Received notificationsUpdated event");
+      setNotificationsCount(notifications.length);
+    }
+    
+    // Add event listeners
     window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
+    window.addEventListener('messagesMarkedAsRead', handleMessagesMarkedAsRead);
     window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
     
     return () => {
+      // Clean up event listeners
       window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
+      window.removeEventListener('messagesMarkedAsRead', handleMessagesMarkedAsRead);
       window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
     };
-  }, [notifications.length, totalUnreadCount]);
+  }, [refreshUnreadCounts, totalUnreadCount, notifications.length]);
   
   const handleViewOwnProfile = () => {
     if (currentUser) {
