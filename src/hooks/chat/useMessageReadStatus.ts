@@ -6,7 +6,12 @@ import { useUnreadMessages } from '@/context/unread-messages';
 export const useMessageReadStatus = () => {
   const { markDirectConversationAsRead, markClubMessagesAsRead } = useUnreadMessages();
 
-  const markDirectMessagesAsRead = useCallback(async (conversationId: string, userId: string) => {
+  const markDirectMessagesAsRead = useCallback(async (conversationId: string, userId: string, delay = 0) => {
+    if (delay > 0) {
+      // Add delay before marking as read to prevent badge flickering
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    
     try {
       // Use the context method for optimistic updates
       await markDirectConversationAsRead(conversationId);
@@ -15,7 +20,12 @@ export const useMessageReadStatus = () => {
     }
   }, [markDirectConversationAsRead]);
 
-  const markClubMessagesAsReadLegacy = useCallback(async (clubId: string, userId: string) => {
+  const markClubMessagesAsReadLegacy = useCallback(async (clubId: string, userId: string, delay = 0) => {
+    if (delay > 0) {
+      // Add delay before marking as read to prevent badge flickering
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+
     try {
       // Use the context method for optimistic updates
       await markClubMessagesAsRead(clubId);
