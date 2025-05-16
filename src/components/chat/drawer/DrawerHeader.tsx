@@ -44,8 +44,8 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
       // Add a delay to avoid race conditions with other components
       const MARK_READ_DELAY = 500;
       
-      // Mark messages as read with a delay
-      markClubMessagesAsRead(selectedClub.id, currentUser.id, MARK_READ_DELAY);
+      // Mark messages as read with a delay - removed the userId parameter
+      markClubMessagesAsRead(selectedClub.id, undefined, MARK_READ_DELAY);
       
       // Remember that we've marked this club's messages as read
       setHasMarkedClubRead(selectedClub.id);

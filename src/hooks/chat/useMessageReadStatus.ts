@@ -5,7 +5,8 @@ import { useUnreadMessages } from '@/context/unread-messages';
 import { toast } from '@/hooks/use-toast';
 
 export const useMessageReadStatus = () => {
-  const { markDirectConversationAsRead, markClubMessagesAsRead } = useUnreadMessages();
+  // Rename the imported function to avoid the naming conflict
+  const { markDirectConversationAsRead, markClubMessagesAsRead: markClubMessagesReadFromContext } = useUnreadMessages();
   
   // Track ongoing operations to prevent duplicates
   const pendingOperations = useRef<Record<string, boolean>>({});
@@ -13,7 +14,7 @@ export const useMessageReadStatus = () => {
   // Add debounce timers
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
 
-  const markDirectMessagesAsRead = useCallback(async (conversationId: string, userId: string, delay = 0) => {
+  const markDirectMessagesAsRead = useCallback(async (conversationId: string, userId?: string, delay = 0) => {
     // If operation for this conversation is already in progress, skip
     const operationKey = `dm-${conversationId}`;
     if (pendingOperations.current[operationKey]) {
@@ -64,7 +65,7 @@ export const useMessageReadStatus = () => {
     
   }, [markDirectConversationAsRead]);
 
-  const markClubMessagesAsRead = useCallback(async (clubId: string, userId: string, delay = 0) => {
+  const markClubMessagesAsRead = useCallback(async (clubId: string, userId?: string, delay = 0) => {
     // If operation for this club is already in progress, skip
     const operationKey = `club-${clubId}`;
     if (pendingOperations.current[operationKey]) {
@@ -94,7 +95,7 @@ export const useMessageReadStatus = () => {
         }));
         
         // Use the context method for the actual database update
-        await markClubMessagesAsRead(clubId);
+        await markClubMessagesReadFromContext(clubId);
         
         // Broadcast that messages have been read to ensure UI consistency
         window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
@@ -113,7 +114,7 @@ export const useMessageReadStatus = () => {
       }
     }, delay);
     
-  }, [markClubMessagesAsRead]);
+  }, [markClubMessagesReadFromContext]);
 
   return {
     markDirectMessagesAsRead,

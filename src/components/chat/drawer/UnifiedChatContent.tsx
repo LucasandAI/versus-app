@@ -81,7 +81,7 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
         }));
         
         console.log(`[UnifiedChatContent] Marking club ${selectedChat.id} messages as read with delay ${delay}ms`);
-        markClubMessagesAsRead(selectedChat.id, currentUser.id, delay);
+        markClubMessagesAsRead(selectedChat.id, undefined, delay);
         setHasMarkedAsRead(true);
       } else if (selectedChat.type === 'dm') {
         // Mark conversation as active to prevent new notifications while viewing
@@ -90,7 +90,7 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
         }));
         
         console.log(`[UnifiedChatContent] Marking DM ${selectedChat.id} as read with delay ${delay}ms`);
-        markDirectMessagesAsRead(selectedChat.id, currentUser.id, delay);
+        markDirectMessagesAsRead(selectedChat.id, undefined, delay);
         setHasMarkedAsRead(true);
       }
     }
