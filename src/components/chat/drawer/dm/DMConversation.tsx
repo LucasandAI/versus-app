@@ -1,5 +1,5 @@
 
-import React, { useRef, useEffect, useCallback, memo, useMemo } from 'react';
+import React, { useRef, useEffect, useCallback, memo, useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -16,6 +16,7 @@ import DMMessageInput from './DMMessageInput';
 import DMHeader from './DMHeader';
 import { ArrowLeft } from 'lucide-react';
 import { useUserData } from '@/hooks/chat/dm/useUserData';
+import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
 
 interface DMConversationProps {
   user: {
@@ -35,9 +36,10 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
 }) => {
   const { currentUser } = useApp();
   const { navigateToUserProfile } = useNavigation();
-  const { markConversationAsRead } = useUnreadMessages();
+  const { markDirectMessagesAsRead } = useMessageReadStatus();
   const [isSending, setIsSending] = React.useState(false);
   const { formatTime } = useMessageFormatting();
+  const [hasMarkedAsRead, setHasMarkedAsRead] = useState(false);
   
   // Validate user data completeness at the component level
   const hasCompleteUserData = Boolean(user && user.id && user.name && user.avatar);
@@ -106,22 +108,28 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   // Custom hooks for conversation management
   const { createConversation } = useConversationManagement(currentUser?.id, user.id);
   
-  // Mark conversation as read when opened, with a delay to prevent badge flickering
+  // Reset read tracking when conversation changes
   useEffect(() => {
-    if (conversationId && conversationId !== 'new') {
-      console.log(`[DMConversation] Scheduling marking conversation ${conversationId} as read with delay`);
+    setHasMarkedAsRead(false);
+  }, [conversationId]);
+  
+  // Mark conversation as read when opened, coordinating with other components
+  useEffect(() => {
+    if (conversationId && conversationId !== 'new' && currentUser && !hasMarkedAsRead) {
+      // Mark this conversation as active to signal it's currently being viewed
+      window.dispatchEvent(new CustomEvent('conversationActive', { 
+        detail: { conversationId } 
+      }));
       
-      // Use a 400ms delay to allow the notification badge to be visible before clearing
-      const MARK_AS_READ_DELAY = 400;
+      console.log(`[DMConversation] Marking conversation ${conversationId} as read with delay`);
       
-      const timer = setTimeout(() => {
-        console.log(`[DMConversation] Now marking conversation ${conversationId} as read after delay`);
-        markConversationAsRead(conversationId);
-      }, MARK_AS_READ_DELAY);
+      // Use a significant delay to avoid races with other components
+      const MARK_AS_READ_DELAY = 600;
       
-      return () => clearTimeout(timer);
+      markDirectMessagesAsRead(conversationId, currentUser.id, MARK_AS_READ_DELAY);
+      setHasMarkedAsRead(true);
     }
-  }, [conversationId, markConversationAsRead]);
+  }, [conversationId, currentUser, markDirectMessagesAsRead, hasMarkedAsRead]);
 
   // Stable send message handler
   const handleSendMessage = useCallback(async (text: string) => {

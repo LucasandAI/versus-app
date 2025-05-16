@@ -1,3 +1,4 @@
+
 import React, { useEffect, memo, useState } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnreadMessages } from '@/context/unread-messages';
@@ -20,10 +21,19 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
   const { unreadClubs, unreadConversations } = useUnreadMessages();
   const { markClubMessagesAsRead } = useMessageReadStatus();
   const { currentUser } = useApp();
-
-  // Directly mark club messages as read when a club is selected and the clubs tab is active
+  
+  // Track whether we've already marked messages as read for this club selection
+  const [hasMarkedClubRead, setHasMarkedClubRead] = useState<string | null>(null);
+  
+  // Only mark club messages as read when the clubs tab is active AND
+  // we haven't already marked this specific club as read
   useEffect(() => {
-    if (activeTab === "clubs" && selectedClub && currentUser) {
+    if (
+      activeTab === "clubs" && 
+      selectedClub && 
+      currentUser && 
+      hasMarkedClubRead !== selectedClub.id
+    ) {
       console.log(`[DrawerHeader] Marking club ${selectedClub.id} messages as read`);
       
       // Mark the club as active to prevent new unread notifications
@@ -31,10 +41,21 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
         detail: { clubId: selectedClub.id } 
       }));
       
-      // Mark messages as read
-      markClubMessagesAsRead(selectedClub.id, currentUser.id);
+      // Add a delay to avoid race conditions with other components
+      const MARK_READ_DELAY = 500;
+      
+      // Mark messages as read with a delay
+      markClubMessagesAsRead(selectedClub.id, currentUser.id, MARK_READ_DELAY);
+      
+      // Remember that we've marked this club's messages as read
+      setHasMarkedClubRead(selectedClub.id);
     }
-  }, [activeTab, selectedClub, markClubMessagesAsRead, currentUser]);
+  }, [activeTab, selectedClub, markClubMessagesAsRead, currentUser, hasMarkedClubRead]);
+  
+  // Reset the tracking when active tab changes
+  useEffect(() => {
+    setHasMarkedClubRead(null);
+  }, [activeTab]);
   
   // Listen for unread message updates to ensure badge is accurate
   const [clubsHaveUnread, setClubsHaveUnread] = useState(unreadClubs && unreadClubs.size > 0);

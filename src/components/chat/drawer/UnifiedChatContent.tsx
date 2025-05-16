@@ -42,6 +42,7 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
   const { navigateToClubDetail, navigateToUserProfile } = useNavigation();
   const { markDirectMessagesAsRead, markClubMessagesAsRead } = useMessageReadStatus();
   const [isSending, setIsSending] = useState(false);
+  const [hasMarkedAsRead, setHasMarkedAsRead] = useState(false);
 
   useEffect(() => {
     // When component unmounts, mark the conversation as inactive
@@ -60,10 +61,18 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
     };
   }, [selectedChat]);
 
+  // Reset the marked-as-read state when selected chat changes
+  useEffect(() => {
+    setHasMarkedAsRead(false);
+  }, [selectedChat?.id]);
+
   // Mark messages as read when chat is selected
   useEffect(() => {
-    if (selectedChat) {
+    if (selectedChat && currentUser && !hasMarkedAsRead) {
       console.log(`[UnifiedChatContent] Selected ${selectedChat.type} chat:`, selectedChat.id);
+      
+      // Use a short delay to avoid multiple simultaneous operations
+      const delay = 300;
       
       if (selectedChat.type === 'club') {
         // Mark club as active to prevent new notifications while viewing
@@ -71,23 +80,21 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
           detail: { clubId: selectedChat.id } 
         }));
         
-        if (currentUser) {
-          console.log(`[UnifiedChatContent] Marking club ${selectedChat.id} messages as read`);
-          markClubMessagesAsRead(selectedChat.id, currentUser.id);
-        }
+        console.log(`[UnifiedChatContent] Marking club ${selectedChat.id} messages as read with delay ${delay}ms`);
+        markClubMessagesAsRead(selectedChat.id, currentUser.id, delay);
+        setHasMarkedAsRead(true);
       } else if (selectedChat.type === 'dm') {
         // Mark conversation as active to prevent new notifications while viewing
         window.dispatchEvent(new CustomEvent('conversationActive', { 
           detail: { conversationId: selectedChat.id } 
         }));
         
-        if (currentUser) {
-          console.log(`[UnifiedChatContent] Marking DM ${selectedChat.id} as read`);
-          markDirectMessagesAsRead(selectedChat.id, currentUser.id);
-        }
+        console.log(`[UnifiedChatContent] Marking DM ${selectedChat.id} as read with delay ${delay}ms`);
+        markDirectMessagesAsRead(selectedChat.id, currentUser.id, delay);
+        setHasMarkedAsRead(true);
       }
     }
-  }, [selectedChat, currentUser, markClubMessagesAsRead, markDirectMessagesAsRead]);
+  }, [selectedChat, currentUser, markClubMessagesAsRead, markDirectMessagesAsRead, hasMarkedAsRead]);
 
   const handleSendMessage = async (message: string) => {
     if (!selectedChat) return;
