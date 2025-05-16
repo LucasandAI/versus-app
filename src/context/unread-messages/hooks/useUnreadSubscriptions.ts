@@ -39,6 +39,37 @@ export const useUnreadSubscriptions = ({
   const activeConversationsRef = useRef<Set<string>>(new Set());
   const activeClubsRef = useRef<Set<string>>(new Set());
   
+  // Listen for received messages to update unread status
+  useEffect(() => {
+    const handleDMReceived = (e: CustomEvent) => {
+      const { conversationId, shouldMarkUnread } = e.detail;
+      
+      // Only mark as unread if specifically told to and it's not an active conversation
+      if (shouldMarkUnread && !activeConversationsRef.current.has(conversationId)) {
+        console.log(`[useUnreadSubscriptions] Marking conversation ${conversationId} as unread from message event`);
+        handlersRef.current.markConversationAsUnread(conversationId);
+      }
+    };
+    
+    const handleClubMessageReceived = (e: CustomEvent) => {
+      const { clubId, shouldMarkUnread } = e.detail;
+      
+      // Only mark as unread if specifically told to and it's not an active club
+      if (shouldMarkUnread && !activeClubsRef.current.has(clubId)) {
+        console.log(`[useUnreadSubscriptions] Marking club ${clubId} as unread from message event`);
+        handlersRef.current.markClubAsUnread(clubId);
+      }
+    };
+    
+    window.addEventListener('dmMessageReceived', handleDMReceived as EventListener);
+    window.addEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
+    
+    return () => {
+      window.removeEventListener('dmMessageReceived', handleDMReceived as EventListener);
+      window.removeEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
+    };
+  }, []);
+  
   // Setup event listeners for active conversation tracking
   useEffect(() => {
     const handleConversationActive = (e: CustomEvent) => {
@@ -154,6 +185,13 @@ export const useUnreadSubscriptions = ({
           (payload) => {
             if (payload.new.receiver_id === currentUserId) {
               console.log('[useUnreadSubscriptions] New DM detected:', payload.new.conversation_id);
+              
+              // Skip if conversation is currently active/open
+              if (activeConversationsRef.current.has(payload.new.conversation_id)) {
+                console.log('[useUnreadSubscriptions] Skipping active conversation:', payload.new.conversation_id);
+                return;
+              }
+              
               // Queue the update
               pendingUpdates.add(payload.new.conversation_id);
               queueUpdate();
@@ -172,6 +210,13 @@ export const useUnreadSubscriptions = ({
           (payload) => {
             if (payload.new.sender_id !== currentUserId) {
               console.log('[useUnreadSubscriptions] New club message detected:', payload.new.club_id);
+              
+              // Skip if club is currently active/open
+              if (activeClubsRef.current.has(payload.new.club_id)) {
+                console.log('[useUnreadSubscriptions] Skipping active club:', payload.new.club_id);
+                return;
+              }
+              
               // Queue the update
               pendingClubUpdates.add(payload.new.club_id);
               queueUpdate();

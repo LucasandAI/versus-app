@@ -36,6 +36,37 @@ function hasClubId(payload: any): payload is { new: { club_id: string } } {
          typeof payload.new.club_id === 'string';
 }
 
+// Track active clubs globally to avoid dependency issues
+const activeClubs = new Set<string>();
+
+// Set up handlers for active club tracking
+export function setupActiveClubTracking() {
+  const handleClubActive = (event: CustomEvent) => {
+    if (event.detail?.clubId) {
+      console.log('[subscriptionHandlers] Club marked as active:', event.detail.clubId);
+      activeClubs.add(event.detail.clubId);
+    }
+  };
+  
+  const handleClubInactive = (event: CustomEvent) => {
+    if (event.detail?.clubId) {
+      console.log('[subscriptionHandlers] Club marked as inactive:', event.detail.clubId);
+      activeClubs.delete(event.detail.clubId);
+    }
+  };
+  
+  window.addEventListener('clubActive', handleClubActive as EventListener);
+  window.addEventListener('clubInactive', handleClubInactive as EventListener);
+  
+  return () => {
+    window.removeEventListener('clubActive', handleClubActive as EventListener);
+    window.removeEventListener('clubInactive', handleClubInactive as EventListener);
+  };
+}
+
+// Call this function at app initialization
+setupActiveClubTracking();
+
 export const handleNewMessagePayload = async (
   payload: RealtimePostgresChangesPayload<{
     [key: string]: any;
@@ -64,7 +95,14 @@ export const handleNewMessagePayload = async (
     return;
   }
   
-  console.log(`[subscriptionHandlers] 🔥 New message received for club ${messageClubId}:`, typedPayload.new.id);
+  // Check if this club is currently being viewed
+  const isClubActive = activeClubs.has(messageClubId) || selectedClubRef === messageClubId;
+  
+  console.log(`[subscriptionHandlers] 🔥 New message received for club ${messageClubId}:`, {
+    messageId: typedPayload.new.id,
+    isClubActive,
+    selectedClub: selectedClubRef
+  });
   
   // Create a temporary message object with sender info
   const isCurrentUser = typedPayload.new.sender_id === currentUser?.id;
@@ -80,7 +118,7 @@ export const handleNewMessagePayload = async (
     }
   };
   
-  // First update with the temporary message (instant UI feedback)
+  // Always update the UI with new messages
   setClubMessages(prev => {
     const clubMsgs = prev[messageClubId] || [];
     
@@ -94,8 +132,14 @@ export const handleNewMessagePayload = async (
     );
     
     // Create and dispatch a global event with the new message details
+    // Include a flag indicating whether this should increment unread count
     window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
-      detail: { clubId: messageClubId, message: tempMessage } 
+      detail: {
+        clubId: messageClubId,
+        message: tempMessage,
+        // Only mark as unread if it's from another user and club is not active
+        shouldMarkUnread: !isCurrentUser && !isClubActive
+      }
     }));
     
     return {
@@ -138,14 +182,6 @@ export const handleNewMessagePayload = async (
     } catch (error) {
       console.error('[subscriptionHandlers] Error fetching sender details:', error);
     }
-  }
-  
-  // If the message is from another user and NOT the currently viewed club,
-  // we need to update the unread count for this club
-  if (!isCurrentUser && (!selectedClubRef || selectedClubRef !== messageClubId)) {
-    window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
-      detail: { clubId: messageClubId } 
-    }));
   }
 };
 

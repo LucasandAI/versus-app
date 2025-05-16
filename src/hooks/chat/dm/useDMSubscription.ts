@@ -21,6 +21,9 @@ export const useDMSubscription = (
   // Store the user data in a ref to ensure it's stable across renders
   const otherUserDataRef = useRef(otherUserData);
   
+  // Flag to track if this conversation is active/being viewed
+  const isActiveRef = useRef<boolean>(true);
+  
   // Keep stable references to the conversation/user IDs
   const stableConversationId = useRef(conversationId);
   const stableOtherUserId = useRef(otherUserId);
@@ -30,6 +33,15 @@ export const useDMSubscription = (
     stableConversationId.current = conversationId;
     stableOtherUserId.current = otherUserId;
     otherUserDataRef.current = otherUserData;
+    
+    // When component mounts or conversationId changes, mark as active
+    if (conversationId && conversationId !== 'new') {
+      console.log(`[useDMSubscription] Marking conversation ${conversationId} as active`);
+      isActiveRef.current = true;
+      window.dispatchEvent(new CustomEvent('conversationActive', { 
+        detail: { conversationId } 
+      }));
+    }
   }, [conversationId, otherUserId, otherUserData]);
   
   // Clean up function
@@ -47,6 +59,15 @@ export const useDMSubscription = (
     return () => {
       isMounted.current = false;
       cleanupSubscription();
+      
+      // Mark conversation as inactive when component unmounts
+      if (stableConversationId.current && stableConversationId.current !== 'new') {
+        console.log(`[useDMSubscription] Marking conversation ${stableConversationId.current} as inactive on unmount`);
+        window.dispatchEvent(new CustomEvent('conversationInactive', { 
+          detail: { conversationId: stableConversationId.current } 
+        }));
+      }
+      
       // Clear processed messages cache on unmount
       processedMessages.current.clear();
     };
@@ -71,6 +92,33 @@ export const useDMSubscription = (
     if (conversationId) {
       processedMessages.current = new Set();
     }
+  }, [conversationId]);
+
+  // Set up listeners for active/inactive status events
+  useEffect(() => {
+    if (!conversationId || conversationId === 'new') return;
+    
+    const handleInactive = (event: CustomEvent) => {
+      if (event.detail.conversationId === conversationId) {
+        console.log(`[useDMSubscription] Conversation ${conversationId} marked as inactive via event`);
+        isActiveRef.current = false;
+      }
+    };
+    
+    const handleActive = (event: CustomEvent) => {
+      if (event.detail.conversationId === conversationId) {
+        console.log(`[useDMSubscription] Conversation ${conversationId} marked as active via event`);
+        isActiveRef.current = true;
+      }
+    };
+    
+    window.addEventListener('conversationInactive', handleInactive as EventListener);
+    window.addEventListener('conversationActive', handleActive as EventListener);
+    
+    return () => {
+      window.removeEventListener('conversationInactive', handleInactive as EventListener);
+      window.removeEventListener('conversationActive', handleActive as EventListener);
+    };
   }, [conversationId]);
 
   // Setup subscription when conversation details are ready
@@ -168,19 +216,47 @@ export const useDMSubscription = (
             timestamp: newMessage.timestamp
           };
           
-          console.log('[useDMSubscription] Dispatching message with user data:', {
+          console.log('[useDMSubscription] Adding message to UI:', {
             messageId,
             senderName: chatMessage.sender.name,
-            senderAvatar: chatMessage.sender.avatar
+            conversationActive: isActiveRef.current
           });
           
-          // Use the stable reference to event dispatch
-          window.dispatchEvent(new CustomEvent('dmMessageReceived', { 
-            detail: { 
-              conversationId: conversation_id, 
-              message: chatMessage 
-            } 
-          }));
+          // Always update the UI with the new message if it's currently being viewed
+          if (isActiveRef.current) {
+            setMessages(prev => {
+              // Make sure we don't add duplicates
+              if (prev.some(m => m.id === chatMessage.id)) {
+                return prev;
+              }
+              return [...prev, chatMessage].sort(
+                (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+              );
+            });
+          }
+          
+          // Only trigger the unread event if this conversation is NOT active and message is from other user
+          if (!isActiveRef.current && isFromOtherUser) {
+            // Use the stable reference to event dispatch
+            console.log(`[useDMSubscription] Triggering unread event for inactive conversation ${conversation_id}`);
+            window.dispatchEvent(new CustomEvent('dmMessageReceived', { 
+              detail: { 
+                conversationId: conversation_id, 
+                message: chatMessage,
+                shouldMarkUnread: true
+              } 
+            }));
+          } else {
+            // Still dispatch the event but mark it as "don't trigger unread"
+            console.log(`[useDMSubscription] Triggering message event for active conversation ${conversation_id}`);
+            window.dispatchEvent(new CustomEvent('dmMessageReceived', { 
+              detail: { 
+                conversationId: conversation_id, 
+                message: chatMessage,
+                shouldMarkUnread: false
+              } 
+            }));
+          }
         })
         .subscribe((status) => {
           console.log(`DM subscription status for ${conversation_id}:`, status);
@@ -203,5 +279,5 @@ export const useDMSubscription = (
     }
     
     return cleanupSubscription;
-  }, [conversationId, currentUserId, otherUserId, userCache, cleanupSubscription, fetchUserData]);
+  }, [conversationId, currentUserId, otherUserId, userCache, cleanupSubscription, fetchUserData, setMessages]);
 };
