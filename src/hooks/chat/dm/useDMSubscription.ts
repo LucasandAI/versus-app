@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
@@ -305,47 +304,41 @@ export const useDMSubscription = (
             );
           });
           
-          // If conversation is active, optimistically mark message as read
+          // If conversation is active, optimistically mark message as read IMMEDIATELY
           if (isActive && isFromOtherUser) {
             console.log(`[useDMSubscription] Conversation ${conversation_id} is active, optimistically marking as read`);
             
-            // Dispatch an event to update UI immediately
-            requestAnimationFrame(() => {
-              window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
-                detail: { 
-                  conversationId: conversation_id, 
-                  type: 'dm',
-                  optimistic: true
-                } 
-              }));
-            });
+            // Immediately dispatch an event to update UI
+            window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
+              detail: { 
+                conversationId: conversation_id, 
+                type: 'dm',
+                optimistic: true
+              } 
+            }));
           }
           
           // Trigger unread event only if this conversation is NOT active and message is from other user
           if (!isActive && isFromOtherUser) {
             // Use the stable reference to event dispatch
             console.log(`[useDMSubscription] Triggering unread event for inactive conversation ${conversation_id}`);
-            requestAnimationFrame(() => {
-              window.dispatchEvent(new CustomEvent('dmMessageReceived', { 
-                detail: { 
-                  conversationId: conversation_id, 
-                  message: chatMessage,
-                  shouldMarkUnread: true
-                } 
-              }));
-            });
+            window.dispatchEvent(new CustomEvent('dmMessageReceived', { 
+              detail: { 
+                conversationId: conversation_id, 
+                message: chatMessage,
+                shouldMarkUnread: true
+              } 
+            }));
           } else {
             // Still dispatch the event but mark it as "don't trigger unread"
             console.log(`[useDMSubscription] Triggering message event for active conversation ${conversation_id}`);
-            requestAnimationFrame(() => {
-              window.dispatchEvent(new CustomEvent('dmMessageReceived', { 
-                detail: { 
-                  conversationId: conversation_id, 
-                  message: chatMessage,
-                  shouldMarkUnread: false
-                } 
-              }));
-            });
+            window.dispatchEvent(new CustomEvent('dmMessageReceived', { 
+              detail: { 
+                conversationId: conversation_id, 
+                message: chatMessage,
+                shouldMarkUnread: false
+              } 
+            }));
           }
         })
         .subscribe((status) => {

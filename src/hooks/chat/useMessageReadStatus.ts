@@ -39,8 +39,12 @@ export const useMessageReadStatus = () => {
     debounceTimers.current[operationKey] = setTimeout(async () => {
       try {
         // Immediately dispatch an event to update badge counts (optimistic update)
-        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
-          detail: { timestamp: Date.now(), conversationId }
+        window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
+          detail: { 
+            conversationId, 
+            type: 'dm', 
+            optimistic: true 
+          } 
         }));
         
         // Use the context method for the actual database update
@@ -90,8 +94,12 @@ export const useMessageReadStatus = () => {
     debounceTimers.current[operationKey] = setTimeout(async () => {
       try {
         // Immediately dispatch an event to update badge counts (optimistic update)
-        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
-          detail: { timestamp: Date.now(), clubId }
+        window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
+          detail: { 
+            clubId, 
+            type: 'club', 
+            optimistic: true 
+          } 
         }));
         
         // Use the context method for the actual database update

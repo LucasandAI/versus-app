@@ -76,9 +76,9 @@ export const useUnreadSubscriptions = ({
         console.log(`[useUnreadSubscriptions] Club ${e.detail.clubId} messages marked as read`);
       }
       
-      // If this was an optimistic update, we can refresh the counts
+      // If this was an optimistic update, we can refresh the counts immediately
       if (e.detail.optimistic) {
-        console.log('[useUnreadSubscriptions] Optimistic read update, refreshing counts');
+        console.log('[useUnreadSubscriptions] Optimistic read update, refreshing counts immediately');
         window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', {
           detail: { timestamp: Date.now() }
         }));
@@ -195,12 +195,12 @@ export const useUnreadSubscriptions = ({
       updateTimeout = null;
     };
     
-    // Queue an update with debouncing
+    // Queue an update with reduced debouncing
     const queueUpdate = () => {
       if (updateTimeout) return;
       updateTimeout = setTimeout(() => {
         requestAnimationFrame(processUpdates);
-      }, 50); // Reduced from 100ms to 50ms for faster response
+      }, 10); // Reduced from 50ms to 10ms for near-immediate response
     };
     
     // Set up real-time subscriptions for new messages
@@ -220,7 +220,7 @@ export const useUnreadSubscriptions = ({
               if (activeConversations.has(payload.new.conversation_id)) {
                 console.log('[useUnreadSubscriptions] Optimistically marking as read - conversation is active:', payload.new.conversation_id);
                 
-                // Optimistically mark as read and update UI
+                // Optimistically mark as read and update UI immediately
                 window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
                   detail: { 
                     conversationId: payload.new.conversation_id, 
@@ -255,7 +255,7 @@ export const useUnreadSubscriptions = ({
               if (activeClubs.has(payload.new.club_id)) {
                 console.log('[useUnreadSubscriptions] Optimistically marking as read - club is active:', payload.new.club_id);
                 
-                // Optimistically mark as read and update UI
+                // Optimistically mark as read and update UI immediately
                 window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
                   detail: { 
                     clubId: payload.new.club_id, 

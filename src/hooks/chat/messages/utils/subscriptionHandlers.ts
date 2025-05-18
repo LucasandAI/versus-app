@@ -1,3 +1,4 @@
+
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Club } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -165,26 +166,26 @@ export const handleNewMessagePayload = async (
     if (isClubActive) {
       console.log(`[subscriptionHandlers] Conversation ${messageClubId} is active, optimistically marking as read`);
       
-      // Signal all relevant components about the message being immediately read
-      requestAnimationFrame(() => {
-        window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
-          detail: { clubId: messageClubId, type: 'club', optimistic: true } 
-        }));
-      });
+      // Immediately dispatch the read event to trigger UI updates
+      window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
+        detail: { 
+          clubId: messageClubId, 
+          type: 'club', 
+          optimistic: true 
+        } 
+      }));
     }
     
     // Create and dispatch a global event with the new message details
     // Include a flag indicating whether this should increment unread count
-    requestAnimationFrame(() => {
-      window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
-        detail: {
-          clubId: messageClubId,
-          message: tempMessage,
-          // Only mark as unread if it's from another user and club is not active
-          shouldMarkUnread: !isCurrentUser && !isClubActive
-        }
-      }));
-    });
+    window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
+      detail: {
+        clubId: messageClubId,
+        message: tempMessage,
+        // Only mark as unread if it's from another user and club is not active
+        shouldMarkUnread: !isCurrentUser && !isClubActive
+      }
+    }));
     
     return {
       ...prev,

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Club } from '@/types';
 import { useApp } from '@/context/AppContext';
@@ -135,16 +134,16 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
     setHasMarkedAsRead(false);
   }, [selectedChat?.id]);
 
-  // Mark messages as read when chat is selected
+  // Mark messages as read IMMEDIATELY when chat is selected
   useEffect(() => {
     if (selectedChat && currentUser && !hasMarkedAsRead) {
       console.log(`[UnifiedChatContent] Selected ${selectedChat.type} chat:`, selectedChat.id);
       
-      // Use a short delay to avoid multiple simultaneous operations
-      const delay = 300;
+      // Minimal delay (none) to ensure immediate response
+      const delay = 0;
       
       if (selectedChat.type === 'club') {
-        console.log(`[UnifiedChatContent] Marking club ${selectedChat.id} messages as read with delay ${delay}ms`);
+        console.log(`[UnifiedChatContent] Marking club ${selectedChat.id} messages as read immediately`);
         
         // First update UI optimistically
         window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
@@ -155,11 +154,11 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
           } 
         }));
         
-        // Then update database with delay
+        // Then update database with minimal delay
         markClubMessagesAsRead(selectedChat.id, undefined, delay);
         setHasMarkedAsRead(true);
       } else if (selectedChat.type === 'dm') {
-        console.log(`[UnifiedChatContent] Marking DM ${selectedChat.id} as read with delay ${delay}ms`);
+        console.log(`[UnifiedChatContent] Marking DM ${selectedChat.id} as read immediately`);
         
         // First update UI optimistically
         window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
@@ -170,7 +169,7 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
           } 
         }));
         
-        // Then update database with delay
+        // Then update database with minimal delay
         markDirectMessagesAsRead(selectedChat.id, undefined, delay);
         setHasMarkedAsRead(true);
       }

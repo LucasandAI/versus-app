@@ -83,14 +83,14 @@ export const useClubMessageSubscriptions = (
         (payload) => {
           console.log('[useClubMessageSubscriptions] New message detected, forwarding to handler');
           
-          // Always add message to UI state regardless of active status
+          // Always force UI update, regardless of active status to ensure messages appear immediately
           handleNewMessagePayload(
             payload, 
             clubsRef.current, 
             setClubMessages, 
             currentUser, 
             selectedClubRef.current,
-            true // Force UI update for real-time display
+            true // Force UI update for immediate display
           );
         }
       )

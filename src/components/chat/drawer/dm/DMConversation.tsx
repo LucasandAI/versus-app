@@ -113,7 +113,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     setHasMarkedAsRead(false);
   }, [conversationId]);
   
-  // Mark conversation as read when opened, coordinating with other components
+  // Mark conversation as read when opened, with no delay for immediate effect
   useEffect(() => {
     if (conversationId && conversationId !== 'new' && currentUser && !hasMarkedAsRead) {
       // Mark this conversation as active to signal it's currently being viewed
@@ -121,12 +121,10 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
         detail: { conversationId } 
       }));
       
-      console.log(`[DMConversation] Marking conversation ${conversationId} as read with delay`);
+      console.log(`[DMConversation] Marking conversation ${conversationId} as read immediately`);
       
-      // Use a significant delay to avoid races with other components
-      const MARK_AS_READ_DELAY = 600;
-      
-      markDirectMessagesAsRead(conversationId, currentUser.id, MARK_AS_READ_DELAY);
+      // Use no delay for immediate marking as read
+      markDirectMessagesAsRead(conversationId, currentUser.id, 0);
       setHasMarkedAsRead(true);
     }
   }, [conversationId, currentUser, markDirectMessagesAsRead, hasMarkedAsRead]);
