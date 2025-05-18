@@ -1,8 +1,13 @@
+
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
 import { useUserData } from './useUserData';
+
+// Track active conversations globally
+const activeConversations = new Set<string>();
+const conversationActiveSince = new Map<string, number>();
 
 // Add otherUserData parameter to receive the full user object
 export const useDMSubscription = (
@@ -38,9 +43,24 @@ export const useDMSubscription = (
     if (conversationId && conversationId !== 'new') {
       console.log(`[useDMSubscription] Marking conversation ${conversationId} as active`);
       isActiveRef.current = true;
+      
+      // Use a timestamp to ensure newest event wins
+      const timestamp = Date.now();
+      
+      // Update the global active conversations set
+      activeConversations.add(conversationId);
+      conversationActiveSince.set(conversationId, timestamp);
+      
+      // Broadcast the active state
       window.dispatchEvent(new CustomEvent('conversationActive', { 
-        detail: { conversationId } 
+        detail: { 
+          conversationId,
+          timestamp,
+          source: 'useDMSubscription'
+        } 
       }));
+      
+      console.log(`[useDMSubscription] Active conversations updated:`, [...activeConversations]);
     }
   }, [conversationId, otherUserId, otherUserData]);
   
@@ -63,9 +83,22 @@ export const useDMSubscription = (
       // Mark conversation as inactive when component unmounts
       if (stableConversationId.current && stableConversationId.current !== 'new') {
         console.log(`[useDMSubscription] Marking conversation ${stableConversationId.current} as inactive on unmount`);
+        
+        const timestamp = Date.now();
+        
+        // Update the global active conversations set
+        activeConversations.delete(stableConversationId.current);
+        conversationActiveSince.set(stableConversationId.current, timestamp);
+        
         window.dispatchEvent(new CustomEvent('conversationInactive', { 
-          detail: { conversationId: stableConversationId.current } 
+          detail: { 
+            conversationId: stableConversationId.current,
+            timestamp,
+            source: 'useDMSubscription-unmount'
+          } 
         }));
+        
+        console.log(`[useDMSubscription] Active conversations updated:`, [...activeConversations]);
       }
       
       // Clear processed messages cache on unmount
@@ -100,24 +133,53 @@ export const useDMSubscription = (
     
     const handleInactive = (event: CustomEvent) => {
       if (event.detail.conversationId === conversationId) {
-        console.log(`[useDMSubscription] Conversation ${conversationId} marked as inactive via event`);
-        isActiveRef.current = false;
+        const timestamp = event.detail.timestamp || Date.now();
+        const currentTimestamp = conversationActiveSince.get(conversationId) || 0;
+        
+        console.log(`[useDMSubscription] Conversation ${conversationId} inactive event received with timestamp ${timestamp}, current timestamp: ${currentTimestamp}`);
+        
+        // Only update if this is the newest event
+        if (timestamp >= currentTimestamp) {
+          console.log(`[useDMSubscription] Conversation ${conversationId} marked as inactive via event`);
+          isActiveRef.current = false;
+          activeConversations.delete(conversationId);
+          conversationActiveSince.set(conversationId, timestamp);
+        }
       }
     };
     
     const handleActive = (event: CustomEvent) => {
       if (event.detail.conversationId === conversationId) {
-        console.log(`[useDMSubscription] Conversation ${conversationId} marked as active via event`);
-        isActiveRef.current = true;
+        const timestamp = event.detail.timestamp || Date.now();
+        const currentTimestamp = conversationActiveSince.get(conversationId) || 0;
+        
+        console.log(`[useDMSubscription] Conversation ${conversationId} active event received with timestamp ${timestamp}, current timestamp: ${currentTimestamp}`);
+        
+        // Only update if this is the newest event
+        if (timestamp >= currentTimestamp) {
+          console.log(`[useDMSubscription] Conversation ${conversationId} marked as active via event`);
+          isActiveRef.current = true;
+          activeConversations.add(conversationId);
+          conversationActiveSince.set(conversationId, timestamp);
+        }
+      }
+    };
+    
+    const handleReadStatus = (event: CustomEvent) => {
+      if (event.detail.conversationId === conversationId && event.detail.type === 'dm') {
+        console.log(`[useDMSubscription] Messages marked as read event received for conversation ${conversationId}`);
+        // We don't need to do anything special here since the database will be updated separately
       }
     };
     
     window.addEventListener('conversationInactive', handleInactive as EventListener);
     window.addEventListener('conversationActive', handleActive as EventListener);
+    window.addEventListener('messagesMarkedAsRead', handleReadStatus as EventListener);
     
     return () => {
       window.removeEventListener('conversationInactive', handleInactive as EventListener);
       window.removeEventListener('conversationActive', handleActive as EventListener);
+      window.removeEventListener('messagesMarkedAsRead', handleReadStatus as EventListener);
     };
   }, [conversationId]);
 
@@ -216,46 +278,74 @@ export const useDMSubscription = (
             timestamp: newMessage.timestamp
           };
           
-          console.log('[useDMSubscription] Adding message to UI:', {
+          // Check if conversation is active using both local and global approaches
+          const isActive = isActiveRef.current || activeConversations.has(conversationId);
+          
+          console.log('[useDMSubscription] Processing message with conversation state:', {
             messageId,
             senderName: chatMessage.sender.name,
-            conversationActive: isActiveRef.current
+            conversationActive: isActive,
+            localActive: isActiveRef.current,
+            globalActive: activeConversations.has(conversationId),
+            activeConversations: [...activeConversations]
           });
           
-          // Always update the UI with the new message if it's currently being viewed
-          if (isActiveRef.current) {
-            setMessages(prev => {
-              // Make sure we don't add duplicates
-              if (prev.some(m => m.id === chatMessage.id)) {
-                return prev;
-              }
-              return [...prev, chatMessage].sort(
-                (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-              );
+          // Always update the UI regardless of active state - this ensures messages always appear
+          setMessages(prev => {
+            // Make sure we don't add duplicates
+            if (prev.some(m => m.id === chatMessage.id)) {
+              console.log('[useDMSubscription] Message already exists in UI, skipping:', chatMessage.id);
+              return prev;
+            }
+            
+            console.log('[useDMSubscription] Adding new message to UI:', chatMessage.id);
+            
+            return [...prev, chatMessage].sort(
+              (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+            );
+          });
+          
+          // If conversation is active, optimistically mark message as read
+          if (isActive && isFromOtherUser) {
+            console.log(`[useDMSubscription] Conversation ${conversation_id} is active, optimistically marking as read`);
+            
+            // Dispatch an event to update UI immediately
+            requestAnimationFrame(() => {
+              window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
+                detail: { 
+                  conversationId: conversation_id, 
+                  type: 'dm',
+                  optimistic: true
+                } 
+              }));
             });
           }
           
-          // Only trigger the unread event if this conversation is NOT active and message is from other user
-          if (!isActiveRef.current && isFromOtherUser) {
+          // Trigger unread event only if this conversation is NOT active and message is from other user
+          if (!isActive && isFromOtherUser) {
             // Use the stable reference to event dispatch
             console.log(`[useDMSubscription] Triggering unread event for inactive conversation ${conversation_id}`);
-            window.dispatchEvent(new CustomEvent('dmMessageReceived', { 
-              detail: { 
-                conversationId: conversation_id, 
-                message: chatMessage,
-                shouldMarkUnread: true
-              } 
-            }));
+            requestAnimationFrame(() => {
+              window.dispatchEvent(new CustomEvent('dmMessageReceived', { 
+                detail: { 
+                  conversationId: conversation_id, 
+                  message: chatMessage,
+                  shouldMarkUnread: true
+                } 
+              }));
+            });
           } else {
             // Still dispatch the event but mark it as "don't trigger unread"
             console.log(`[useDMSubscription] Triggering message event for active conversation ${conversation_id}`);
-            window.dispatchEvent(new CustomEvent('dmMessageReceived', { 
-              detail: { 
-                conversationId: conversation_id, 
-                message: chatMessage,
-                shouldMarkUnread: false
-              } 
-            }));
+            requestAnimationFrame(() => {
+              window.dispatchEvent(new CustomEvent('dmMessageReceived', { 
+                detail: { 
+                  conversationId: conversation_id, 
+                  message: chatMessage,
+                  shouldMarkUnread: false
+                } 
+              }));
+            });
           }
         })
         .subscribe((status) => {

@@ -1,4 +1,3 @@
-
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Club } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,20 +37,39 @@ function hasClubId(payload: any): payload is { new: { club_id: string } } {
 
 // Track active clubs globally to avoid dependency issues
 const activeClubs = new Set<string>();
+const clubActiveSince = new Map<string, number>();
 
 // Set up handlers for active club tracking
 export function setupActiveClubTracking() {
   const handleClubActive = (event: CustomEvent) => {
     if (event.detail?.clubId) {
-      console.log('[subscriptionHandlers] Club marked as active:', event.detail.clubId);
-      activeClubs.add(event.detail.clubId);
+      const timestamp = event.detail.timestamp || Date.now();
+      
+      console.log('[subscriptionHandlers] Club marked as active:', event.detail.clubId, 'at time:', timestamp);
+      
+      // Only update if the timestamp is newer than previous activation
+      const currentTimestamp = clubActiveSince.get(event.detail.clubId) || 0;
+      if (timestamp >= currentTimestamp) {
+        activeClubs.add(event.detail.clubId);
+        clubActiveSince.set(event.detail.clubId, timestamp);
+        console.log('[subscriptionHandlers] Updated active clubs:', [...activeClubs]);
+      }
     }
   };
   
   const handleClubInactive = (event: CustomEvent) => {
     if (event.detail?.clubId) {
-      console.log('[subscriptionHandlers] Club marked as inactive:', event.detail.clubId);
-      activeClubs.delete(event.detail.clubId);
+      const timestamp = event.detail.timestamp || Date.now();
+      
+      console.log('[subscriptionHandlers] Club marked as inactive:', event.detail.clubId, 'at time:', timestamp);
+      
+      // Only update if the timestamp is newer than previous activation
+      const currentTimestamp = clubActiveSince.get(event.detail.clubId) || 0;
+      if (timestamp >= currentTimestamp) {
+        activeClubs.delete(event.detail.clubId);
+        clubActiveSince.set(event.detail.clubId, timestamp);
+        console.log('[subscriptionHandlers] Updated active clubs:', [...activeClubs]);
+      }
     }
   };
   
@@ -74,7 +92,8 @@ export const handleNewMessagePayload = async (
   userClubs: Club[],
   setClubMessages: React.Dispatch<React.SetStateAction<Record<string, any[]>>>,
   currentUser: any,
-  selectedClubRef: string | null
+  selectedClubRef: string | null,
+  forceUIUpdate = false
 ) => {
   // Make sure we have a valid payload with club_id
   if (!hasClubId(payload)) {
@@ -95,13 +114,15 @@ export const handleNewMessagePayload = async (
     return;
   }
   
-  // Check if this club is currently being viewed
+  // Check if this club is currently being viewed - use both approaches for reliability
   const isClubActive = activeClubs.has(messageClubId) || selectedClubRef === messageClubId;
   
   console.log(`[subscriptionHandlers] 🔥 New message received for club ${messageClubId}:`, {
     messageId: typedPayload.new.id,
     isClubActive,
-    selectedClub: selectedClubRef
+    selectedClub: selectedClubRef,
+    activeClubsSet: [...activeClubs],
+    forceUIUpdate
   });
   
   // Create a temporary message object with sender info
@@ -124,23 +145,46 @@ export const handleNewMessagePayload = async (
     
     // Check if message already exists to prevent duplicates
     const messageExists = clubMsgs.some(msg => msg.id === typedPayload.new.id);
-    if (messageExists) return prev;
+    
+    if (messageExists) {
+      console.log('[subscriptionHandlers] Message already exists in UI state, skipping:', typedPayload.new.id);
+      return prev;
+    }
 
     // Sort messages by timestamp
     const updatedMessages = [...clubMsgs, tempMessage].sort(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
     
+    console.log(`[subscriptionHandlers] Adding message to UI for club ${messageClubId}:`, {
+      messageId: typedPayload.new.id,
+      totalMessages: updatedMessages.length
+    });
+    
+    // Optimistically mark as read if conversation is active
+    if (isClubActive) {
+      console.log(`[subscriptionHandlers] Conversation ${messageClubId} is active, optimistically marking as read`);
+      
+      // Signal all relevant components about the message being immediately read
+      requestAnimationFrame(() => {
+        window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
+          detail: { clubId: messageClubId, type: 'club', optimistic: true } 
+        }));
+      });
+    }
+    
     // Create and dispatch a global event with the new message details
     // Include a flag indicating whether this should increment unread count
-    window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
-      detail: {
-        clubId: messageClubId,
-        message: tempMessage,
-        // Only mark as unread if it's from another user and club is not active
-        shouldMarkUnread: !isCurrentUser && !isClubActive
-      }
-    }));
+    requestAnimationFrame(() => {
+      window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
+        detail: {
+          clubId: messageClubId,
+          message: tempMessage,
+          // Only mark as unread if it's from another user and club is not active
+          shouldMarkUnread: !isCurrentUser && !isClubActive
+        }
+      }));
+    });
     
     return {
       ...prev,

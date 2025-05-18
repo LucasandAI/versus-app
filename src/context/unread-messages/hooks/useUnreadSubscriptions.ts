@@ -10,6 +10,10 @@ interface UseUnreadSubscriptionsProps {
   fetchUnreadCounts: () => Promise<void>;
 }
 
+// Track active state globally to ensure consistency
+const activeConversations = new Set<string>();
+const activeClubs = new Set<string>();
+
 export const useUnreadSubscriptions = ({
   currentUserId,
   isSessionReady,
@@ -34,39 +38,61 @@ export const useUnreadSubscriptions = ({
     };
   }, [markConversationAsUnread, markClubAsUnread, fetchUnreadCounts]);
   
-  // Track active conversations to prevent marking them as unread
-  // This will be updated via custom events
-  const activeConversationsRef = useRef<Set<string>>(new Set());
-  const activeClubsRef = useRef<Set<string>>(new Set());
-  
   // Listen for received messages to update unread status
   useEffect(() => {
     const handleDMReceived = (e: CustomEvent) => {
       const { conversationId, shouldMarkUnread } = e.detail;
       
-      // Only mark as unread if specifically told to and it's not an active conversation
-      if (shouldMarkUnread && !activeConversationsRef.current.has(conversationId)) {
+      // Check both the flag and our active conversation set
+      const isConversationActive = !shouldMarkUnread || activeConversations.has(conversationId);
+      
+      if (!isConversationActive) {
         console.log(`[useUnreadSubscriptions] Marking conversation ${conversationId} as unread from message event`);
         handlersRef.current.markConversationAsUnread(conversationId);
+      } else {
+        console.log(`[useUnreadSubscriptions] Conversation ${conversationId} is active, not marking as unread`);
       }
     };
     
     const handleClubMessageReceived = (e: CustomEvent) => {
       const { clubId, shouldMarkUnread } = e.detail;
       
-      // Only mark as unread if specifically told to and it's not an active club
-      if (shouldMarkUnread && !activeClubsRef.current.has(clubId)) {
+      // Check both the flag and our active club set
+      const isClubActive = !shouldMarkUnread || activeClubs.has(clubId);
+      
+      if (!isClubActive) {
         console.log(`[useUnreadSubscriptions] Marking club ${clubId} as unread from message event`);
         handlersRef.current.markClubAsUnread(clubId);
+      } else {
+        console.log(`[useUnreadSubscriptions] Club ${clubId} is active, not marking as unread`);
+      }
+    };
+    
+    const handleMessagesMarkedAsRead = (e: CustomEvent) => {
+      // This is just for logging/debugging purposes
+      if (e.detail.type === 'dm') {
+        console.log(`[useUnreadSubscriptions] DM conversation ${e.detail.conversationId} messages marked as read`);
+      } else if (e.detail.type === 'club') {
+        console.log(`[useUnreadSubscriptions] Club ${e.detail.clubId} messages marked as read`);
+      }
+      
+      // If this was an optimistic update, we can refresh the counts
+      if (e.detail.optimistic) {
+        console.log('[useUnreadSubscriptions] Optimistic read update, refreshing counts');
+        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', {
+          detail: { timestamp: Date.now() }
+        }));
       }
     };
     
     window.addEventListener('dmMessageReceived', handleDMReceived as EventListener);
     window.addEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
+    window.addEventListener('messagesMarkedAsRead', handleMessagesMarkedAsRead as EventListener);
     
     return () => {
       window.removeEventListener('dmMessageReceived', handleDMReceived as EventListener);
       window.removeEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
+      window.removeEventListener('messagesMarkedAsRead', handleMessagesMarkedAsRead as EventListener);
     };
   }, []);
   
@@ -74,29 +100,33 @@ export const useUnreadSubscriptions = ({
   useEffect(() => {
     const handleConversationActive = (e: CustomEvent) => {
       if (e.detail?.conversationId) {
-        console.log('[useUnreadSubscriptions] Conversation active:', e.detail.conversationId);
-        activeConversationsRef.current.add(e.detail.conversationId);
+        console.log('[useUnreadSubscriptions] Conversation active:', e.detail.conversationId, 
+          'source:', e.detail.source || 'unknown');
+        activeConversations.add(e.detail.conversationId);
       }
     };
     
     const handleClubActive = (e: CustomEvent) => {
       if (e.detail?.clubId) {
-        console.log('[useUnreadSubscriptions] Club active:', e.detail.clubId);
-        activeClubsRef.current.add(e.detail.clubId);
+        console.log('[useUnreadSubscriptions] Club active:', e.detail.clubId, 
+          'source:', e.detail.source || 'unknown');
+        activeClubs.add(e.detail.clubId);
       }
     };
     
     const handleConversationInactive = (e: CustomEvent) => {
-      if (e.detail?.conversationId && activeConversationsRef.current.has(e.detail.conversationId)) {
-        console.log('[useUnreadSubscriptions] Conversation inactive:', e.detail.conversationId);
-        activeConversationsRef.current.delete(e.detail.conversationId);
+      if (e.detail?.conversationId && activeConversations.has(e.detail.conversationId)) {
+        console.log('[useUnreadSubscriptions] Conversation inactive:', e.detail.conversationId, 
+          'source:', e.detail.source || 'unknown');
+        activeConversations.delete(e.detail.conversationId);
       }
     };
     
     const handleClubInactive = (e: CustomEvent) => {
-      if (e.detail?.clubId && activeClubsRef.current.has(e.detail.clubId)) {
-        console.log('[useUnreadSubscriptions] Club inactive:', e.detail.clubId);
-        activeClubsRef.current.delete(e.detail.clubId);
+      if (e.detail?.clubId && activeClubs.has(e.detail.clubId)) {
+        console.log('[useUnreadSubscriptions] Club inactive:', e.detail.clubId, 
+          'source:', e.detail.source || 'unknown');
+        activeClubs.delete(e.detail.clubId);
       }
     };
     
@@ -131,7 +161,7 @@ export const useUnreadSubscriptions = ({
         
         pendingUpdates.forEach(conversationId => {
           // Skip if conversation is currently active/open
-          if (activeConversationsRef.current.has(conversationId)) {
+          if (activeConversations.has(conversationId)) {
             console.log('[useUnreadSubscriptions] Skipping active conversation:', conversationId);
             return;
           }
@@ -146,7 +176,7 @@ export const useUnreadSubscriptions = ({
         
         pendingClubUpdates.forEach(clubId => {
           // Skip if club is currently active/open
-          if (activeClubsRef.current.has(clubId)) {
+          if (activeClubs.has(clubId)) {
             console.log('[useUnreadSubscriptions] Skipping active club:', clubId);
             return;
           }
@@ -187,8 +217,18 @@ export const useUnreadSubscriptions = ({
               console.log('[useUnreadSubscriptions] New DM detected:', payload.new.conversation_id);
               
               // Skip if conversation is currently active/open
-              if (activeConversationsRef.current.has(payload.new.conversation_id)) {
-                console.log('[useUnreadSubscriptions] Skipping active conversation:', payload.new.conversation_id);
+              if (activeConversations.has(payload.new.conversation_id)) {
+                console.log('[useUnreadSubscriptions] Optimistically marking as read - conversation is active:', payload.new.conversation_id);
+                
+                // Optimistically mark as read and update UI
+                window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
+                  detail: { 
+                    conversationId: payload.new.conversation_id, 
+                    type: 'dm',
+                    optimistic: true
+                  } 
+                }));
+                
                 return;
               }
               
@@ -212,8 +252,18 @@ export const useUnreadSubscriptions = ({
               console.log('[useUnreadSubscriptions] New club message detected:', payload.new.club_id);
               
               // Skip if club is currently active/open
-              if (activeClubsRef.current.has(payload.new.club_id)) {
-                console.log('[useUnreadSubscriptions] Skipping active club:', payload.new.club_id);
+              if (activeClubs.has(payload.new.club_id)) {
+                console.log('[useUnreadSubscriptions] Optimistically marking as read - club is active:', payload.new.club_id);
+                
+                // Optimistically mark as read and update UI
+                window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
+                  detail: { 
+                    clubId: payload.new.club_id, 
+                    type: 'club',
+                    optimistic: true
+                  } 
+                }));
+                
                 return;
               }
               

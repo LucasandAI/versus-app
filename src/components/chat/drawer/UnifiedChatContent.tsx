@@ -41,51 +41,94 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
   const { markDirectMessagesAsRead, markClubMessagesAsRead } = useMessageReadStatus();
   const [isSending, setIsSending] = useState(false);
   const [hasMarkedAsRead, setHasMarkedAsRead] = useState(false);
+  
+  // Generate a unique ID for this component instance to help with active tracking
+  const [instanceId] = useState(() => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
 
   // When component mounts, mark the chat as active
   useEffect(() => {
     if (selectedChat) {
-      console.log(`[UnifiedChatContent] Setting up active status for ${selectedChat.type} chat: ${selectedChat.id}`);
+      console.log(`[UnifiedChatContent] Setting up active status for ${selectedChat.type} chat: ${selectedChat.id} (instance: ${instanceId})`);
+      
+      // Use a timestamp to ensure newest event wins when multiple components compete
+      const timestamp = Date.now();
       
       if (selectedChat.type === 'club') {
         // Dispatch an event to notify that this club is being viewed
         window.dispatchEvent(new CustomEvent('clubSelected', { 
-          detail: { clubId: selectedChat.id } 
+          detail: { 
+            clubId: selectedChat.id,
+            timestamp
+          } 
         }));
         
         // Also directly dispatch the active event for immediate effect
         window.dispatchEvent(new CustomEvent('clubActive', { 
-          detail: { clubId: selectedChat.id } 
+          detail: { 
+            clubId: selectedChat.id,
+            timestamp,
+            source: 'UnifiedChatContent',
+            instanceId
+          } 
         }));
+        
+        console.log(`[UnifiedChatContent] Dispatched clubActive for ${selectedChat.id}`);
       } else if (selectedChat.type === 'dm') {
         // Dispatch an event to notify that this conversation is being viewed
         window.dispatchEvent(new CustomEvent('conversationActive', { 
-          detail: { conversationId: selectedChat.id } 
+          detail: { 
+            conversationId: selectedChat.id,
+            timestamp,
+            source: 'UnifiedChatContent',
+            instanceId
+          } 
         }));
+        
+        console.log(`[UnifiedChatContent] Dispatched conversationActive for ${selectedChat.id}`);
       }
     }
     
     // When component unmounts, mark the conversation/club as inactive
     return () => {
       if (selectedChat) {
-        console.log(`[UnifiedChatContent] Marking ${selectedChat.type} as inactive on unmount: ${selectedChat.id}`);
+        const timestamp = Date.now();
+        console.log(`[UnifiedChatContent] Marking ${selectedChat.type} as inactive on unmount: ${selectedChat.id} (instance: ${instanceId})`);
         
         if (selectedChat.type === 'club') {
           window.dispatchEvent(new CustomEvent('clubClosed', { 
-            detail: { clubId: selectedChat.id } 
+            detail: { 
+              clubId: selectedChat.id,
+              timestamp,
+              source: 'UnifiedChatContent-unmount',
+              instanceId
+            } 
           }));
           
           window.dispatchEvent(new CustomEvent('clubInactive', { 
-            detail: { clubId: selectedChat.id } 
+            detail: { 
+              clubId: selectedChat.id,
+              timestamp,
+              source: 'UnifiedChatContent-unmount',
+              instanceId
+            } 
           }));
+          
+          console.log(`[UnifiedChatContent] Dispatched clubInactive for ${selectedChat.id} on unmount`);
         } else if (selectedChat.type === 'dm') {
           window.dispatchEvent(new CustomEvent('conversationInactive', { 
-            detail: { conversationId: selectedChat.id } 
+            detail: { 
+              conversationId: selectedChat.id,
+              timestamp,
+              source: 'UnifiedChatContent-unmount',
+              instanceId
+            } 
           }));
+          
+          console.log(`[UnifiedChatContent] Dispatched conversationInactive for ${selectedChat.id} on unmount`);
         }
       }
     };
-  }, [selectedChat]);
+  }, [selectedChat, instanceId]);
 
   // Reset the marked-as-read state when selected chat changes
   useEffect(() => {
@@ -102,10 +145,32 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
       
       if (selectedChat.type === 'club') {
         console.log(`[UnifiedChatContent] Marking club ${selectedChat.id} messages as read with delay ${delay}ms`);
+        
+        // First update UI optimistically
+        window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
+          detail: { 
+            clubId: selectedChat.id,
+            type: 'club',
+            optimistic: true
+          } 
+        }));
+        
+        // Then update database with delay
         markClubMessagesAsRead(selectedChat.id, undefined, delay);
         setHasMarkedAsRead(true);
       } else if (selectedChat.type === 'dm') {
         console.log(`[UnifiedChatContent] Marking DM ${selectedChat.id} as read with delay ${delay}ms`);
+        
+        // First update UI optimistically
+        window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
+          detail: { 
+            conversationId: selectedChat.id,
+            type: 'dm',
+            optimistic: true
+          } 
+        }));
+        
+        // Then update database with delay
         markDirectMessagesAsRead(selectedChat.id, undefined, delay);
         setHasMarkedAsRead(true);
       }
@@ -140,20 +205,40 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
   const handleBackClick = () => {
     // Before going back, mark the chat as inactive
     if (selectedChat) {
-      console.log(`[UnifiedChatContent] Marking ${selectedChat.type} as inactive due to back button: ${selectedChat.id}`);
+      const timestamp = Date.now();
+      console.log(`[UnifiedChatContent] Marking ${selectedChat.type} as inactive due to back button: ${selectedChat.id} (instance: ${instanceId})`);
       
       if (selectedChat.type === 'club') {
         window.dispatchEvent(new CustomEvent('clubClosed', { 
-          detail: { clubId: selectedChat.id } 
+          detail: { 
+            clubId: selectedChat.id,
+            timestamp,
+            source: 'UnifiedChatContent-back',
+            instanceId
+          } 
         }));
         
         window.dispatchEvent(new CustomEvent('clubInactive', { 
-          detail: { clubId: selectedChat.id } 
+          detail: { 
+            clubId: selectedChat.id,
+            timestamp,
+            source: 'UnifiedChatContent-back',
+            instanceId
+          } 
         }));
+        
+        console.log(`[UnifiedChatContent] Dispatched clubInactive for ${selectedChat.id} on back button`);
       } else if (selectedChat.type === 'dm') {
         window.dispatchEvent(new CustomEvent('conversationInactive', { 
-          detail: { conversationId: selectedChat.id } 
+          detail: { 
+            conversationId: selectedChat.id,
+            timestamp,
+            source: 'UnifiedChatContent-back',
+            instanceId
+          } 
         }));
+        
+        console.log(`[UnifiedChatContent] Dispatched conversationInactive for ${selectedChat.id} on back button`);
       }
     }
     

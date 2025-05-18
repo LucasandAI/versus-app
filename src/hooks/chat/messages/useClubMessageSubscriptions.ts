@@ -28,7 +28,10 @@ export const useClubMessageSubscriptions = (
       
       // Also dispatch the clubActive event to update global tracking
       window.dispatchEvent(new CustomEvent('clubActive', { 
-        detail: { clubId: event.detail.clubId } 
+        detail: { 
+          clubId: event.detail.clubId,
+          timestamp: Date.now() // Add timestamp to ensure newest event wins
+        } 
       }));
     };
     
@@ -39,7 +42,10 @@ export const useClubMessageSubscriptions = (
         
         // Dispatch clubInactive event
         window.dispatchEvent(new CustomEvent('clubInactive', { 
-          detail: { clubId: event.detail.clubId } 
+          detail: { 
+            clubId: event.detail.clubId,
+            timestamp: Date.now() // Add timestamp for consistency
+          } 
         }));
       }
     };
@@ -75,13 +81,16 @@ export const useClubMessageSubscriptions = (
           filter: userClubs.length > 0 ? `club_id=in.(${userClubs.map(c => `'${c.id}'`).join(',')})` : undefined
         }, 
         (payload) => {
-          console.log('[useClubMessageSubscriptions] New message detected');
+          console.log('[useClubMessageSubscriptions] New message detected, forwarding to handler');
+          
+          // Always add message to UI state regardless of active status
           handleNewMessagePayload(
             payload, 
             clubsRef.current, 
             setClubMessages, 
             currentUser, 
-            selectedClubRef.current
+            selectedClubRef.current,
+            true // Force UI update for real-time display
           );
         }
       )
