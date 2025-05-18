@@ -1,5 +1,5 @@
 
-import React, { useRef, useEffect, useCallback, memo, useMemo, useState } from 'react';
+import React, { useRef, useEffect, useCallback, memo, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -10,13 +10,12 @@ import { useNavigation } from '@/hooks/useNavigation';
 import { useConversations } from '@/hooks/chat/dm/useConversations';
 import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
 import { useConversationManagement } from '@/hooks/chat/dm/useConversationManagement';
-import { useUnreadMessages } from '@/context/unread-messages';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
 import DMMessageInput from './DMMessageInput';
 import DMHeader from './DMHeader';
 import { ArrowLeft } from 'lucide-react';
 import { useUserData } from '@/hooks/chat/dm/useUserData';
-import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
 
 interface DMConversationProps {
   user: {
@@ -36,10 +35,9 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
 }) => {
   const { currentUser } = useApp();
   const { navigateToUserProfile } = useNavigation();
-  const { markDirectMessagesAsRead } = useMessageReadStatus();
+  const { markConversationAsRead } = useUnreadMessages();
   const [isSending, setIsSending] = React.useState(false);
   const { formatTime } = useMessageFormatting();
-  const [hasMarkedAsRead, setHasMarkedAsRead] = useState(false);
   
   // Validate user data completeness at the component level
   const hasCompleteUserData = Boolean(user && user.id && user.name && user.avatar);
@@ -108,26 +106,12 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   // Custom hooks for conversation management
   const { createConversation } = useConversationManagement(currentUser?.id, user.id);
   
-  // Reset read tracking when conversation changes
+  // Mark conversation as read when opened
   useEffect(() => {
-    setHasMarkedAsRead(false);
-  }, [conversationId]);
-  
-  // Mark conversation as read when opened, with no delay for immediate effect
-  useEffect(() => {
-    if (conversationId && conversationId !== 'new' && currentUser && !hasMarkedAsRead) {
-      // Mark this conversation as active to signal it's currently being viewed
-      window.dispatchEvent(new CustomEvent('conversationActive', { 
-        detail: { conversationId } 
-      }));
-      
-      console.log(`[DMConversation] Marking conversation ${conversationId} as read immediately`);
-      
-      // Use no delay for immediate marking as read
-      markDirectMessagesAsRead(conversationId, currentUser.id, 0);
-      setHasMarkedAsRead(true);
+    if (conversationId && conversationId !== 'new') {
+      markConversationAsRead(conversationId);
     }
-  }, [conversationId, currentUser, markDirectMessagesAsRead, hasMarkedAsRead]);
+  }, [conversationId, markConversationAsRead]);
 
   // Stable send message handler
   const handleSendMessage = useCallback(async (text: string) => {

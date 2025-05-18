@@ -1,15 +1,18 @@
-import React, { useEffect, useState } from 'react';
+
+import React from 'react';
+import { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import { useApp } from '@/context/AppContext';
+import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
+import { supabase } from '@/integrations/supabase/client';
 import ChatHeader from '../ChatHeader';
 import ChatMessages from '../ChatMessages';
 import ChatInput from '../ChatInput';
 import { useNavigation } from '@/hooks/useNavigation';
 import { useChatActions } from '@/hooks/chat/useChatActions';
-import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
+import { useUnreadMessages } from '@/context/unread-messages';
 import { ArrowLeft } from 'lucide-react';
 import UserAvatar from '@/components/shared/UserAvatar';
-import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
 
 interface UnifiedChatContentProps {
   selectedChat: {
@@ -37,144 +40,19 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
 }) => {
   const { currentUser } = useApp();
   const { navigateToClubDetail, navigateToUserProfile } = useNavigation();
-  const { markDirectMessagesAsRead, markClubMessagesAsRead } = useMessageReadStatus();
+  const { markClubMessagesAsRead, markDirectConversationAsRead } = useUnreadMessages();
   const [isSending, setIsSending] = useState(false);
-  const [hasMarkedAsRead, setHasMarkedAsRead] = useState(false);
-  
-  // Generate a unique ID for this component instance to help with active tracking
-  const [instanceId] = useState(() => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
 
-  // When component mounts, mark the chat as active
+  // Mark messages as read when chat is selected
   useEffect(() => {
     if (selectedChat) {
-      console.log(`[UnifiedChatContent] Setting up active status for ${selectedChat.type} chat: ${selectedChat.id} (instance: ${instanceId})`);
-      
-      // Use a timestamp to ensure newest event wins when multiple components compete
-      const timestamp = Date.now();
-      
       if (selectedChat.type === 'club') {
-        // Dispatch an event to notify that this club is being viewed
-        window.dispatchEvent(new CustomEvent('clubSelected', { 
-          detail: { 
-            clubId: selectedChat.id,
-            timestamp
-          } 
-        }));
-        
-        // Also directly dispatch the active event for immediate effect
-        window.dispatchEvent(new CustomEvent('clubActive', { 
-          detail: { 
-            clubId: selectedChat.id,
-            timestamp,
-            source: 'UnifiedChatContent',
-            instanceId
-          } 
-        }));
-        
-        console.log(`[UnifiedChatContent] Dispatched clubActive for ${selectedChat.id}`);
+        markClubMessagesAsRead(selectedChat.id);
       } else if (selectedChat.type === 'dm') {
-        // Dispatch an event to notify that this conversation is being viewed
-        window.dispatchEvent(new CustomEvent('conversationActive', { 
-          detail: { 
-            conversationId: selectedChat.id,
-            timestamp,
-            source: 'UnifiedChatContent',
-            instanceId
-          } 
-        }));
-        
-        console.log(`[UnifiedChatContent] Dispatched conversationActive for ${selectedChat.id}`);
+        markDirectConversationAsRead(selectedChat.id);
       }
     }
-    
-    // When component unmounts, mark the conversation/club as inactive
-    return () => {
-      if (selectedChat) {
-        const timestamp = Date.now();
-        console.log(`[UnifiedChatContent] Marking ${selectedChat.type} as inactive on unmount: ${selectedChat.id} (instance: ${instanceId})`);
-        
-        if (selectedChat.type === 'club') {
-          window.dispatchEvent(new CustomEvent('clubClosed', { 
-            detail: { 
-              clubId: selectedChat.id,
-              timestamp,
-              source: 'UnifiedChatContent-unmount',
-              instanceId
-            } 
-          }));
-          
-          window.dispatchEvent(new CustomEvent('clubInactive', { 
-            detail: { 
-              clubId: selectedChat.id,
-              timestamp,
-              source: 'UnifiedChatContent-unmount',
-              instanceId
-            } 
-          }));
-          
-          console.log(`[UnifiedChatContent] Dispatched clubInactive for ${selectedChat.id} on unmount`);
-        } else if (selectedChat.type === 'dm') {
-          window.dispatchEvent(new CustomEvent('conversationInactive', { 
-            detail: { 
-              conversationId: selectedChat.id,
-              timestamp,
-              source: 'UnifiedChatContent-unmount',
-              instanceId
-            } 
-          }));
-          
-          console.log(`[UnifiedChatContent] Dispatched conversationInactive for ${selectedChat.id} on unmount`);
-        }
-      }
-    };
-  }, [selectedChat, instanceId]);
-
-  // Reset the marked-as-read state when selected chat changes
-  useEffect(() => {
-    setHasMarkedAsRead(false);
-  }, [selectedChat?.id]);
-
-  // Mark messages as read IMMEDIATELY when chat is selected
-  useEffect(() => {
-    if (selectedChat && currentUser && !hasMarkedAsRead) {
-      console.log(`[UnifiedChatContent] Selected ${selectedChat.type} chat:`, selectedChat.id);
-      
-      // Minimal delay (none) to ensure immediate response
-      const delay = 0;
-      
-      if (selectedChat.type === 'club') {
-        console.log(`[UnifiedChatContent] Marking club ${selectedChat.id} messages as read immediately`);
-        
-        // First update UI optimistically
-        window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
-          detail: { 
-            clubId: selectedChat.id,
-            type: 'club',
-            optimistic: true
-          } 
-        }));
-        
-        // Then update database with minimal delay
-        markClubMessagesAsRead(selectedChat.id, undefined, delay);
-        setHasMarkedAsRead(true);
-      } else if (selectedChat.type === 'dm') {
-        console.log(`[UnifiedChatContent] Marking DM ${selectedChat.id} as read immediately`);
-        
-        // First update UI optimistically
-        window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
-          detail: { 
-            conversationId: selectedChat.id,
-            type: 'dm',
-            optimistic: true
-          } 
-        }));
-        
-        // Then update database with minimal delay
-        markDirectMessagesAsRead(selectedChat.id, undefined, delay);
-        setHasMarkedAsRead(true);
-      }
-    }
-  }, [selectedChat, currentUser, markClubMessagesAsRead, markDirectMessagesAsRead, hasMarkedAsRead]);
+  }, [selectedChat, markClubMessagesAsRead, markDirectConversationAsRead]);
 
   const handleSendMessage = async (message: string) => {
     if (!selectedChat) return;
@@ -201,49 +79,6 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
     }
   };
 
-  const handleBackClick = () => {
-    // Before going back, mark the chat as inactive
-    if (selectedChat) {
-      const timestamp = Date.now();
-      console.log(`[UnifiedChatContent] Marking ${selectedChat.type} as inactive due to back button: ${selectedChat.id} (instance: ${instanceId})`);
-      
-      if (selectedChat.type === 'club') {
-        window.dispatchEvent(new CustomEvent('clubClosed', { 
-          detail: { 
-            clubId: selectedChat.id,
-            timestamp,
-            source: 'UnifiedChatContent-back',
-            instanceId
-          } 
-        }));
-        
-        window.dispatchEvent(new CustomEvent('clubInactive', { 
-          detail: { 
-            clubId: selectedChat.id,
-            timestamp,
-            source: 'UnifiedChatContent-back',
-            instanceId
-          } 
-        }));
-        
-        console.log(`[UnifiedChatContent] Dispatched clubInactive for ${selectedChat.id} on back button`);
-      } else if (selectedChat.type === 'dm') {
-        window.dispatchEvent(new CustomEvent('conversationInactive', { 
-          detail: { 
-            conversationId: selectedChat.id,
-            timestamp,
-            source: 'UnifiedChatContent-back',
-            instanceId
-          } 
-        }));
-        
-        console.log(`[UnifiedChatContent] Dispatched conversationInactive for ${selectedChat.id} on back button`);
-      }
-    }
-    
-    onBack();
-  };
-
   // Get the appropriate members list based on chat type
   const getMembers = () => {
     if (selectedChat?.type === 'club' && club) {
@@ -265,7 +100,7 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
   return (
     <div className="flex flex-col h-full">
       <div className="border-b p-3 flex items-center">
-        <button onClick={handleBackClick} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+        <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div 

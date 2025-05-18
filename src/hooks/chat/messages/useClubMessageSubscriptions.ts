@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
@@ -23,39 +22,12 @@ export const useClubMessageSubscriptions = (
   // Handle selected club changes from events
   useEffect(() => {
     const handleClubSelect = (event: CustomEvent) => {
-      console.log(`[useClubMessageSubscriptions] Club selected: ${event.detail.clubId}`);
       selectedClubRef.current = event.detail.clubId;
-      
-      // Also dispatch the clubActive event to update global tracking
-      window.dispatchEvent(new CustomEvent('clubActive', { 
-        detail: { 
-          clubId: event.detail.clubId,
-          timestamp: Date.now() // Add timestamp to ensure newest event wins
-        } 
-      }));
-    };
-    
-    const handleClubClose = (event: CustomEvent) => {
-      if (selectedClubRef.current === event.detail.clubId) {
-        console.log(`[useClubMessageSubscriptions] Club closed: ${event.detail.clubId}`);
-        selectedClubRef.current = null;
-        
-        // Dispatch clubInactive event
-        window.dispatchEvent(new CustomEvent('clubInactive', { 
-          detail: { 
-            clubId: event.detail.clubId,
-            timestamp: Date.now() // Add timestamp for consistency
-          } 
-        }));
-      }
     };
     
     window.addEventListener('clubSelected', handleClubSelect as EventListener);
-    window.addEventListener('clubClosed', handleClubClose as EventListener);
-    
     return () => {
       window.removeEventListener('clubSelected', handleClubSelect as EventListener);
-      window.removeEventListener('clubClosed', handleClubClose as EventListener);
     };
   }, []);
   
@@ -81,16 +53,13 @@ export const useClubMessageSubscriptions = (
           filter: userClubs.length > 0 ? `club_id=in.(${userClubs.map(c => `'${c.id}'`).join(',')})` : undefined
         }, 
         (payload) => {
-          console.log('[useClubMessageSubscriptions] New message detected, forwarding to handler');
-          
-          // Always force UI update, regardless of active status to ensure messages appear immediately
+          console.log('[useClubMessageSubscriptions] New message detected');
           handleNewMessagePayload(
             payload, 
             clubsRef.current, 
             setClubMessages, 
             currentUser, 
-            selectedClubRef.current,
-            true // Force UI update for immediate display
+            selectedClubRef.current
           );
         }
       )

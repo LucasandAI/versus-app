@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MessageCircle, Watch, User, HelpCircle, LogOut } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '../shared/UserAvatar';
 import Button from '../shared/Button';
 import NotificationPopover from '../shared/NotificationPopover';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
-import { useUnreadMessages } from '@/context/unread-messages';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,93 +39,58 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     setSelectedUser
   } = useApp();
   
-  const { open } = useChatDrawerGlobal();
+  const {
+    open
+  } = useChatDrawerGlobal();
   
   const {
-    totalUnreadCount,
-    refreshUnreadCounts
+    totalUnreadCount
   } = useUnreadMessages();
   
   const navigate = useNavigate();
   
-  // Use unreadCount as a state that can be updated independently
   const [badgeCount, setBadgeCount] = useState(totalUnreadCount);
   const [notificationsCount, setNotificationsCount] = useState(notifications.length);
   const [helpDialogOpen, setHelpDialogOpen] = useState(false);
   
-  // Debounce timer to limit rapid updates
-  const debounceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
-  
-  // Debug log for initial render
-  console.log("[HomeHeader] Rendering with notifications:", notifications.length, notifications, "Initial unread count:", totalUnreadCount);
+  console.log("[HomeHeader] Rendering with notifications:", notifications.length, notifications);
 
-  // Optimize badge count update using useCallback
-  const updateBadgeCount = useCallback((forceRefresh = false) => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    
-    // Set a small debounce for rapid events
-    debounceTimerRef.current = setTimeout(async () => {
-      console.log("[HomeHeader] Updating badge count");
-      
-      if (forceRefresh) {
-        await refreshUnreadCounts();
-      }
-      
-      setBadgeCount(totalUnreadCount);
-      console.log(`[HomeHeader] Badge count updated to: ${totalUnreadCount}`);
-      
-      debounceTimerRef.current = null;
-    }, 50);
-  }, [refreshUnreadCounts, totalUnreadCount]);
-
-  // Keep badgeCount updated when totalUnreadCount changes from the context
+  // Update badge count when totalUnreadCount changes
   useEffect(() => {
-    console.log("[HomeHeader] totalUnreadCount changed to:", totalUnreadCount);
-    updateBadgeCount();
-  }, [totalUnreadCount, updateBadgeCount]);
+    setBadgeCount(totalUnreadCount);
+  }, [totalUnreadCount]);
   
   // Update notifications count when notifications array changes
   useEffect(() => {
     setNotificationsCount(notifications.length);
   }, [notifications]);
 
-  // Listen for unreadMessagesUpdated event with optimized handler
+  // Listen for unreadMessagesUpdated event to update badge count
   useEffect(() => {
-    // Using non-arrow function for named function in logs
-    function handleUnreadMessagesUpdated(e: Event) {
-      console.log("[HomeHeader] Received unreadMessagesUpdated event", (e as CustomEvent).detail);
-      updateBadgeCount(true);
-    }
+    const handleUnreadMessagesUpdated = () => {
+      setTimeout(() => {
+        // This will trigger a re-render that will pick up the latest totalUnreadCount
+        setBadgeCount(prev => {
+          console.log("[HomeHeader] Updating badge count to:", totalUnreadCount);
+          return totalUnreadCount;
+        });
+      }, 100);
+    };
     
-    function handleMessagesMarkedAsRead(e: Event) {
-      console.log("[HomeHeader] Received messagesMarkedAsRead event", (e as CustomEvent).detail);
-      updateBadgeCount(true);
-    }
+    const handleNotificationsUpdated = () => {
+      setTimeout(() => {
+        setNotificationsCount(notifications.length);
+      }, 100);
+    };
     
-    function handleNotificationsUpdated() {
-      console.log("[HomeHeader] Received notificationsUpdated event");
-      setNotificationsCount(notifications.length);
-    }
-    
-    // Add event listeners
     window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
-    window.addEventListener('messagesMarkedAsRead', handleMessagesMarkedAsRead);
     window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
     
     return () => {
-      // Clean up event listeners
       window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
-      window.removeEventListener('messagesMarkedAsRead', handleMessagesMarkedAsRead);
       window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
-      
-      // Clear any pending debounce timer
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
     };
-  }, [refreshUnreadCounts, updateBadgeCount, notifications.length]);
+  }, [notifications.length, totalUnreadCount]);
   
   const handleViewOwnProfile = () => {
     if (currentUser) {
