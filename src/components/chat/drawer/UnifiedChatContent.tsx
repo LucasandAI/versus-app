@@ -43,16 +43,76 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
   const { markClubMessagesAsRead, markDirectConversationAsRead } = useUnreadMessages();
   const [isSending, setIsSending] = useState(false);
 
-  // Mark messages as read when chat is selected
+  // Notify about active conversation change
   useEffect(() => {
     if (selectedChat) {
+      console.log(`[UnifiedChatContent] Setting active conversation: ${selectedChat.type} - ${selectedChat.id}`);
+      
+      // Dispatch event to notify about active conversation
+      window.dispatchEvent(new CustomEvent('activeConversationChanged', { 
+        detail: { 
+          type: selectedChat.type, 
+          id: selectedChat.id 
+        } 
+      }));
+      
+      // Mark messages as read optimistically in UI
       if (selectedChat.type === 'club') {
         markClubMessagesAsRead(selectedChat.id);
+        
+        // Update in database (but don't wait for completion)
+        if (currentUser?.id) {
+          console.log(`[UnifiedChatContent] Marking club messages as read in DB: ${selectedChat.id}`);
+          supabase.from('club_messages_read')
+            .upsert({
+              club_id: selectedChat.id,
+              user_id: currentUser.id,
+              last_read_timestamp: new Date().toISOString()
+            })
+            .then(() => {
+              console.log(`[UnifiedChatContent] Successfully marked club ${selectedChat.id} messages as read in DB`);
+            })
+            .catch(error => {
+              console.error('[UnifiedChatContent] Error marking messages as read:', error);
+            });
+        }
       } else if (selectedChat.type === 'dm') {
         markDirectConversationAsRead(selectedChat.id);
+        
+        // Update in database (but don't wait for completion)
+        if (currentUser?.id) {
+          console.log(`[UnifiedChatContent] Marking DM conversation as read in DB: ${selectedChat.id}`);
+          supabase.from('direct_messages_read')
+            .upsert({
+              conversation_id: selectedChat.id,
+              user_id: currentUser.id,
+              last_read_timestamp: new Date().toISOString()
+            })
+            .then(() => {
+              console.log(`[UnifiedChatContent] Successfully marked conversation ${selectedChat.id} as read in DB`);
+            })
+            .catch(error => {
+              console.error('[UnifiedChatContent] Error marking conversation as read:', error);
+            });
+        }
       }
+    } else {
+      // Clear active conversation when none is selected
+      window.dispatchEvent(new CustomEvent('activeConversationChanged', { 
+        detail: { type: null, id: null } 
+      }));
     }
-  }, [selectedChat, markClubMessagesAsRead, markDirectConversationAsRead]);
+    
+    // Cleanup on unmount or change
+    return () => {
+      if (selectedChat) {
+        console.log(`[UnifiedChatContent] Clearing active conversation: ${selectedChat.type} - ${selectedChat.id}`);
+        window.dispatchEvent(new CustomEvent('activeConversationChanged', { 
+          detail: { type: null, id: null } 
+        }));
+      }
+    };
+  }, [selectedChat, currentUser?.id, markClubMessagesAsRead, markDirectConversationAsRead]);
 
   const handleSendMessage = async (message: string) => {
     if (!selectedChat) return;

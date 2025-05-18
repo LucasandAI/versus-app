@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
@@ -30,6 +31,17 @@ export const useDMSubscription = (
     stableConversationId.current = conversationId;
     stableOtherUserId.current = otherUserId;
     otherUserDataRef.current = otherUserData;
+
+    // When conversation ID changes and is valid, dispatch active conversation changed event
+    if (conversationId && conversationId !== 'new') {
+      console.log(`[useDMSubscription] Active conversation changed to DM: ${conversationId}`);
+      window.dispatchEvent(new CustomEvent('activeConversationChanged', { 
+        detail: { 
+          type: 'dm',
+          id: conversationId 
+        } 
+      }));
+    }
   }, [conversationId, otherUserId, otherUserData]);
   
   // Clean up function
@@ -174,6 +186,39 @@ export const useDMSubscription = (
             senderAvatar: chatMessage.sender.avatar
           });
           
+          // Add message to UI
+          setMessages(prev => [...prev, chatMessage].sort(
+            (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          ));
+          
+          // If the message is from the other user, mark as read optimistically
+          if (isFromOtherUser && conversation_id && conversation_id !== 'new') {
+            try {
+              console.log(`[useDMSubscription] 📖 Optimistically marking DM as read for conversation: ${conversation_id}`);
+              
+              // Update in database (but don't wait for response to update UI)
+              supabase.from('direct_messages_read')
+                .upsert({
+                  conversation_id: conversation_id,
+                  user_id: currentUserId,
+                  last_read_timestamp: new Date().toISOString()
+                })
+                .then(() => {
+                  console.log(`[useDMSubscription] Successfully marked conversation ${conversation_id} as read in DB`);
+                })
+                .catch(error => {
+                  console.error('[useDMSubscription] Error marking conversation as read:', error);
+                });
+              
+              // Dispatch event for local state update  
+              window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
+                detail: { type: 'dm', id: conversation_id } 
+              }));
+            } catch (error) {
+              console.error('[useDMSubscription] Error in optimistic read update:', error);
+            }
+          }
+          
           // Use the stable reference to event dispatch
           window.dispatchEvent(new CustomEvent('dmMessageReceived', { 
             detail: { 
@@ -203,5 +248,5 @@ export const useDMSubscription = (
     }
     
     return cleanupSubscription;
-  }, [conversationId, currentUserId, otherUserId, userCache, cleanupSubscription, fetchUserData]);
+  }, [conversationId, currentUserId, otherUserId, userCache, cleanupSubscription, fetchUserData, setMessages]);
 };

@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
@@ -22,7 +23,16 @@ export const useClubMessageSubscriptions = (
   // Handle selected club changes from events
   useEffect(() => {
     const handleClubSelect = (event: CustomEvent) => {
+      console.log('[useClubMessageSubscriptions] Club selected:', event.detail.clubId);
       selectedClubRef.current = event.detail.clubId;
+      
+      // When a club is selected, dispatch an event to mark it as active
+      window.dispatchEvent(new CustomEvent('activeConversationChanged', { 
+        detail: { 
+          type: 'club',
+          id: event.detail.clubId 
+        } 
+      }));
     };
     
     window.addEventListener('clubSelected', handleClubSelect as EventListener);

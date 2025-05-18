@@ -109,9 +109,47 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   // Mark conversation as read when opened
   useEffect(() => {
     if (conversationId && conversationId !== 'new') {
+      console.log(`[DMConversation] Setting active conversation: dm - ${conversationId}`);
+      
+      // Dispatch event to notify about active conversation
+      window.dispatchEvent(new CustomEvent('activeConversationChanged', { 
+        detail: { 
+          type: 'dm', 
+          id: conversationId 
+        } 
+      }));
+      
+      // Mark as read optimistically in UI
       markConversationAsRead(conversationId);
+      
+      // Update in database (but don't wait for completion)
+      if (currentUser?.id) {
+        console.log(`[DMConversation] Marking conversation as read in DB: ${conversationId}`);
+        supabase.from('direct_messages_read')
+          .upsert({
+            conversation_id: conversationId,
+            user_id: currentUser.id,
+            last_read_timestamp: new Date().toISOString()
+          })
+          .then(() => {
+            console.log(`[DMConversation] Successfully marked conversation ${conversationId} as read in DB`);
+          })
+          .catch(error => {
+            console.error('[DMConversation] Error marking conversation as read:', error);
+          });
+      }
     }
-  }, [conversationId, markConversationAsRead]);
+    
+    // Cleanup on unmount
+    return () => {
+      if (conversationId && conversationId !== 'new') {
+        console.log(`[DMConversation] Clearing active conversation: dm - ${conversationId}`);
+        window.dispatchEvent(new CustomEvent('activeConversationChanged', { 
+          detail: { type: null, id: null } 
+        }));
+      }
+    };
+  }, [conversationId, markConversationAsRead, currentUser?.id]);
 
   // Stable send message handler
   const handleSendMessage = useCallback(async (text: string) => {

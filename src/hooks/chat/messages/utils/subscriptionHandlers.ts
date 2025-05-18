@@ -140,12 +140,49 @@ export const handleNewMessagePayload = async (
     }
   }
   
-  // If the message is from another user and NOT the currently viewed club,
-  // we need to update the unread count for this club
-  if (!isCurrentUser && (!selectedClubRef || selectedClubRef !== messageClubId)) {
-    window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
-      detail: { clubId: messageClubId } 
-    }));
+  // Check if this message is for the currently selected club
+  // If so, mark it as read optimistically
+  if (!isCurrentUser) {
+    // Get current active conversation
+    let isMessageInActiveConversation = false;
+    
+    // Check if the current club is selected
+    if (selectedClubRef === messageClubId) {
+      isMessageInActiveConversation = true;
+    }
+    
+    // If message is not for the active conversation, update unread count
+    if (!isMessageInActiveConversation) {
+      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
+        detail: { clubId: messageClubId } 
+      }));
+    } else {
+      // If message is for active conversation, mark it as read optimistically
+      console.log(`[subscriptionHandlers] 📖 Optimistically marking message as read for active club: ${messageClubId}`);
+      
+      try {
+        // Update in database (but don't wait)
+        supabase.from('club_messages_read')
+          .upsert({
+            club_id: messageClubId,
+            user_id: currentUser.id,
+            last_read_timestamp: new Date().toISOString()
+          })
+          .then(() => {
+            console.log(`[subscriptionHandlers] Successfully marked club ${messageClubId} messages as read in DB`);
+          })
+          .catch(error => {
+            console.error('[subscriptionHandlers] Error marking messages as read:', error);
+          });
+          
+        // Dispatch event for local state update
+        window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
+          detail: { type: 'club', id: messageClubId } 
+        }));
+      } catch (error) {
+        console.error('[subscriptionHandlers] Error in optimistic read update:', error);
+      }
+    }
   }
 };
 

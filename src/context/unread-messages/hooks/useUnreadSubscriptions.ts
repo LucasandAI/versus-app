@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -25,6 +24,12 @@ export const useUnreadSubscriptions = ({
     fetchUnreadCounts
   });
 
+  // Keep track of active conversation
+  const activeConversationRef = useRef<{ type: 'club' | 'dm' | null, id: string | null }>({
+    type: null,
+    id: null
+  });
+
   // Update refs when handlers change
   useEffect(() => {
     handlersRef.current = {
@@ -33,6 +38,33 @@ export const useUnreadSubscriptions = ({
       fetchUnreadCounts
     };
   }, [markConversationAsUnread, markClubAsUnread, fetchUnreadCounts]);
+  
+  // Listen for active conversation changes
+  useEffect(() => {
+    const handleActiveConversationChanged = (event: CustomEvent) => {
+      console.log('[useUnreadSubscriptions] Active conversation changed:', event.detail);
+      activeConversationRef.current = {
+        type: event.detail.type,
+        id: event.detail.id
+      };
+    };
+    
+    // Listen for active conversation changes
+    window.addEventListener('activeConversationChanged', handleActiveConversationChanged as EventListener);
+    
+    // Listen for messages being marked as read
+    const handleMessagesMarkedAsRead = (event: CustomEvent) => {
+      console.log('[useUnreadSubscriptions] Messages marked as read:', event.detail);
+      // No need to do anything here as the handlers will update the UI
+    };
+    
+    window.addEventListener('messagesMarkedAsRead', handleMessagesMarkedAsRead as EventListener);
+    
+    return () => {
+      window.removeEventListener('activeConversationChanged', handleActiveConversationChanged as EventListener);
+      window.removeEventListener('messagesMarkedAsRead', handleMessagesMarkedAsRead as EventListener);
+    };
+  }, []);
   
   useEffect(() => {
     if (!isSessionReady || !currentUserId) return;
@@ -48,14 +80,64 @@ export const useUnreadSubscriptions = ({
     const processUpdates = () => {
       if (pendingUpdates.size > 0) {
         pendingUpdates.forEach(conversationId => {
-          handlersRef.current.markConversationAsUnread(conversationId);
+          // Check if this is the active conversation
+          if (
+            activeConversationRef.current.type === 'dm' && 
+            activeConversationRef.current.id === conversationId
+          ) {
+            console.log(`[useUnreadSubscriptions] Skipping unread update for active conversation: ${conversationId}`);
+            
+            // Mark as read optimistically in database
+            if (currentUserId) {
+              supabase.from('direct_messages_read')
+                .upsert({
+                  conversation_id: conversationId,
+                  user_id: currentUserId,
+                  last_read_timestamp: new Date().toISOString()
+                })
+                .then(() => {
+                  console.log(`[useUnreadSubscriptions] Successfully marked conversation ${conversationId} as read in DB`);
+                })
+                .catch(error => {
+                  console.error('[useUnreadSubscriptions] Error marking conversation as read:', error);
+                });
+            }
+          } else {
+            console.log(`[useUnreadSubscriptions] Marking conversation as unread: ${conversationId}`);
+            handlersRef.current.markConversationAsUnread(conversationId);
+          }
         });
         pendingUpdates.clear();
       }
       
       if (pendingClubUpdates.size > 0) {
         pendingClubUpdates.forEach(clubId => {
-          handlersRef.current.markClubAsUnread(clubId);
+          // Check if this is the active club
+          if (
+            activeConversationRef.current.type === 'club' && 
+            activeConversationRef.current.id === clubId
+          ) {
+            console.log(`[useUnreadSubscriptions] Skipping unread update for active club: ${clubId}`);
+            
+            // Mark as read optimistically in database
+            if (currentUserId) {
+              supabase.from('club_messages_read')
+                .upsert({
+                  club_id: clubId,
+                  user_id: currentUserId,
+                  last_read_timestamp: new Date().toISOString()
+                })
+                .then(() => {
+                  console.log(`[useUnreadSubscriptions] Successfully marked club ${clubId} messages as read in DB`);
+                })
+                .catch(error => {
+                  console.error('[useUnreadSubscriptions] Error marking club messages as read:', error);
+                });
+            }
+          } else {
+            console.log(`[useUnreadSubscriptions] Marking club as unread: ${clubId}`);
+            handlersRef.current.markClubAsUnread(clubId);
+          }
         });
         pendingClubUpdates.clear();
       }
