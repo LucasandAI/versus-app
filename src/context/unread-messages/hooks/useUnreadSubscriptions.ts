@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -161,8 +162,9 @@ export const useUnreadSubscriptions = ({
     };
     
     // Set up real-time subscriptions for new messages
+    const timestamp = Date.now();
     const dmChannel = supabase
-      .channel('global-dm-unread-tracking')
+      .channel(`global-dm-unread-tracking-${timestamp}`)
       .on('postgres_changes', 
           { 
             event: 'INSERT', 
@@ -176,10 +178,12 @@ export const useUnreadSubscriptions = ({
               queueUpdate();
             }
           })
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`[useUnreadSubscriptions] DM channel status: ${status}`);
+      });
     
     // Subscribe to new club messages
-    const clubChannel = supabase.channel('global-club-unread-tracking')
+    const clubChannel = supabase.channel(`global-club-unread-tracking-${timestamp}`)
       .on('postgres_changes', 
           { 
             event: 'INSERT', 
@@ -193,7 +197,9 @@ export const useUnreadSubscriptions = ({
               queueUpdate();
             }
           })
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`[useUnreadSubscriptions] Club channel status: ${status}`);
+      });
       
     // Initial fetch of unread counts
     handlersRef.current.fetchUnreadCounts();

@@ -48,7 +48,7 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
     if (selectedChat) {
       console.log(`[UnifiedChatContent] Setting active conversation: ${selectedChat.type} - ${selectedChat.id}`);
       
-      // Dispatch event to notify about active conversation
+      // Dispatch event to notify about active conversation immediately
       window.dispatchEvent(new CustomEvent('activeConversationChanged', { 
         detail: { 
           type: selectedChat.type, 
@@ -63,7 +63,7 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
         // Update in database (but don't wait for completion)
         if (currentUser?.id) {
           console.log(`[UnifiedChatContent] Marking club messages as read in DB: ${selectedChat.id}`);
-          // Fix: Use .then().catch() chaining instead of directly using .catch()
+          // Fix: Use .then().then(null, errorHandler) chaining instead of directly using .catch()
           supabase.from('club_messages_read')
             .upsert({
               club_id: selectedChat.id,
@@ -72,6 +72,10 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
             })
             .then(() => {
               console.log(`[UnifiedChatContent] Successfully marked club ${selectedChat.id} messages as read in DB`);
+              // Dispatch an event to force reload unread messages count
+              window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
+                detail: { type: 'club', id: selectedChat.id, action: 'read' } 
+              }));
             })
             .then(null, (error) => {
               // Using .then(null, errorHandler) instead of .catch()
@@ -93,6 +97,10 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
             })
             .then(() => {
               console.log(`[UnifiedChatContent] Successfully marked conversation ${selectedChat.id} as read in DB`);
+              // Dispatch an event to force reload unread messages count
+              window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
+                detail: { type: 'dm', id: selectedChat.id, action: 'read' } 
+              }));
             })
             .then(null, (error) => {
               // Using .then(null, errorHandler) instead of .catch()

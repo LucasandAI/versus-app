@@ -60,11 +60,18 @@ export const UnreadMessagesProvider: React.FC<{ children: React.ReactNode }> = (
   
   // Update total count whenever individual counts change
   useEffect(() => {
-    setTotalUnreadCount(clubUnreadCount + dmUnreadCount);
+    const newTotal = clubUnreadCount + dmUnreadCount;
+    setTotalUnreadCount(newTotal);
+    console.log('[UnreadMessagesProvider] Total unread count updated:', {
+      clubUnreadCount,
+      dmUnreadCount, 
+      total: newTotal
+    });
   }, [clubUnreadCount, dmUnreadCount]);
   
-  // Legacy method for compatibility
+  // Method for refreshing unread counts
   const refreshUnreadCounts = useCallback(async () => {
+    console.log('[UnreadMessagesProvider] Refreshing unread counts');
     await fetchUnreadCounts();
   }, [fetchUnreadCounts]);
   
