@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import { ChatMessage } from '@/types/chat';
@@ -10,10 +10,16 @@ export const useDirectMessages = (conversationId: string | null) => {
   const { currentUser } = useApp();
   const { markConversationAsRead, refreshUnreadCounts } = useUnreadMessages();
   const [subscriptionActive, setSubscriptionActive] = useState(false);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const previousConversationIdRef = useRef<string | null>(null);
 
   // Fetch initial messages
   useEffect(() => {
     if (!conversationId || !currentUser?.id || conversationId === 'new') return;
+    
+    // Skip if this is the same conversation we already fetched
+    if (previousConversationIdRef.current === conversationId) return;
+    previousConversationIdRef.current = conversationId;
 
     const fetchMessages = async () => {
       try {
@@ -78,6 +84,9 @@ export const useDirectMessages = (conversationId: string | null) => {
           
           console.log('[useDirectMessages] Normalized messages:', normalizedMessages);
           setMessages(normalizedMessages);
+
+          // Mark as read immediately after loading
+          markConversationAsRead(conversationId);
         }
       } catch (error) {
         console.error('[useDirectMessages] Error fetching messages:', error);
@@ -85,13 +94,24 @@ export const useDirectMessages = (conversationId: string | null) => {
     };
 
     fetchMessages();
-  }, [conversationId, currentUser?.id]);
+  }, [conversationId, currentUser?.id, markConversationAsRead]);
 
   // Set up real-time subscription when conversation is active
   useEffect(() => {
-    if (!conversationId || !currentUser?.id || conversationId === 'new' || subscriptionActive) return;
+    if (!conversationId || !currentUser?.id || conversationId === 'new') return;
+    
+    // Skip if subscription is already active for this conversation
+    if (subscriptionActive && channelRef.current) return;
 
     console.log(`[useDirectMessages] Setting up real-time subscription for conversation: ${conversationId}`);
+
+    // Clean up any existing subscription first
+    if (channelRef.current) {
+      console.log('[useDirectMessages] Cleaning up existing subscription');
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+      setSubscriptionActive(false);
+    }
 
     // Dispatch active conversation change event
     window.dispatchEvent(new CustomEvent('activeConversationChanged', { 
@@ -192,23 +212,39 @@ export const useDirectMessages = (conversationId: string | null) => {
         console.log(`[useDirectMessages] Subscription status for ${conversationId}: ${status}`);
         if (status === 'SUBSCRIBED') {
           setSubscriptionActive(true);
+          channelRef.current = channel;
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           setSubscriptionActive(false);
+          
+          // Try to resubscribe after a delay
+          setTimeout(() => {
+            if (channelRef.current) {
+              supabase.removeChannel(channelRef.current);
+              channelRef.current = null;
+              setSubscriptionActive(false);
+            }
+          }, 5000);
         }
       });
 
+    // Store the channel reference
+    channelRef.current = channel;
+    
     // Cleanup function
     return () => {
       console.log(`[useDirectMessages] Cleaning up subscription for conversation: ${conversationId}`);
-      supabase.removeChannel(channel);
-      setSubscriptionActive(false);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+        setSubscriptionActive(false);
+      }
       
       // Clear active conversation
       window.dispatchEvent(new CustomEvent('activeConversationChanged', {
         detail: { type: null, id: null }
       }));
     };
-  }, [conversationId, currentUser?.id, subscriptionActive, messages, markConversationAsRead, refreshUnreadCounts]);
+  }, [conversationId, currentUser?.id]);
 
   return { messages, setMessages };
 };

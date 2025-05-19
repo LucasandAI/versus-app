@@ -107,7 +107,7 @@ export const useCoalescedReadStatus = () => {
           });
           
         if (error) {
-          // Check if this is a unique constraint violation error
+          // Check if this is a unique constraint violation error - ignore these
           if (error.code === '23505') {
             console.log('[useCoalescedReadStatus] Ignoring duplicate read status entries:', error.details);
           } else {
@@ -125,6 +125,7 @@ export const useCoalescedReadStatus = () => {
       }));
     } catch (error) {
       console.error('[useCoalescedReadStatus] Error marking conversations as read:', error);
+      
       // Only show toast for non-duplicate errors to prevent user confusion
       if (!(error as any).code || (error as any).code !== '23505') {
         toast({
@@ -166,7 +167,7 @@ export const useCoalescedReadStatus = () => {
           });
           
         if (error) {
-          // Check if this is a unique constraint violation error
+          // Check if this is a unique constraint violation error - ignore these silently
           if (error.code === '23505') {
             console.log('[useCoalescedReadStatus] Ignoring duplicate club read status entries:', error.details);
           } else {
@@ -184,6 +185,7 @@ export const useCoalescedReadStatus = () => {
       }));
     } catch (error) {
       console.error('[useCoalescedReadStatus] Error marking clubs as read:', error);
+      
       // Only show toast for non-duplicate errors to prevent user confusion
       if (!(error as any).code || (error as any).code !== '23505') {
         toast({

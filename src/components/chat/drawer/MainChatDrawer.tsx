@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { Club } from '@/types';
@@ -56,15 +55,41 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     }
   }, [open, currentUser?.id, fetchConversations, refreshUnreadCounts]);
 
+  // Effect to refresh unread counts when drawer visibility changes
+  useEffect(() => {
+    if (!open) return;
+    
+    // When drawer opens, refresh unread counts
+    refreshUnreadCounts();
+    
+    // Set up an interval to refresh counts periodically while drawer is open
+    const intervalId = setInterval(() => {
+      refreshUnreadCounts();
+    }, 10000); // Refresh every 10 seconds
+    
+    return () => clearInterval(intervalId);
+  }, [open, refreshUnreadCounts]);
+
   // Listen for the messagesMarkedAsRead event to update badge counts
   useEffect(() => {
     const handleMessagesMarkedAsRead = (event: CustomEvent) => {
       console.log('[MainChatDrawer] Messages marked as read:', event.detail);
       
-      // Refresh unread counts to update UI badges
-      setTimeout(() => {
-        refreshUnreadCounts();
-      }, 200); // Short delay to ensure database operations complete
+      // If this is for the currently selected chat, ensure counts are refreshed
+      if (
+        selectedChat && 
+        event.detail.type === selectedChat.type && 
+        (event.detail.id === selectedChat.id || event.detail.batched)
+      ) {
+        setTimeout(() => {
+          refreshUnreadCounts();
+        }, 300); // Short delay to ensure database operations complete
+      } else if (!selectedChat || event.detail.batched) {
+        // Also refresh counts for batch operations or when no chat is selected
+        setTimeout(() => {
+          refreshUnreadCounts();
+        }, 300);
+      }
     };
     
     window.addEventListener('messagesMarkedAsRead', handleMessagesMarkedAsRead as EventListener);
@@ -73,7 +98,9 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     const handleNewMessage = (event: CustomEvent) => {
       // Update unread count for notification badge
       if (onNewMessage && event.detail) {
-        refreshUnreadCounts();
+        setTimeout(() => {
+          refreshUnreadCounts();
+        }, 200);
       }
     };
     
@@ -85,7 +112,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       window.removeEventListener('clubMessageReceived', handleNewMessage as EventListener);
       window.removeEventListener('dmMessageReceived', handleNewMessage as EventListener);
     };
-  }, [refreshUnreadCounts, onNewMessage]);
+  }, [refreshUnreadCounts, onNewMessage, selectedChat]);
 
   // Effect to handle openDirectMessage event
   useEffect(() => {
@@ -113,6 +140,9 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             });
           }
         }
+        
+        // Refresh unread counts after a delay to ensure read status is updated
+        setTimeout(() => refreshUnreadCounts(), 400);
       } catch (error) {
         console.error('[MainChatDrawer] Error opening direct message:', error);
       }
@@ -122,22 +152,15 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     return () => {
       window.removeEventListener('openDirectMessage', handleOpenDirectMessage as EventListener);
     };
-  }, [getOrCreateConversation]);
+  }, [getOrCreateConversation, refreshUnreadCounts]);
 
   const handleSelectChat = React.useCallback((type: 'club' | 'dm', id: string, name: string, avatar?: string) => {
     console.log(`[MainChatDrawer] Selecting chat: ${type} - ${id}`);
     setSelectedChat({ type, id, name, avatar });
     
-    // Mark as read immediately when selected
-    if (type === 'club') {
-      markClubMessagesAsRead(id);
-    } else if (type === 'dm') {
-      markConversationAsRead(id);
-    }
-    
-    // Refresh unread counts to update badges
-    setTimeout(() => refreshUnreadCounts(), 200);
-  }, [markClubMessagesAsRead, markConversationAsRead, refreshUnreadCounts]);
+    // Refresh unread counts after chat selection
+    setTimeout(() => refreshUnreadCounts(), 300);
+  }, [refreshUnreadCounts]);
 
   const handleSendMessage = React.useCallback(async (message: string, chatId: string, type: 'club' | 'dm') => {
     if (type === 'club' && setClubMessages) {
