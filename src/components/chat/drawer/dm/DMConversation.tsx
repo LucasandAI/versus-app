@@ -6,10 +6,8 @@ import ChatMessages from '../../ChatMessages';
 import { useActiveDMMessages } from '@/hooks/chat/dm/useActiveDMMessages';
 import { useDMSubscription } from '@/hooks/chat/dm/useDMSubscription';
 import { useNavigation } from '@/hooks/useNavigation';
-import { useConversations } from '@/hooks/chat/dm/useConversations';
 import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
-import { useConversationManagement } from '@/hooks/chat/dm/useConversationManagement';
-import { useUnreadMessages } from '@/context/UnreadMessagesContext';
+import { useCoalescedReadStatus } from '@/hooks/chat/messages/useCoalescedReadStatus';
 import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
 import DMMessageInput from './DMMessageInput';
 import DMHeader from './DMHeader';
@@ -34,7 +32,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
 }) => {
   const { currentUser } = useApp();
   const { navigateToUserProfile } = useNavigation();
-  const { markConversationAsRead } = useUnreadMessages();
+  const { markConversationAsRead } = useCoalescedReadStatus();
   const [isSending, setIsSending] = React.useState(false);
   const { formatTime } = useMessageFormatting();
   
@@ -118,26 +116,8 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
         } 
       }));
       
-      // Mark as read optimistically in UI
+      // Mark as read using our new centralized service
       markConversationAsRead(conversationId);
-      
-      // Update in database (but don't wait for completion)
-      if (currentUser?.id) {
-        console.log(`[DMConversation] Marking conversation as read in DB: ${conversationId}`);
-        // Fix: Use .then().then(null, error) pattern instead of .catch()
-        supabase.from('direct_messages_read')
-          .upsert({
-            conversation_id: conversationId,
-            user_id: currentUser.id,
-            last_read_timestamp: new Date().toISOString()
-          })
-          .then(() => {
-            console.log(`[DMConversation] Successfully marked conversation ${conversationId} as read in DB`);
-          })
-          .then(null, (error) => {
-            console.error('[DMConversation] Error marking conversation as read:', error);
-          });
-      }
     }
     
     // Cleanup on unmount
@@ -149,7 +129,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
         }));
       }
     };
-  }, [conversationId, markConversationAsRead, currentUser?.id]);
+  }, [conversationId, markConversationAsRead]);
 
   // Stable send message handler
   const handleSendMessage = useCallback(async (text: string) => {

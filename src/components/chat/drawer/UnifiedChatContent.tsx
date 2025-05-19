@@ -1,10 +1,8 @@
-
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import { useApp } from '@/context/AppContext';
 import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
-import { supabase } from '@/integrations/supabase/client';
 import ChatHeader from '../ChatHeader';
 import ChatMessages from '../ChatMessages';
 import ChatInput from '../ChatInput';
@@ -13,6 +11,7 @@ import { useChatActions } from '@/hooks/chat/useChatActions';
 import { useUnreadMessages } from '@/context/unread-messages';
 import { ArrowLeft } from 'lucide-react';
 import UserAvatar from '@/components/shared/UserAvatar';
+import { useCoalescedReadStatus } from '@/hooks/chat/messages/useCoalescedReadStatus';
 
 interface UnifiedChatContentProps {
   selectedChat: {
@@ -40,7 +39,7 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
 }) => {
   const { currentUser } = useApp();
   const { navigateToClubDetail, navigateToUserProfile } = useNavigation();
-  const { markClubMessagesAsRead, markDirectConversationAsRead } = useUnreadMessages();
+  const { markConversationAsRead, markClubAsRead } = useCoalescedReadStatus();
   const [isSending, setIsSending] = useState(false);
 
   // Notify about active conversation change
@@ -58,55 +57,9 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
       
       // Mark messages as read optimistically in UI
       if (selectedChat.type === 'club') {
-        markClubMessagesAsRead(selectedChat.id);
-        
-        // Update in database (but don't wait for completion)
-        if (currentUser?.id) {
-          console.log(`[UnifiedChatContent] Marking club messages as read in DB: ${selectedChat.id}`);
-          // Fix: Use .then().then(null, errorHandler) chaining instead of directly using .catch()
-          supabase.from('club_messages_read')
-            .upsert({
-              club_id: selectedChat.id,
-              user_id: currentUser.id,
-              last_read_timestamp: new Date().toISOString()
-            })
-            .then(() => {
-              console.log(`[UnifiedChatContent] Successfully marked club ${selectedChat.id} messages as read in DB`);
-              // Dispatch an event to force reload unread messages count
-              window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
-                detail: { type: 'club', id: selectedChat.id, action: 'read' } 
-              }));
-            })
-            .then(null, (error) => {
-              // Using .then(null, errorHandler) instead of .catch()
-              console.error('[UnifiedChatContent] Error marking messages as read:', error);
-            });
-        }
+        markClubAsRead(selectedChat.id);
       } else if (selectedChat.type === 'dm') {
-        markDirectConversationAsRead(selectedChat.id);
-        
-        // Update in database (but don't wait for completion)
-        if (currentUser?.id) {
-          console.log(`[UnifiedChatContent] Marking DM conversation as read in DB: ${selectedChat.id}`);
-          // Fix: Use .then().catch() chaining instead of directly using .catch()
-          supabase.from('direct_messages_read')
-            .upsert({
-              conversation_id: selectedChat.id,
-              user_id: currentUser.id,
-              last_read_timestamp: new Date().toISOString()
-            })
-            .then(() => {
-              console.log(`[UnifiedChatContent] Successfully marked conversation ${selectedChat.id} as read in DB`);
-              // Dispatch an event to force reload unread messages count
-              window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
-                detail: { type: 'dm', id: selectedChat.id, action: 'read' } 
-              }));
-            })
-            .then(null, (error) => {
-              // Using .then(null, errorHandler) instead of .catch()
-              console.error('[UnifiedChatContent] Error marking conversation as read:', error);
-            });
-        }
+        markConversationAsRead(selectedChat.id);
       }
     } else {
       // Clear active conversation when none is selected
@@ -124,7 +77,7 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
         }));
       }
     };
-  }, [selectedChat, currentUser?.id, markClubMessagesAsRead, markDirectConversationAsRead]);
+  }, [selectedChat, markClubAsRead, markConversationAsRead]);
 
   const handleSendMessage = async (message: string) => {
     if (!selectedChat) return;

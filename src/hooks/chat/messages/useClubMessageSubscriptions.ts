@@ -1,9 +1,9 @@
-
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
 import { handleNewMessagePayload, handleMessageDeletion } from './utils/subscriptionHandlers';
 import { useApp } from '@/context/AppContext';
+import { useCoalescedReadStatus } from './useCoalescedReadStatus';
 
 export const useClubMessageSubscriptions = (
   userClubs: Club[],
@@ -14,27 +14,15 @@ export const useClubMessageSubscriptions = (
   const { currentUser } = useApp();
   const selectedClubRef = useRef<string | null>(null);
   const clubsRef = useRef<Club[]>(userClubs);
+  const { markClubAsRead } = useCoalescedReadStatus();
   
   // Keep clubs reference updated
   useEffect(() => {
     clubsRef.current = userClubs;
   }, [userClubs]);
   
-  // Handle selected club changes from events
+  // Handle active conversation changes
   useEffect(() => {
-    const handleClubSelect = (event: CustomEvent) => {
-      console.log('[useClubMessageSubscriptions] Club selected:', event.detail.clubId);
-      selectedClubRef.current = event.detail.clubId;
-      
-      // When a club is selected, dispatch an event to mark it as active
-      window.dispatchEvent(new CustomEvent('activeConversationChanged', { 
-        detail: { 
-          type: 'club',
-          id: event.detail.clubId 
-        } 
-      }));
-    };
-
     const handleActiveConversationChanged = (event: CustomEvent) => {
       // Only update if this is a club conversation
       if (event.detail.type === 'club') {
@@ -46,11 +34,9 @@ export const useClubMessageSubscriptions = (
       }
     };
     
-    window.addEventListener('clubSelected', handleClubSelect as EventListener);
     window.addEventListener('activeConversationChanged', handleActiveConversationChanged as EventListener);
     
     return () => {
-      window.removeEventListener('clubSelected', handleClubSelect as EventListener);
       window.removeEventListener('activeConversationChanged', handleActiveConversationChanged as EventListener);
     };
   }, []);
@@ -86,6 +72,17 @@ export const useClubMessageSubscriptions = (
         }, 
         (payload) => {
           console.log('[useClubMessageSubscriptions] New message detected:', payload.new?.id);
+          
+          const isActiveClub = selectedClubRef.current === payload.new.club_id;
+          const isFromCurrentUser = payload.new.sender_id === currentUser.id;
+          
+          // If this is a new message for the active club and not from the current user,
+          // mark it as read immediately
+          if (isActiveClub && !isFromCurrentUser) {
+            console.log('[useClubMessageSubscriptions] Auto-marking new message as read (active club)');
+            markClubAsRead(payload.new.club_id);
+          }
+          
           handleNewMessagePayload(
             payload, 
             clubsRef.current, 
@@ -130,5 +127,5 @@ export const useClubMessageSubscriptions = (
       });
       activeSubscriptionsRef.current = updatedSubs;
     };
-  }, [isOpen, userClubs, currentUser?.id, setClubMessages]);
+  }, [isOpen, userClubs, currentUser?.id, setClubMessages, markClubAsRead]);
 };

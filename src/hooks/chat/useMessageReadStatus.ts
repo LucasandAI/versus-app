@@ -1,28 +1,17 @@
 
 import { useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useUnreadMessages } from '@/context/unread-messages';
+import { useCoalescedReadStatus } from './messages/useCoalescedReadStatus';
 
 export const useMessageReadStatus = () => {
-  const { markDirectConversationAsRead, markClubMessagesAsRead } = useUnreadMessages();
+  const { markConversationAsRead, markClubAsRead } = useCoalescedReadStatus();
 
   const markDirectMessagesAsRead = useCallback(async (conversationId: string, userId: string) => {
-    try {
-      // Use the context method for optimistic updates
-      await markDirectConversationAsRead(conversationId);
-    } catch (error) {
-      console.error('[useMessageReadStatus] Error marking DM as read:', error);
-    }
-  }, [markDirectConversationAsRead]);
+    await markConversationAsRead(conversationId);
+  }, [markConversationAsRead]);
 
   const markClubMessagesAsReadLegacy = useCallback(async (clubId: string, userId: string) => {
-    try {
-      // Use the context method for optimistic updates
-      await markClubMessagesAsRead(clubId);
-    } catch (error) {
-      console.error('[useMessageReadStatus] Error marking club messages as read:', error);
-    }
-  }, [markClubMessagesAsRead]);
+    await markClubAsRead(clubId);
+  }, [markClubAsRead]);
 
   return {
     markDirectMessagesAsRead,
