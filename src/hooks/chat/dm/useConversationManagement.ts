@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,8 +18,8 @@ export const useConversationManagement = (currentUserId?: string, otherUserId?: 
       const { data: existingConversation, error: checkError } = await supabase
         .from('direct_conversations')
         .select('id')
-        .or(`user1_id.eq.${currentUserId},user2_id.eq.${currentUserId}`)
-        .or(`user1_id.eq.${otherUserId},user2_id.eq.${otherUserId}`)
+        .or(`and(user1_id.eq.${currentUserId},user2_id.eq.${otherUserId})`)
+        .or(`and(user1_id.eq.${otherUserId},user2_id.eq.${currentUserId})`)
         .maybeSingle();
 
       if (checkError) {

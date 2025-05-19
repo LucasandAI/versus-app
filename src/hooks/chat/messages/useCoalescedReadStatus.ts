@@ -101,10 +101,18 @@ export const useCoalescedReadStatus = () => {
         
         const { error } = await supabase
           .from('direct_messages_read')
-          .upsert(upsertItems);
+          .upsert(upsertItems, { 
+            onConflict: 'conversation_id,user_id',
+            ignoreDuplicates: true
+          });
           
         if (error) {
-          throw error;
+          // Check if this is a unique constraint violation error
+          if (error.code === '23505') {
+            console.log('[useCoalescedReadStatus] Ignoring duplicate read status entries:', error.details);
+          } else {
+            throw error;
+          }
         }
         
         // Clear processed items from the pending set
@@ -117,11 +125,14 @@ export const useCoalescedReadStatus = () => {
       }));
     } catch (error) {
       console.error('[useCoalescedReadStatus] Error marking conversations as read:', error);
-      toast({
-        title: "Error updating message status",
-        description: "Please check your connection and try again.",
-        variant: "destructive"
-      });
+      // Only show toast for non-duplicate errors to prevent user confusion
+      if (!(error as any).code || (error as any).code !== '23505') {
+        toast({
+          title: "Error updating message status",
+          description: "Please check your connection and try again.",
+          variant: "destructive"
+        });
+      }
     }
   }, 300), [currentUser?.id]);
   
@@ -149,10 +160,18 @@ export const useCoalescedReadStatus = () => {
         
         const { error } = await supabase
           .from('club_messages_read')
-          .upsert(upsertItems);
+          .upsert(upsertItems, {
+            onConflict: 'club_id,user_id',
+            ignoreDuplicates: true
+          });
           
         if (error) {
-          throw error;
+          // Check if this is a unique constraint violation error
+          if (error.code === '23505') {
+            console.log('[useCoalescedReadStatus] Ignoring duplicate club read status entries:', error.details);
+          } else {
+            throw error;
+          }
         }
         
         // Clear processed items from the pending set
@@ -165,11 +184,14 @@ export const useCoalescedReadStatus = () => {
       }));
     } catch (error) {
       console.error('[useCoalescedReadStatus] Error marking clubs as read:', error);
-      toast({
-        title: "Error updating message status",
-        description: "Please check your connection and try again.",
-        variant: "destructive"
-      });
+      // Only show toast for non-duplicate errors to prevent user confusion
+      if (!(error as any).code || (error as any).code !== '23505') {
+        toast({
+          title: "Error updating message status",
+          description: "Please check your connection and try again.",
+          variant: "destructive"
+        });
+      }
     }
   }, 300), [currentUser?.id]);
   
