@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useCallback, memo, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -125,6 +124,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       // Update in database (but don't wait for completion)
       if (currentUser?.id) {
         console.log(`[DMConversation] Marking conversation as read in DB: ${conversationId}`);
+        // Fix: Use .then().then(null, error) pattern instead of .catch()
         supabase.from('direct_messages_read')
           .upsert({
             conversation_id: conversationId,
@@ -134,7 +134,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
           .then(() => {
             console.log(`[DMConversation] Successfully marked conversation ${conversationId} as read in DB`);
           })
-          .catch(error => {
+          .then(null, (error) => {
             console.error('[DMConversation] Error marking conversation as read:', error);
           });
       }

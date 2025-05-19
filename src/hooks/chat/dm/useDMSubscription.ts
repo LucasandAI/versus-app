@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
@@ -206,7 +205,7 @@ export const useDMSubscription = (
                 .then(() => {
                   console.log(`[useDMSubscription] Successfully marked conversation ${conversation_id} as read in DB`);
                 })
-                .catch(error => {
+                .then(null, (error) => {
                   console.error('[useDMSubscription] Error marking conversation as read:', error);
                 });
               

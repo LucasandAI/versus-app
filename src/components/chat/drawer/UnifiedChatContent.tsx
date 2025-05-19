@@ -63,6 +63,7 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
         // Update in database (but don't wait for completion)
         if (currentUser?.id) {
           console.log(`[UnifiedChatContent] Marking club messages as read in DB: ${selectedChat.id}`);
+          // Fix: Use .then().catch() chaining instead of directly using .catch()
           supabase.from('club_messages_read')
             .upsert({
               club_id: selectedChat.id,
@@ -72,7 +73,8 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
             .then(() => {
               console.log(`[UnifiedChatContent] Successfully marked club ${selectedChat.id} messages as read in DB`);
             })
-            .catch(error => {
+            .then(null, (error) => {
+              // Using .then(null, errorHandler) instead of .catch()
               console.error('[UnifiedChatContent] Error marking messages as read:', error);
             });
         }
@@ -82,6 +84,7 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
         // Update in database (but don't wait for completion)
         if (currentUser?.id) {
           console.log(`[UnifiedChatContent] Marking DM conversation as read in DB: ${selectedChat.id}`);
+          // Fix: Use .then().catch() chaining instead of directly using .catch()
           supabase.from('direct_messages_read')
             .upsert({
               conversation_id: selectedChat.id,
@@ -91,7 +94,8 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
             .then(() => {
               console.log(`[UnifiedChatContent] Successfully marked conversation ${selectedChat.id} as read in DB`);
             })
-            .catch(error => {
+            .then(null, (error) => {
+              // Using .then(null, errorHandler) instead of .catch()
               console.error('[UnifiedChatContent] Error marking conversation as read:', error);
             });
         }

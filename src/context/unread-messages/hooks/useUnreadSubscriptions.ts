@@ -89,6 +89,7 @@ export const useUnreadSubscriptions = ({
             
             // Mark as read optimistically in database
             if (currentUserId) {
+              // Fix: Use .then().then(null, error) pattern instead of .catch()
               supabase.from('direct_messages_read')
                 .upsert({
                   conversation_id: conversationId,
@@ -98,7 +99,7 @@ export const useUnreadSubscriptions = ({
                 .then(() => {
                   console.log(`[useUnreadSubscriptions] Successfully marked conversation ${conversationId} as read in DB`);
                 })
-                .catch(error => {
+                .then(null, (error) => {
                   console.error('[useUnreadSubscriptions] Error marking conversation as read:', error);
                 });
             }
@@ -121,6 +122,7 @@ export const useUnreadSubscriptions = ({
             
             // Mark as read optimistically in database
             if (currentUserId) {
+              // Fix: Use .then().then(null, error) pattern instead of .catch()
               supabase.from('club_messages_read')
                 .upsert({
                   club_id: clubId,
@@ -130,7 +132,7 @@ export const useUnreadSubscriptions = ({
                 .then(() => {
                   console.log(`[useUnreadSubscriptions] Successfully marked club ${clubId} messages as read in DB`);
                 })
-                .catch(error => {
+                .then(null, (error) => {
                   console.error('[useUnreadSubscriptions] Error marking club messages as read:', error);
                 });
             }

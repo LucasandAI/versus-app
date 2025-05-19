@@ -162,6 +162,7 @@ export const handleNewMessagePayload = async (
       
       try {
         // Update in database (but don't wait)
+        // Fix: Use .then().then(null, error) pattern instead of .catch()
         supabase.from('club_messages_read')
           .upsert({
             club_id: messageClubId,
@@ -171,7 +172,7 @@ export const handleNewMessagePayload = async (
           .then(() => {
             console.log(`[subscriptionHandlers] Successfully marked club ${messageClubId} messages as read in DB`);
           })
-          .catch(error => {
+          .then(null, (error) => {
             console.error('[subscriptionHandlers] Error marking messages as read:', error);
           });
           
