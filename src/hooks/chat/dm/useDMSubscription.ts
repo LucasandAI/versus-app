@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage } from '@/types/chat';
@@ -18,12 +19,19 @@ export const useDMSubscription = (
   const processedMessages = useRef<Set<string>>(new Set());
   const { userCache, fetchUserData } = useUserData();
   
+  // Create a unique subscription ID for better tracking
+  const subscriptionId = useRef<string>(`dm:${conversationId}:${Date.now()}`);
+  
   // Store the user data in a ref to ensure it's stable across renders
   const otherUserDataRef = useRef(otherUserData);
   
   // Keep stable references to the conversation/user IDs
   const stableConversationId = useRef(conversationId);
   const stableOtherUserId = useRef(otherUserId);
+  
+  // Track subscription health
+  const lastMessageTime = useRef<number>(Date.now());
+  const subscriptionHealthy = useRef<boolean>(true);
   
   // Update stable refs when props change
   useEffect(() => {
@@ -46,63 +54,42 @@ export const useDMSubscription = (
   // Clean up function
   const cleanupSubscription = useCallback(() => {
     if (channelRef.current) {
-      console.log(`[useDMSubscription] Cleaning up subscription for conversation ${stableConversationId.current}`);
+      console.log(`[useDMSubscription] Cleaning up subscription ${subscriptionId.current} for conversation ${stableConversationId.current}`);
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
   }, []);
 
-  // Clean up resources on unmount
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
+  // Reset subscription to fix stale connections
+  const resetSubscription = useCallback(() => {
+    if (channelRef.current && subscriptionHealthy.current === false) {
+      console.log(`[useDMSubscription] Resetting stale subscription for ${stableConversationId.current}`);
       cleanupSubscription();
-      // Clear processed messages cache on unmount
-      processedMessages.current.clear();
-    };
+      
+      // Wait a moment before recreating to avoid thrashing
+      setTimeout(() => {
+        if (isMounted.current) {
+          setupSubscription();
+        }
+      }, 1000);
+    }
   }, [cleanupSubscription]);
-
-  // Fetch other user's data only if not provided in props
-  useEffect(() => {
-    if (otherUserId && !otherUserData) {
-      console.log(`[useDMSubscription] No user data provided for ${otherUserId}, fetching from cache or API`);
-      fetchUserData(otherUserId).then(userData => {
-        console.log(`[useDMSubscription] User data available:`, userData);
-      }).catch(err => {
-        console.error(`[useDMSubscription] Error fetching user data:`, err);
-      });
-    } else if (otherUserData) {
-      console.log(`[useDMSubscription] Using provided user data for ${otherUserId}:`, otherUserData);
-    }
-  }, [otherUserId, fetchUserData, otherUserData]);
-
-  // Clear processed message cache when conversation changes
-  useEffect(() => {
-    if (conversationId) {
-      processedMessages.current = new Set();
-    }
-  }, [conversationId]);
-
-  // Setup subscription when conversation details are ready
-  useEffect(() => {
-    // Clean up any existing subscription
-    cleanupSubscription();
-    
-    // Guard clause: early return if not ready
-    if (!conversationId || !currentUserId || !otherUserId || conversationId === 'new') {
+  
+  // Setup subscription with proper error handling and reconnect logic
+  const setupSubscription = useCallback(() => {
+    if (!stableConversationId.current || !currentUserId || !stableOtherUserId.current || stableConversationId.current === 'new') {
       return;
     }
     
     try {
-      console.log(`[useDMSubscription] Setting up subscription for conversation ${conversationId}`);
+      console.log(`[useDMSubscription] Setting up subscription ${subscriptionId.current} for conversation ${stableConversationId.current}`);
       
       // Use our stable reference
-      const conversation_id = conversationId;
-      const stable_otherUserId = otherUserId;
+      const conversation_id = stableConversationId.current;
+      const stable_otherUserId = stableOtherUserId.current;
       
       const channel = supabase
-        .channel(`direct_messages:${conversation_id}`)
+        .channel(subscriptionId.current)
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
@@ -112,6 +99,8 @@ export const useDMSubscription = (
           if (!isMounted.current) return;
           
           console.log('[useDMSubscription] New direct message received:', payload);
+          lastMessageTime.current = Date.now();
+          subscriptionHealthy.current = true;
           
           const newMessage = payload.new;
           
@@ -186,9 +175,16 @@ export const useDMSubscription = (
           });
           
           // Add message to UI
-          setMessages(prev => [...prev, chatMessage].sort(
-            (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-          ));
+          setMessages(prev => {
+            // Double check for duplicates
+            if (prev.some(m => m.id === messageId)) {
+              return prev;
+            }
+            // Add the message and sort
+            return [...prev, chatMessage].sort(
+              (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+            );
+          });
           
           // If the message is from the other user, mark as read optimistically
           if (isFromOtherUser && conversation_id && conversation_id !== 'new') {
@@ -227,7 +223,14 @@ export const useDMSubscription = (
           }));
         })
         .subscribe((status) => {
-          console.log(`DM subscription status for ${conversation_id}:`, status);
+          console.log(`DM subscription status for ${conversation_id}: ${status}`);
+          if (status === 'SUBSCRIBED') {
+            subscriptionHealthy.current = true;
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            subscriptionHealthy.current = false;
+            // Attempt to recover
+            setTimeout(resetSubscription, 2000);
+          }
         });
       
       channelRef.current = channel;
@@ -235,6 +238,7 @@ export const useDMSubscription = (
       
     } catch (error) {
       console.error('[useDMSubscription] Error setting up subscription:', error);
+      subscriptionHealthy.current = false;
       
       if (!subscriptionError.current && isMounted.current) {
         toast({
@@ -243,9 +247,77 @@ export const useDMSubscription = (
           variant: "destructive"
         });
         subscriptionError.current = true;
+        
+        // Try to recover
+        setTimeout(resetSubscription, 3000);
       }
     }
+  }, [currentUserId, fetchUserData, userCache, setMessages, resetSubscription]);
+
+  // Clean up resources on unmount
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      cleanupSubscription();
+      // Clear processed messages cache on unmount
+      processedMessages.current.clear();
+    };
+  }, [cleanupSubscription]);
+
+  // Fetch other user's data only if not provided in props
+  useEffect(() => {
+    if (otherUserId && !otherUserData) {
+      console.log(`[useDMSubscription] No user data provided for ${otherUserId}, fetching from cache or API`);
+      fetchUserData(otherUserId).then(userData => {
+        console.log(`[useDMSubscription] User data available:`, userData);
+      }).catch(err => {
+        console.error(`[useDMSubscription] Error fetching user data:`, err);
+      });
+    } else if (otherUserData) {
+      console.log(`[useDMSubscription] Using provided user data for ${otherUserId}:`, otherUserData);
+    }
+  }, [otherUserId, fetchUserData, otherUserData]);
+
+  // Clear processed message cache when conversation changes
+  useEffect(() => {
+    if (conversationId) {
+      processedMessages.current = new Set();
+    }
+  }, [conversationId]);
+
+  // Setup subscription when conversation details are ready
+  useEffect(() => {
+    // Clean up any existing subscription
+    cleanupSubscription();
+    
+    // Generate a new subscription ID when the conversation changes
+    subscriptionId.current = `dm:${conversationId}:${Date.now()}`;
+    
+    // Setup the new subscription
+    setupSubscription();
     
     return cleanupSubscription;
-  }, [conversationId, currentUserId, otherUserId, userCache, cleanupSubscription, fetchUserData, setMessages]);
+  }, [conversationId, currentUserId, otherUserId, userCache, cleanupSubscription, setupSubscription]);
+  
+  // Health check timer for subscription
+  useEffect(() => {
+    // Only run health checks for active, valid conversations
+    if (!conversationId || conversationId === 'new') return;
+    
+    const healthCheck = setInterval(() => {
+      // If no message received in 30 seconds and conversation is active, check health
+      const timeSinceLastMessage = Date.now() - lastMessageTime.current;
+      if (timeSinceLastMessage > 30000) {
+        console.log(`[useDMSubscription] Health check: No messages for ${Math.round(timeSinceLastMessage/1000)}s`);
+        
+        // If subscription is not healthy, try to reset
+        if (!subscriptionHealthy.current) {
+          resetSubscription();
+        }
+      }
+    }, 15000);
+    
+    return () => clearInterval(healthCheck);
+  }, [conversationId, resetSubscription]);
 };

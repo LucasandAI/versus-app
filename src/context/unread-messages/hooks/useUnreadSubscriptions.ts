@@ -30,6 +30,31 @@ export const useUnreadSubscriptions = ({
     type: null,
     id: null
   });
+  
+  // Track channel health
+  const channelsRef = useRef<{
+    dm: ReturnType<typeof supabase.channel> | null,
+    club: ReturnType<typeof supabase.channel> | null
+  }>({
+    dm: null,
+    club: null
+  });
+  
+  const channelHealthyRef = useRef<{
+    dm: boolean,
+    club: boolean
+  }>({
+    dm: true,
+    club: true
+  });
+  
+  const lastEventTimeRef = useRef<{
+    dm: number,
+    club: number
+  }>({
+    dm: Date.now(),
+    club: Date.now()
+  });
 
   // Update refs when handlers change
   useEffect(() => {
@@ -61,16 +86,58 @@ export const useUnreadSubscriptions = ({
     
     window.addEventListener('messagesMarkedAsRead', handleMessagesMarkedAsRead as EventListener);
     
+    // Listen for visibility changes to refresh counts when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[useUnreadSubscriptions] Tab became visible, refreshing unread counts');
+        // Refresh unread counts
+        handlersRef.current.fetchUnreadCounts();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
     return () => {
       window.removeEventListener('activeConversationChanged', handleActiveConversationChanged as EventListener);
       window.removeEventListener('messagesMarkedAsRead', handleMessagesMarkedAsRead as EventListener);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
   
-  useEffect(() => {
-    if (!isSessionReady || !currentUserId) return;
+  // Reset subscription function for connection recovery
+  const resetChannels = (type: 'dm' | 'club' | 'both') => {
+    console.log(`[useUnreadSubscriptions] Resetting ${type} channels`);
     
-    console.log('[useUnreadSubscriptions] Setting up realtime subscriptions for user:', currentUserId);
+    if (type === 'dm' || type === 'both') {
+      if (channelsRef.current.dm) {
+        supabase.removeChannel(channelsRef.current.dm);
+        channelsRef.current.dm = null;
+      }
+    }
+    
+    if (type === 'club' || type === 'both') {
+      if (channelsRef.current.club) {
+        supabase.removeChannel(channelsRef.current.club);
+        channelsRef.current.club = null;
+      }
+    }
+    
+    // Refresh unread counts after channel reset
+    if (isSessionReady && currentUserId) {
+      handlersRef.current.fetchUnreadCounts();
+      
+      // Setup channels again after a brief delay
+      if (type === 'both') {
+        setTimeout(() => {
+          setupChannels(currentUserId);
+        }, 1000);
+      }
+    }
+  };
+  
+  // Setup realtime channels
+  const setupChannels = (userId: string) => {
+    console.log('[useUnreadSubscriptions] Setting up realtime subscriptions for user:', userId);
     
     // Use local micro-batching for unread updates to prevent cascading re-renders
     let pendingUpdates = new Set<string>();
@@ -89,12 +156,12 @@ export const useUnreadSubscriptions = ({
             console.log(`[useUnreadSubscriptions] Skipping unread update for active conversation: ${conversationId}`);
             
             // Mark as read optimistically in database
-            if (currentUserId) {
+            if (userId) {
               // Fix: Use .then().then(null, error) pattern instead of .catch()
               supabase.from('direct_messages_read')
                 .upsert({
                   conversation_id: conversationId,
-                  user_id: currentUserId,
+                  user_id: userId,
                   last_read_timestamp: new Date().toISOString()
                 })
                 .then(() => {
@@ -122,12 +189,12 @@ export const useUnreadSubscriptions = ({
             console.log(`[useUnreadSubscriptions] Skipping unread update for active club: ${clubId}`);
             
             // Mark as read optimistically in database
-            if (currentUserId) {
+            if (userId) {
               // Fix: Use .then().then(null, error) pattern instead of .catch()
               supabase.from('club_messages_read')
                 .upsert({
                   club_id: clubId,
-                  user_id: currentUserId,
+                  user_id: userId,
                   last_read_timestamp: new Date().toISOString()
                 })
                 .then(() => {
@@ -161,7 +228,7 @@ export const useUnreadSubscriptions = ({
       }, 100);
     };
     
-    // Set up real-time subscriptions for new messages
+    // Set up DM channel
     const timestamp = Date.now();
     const dmChannel = supabase
       .channel(`global-dm-unread-tracking-${timestamp}`)
@@ -172,7 +239,10 @@ export const useUnreadSubscriptions = ({
             table: 'direct_messages' 
           },
           (payload) => {
-            if (payload.new.receiver_id === currentUserId) {
+            lastEventTimeRef.current.dm = Date.now();
+            channelHealthyRef.current.dm = true;
+            
+            if (payload.new.receiver_id === userId) {
               // Queue the update instead of processing immediately
               pendingUpdates.add(payload.new.conversation_id);
               queueUpdate();
@@ -180,10 +250,17 @@ export const useUnreadSubscriptions = ({
           })
       .subscribe((status) => {
         console.log(`[useUnreadSubscriptions] DM channel status: ${status}`);
+        if (status === 'SUBSCRIBED') {
+          channelHealthyRef.current.dm = true;
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          channelHealthyRef.current.dm = false;
+          setTimeout(() => resetChannels('dm'), 2000);
+        }
       });
     
     // Subscribe to new club messages
-    const clubChannel = supabase.channel(`global-club-unread-tracking-${timestamp}`)
+    const clubChannel = supabase
+      .channel(`global-club-unread-tracking-${timestamp}`)
       .on('postgres_changes', 
           { 
             event: 'INSERT', 
@@ -191,7 +268,10 @@ export const useUnreadSubscriptions = ({
             table: 'club_chat_messages'
           },
           (payload) => {
-            if (payload.new.sender_id !== currentUserId) {
+            lastEventTimeRef.current.club = Date.now();
+            channelHealthyRef.current.club = true;
+            
+            if (payload.new.sender_id !== userId) {
               // Queue the update instead of processing immediately
               pendingClubUpdates.add(payload.new.club_id);
               queueUpdate();
@@ -199,18 +279,57 @@ export const useUnreadSubscriptions = ({
           })
       .subscribe((status) => {
         console.log(`[useUnreadSubscriptions] Club channel status: ${status}`);
+        if (status === 'SUBSCRIBED') {
+          channelHealthyRef.current.club = true;
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          channelHealthyRef.current.club = false;
+          setTimeout(() => resetChannels('club'), 2000);
+        }
       });
+    
+    // Store channel references
+    channelsRef.current.dm = dmChannel;
+    channelsRef.current.club = clubChannel;
+  };
+  
+  // Main effect to set up and manage subscriptions
+  useEffect(() => {
+    if (!isSessionReady || !currentUserId) return;
+    
+    // Initial channel setup
+    setupChannels(currentUserId);
       
     // Initial fetch of unread counts
     handlersRef.current.fetchUnreadCounts();
       
-    return () => {
-      supabase.removeChannel(dmChannel);
-      supabase.removeChannel(clubChannel);
+    // Health check timer
+    const healthCheckTimer = setInterval(() => {
+      const now = Date.now();
+      const dmTimeSinceLastEvent = now - lastEventTimeRef.current.dm;
+      const clubTimeSinceLastEvent = now - lastEventTimeRef.current.club;
       
-      if (updateTimeout) {
-        clearTimeout(updateTimeout);
+      // Check DM channel health
+      if (dmTimeSinceLastEvent > 60000 && !channelHealthyRef.current.dm) {
+        console.log(`[useUnreadSubscriptions] DM channel health check: No events for ${Math.round(dmTimeSinceLastEvent/1000)}s`);
+        resetChannels('dm');
       }
+      
+      // Check club channel health
+      if (clubTimeSinceLastEvent > 60000 && !channelHealthyRef.current.club) {
+        console.log(`[useUnreadSubscriptions] Club channel health check: No events for ${Math.round(clubTimeSinceLastEvent/1000)}s`);
+        resetChannels('club');
+      }
+      
+      // Periodic refresh of unread counts regardless of channel health
+      if (dmTimeSinceLastEvent > 120000 || clubTimeSinceLastEvent > 120000) {
+        console.log('[useUnreadSubscriptions] Periodic refresh of unread counts');
+        handlersRef.current.fetchUnreadCounts();
+      }
+    }, 30000);
+    
+    return () => {
+      clearInterval(healthCheckTimer);
+      resetChannels('both');
     };
   }, [currentUserId, isSessionReady]);
 };

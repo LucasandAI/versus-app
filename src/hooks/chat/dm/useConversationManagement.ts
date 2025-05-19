@@ -1,61 +1,97 @@
-
-import { useState } from 'react';
+import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { v4 as uuidv4 } from 'uuid';
 
-export const useConversationManagement = (currentUserId: string | undefined, userId: string) => {
-  const createConversation = async (): Promise<string | null> => {
-    if (!currentUserId || !userId) return null;
-    
+export const useConversationManagement = (currentUserId?: string, otherUserId?: string) => {
+  // Create a new conversation between two users
+  const createConversation = useCallback(async () => {
+    if (!currentUserId || !otherUserId) {
+      console.error('[useConversationManagement] Cannot create conversation: missing user IDs');
+      return null;
+    }
+
     try {
-      console.log('Checking for existing conversation between', currentUserId, 'and', userId);
+      console.log(`[useConversationManagement] Creating conversation between ${currentUserId} and ${otherUserId}`);
       
-      // Check if conversation already exists between these two users
+      // First check if a conversation already exists
       const { data: existingConversation, error: checkError } = await supabase
         .from('direct_conversations')
         .select('id')
-        .or(`and(user1_id.eq.${currentUserId},user2_id.eq.${userId}),and(user1_id.eq.${userId},user2_id.eq.${currentUserId})`)
+        .or(`user1_id.eq.${currentUserId},user2_id.eq.${currentUserId}`)
+        .or(`user1_id.eq.${otherUserId},user2_id.eq.${otherUserId}`)
         .maybeSingle();
-      
+
       if (checkError) {
-        console.error('Error checking for existing conversation:', checkError);
-        throw checkError;
+        console.error('[useConversationManagement] Error checking existing conversation:', checkError);
       }
-      
+
       // If conversation exists, return its ID
-      if (existingConversation) {
-        console.log('Found existing conversation:', existingConversation.id);
+      if (existingConversation?.id) {
+        console.log(`[useConversationManagement] Found existing conversation: ${existingConversation.id}`);
         return existingConversation.id;
       }
+
+      // Otherwise create a new conversation
+      const conversationId = uuidv4();
       
-      console.log('Creating new conversation between', currentUserId, 'and', userId);
-      // Create a new conversation
-      const { data: newConversation, error } = await supabase
+      const { error } = await supabase
         .from('direct_conversations')
         .insert({
+          id: conversationId,
           user1_id: currentUserId,
-          user2_id: userId
-        })
-        .select('id')
-        .single();
-        
+          user2_id: otherUserId
+        });
+
       if (error) {
-        console.error('Error creating conversation:', error);
-        throw error;
+        console.error('[useConversationManagement] Error creating conversation:', error);
+        return null;
       }
-      
-      console.log('Created new conversation with ID:', newConversation.id);
-      return newConversation.id;
+
+      console.log(`[useConversationManagement] Created new conversation: ${conversationId}`);
+      return conversationId;
     } catch (error) {
-      console.error('Error creating conversation:', error);
-      toast({
-        title: "Error",
-        description: "Could not create conversation",
-        variant: "destructive"
-      });
+      console.error('[useConversationManagement] Exception creating conversation:', error);
       return null;
     }
-  };
+  }, [currentUserId, otherUserId]);
 
-  return { createConversation };
+  // Get an existing conversation or create a new one
+  const getOrCreateConversation = useCallback(async () => {
+    if (!currentUserId || !otherUserId) {
+      console.error('[useConversationManagement] Cannot get/create conversation: missing user IDs');
+      return null;
+    }
+
+    try {
+      // First check if a conversation already exists
+      const { data: existingConversation, error: checkError } = await supabase
+        .from('direct_conversations')
+        .select('id')
+        .or(`and(user1_id.eq.${currentUserId},user2_id.eq.${otherUserId})`)
+        .or(`and(user1_id.eq.${otherUserId},user2_id.eq.${currentUserId})`)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('[useConversationManagement] Error checking existing conversation:', checkError);
+        throw checkError;
+      }
+
+      // If conversation exists, return its ID
+      if (existingConversation?.id) {
+        console.log(`[useConversationManagement] Found existing conversation: ${existingConversation.id}`);
+        return existingConversation.id;
+      }
+
+      // Otherwise create a new conversation
+      return await createConversation();
+    } catch (error) {
+      console.error('[useConversationManagement] Error in getOrCreateConversation:', error);
+      return null;
+    }
+  }, [currentUserId, otherUserId, createConversation]);
+
+  return {
+    createConversation,
+    getOrCreateConversation
+  };
 };

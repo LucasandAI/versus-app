@@ -15,6 +15,10 @@ export const useClubMessageSubscriptions = (
   const selectedClubRef = useRef<string | null>(null);
   const clubsRef = useRef<Club[]>(userClubs);
   const { markClubAsRead } = useCoalescedReadStatus();
+  const subscriptionId = useRef<string>(`clubs:${Date.now()}`);
+  const subscriptionHealthy = useRef<boolean>(true);
+  const lastEventTime = useRef<number>(Date.now());
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   
   // Keep clubs reference updated
   useEffect(() => {
@@ -41,8 +45,40 @@ export const useClubMessageSubscriptions = (
     };
   }, []);
   
-  // Set up real-time subscription for all clubs
-  useEffect(() => {
+  // Clean up function for subscription
+  const cleanupSubscription = useRef(() => {
+    if (channelRef.current) {
+      console.log(`[useClubMessageSubscriptions] Cleaning up channel: ${subscriptionId.current}`);
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+      
+      // Mark all clubs as unsubscribed
+      const updatedSubs = { ...activeSubscriptionsRef.current };
+      clubsRef.current.forEach(club => {
+        delete updatedSubs[club.id];
+      });
+      activeSubscriptionsRef.current = updatedSubs;
+    }
+  });
+  
+  // Reset subscription to fix stale connections
+  const resetSubscription = useRef(() => {
+    if (subscriptionHealthy.current === false) {
+      console.log(`[useClubMessageSubscriptions] Resetting stale subscription: ${subscriptionId.current}`);
+      cleanupSubscription.current();
+      
+      // Generate a new subscription ID
+      subscriptionId.current = `clubs:${Date.now()}`;
+      
+      // Wait a moment before recreating to avoid thrashing
+      setTimeout(() => {
+        setupSubscription();
+      }, 1000);
+    }
+  });
+  
+  // Setup the subscription
+  const setupSubscription = () => {
     // Don't subscribe if not open or no clubs
     if (!isOpen || userClubs.length === 0 || !currentUser?.id) {
       console.log('[useClubMessageSubscriptions] Not setting up subscriptions, conditions not met:', {
@@ -55,77 +91,122 @@ export const useClubMessageSubscriptions = (
     
     console.log('[useClubMessageSubscriptions] Setting up subscription for clubs:', userClubs.length);
     
-    // Create a channel for all clubs with a unique ID (includes timestamp to ensure uniqueness on hot reloads)
+    // Create a channel for all clubs with a unique ID
     const clubIds = userClubs.map(club => club.id).join(',');
-    const timestamp = Date.now();
-    const channelId = `clubs-${timestamp}-${clubIds.substring(0, 20)}`; // Truncate to keep channelId reasonable
     
     // Set up a single channel for all inserts
-    const channel = supabase
-      .channel(channelId)
-      .on('postgres_changes', 
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'club_chat_messages',
-          filter: userClubs.length > 0 ? `club_id=in.(${userClubs.map(c => `'${c.id}'`).join(',')})` : undefined
-        }, 
-        (payload) => {
-          console.log('[useClubMessageSubscriptions] New message detected:', payload.new?.id);
-          
-          const isActiveClub = selectedClubRef.current === payload.new.club_id;
-          const isFromCurrentUser = payload.new.sender_id === currentUser.id;
-          
-          // If this is a new message for the active club and not from the current user,
-          // mark it as read immediately
-          if (isActiveClub && !isFromCurrentUser) {
-            console.log('[useClubMessageSubscriptions] Auto-marking new message as read (active club)');
-            markClubAsRead(payload.new.club_id);
+    try {
+      const channel = supabase
+        .channel(subscriptionId.current)
+        .on('postgres_changes', 
+          { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'club_chat_messages',
+            filter: userClubs.length > 0 ? `club_id=in.(${userClubs.map(c => `'${c.id}'`).join(',')})` : undefined
+          }, 
+          (payload) => {
+            lastEventTime.current = Date.now();
+            subscriptionHealthy.current = true;
+            
+            console.log('[useClubMessageSubscriptions] New message detected:', payload.new?.id);
+            
+            const isActiveClub = selectedClubRef.current === payload.new.club_id;
+            const isFromCurrentUser = payload.new.sender_id === currentUser.id;
+            
+            // If this is a new message for the active club and not from the current user,
+            // mark it as read immediately
+            if (isActiveClub && !isFromCurrentUser) {
+              console.log('[useClubMessageSubscriptions] Auto-marking new message as read (active club)');
+              markClubAsRead(payload.new.club_id);
+            }
+            
+            handleNewMessagePayload(
+              payload, 
+              clubsRef.current, 
+              setClubMessages, 
+              currentUser, 
+              selectedClubRef.current
+            );
           }
-          
-          handleNewMessagePayload(
-            payload, 
-            clubsRef.current, 
-            setClubMessages, 
-            currentUser, 
-            selectedClubRef.current
-          );
-        }
-      )
-      .on('postgres_changes', 
-        { 
-          event: 'DELETE', 
-          schema: 'public', 
-          table: 'club_chat_messages',
-          filter: userClubs.length > 0 ? `club_id=in.(${userClubs.map(c => `'${c.id}'`).join(',')})` : undefined
-        }, 
-        (payload) => {
-          console.log('[useClubMessageSubscriptions] Message deletion detected:', payload.old?.id);
-          handleMessageDeletion(payload, setClubMessages);
-        }
-      )
-      .subscribe((status) => {
-        console.log(`[useClubMessageSubscriptions] Subscription status for ${channelId}: ${status}`);
-      });
-    
-    // Mark all clubs as subscribed
-    const updatedSubs = { ...activeSubscriptionsRef.current };
-    userClubs.forEach(club => {
-      updatedSubs[club.id] = true;
-    });
-    activeSubscriptionsRef.current = updatedSubs;
-    
-    // Cleanup
-    return () => {
-      console.log('[useClubMessageSubscriptions] Cleaning up channel:', channelId);
-      supabase.removeChannel(channel);
+        )
+        .on('postgres_changes', 
+          { 
+            event: 'DELETE', 
+            schema: 'public', 
+            table: 'club_chat_messages',
+            filter: userClubs.length > 0 ? `club_id=in.(${userClubs.map(c => `'${c.id}'`).join(',')})` : undefined
+          }, 
+          (payload) => {
+            lastEventTime.current = Date.now();
+            console.log('[useClubMessageSubscriptions] Message deletion detected:', payload.old?.id);
+            handleMessageDeletion(payload, setClubMessages);
+          }
+        )
+        .subscribe((status) => {
+          console.log(`[useClubMessageSubscriptions] Subscription status for ${subscriptionId.current}: ${status}`);
+          if (status === 'SUBSCRIBED') {
+            subscriptionHealthy.current = true;
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            subscriptionHealthy.current = false;
+            // Attempt to recover
+            setTimeout(() => resetSubscription.current(), 2000);
+          }
+        });
       
-      // Mark all clubs as unsubscribed
+      channelRef.current = channel;
+      
+      // Mark all clubs as subscribed
       const updatedSubs = { ...activeSubscriptionsRef.current };
       userClubs.forEach(club => {
-        delete updatedSubs[club.id];
+        updatedSubs[club.id] = true;
       });
       activeSubscriptionsRef.current = updatedSubs;
+      
+    } catch (error) {
+      console.error('[useClubMessageSubscriptions] Error setting up subscription:', error);
+      subscriptionHealthy.current = false;
+      
+      // Try to recover
+      setTimeout(() => resetSubscription.current(), 3000);
+    }
+  };
+  
+  // Set up real-time subscription for all clubs
+  useEffect(() => {
+    // Clean up any existing subscription
+    cleanupSubscription.current();
+    
+    // Generate a new subscription ID
+    subscriptionId.current = `clubs:${Date.now()}`;
+    
+    // Setup the new subscription
+    setupSubscription();
+    
+    // Cleanup on unmount
+    return () => {
+      cleanupSubscription.current();
     };
-  }, [isOpen, userClubs, currentUser?.id, setClubMessages, markClubAsRead]);
+  }, [isOpen, userClubs.length, currentUser?.id, setClubMessages, markClubAsRead]);
+  
+  // Health check timer for subscription
+  useEffect(() => {
+    // Only run health checks for active drawer
+    if (!isOpen) return;
+    
+    const healthCheck = setInterval(() => {
+      // If no event received in 30 seconds, check health
+      const timeSinceLastEvent = Date.now() - lastEventTime.current;
+      if (timeSinceLastEvent > 30000) {
+        console.log(`[useClubMessageSubscriptions] Health check: No events for ${Math.round(timeSinceLastEvent/1000)}s`);
+        
+        // If subscription is not healthy, try to reset
+        if (!subscriptionHealthy.current) {
+          resetSubscription.current();
+        }
+      }
+    }, 15000);
+    
+    return () => clearInterval(healthCheck);
+  }, [isOpen]);
 };
