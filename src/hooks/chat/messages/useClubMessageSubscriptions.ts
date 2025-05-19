@@ -86,7 +86,7 @@ export const useClubMessageSubscriptions = (
   // Setup the subscription
   const setupSubscription = () => {
     // Don't subscribe if not open or no clubs
-    if (!isOpen || userClubs.length === 0 || !currentUser?.id) {
+    if (!isOpen || !userClubs.length || !currentUser?.id) {
       console.log('[useClubMessageSubscriptions] Not setting up subscriptions, conditions not met:', {
         isOpen,
         clubsCount: userClubs.length,

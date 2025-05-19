@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { Club } from '@/types';
@@ -10,7 +11,7 @@ import UnifiedChatList from './UnifiedChatList';
 import UnifiedChatContent from './UnifiedChatContent';
 import { useClubMessages } from '@/hooks/chat/useClubMessages';
 import { useDirectMessages } from '@/hooks/chat/useDirectMessages';
-import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -36,7 +37,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     avatar?: string;
   } | null>(null);
   
-  const { unreadClubs, unreadConversations } = useUnreadMessages();
+  const { unreadClubs, unreadConversations, refreshUnreadCounts, markClubMessagesAsRead, markConversationAsRead } = useUnreadMessages();
   const { currentUser } = useApp();
   const { fetchConversations, getOrCreateConversation } = useDirectConversationsContext();
   const { sendMessageToClub, sendDirectMessage, deleteMessage } = useChatActions();
@@ -49,9 +50,42 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   // Effect to fetch conversations when drawer opens
   useEffect(() => {
     if (open && currentUser?.id) {
+      console.log('[MainChatDrawer] Drawer opened - fetching conversations and unread counts');
       fetchConversations();
+      refreshUnreadCounts();
     }
-  }, [open, currentUser?.id, fetchConversations]);
+  }, [open, currentUser?.id, fetchConversations, refreshUnreadCounts]);
+
+  // Listen for the messagesMarkedAsRead event to update badge counts
+  useEffect(() => {
+    const handleMessagesMarkedAsRead = (event: CustomEvent) => {
+      console.log('[MainChatDrawer] Messages marked as read:', event.detail);
+      
+      // Refresh unread counts to update UI badges
+      setTimeout(() => {
+        refreshUnreadCounts();
+      }, 200); // Short delay to ensure database operations complete
+    };
+    
+    window.addEventListener('messagesMarkedAsRead', handleMessagesMarkedAsRead as EventListener);
+    
+    // Listen for new message events
+    const handleNewMessage = (event: CustomEvent) => {
+      // Update unread count for notification badge
+      if (onNewMessage && event.detail) {
+        refreshUnreadCounts();
+      }
+    };
+    
+    window.addEventListener('clubMessageReceived', handleNewMessage as EventListener);
+    window.addEventListener('dmMessageReceived', handleNewMessage as EventListener);
+    
+    return () => {
+      window.removeEventListener('messagesMarkedAsRead', handleMessagesMarkedAsRead as EventListener);
+      window.removeEventListener('clubMessageReceived', handleNewMessage as EventListener);
+      window.removeEventListener('dmMessageReceived', handleNewMessage as EventListener);
+    };
+  }, [refreshUnreadCounts, onNewMessage]);
 
   // Effect to handle openDirectMessage event
   useEffect(() => {
@@ -91,8 +125,19 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   }, [getOrCreateConversation]);
 
   const handleSelectChat = React.useCallback((type: 'club' | 'dm', id: string, name: string, avatar?: string) => {
+    console.log(`[MainChatDrawer] Selecting chat: ${type} - ${id}`);
     setSelectedChat({ type, id, name, avatar });
-  }, []);
+    
+    // Mark as read immediately when selected
+    if (type === 'club') {
+      markClubMessagesAsRead(id);
+    } else if (type === 'dm') {
+      markConversationAsRead(id);
+    }
+    
+    // Refresh unread counts to update badges
+    setTimeout(() => refreshUnreadCounts(), 200);
+  }, [markClubMessagesAsRead, markConversationAsRead, refreshUnreadCounts]);
 
   const handleSendMessage = React.useCallback(async (message: string, chatId: string, type: 'club' | 'dm') => {
     if (type === 'club' && setClubMessages) {
@@ -146,6 +191,9 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const handleBack = () => {
     setSelectedChat(null);
     setListKey((k) => k + 1);
+    
+    // Refresh unread counts when going back to the chat list
+    refreshUnreadCounts();
   };
 
   return (

@@ -1,11 +1,15 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import { ChatMessage } from '@/types/chat';
+import { useUnreadMessages } from '@/context/unread-messages';
 
 export const useDirectMessages = (conversationId: string | null) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const { currentUser } = useApp();
+  const { markConversationAsRead, refreshUnreadCounts } = useUnreadMessages();
+  const [subscriptionActive, setSubscriptionActive] = useState(false);
 
   // Fetch initial messages
   useEffect(() => {
@@ -81,10 +85,29 @@ export const useDirectMessages = (conversationId: string | null) => {
     };
 
     fetchMessages();
+  }, [conversationId, currentUser?.id]);
 
-    // Set up real-time subscription
-    const subscription = supabase
-      .channel(`direct_messages:${conversationId}`)
+  // Set up real-time subscription when conversation is active
+  useEffect(() => {
+    if (!conversationId || !currentUser?.id || conversationId === 'new' || subscriptionActive) return;
+
+    console.log(`[useDirectMessages] Setting up real-time subscription for conversation: ${conversationId}`);
+
+    // Dispatch active conversation change event
+    window.dispatchEvent(new CustomEvent('activeConversationChanged', { 
+      detail: { 
+        type: 'dm', 
+        id: conversationId 
+      } 
+    }));
+
+    // Mark as read immediately when conversation becomes active
+    markConversationAsRead(conversationId);
+    setTimeout(() => refreshUnreadCounts(), 200);
+
+    // Set up subscription for real-time updates
+    const channel = supabase
+      .channel(`direct_messages:${conversationId}:${Date.now()}`)
       .on(
         'postgres_changes',
         {
@@ -121,13 +144,35 @@ export const useDirectMessages = (conversationId: string | null) => {
             isUserMessage: String(newMessage.sender_id) === String(currentUser.id)
           };
           
+          console.log('[useDirectMessages] New real-time message received:', normalizedMessage);
+          
           setMessages(prev => {
             // Double check we don't have this message
             if (prev.some(msg => msg.id === newMessage.id)) {
               return prev;
             }
-            return [...prev, normalizedMessage];
+            
+            // Add new message to the list and sort by timestamp
+            const updatedMessages = [...prev, normalizedMessage].sort(
+              (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+            );
+            
+            return updatedMessages;
           });
+          
+          // If message is from someone else, mark it as read since we're in the conversation
+          if (newMessage.sender_id !== currentUser.id) {
+            markConversationAsRead(conversationId);
+            setTimeout(() => refreshUnreadCounts(), 200);
+          }
+          
+          // Dispatch event for other components to update
+          window.dispatchEvent(new CustomEvent('dmMessageReceived', {
+            detail: {
+              conversationId: conversationId,
+              message: normalizedMessage
+            }
+          }));
         }
       )
       .on(
@@ -139,15 +184,31 @@ export const useDirectMessages = (conversationId: string | null) => {
           filter: `conversation_id=eq.${conversationId}`
         },
         (payload) => {
+          console.log('[useDirectMessages] Message deleted:', payload.old.id);
           setMessages(prev => prev.filter(msg => msg.id !== payload.old.id));
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`[useDirectMessages] Subscription status for ${conversationId}: ${status}`);
+        if (status === 'SUBSCRIBED') {
+          setSubscriptionActive(true);
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          setSubscriptionActive(false);
+        }
+      });
 
+    // Cleanup function
     return () => {
-      subscription.unsubscribe();
+      console.log(`[useDirectMessages] Cleaning up subscription for conversation: ${conversationId}`);
+      supabase.removeChannel(channel);
+      setSubscriptionActive(false);
+      
+      // Clear active conversation
+      window.dispatchEvent(new CustomEvent('activeConversationChanged', {
+        detail: { type: null, id: null }
+      }));
     };
-  }, [conversationId, currentUser?.id]);
+  }, [conversationId, currentUser?.id, subscriptionActive, messages, markConversationAsRead, refreshUnreadCounts]);
 
   return { messages, setMessages };
-}; 
+};
