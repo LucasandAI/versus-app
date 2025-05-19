@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
@@ -32,6 +33,11 @@ export const useClubMessageSubscriptions = (
       if (event.detail.type === 'club') {
         console.log('[useClubMessageSubscriptions] Active club conversation changed:', event.detail.id);
         selectedClubRef.current = event.detail.id;
+        
+        // Mark as read immediately when the conversation becomes active
+        if (event.detail.id) {
+          markClubAsRead(event.detail.id);
+        }
       } else if (event.detail.type === null && event.detail.id === null) {
         // Clear selected club if no active conversation
         selectedClubRef.current = null;
@@ -43,7 +49,7 @@ export const useClubMessageSubscriptions = (
     return () => {
       window.removeEventListener('activeConversationChanged', handleActiveConversationChanged as EventListener);
     };
-  }, []);
+  }, [markClubAsRead]);
   
   // Clean up function for subscription
   const cleanupSubscription = useRef(() => {

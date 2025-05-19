@@ -48,8 +48,42 @@ export const useDMSubscription = (
           id: conversationId 
         } 
       }));
+      
+      // Mark conversation as read when it becomes active
+      if (currentUserId && conversationId !== 'new') {
+        try {
+          console.log(`[useDMSubscription] 📖 Optimistically marking DM as read for conversation: ${conversationId}`);
+          
+          // Update in database (but don't wait for response to update UI)
+          supabase.from('direct_messages_read')
+            .upsert({
+              conversation_id: conversationId,
+              user_id: currentUserId,
+              last_read_timestamp: new Date().toISOString()
+            }, {
+              onConflict: 'conversation_id,user_id',
+              ignoreDuplicates: true
+            })
+            .then(() => {
+              console.log(`[useDMSubscription] Successfully marked conversation ${conversationId} as read in DB`);
+            })
+            .then(null, (error) => {
+              // Ignore unique constraint violations
+              if (error.code !== '23505') {
+                console.error('[useDMSubscription] Error marking conversation as read:', error);
+              }
+            });
+          
+          // Dispatch event for local state update  
+          window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
+            detail: { type: 'dm', id: conversationId } 
+          }));
+        } catch (error) {
+          console.error('[useDMSubscription] Error in optimistic read update:', error);
+        }
+      }
     }
-  }, [conversationId, otherUserId, otherUserData]);
+  }, [conversationId, otherUserId, otherUserData, currentUserId]);
   
   // Clean up function
   const cleanupSubscription = useCallback(() => {
@@ -165,7 +199,8 @@ export const useDMSubscription = (
               name: senderName,
               avatar: senderAvatar
             },
-            timestamp: newMessage.timestamp
+            timestamp: newMessage.timestamp,
+            isUserMessage: senderId === currentUserId
           };
           
           console.log('[useDMSubscription] Dispatching message with user data:', {
@@ -197,12 +232,17 @@ export const useDMSubscription = (
                   conversation_id: conversation_id,
                   user_id: currentUserId,
                   last_read_timestamp: new Date().toISOString()
+                }, {
+                  onConflict: 'conversation_id,user_id',
+                  ignoreDuplicates: true
                 })
                 .then(() => {
                   console.log(`[useDMSubscription] Successfully marked conversation ${conversation_id} as read in DB`);
                 })
                 .then(null, (error) => {
-                  console.error('[useDMSubscription] Error marking conversation as read:', error);
+                  if (error.code !== '23505') {
+                    console.error('[useDMSubscription] Error marking conversation as read:', error);
+                  }
                 });
               
               // Dispatch event for local state update  
