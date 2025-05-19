@@ -13,6 +13,7 @@ import DMMessageInput from './DMMessageInput';
 import DMHeader from './DMHeader';
 import { ArrowLeft } from 'lucide-react';
 import { useUserData } from '@/hooks/chat/dm/useUserData';
+import { useConversationManagement } from '@/hooks/chat/dm/useConversationManagement';
 
 interface DMConversationProps {
   user: {
