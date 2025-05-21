@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useCallback, memo, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';

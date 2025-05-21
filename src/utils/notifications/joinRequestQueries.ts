@@ -74,6 +74,7 @@ export const fetchClubJoinRequests = async (clubId: string): Promise<JoinRequest
         userName: userData?.name || 'Unknown User',
         userAvatar: userData?.avatar || '',
         createdAt: request.created_at,
+        // Map ERROR to REJECTED to match our JoinRequest type
         status: request.status === 'ERROR' ? 'REJECTED' : request.status
       } as JoinRequest);
     }
@@ -131,10 +132,10 @@ export const acceptJoinRequest = async (
   } catch (error) {
     console.error('Error accepting join request:', error);
     
-    // Try to set the request back to PENDING or to REJECTED if that fails
+    // Try to set the request back to PENDING or to ERROR if that fails
     const { error: resetError } = await supabase
       .from('club_requests')
-      .update({ status: 'REJECTED' })
+      .update({ status: 'ERROR' })
       .eq('id', requestId);
       
     if (resetError) {

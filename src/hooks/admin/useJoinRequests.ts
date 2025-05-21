@@ -46,11 +46,14 @@ export const useJoinRequests = (clubId?: string) => {
           userId: request.user_id,
           clubId: request.club_id,
           // Safely access nested properties with fallbacks
-          userName: request.user && typeof request.user === 'object' && 'name' in request.user ? request.user.name : 'Unknown User',
-          userAvatar: request.user && typeof request.user === 'object' && 'avatar' in request.user ? request.user.avatar : '',
+          userName: request.user && typeof request.user === 'object' && 'name' in request.user ? 
+            request.user.name as string : 'Unknown User',
+          userAvatar: request.user && typeof request.user === 'object' && 'avatar' in request.user ? 
+            request.user.avatar as string : '',
           createdAt: request.created_at,
           // Convert ERROR to REJECTED to match our JoinRequest type
-          status: request.status === 'ERROR' ? 'REJECTED' as const : request.status as "PENDING" | "SUCCESS" | "REJECTED"
+          status: request.status === 'ERROR' ? 'REJECTED' : 
+            (request.status as "PENDING" | "SUCCESS" | "REJECTED")
         }));
         
         setJoinRequests(formattedRequests);
@@ -117,7 +120,7 @@ export const useJoinRequests = (clubId?: string) => {
       // Update status with REJECTED state if something fails
       const { error: statusError } = await supabase
         .from('club_requests')
-        .update({ status: 'REJECTED' })
+        .update({ status: 'ERROR' })
         .eq('id', requestId);
       
       if (statusError) {
@@ -147,10 +150,10 @@ export const useJoinRequests = (clubId?: string) => {
       // Optimistically remove from state
       setJoinRequests(prev => prev.filter(req => req.id !== requestId));
       
-      // Update the club_requests status to REJECTED
+      // Update the club_requests status to ERROR (which maps to REJECTED in our UI)
       const { error } = await supabase
         .from('club_requests')
-        .update({ status: 'REJECTED' })
+        .update({ status: 'ERROR' })
         .eq('id', requestId);
         
       if (error) throw error;
