@@ -160,9 +160,15 @@ export const useUnreadSubscriptions = ({
     }
   };
   
-  // Setup realtime channels
+  // Setup realtime channels with improved handling for our local-first approach
   const setupChannels = (userId: string) => {
     console.log('[useUnreadSubscriptions] Setting up realtime subscriptions for user:', userId);
+    
+    // Tracking for local message deduplication
+    const processedMessageIds = {
+      dm: new Set<string>(),
+      club: new Set<string>()
+    };
     
     // Use local micro-batching for unread updates to prevent cascading re-renders
     let pendingUpdates = new Set<string>();
@@ -179,23 +185,6 @@ export const useUnreadSubscriptions = ({
             activeConversationRef.current.id === conversationId
           ) {
             console.log(`[useUnreadSubscriptions] Skipping unread update for active conversation: ${conversationId}`);
-            
-            // Mark as read optimistically in database
-            if (userId) {
-              (async () => {
-                try {
-                  await supabase.from('direct_messages_read')
-                    .upsert({
-                      conversation_id: conversationId,
-                      user_id: userId,
-                      last_read_timestamp: new Date().toISOString()
-                    });
-                  console.log(`[useUnreadSubscriptions] Successfully marked conversation ${conversationId} as read in DB`);
-                } catch (error) {
-                  console.error('[useUnreadSubscriptions] Error marking conversation as read:', error);
-                }
-              })();
-            }
           } else {
             console.log(`[useUnreadSubscriptions] Marking conversation as unread: ${conversationId}`);
             handlersRef.current.markConversationAsUnread(conversationId);
@@ -212,23 +201,6 @@ export const useUnreadSubscriptions = ({
             activeConversationRef.current.id === clubId
           ) {
             console.log(`[useUnreadSubscriptions] Skipping unread update for active club: ${clubId}`);
-            
-            // Mark as read optimistically in database
-            if (userId) {
-              (async () => {
-                try {
-                  await supabase.from('club_messages_read')
-                    .upsert({
-                      club_id: clubId,
-                      user_id: userId,
-                      last_read_timestamp: new Date().toISOString()
-                    });
-                  console.log(`[useUnreadSubscriptions] Successfully marked club ${clubId} messages as read in DB`);
-                } catch (error) {
-                  console.error('[useUnreadSubscriptions] Error marking club messages as read:', error);
-                }
-              })();
-            }
           } else {
             console.log(`[useUnreadSubscriptions] Marking club as unread: ${clubId}`);
             handlersRef.current.markClubAsUnread(clubId);
@@ -253,7 +225,7 @@ export const useUnreadSubscriptions = ({
       }, 100);
     };
     
-    // Set up DM channel
+    // Set up DM channel with improved message deduplication
     const timestamp = Date.now();
     const dmChannel = supabase
       .channel(`global-dm-unread-tracking-${timestamp}`)
@@ -264,8 +236,29 @@ export const useUnreadSubscriptions = ({
             table: 'direct_messages' 
           },
           (payload) => {
+            if (!payload.new || !payload.new.id) return;
+            
             lastEventTimeRef.current.dm = Date.now();
             channelHealthyRef.current.dm = true;
+            
+            // Deduplicate messages using Set
+            if (processedMessageIds.dm.has(payload.new.id)) {
+              console.log(`[useUnreadSubscriptions] Skipping duplicate DM: ${payload.new.id}`);
+              return;
+            }
+            
+            // Add to processed set to avoid duplicates
+            processedMessageIds.dm.add(payload.new.id);
+            
+            // Limit the size of the set to avoid memory issues
+            if (processedMessageIds.dm.size > 1000) {
+              // Remove oldest entries (approximate since Sets don't maintain insertion order)
+              const iterator = processedMessageIds.dm.values();
+              for (let i = 0; i < 200; i++) {
+                iterator.next();
+                processedMessageIds.dm.delete(iterator.next().value);
+              }
+            }
             
             if (payload.new.receiver_id === userId) {
               // Don't mark as unread if this is the active conversation
@@ -274,32 +267,23 @@ export const useUnreadSubscriptions = ({
                 activeConversationRef.current.id === payload.new.conversation_id
               ) {
                 console.log(`[useUnreadSubscriptions] Received message for active DM conversation: ${payload.new.conversation_id}`);
-                
-                // Instead of queueing an unread update, mark it as read immediately
-                // Using async IIFE with try/catch for proper error handling
-                (async () => {
-                  try {
-                    await supabase.from('direct_messages_read')
-                      .upsert({
-                        conversation_id: payload.new.conversation_id,
-                        user_id: userId,
-                        last_read_timestamp: new Date().toISOString()
-                      });
-                    console.log(`[useUnreadSubscriptions] Successfully marked active DM conversation as read`);
-                    // Dispatch read event to update UI
-                    window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
-                      detail: { type: 'dm', id: payload.new.conversation_id } 
-                    }));
-                  } catch (error) {
-                    console.error('[useUnreadSubscriptions] Error marking DM as read:', error);
-                  }
-                })();
                 return;
               }
               
               // Queue the update for non-active conversations
               pendingUpdates.add(payload.new.conversation_id);
               queueUpdate();
+              
+              // Dispatch event for the message
+              window.dispatchEvent(new CustomEvent('dmMessageReceived', { 
+                detail: { 
+                  conversationId: payload.new.conversation_id,
+                  messageId: payload.new.id,
+                  senderId: payload.new.sender_id,
+                  isActiveConversation: activeConversationRef.current.type === 'dm' && 
+                                       activeConversationRef.current.id === payload.new.conversation_id
+                } 
+              }));
             }
           })
       .subscribe((status) => {
@@ -312,7 +296,7 @@ export const useUnreadSubscriptions = ({
         }
       });
     
-    // Subscribe to new club messages
+    // Subscribe to new club messages with improved message deduplication
     const clubChannel = supabase
       .channel(`global-club-unread-tracking-${timestamp}`)
       .on('postgres_changes', 
@@ -322,8 +306,29 @@ export const useUnreadSubscriptions = ({
             table: 'club_chat_messages'
           },
           (payload) => {
+            if (!payload.new || !payload.new.id) return;
+            
             lastEventTimeRef.current.club = Date.now();
             channelHealthyRef.current.club = true;
+            
+            // Deduplicate messages using Set
+            if (processedMessageIds.club.has(payload.new.id)) {
+              console.log(`[useUnreadSubscriptions] Skipping duplicate club message: ${payload.new.id}`);
+              return;
+            }
+            
+            // Add to processed set to avoid duplicates
+            processedMessageIds.club.add(payload.new.id);
+            
+            // Limit the size of the set to avoid memory issues
+            if (processedMessageIds.club.size > 1000) {
+              // Remove oldest entries (approximate since Sets don't maintain insertion order)
+              const iterator = processedMessageIds.club.values();
+              for (let i = 0; i < 200; i++) {
+                iterator.next();
+                processedMessageIds.club.delete(iterator.next().value);
+              }
+            }
             
             if (payload.new.sender_id !== userId) {
               // Don't mark as unread if this is the active club
@@ -332,26 +337,6 @@ export const useUnreadSubscriptions = ({
                 activeConversationRef.current.id === payload.new.club_id
               ) {
                 console.log(`[useUnreadSubscriptions] Received message for active club: ${payload.new.club_id}`);
-                
-                // Instead of queueing an unread update, mark it as read immediately
-                // Using async IIFE with try/catch for proper error handling
-                (async () => {
-                  try {
-                    await supabase.from('club_messages_read')
-                      .upsert({
-                        club_id: payload.new.club_id,
-                        user_id: userId,
-                        last_read_timestamp: new Date().toISOString()
-                      });
-                    console.log(`[useUnreadSubscriptions] Successfully marked active club as read`);
-                    // Dispatch read event to update UI
-                    window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
-                      detail: { type: 'club', id: payload.new.club_id } 
-                    }));
-                  } catch (error) {
-                    console.error('[useUnreadSubscriptions] Error marking club as read:', error);
-                  }
-                })();
                 return;
               }
               
@@ -375,7 +360,7 @@ export const useUnreadSubscriptions = ({
     channelsRef.current.club = clubChannel;
   };
   
-  // Main effect to set up and manage subscriptions
+  // Main effect to set up and manage subscriptions with improved resilience
   useEffect(() => {
     if (!isSessionReady || !currentUserId) return;
     
@@ -385,7 +370,7 @@ export const useUnreadSubscriptions = ({
     // Initial fetch of unread counts
     handlersRef.current.fetchUnreadCounts();
       
-    // Health check timer
+    // Health check timer with improved handling
     const healthCheckTimer = setInterval(() => {
       const now = Date.now();
       const dmTimeSinceLastEvent = now - lastEventTimeRef.current.dm;

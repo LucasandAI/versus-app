@@ -41,20 +41,33 @@ export const useJoinRequests = (clubId?: string) => {
 
       if (data) {
         // Transform the data to match the JoinRequest type
-        const formattedRequests: JoinRequest[] = data.map(request => ({
-          id: request.id,
-          userId: request.user_id,
-          clubId: request.club_id,
-          // Safely access nested properties with fallbacks
-          userName: request.user && typeof request.user === 'object' && 'name' in request.user ? 
-            request.user.name as string : 'Unknown User',
-          userAvatar: request.user && typeof request.user === 'object' && 'avatar' in request.user ? 
-            request.user.avatar as string : '',
-          createdAt: request.created_at,
-          // Convert ERROR to REJECTED to match our JoinRequest type
-          status: request.status === 'ERROR' ? 'REJECTED' : 
-            (request.status as "PENDING" | "SUCCESS" | "REJECTED")
-        }));
+        const formattedRequests: JoinRequest[] = data.map(request => {
+          // Safely access nested user properties with fallbacks and type assertions
+          const userName = request.user && 
+                          typeof request.user === 'object' && 
+                          request.user !== null &&
+                          'name' in request.user ? 
+                            String(request.user.name) : 'Unknown User';
+                            
+          const userAvatar = request.user && 
+                            typeof request.user === 'object' && 
+                            request.user !== null &&
+                            'avatar' in request.user ? 
+                              String(request.user.avatar) : '';
+                              
+          // Create the formatted request with properly typed status
+          return {
+            id: request.id,
+            userId: request.user_id,
+            clubId: request.club_id,
+            userName: userName,
+            userAvatar: userAvatar,
+            createdAt: request.created_at,
+            // Convert ERROR to REJECTED to match our JoinRequest type
+            status: request.status === 'ERROR' ? 'REJECTED' : 
+              (request.status as "PENDING" | "SUCCESS" | "REJECTED")
+          };
+        });
         
         setJoinRequests(formattedRequests);
       }
@@ -117,7 +130,7 @@ export const useJoinRequests = (clubId?: string) => {
     } catch (error) {
       console.error('Error approving request:', error);
       
-      // Update status with REJECTED state if something fails
+      // Update status with ERROR state (which maps to REJECTED in our UI) if something fails
       const { error: statusError } = await supabase
         .from('club_requests')
         .update({ status: 'ERROR' })

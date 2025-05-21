@@ -37,6 +37,12 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   const { markConversationAsRead } = useCoalescedReadStatus();
   const [isSending, setIsSending] = React.useState(false);
   const { formatTime } = useMessageFormatting();
+  const conversationRef = useRef<string>(conversationId);
+  
+  // Update ref when conversationId changes
+  useEffect(() => {
+    conversationRef.current = conversationId;
+  }, [conversationId]);
   
   // Validate user data completeness at the component level
   const hasCompleteUserData = Boolean(user && user.id && user.name && user.avatar);
@@ -105,7 +111,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   // Custom hooks for conversation management
   const { createConversation } = useConversationManagement(currentUser?.id, user.id);
   
-  // Mark conversation as read when opened
+  // Mark conversation as read when opened - use local-first approach
   useEffect(() => {
     if (conversationId && conversationId !== 'new') {
       console.log(`[DMConversation] Setting active conversation: dm - ${conversationId}`);
@@ -118,14 +124,14 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
         } 
       }));
       
-      // Mark as read using our new centralized service
+      // Mark as read immediately using our local-first approach
       markConversationAsRead(conversationId);
     }
     
     // Cleanup on unmount
     return () => {
-      if (conversationId && conversationId !== 'new') {
-        console.log(`[DMConversation] Clearing active conversation: dm - ${conversationId}`);
+      if (conversationRef.current && conversationRef.current !== 'new') {
+        console.log(`[DMConversation] Clearing active conversation: dm - ${conversationRef.current}`);
         window.dispatchEvent(new CustomEvent('activeConversationChanged', { 
           detail: { type: null, id: null } 
         }));
@@ -133,7 +139,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     };
   }, [conversationId, markConversationAsRead]);
 
-  // Stable send message handler
+  // Stable send message handler with local-first approach
   const handleSendMessage = useCallback(async (text: string) => {
     if (!text.trim() || !currentUser?.id) return;
     
@@ -153,7 +159,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       optimistic: true
     };
     
-    // Add optimistic message to UI
+    // Add optimistic message to UI immediately
     addOptimisticMessage(optimisticMessage);
     
     // Scroll to bottom - wrapped in requestAnimationFrame to avoid layout thrashing
@@ -188,6 +194,9 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       
       if (error) throw error;
       
+      // Mark conversation as read immediately after sending message
+      markConversationAsRead(finalConversationId);
+      
     } catch (error) {
       console.error('[DMConversation] Error sending message:', error);
       
@@ -202,7 +211,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     } finally {
       setIsSending(false);
     }
-  }, [currentUser, user, conversationId, addOptimisticMessage, createConversation, scrollToBottom, setMessages]);
+  }, [currentUser, user, conversationId, addOptimisticMessage, createConversation, scrollToBottom, setMessages, markConversationAsRead]);
   
   // Club members array for ChatMessages - memoized to prevent recreating
   const clubMembers = useMemo(() => 

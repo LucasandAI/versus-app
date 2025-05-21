@@ -21,13 +21,14 @@ export const useClubMessageSubscriptions = (
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const activeClubRef = useRef<string | null>(null);
   const lastMessageIdRef = useRef<Record<string, string>>({});
+  const lastProcessedMessageTimestamp = useRef<Record<string, number>>({});
   
   // Keep clubs reference updated
   useEffect(() => {
     clubsRef.current = userClubs;
   }, [userClubs]);
   
-  // Handle active conversation changes with improved tracking
+  // Handle active conversation changes with improved tracking using refs for stability
   useEffect(() => {
     const handleActiveConversationChanged = (event: CustomEvent) => {
       // Only update if this is a club conversation
@@ -36,12 +37,9 @@ export const useClubMessageSubscriptions = (
         selectedClubRef.current = event.detail.id;
         activeClubRef.current = event.detail.id;
         
-        // Mark as read immediately when the conversation becomes active
+        // Mark as read immediately when the conversation becomes active (using local-first approach)
         if (event.detail.id) {
-          markClubAsRead(event.detail.id);
-          
-          // Immediate refresh to update badges
-          window.dispatchEvent(new CustomEvent('refreshUnreadCounts'));
+          markClubAsRead(event.detail.id, true);
         }
       } else if (event.detail.type === null && event.detail.id === null) {
         // Clear selected club if no active conversation
@@ -54,22 +52,6 @@ export const useClubMessageSubscriptions = (
     
     return () => {
       window.removeEventListener('activeConversationChanged', handleActiveConversationChanged as EventListener);
-    };
-  }, [markClubAsRead]);
-  
-  // Also listen for visibility changes to refresh read status
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && activeClubRef.current) {
-        // Re-mark as read when tab becomes visible if we have an active club
-        markClubAsRead(activeClubRef.current);
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [markClubAsRead]);
   
@@ -105,7 +87,7 @@ export const useClubMessageSubscriptions = (
     }
   };
   
-  // Setup the subscription with improved real-time handling
+  // Setup the subscription with improved real-time handling and deduplication
   const setupSubscription = () => {
     // Don't subscribe if not open or no clubs
     if (!isOpen || !userClubs.length || !currentUser?.id) {
@@ -119,7 +101,7 @@ export const useClubMessageSubscriptions = (
     
     console.log('[useClubMessageSubscriptions] Setting up subscription for clubs:', userClubs.length);
     
-    // Set up a single channel for all inserts
+    // Set up a single channel for all inserts with better message deduplication
     try {
       const channel = supabase
         .channel(subscriptionId.current)
@@ -134,35 +116,50 @@ export const useClubMessageSubscriptions = (
             lastEventTime.current = Date.now();
             subscriptionHealthy.current = true;
             
-            // Check if this is a duplicate message by ID
-            if (lastMessageIdRef.current[payload.new.club_id] === payload.new.id) {
-              console.log('[useClubMessageSubscriptions] Skipping duplicate message:', payload.new.id);
+            // Enhanced duplicate detection using both ID and timestamp
+            if (!payload.new || !payload.new.id || !payload.new.timestamp || !payload.new.club_id) {
+              console.log('[useClubMessageSubscriptions] Invalid payload:', payload);
               return;
             }
             
-            // Store this message ID to prevent duplicates
-            lastMessageIdRef.current[payload.new.club_id] = payload.new.id;
+            const messageId = payload.new.id;
+            const messageTimestamp = new Date(payload.new.timestamp).getTime();
+            const clubId = payload.new.club_id;
             
-            console.log('[useClubMessageSubscriptions] New club message detected:', payload.new?.id);
+            // Check if this is a duplicate message by ID
+            if (lastMessageIdRef.current[clubId] === messageId) {
+              console.log('[useClubMessageSubscriptions] Skipping duplicate message by ID:', messageId);
+              return;
+            }
+            
+            // Check if we've already processed a newer message for this club
+            const lastProcessedTimestamp = lastProcessedMessageTimestamp.current[clubId] || 0;
+            if (messageTimestamp < lastProcessedTimestamp) {
+              console.log('[useClubMessageSubscriptions] Skipping out-of-order message:', {
+                messageId,
+                messageTime: messageTimestamp,
+                lastProcessedTime: lastProcessedTimestamp
+              });
+              return;
+            }
+            
+            // Update our tracking references
+            lastMessageIdRef.current[clubId] = messageId;
+            lastProcessedMessageTimestamp.current[clubId] = messageTimestamp;
+            
+            console.log('[useClubMessageSubscriptions] Processing new club message:', messageId);
             
             const isActiveClub = activeClubRef.current === payload.new.club_id;
             const isFromCurrentUser = String(payload.new.sender_id) === String(currentUser.id);
             
             // If this is a new message for the active club and not from the current user,
-            // mark it as read immediately and update UI
-            if (isActiveClub) {
-              console.log('[useClubMessageSubscriptions] Message is for active club:', isActiveClub);
-              if (!isFromCurrentUser) {
-                console.log('[useClubMessageSubscriptions] Auto-marking new message as read (active club)');
-                markClubAsRead(payload.new.club_id);
-              }
-              
-              // In active club case, we should never show a notification badge
-              // Force a refresh of unread counts
-              window.dispatchEvent(new CustomEvent('refreshUnreadCounts'));
+            // mark it as read immediately using local-first approach
+            if (isActiveClub && !isFromCurrentUser) {
+              console.log('[useClubMessageSubscriptions] Auto-marking new message as read (active club)');
+              markClubAsRead(payload.new.club_id, false);
             }
             
-            // Process the message
+            // Process the message with enhanced handling for better performance
             handleNewMessagePayload(
               payload, 
               clubsRef.current, 
@@ -170,17 +167,6 @@ export const useClubMessageSubscriptions = (
               currentUser, 
               selectedClubRef.current
             );
-            
-            // Dispatch an event to notify components that a new club message was received
-            // With additional flag to indicate if it was for the active conversation
-            window.dispatchEvent(new CustomEvent('clubMessageReceived', {
-              detail: {
-                clubId: payload.new.club_id,
-                messageId: payload.new.id,
-                senderId: payload.new.sender_id,
-                isActiveClub: isActiveClub
-              }
-            }));
           }
         )
         .on('postgres_changes', 
@@ -242,7 +228,7 @@ export const useClubMessageSubscriptions = (
     };
   }, [isOpen, currentUser?.id]);
   
-  // Health check timer for subscription
+  // Health check timer for subscription with improved resilience
   useEffect(() => {
     // Only run health checks for active drawer
     if (!isOpen) return;

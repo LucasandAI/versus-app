@@ -36,6 +36,13 @@ function hasClubId(payload: any): payload is { new: { club_id: string } } {
          typeof payload.new.club_id === 'string';
 }
 
+// Cache for sender data to avoid duplicate fetches
+const senderCache = new Map<string, {
+  id: string;
+  name: string;
+  avatar?: string;
+}>();
+
 export const handleNewMessagePayload = async (
   payload: RealtimePostgresChangesPayload<{
     [key: string]: any;
@@ -66,17 +73,32 @@ export const handleNewMessagePayload = async (
   
   console.log(`[subscriptionHandlers] 🔥 New message received for club ${messageClubId}:`, typedPayload.new.id);
   
-  // Create a temporary message object with sender info
+  // Check if this is from the current user
   const isCurrentUser = typedPayload.new.sender_id === currentUser?.id;
-  const senderName = isCurrentUser ? "You" : (typedPayload.new.sender_name || "Loading...");
   
+  // Get sender info from cache first, or use the provided sender_name, or a placeholder
+  let senderName = "Loading...";
+  let senderAvatar: string | undefined = undefined;
+  
+  if (isCurrentUser) {
+    senderName = "You";
+    senderAvatar = currentUser?.avatar;
+  } else if (typedPayload.new.sender_name) {
+    senderName = typedPayload.new.sender_name;
+  } else if (senderCache.has(typedPayload.new.sender_id)) {
+    const cachedSender = senderCache.get(typedPayload.new.sender_id);
+    senderName = cachedSender?.name || "Unknown";
+    senderAvatar = cachedSender?.avatar;
+  }
+  
+  // Create a temporary message object with sender info using cached data or placeholders
   const tempMessage = {
     ...typedPayload.new,
     isUserMessage: isCurrentUser,
     sender: {
       id: typedPayload.new.sender_id,
       name: senderName,
-      avatar: isCurrentUser ? currentUser?.avatar : undefined
+      avatar: senderAvatar
     }
   };
   
@@ -88,14 +110,19 @@ export const handleNewMessagePayload = async (
     const messageExists = clubMsgs.some(msg => msg.id === typedPayload.new.id);
     if (messageExists) return prev;
 
-    // Sort messages by timestamp
+    // Add the message and sort by timestamp
     const updatedMessages = [...clubMsgs, tempMessage].sort(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
     
-    // Create and dispatch a global event with the new message details
+    // Dispatch event to notify of new message
     window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
-      detail: { clubId: messageClubId, message: tempMessage } 
+      detail: { 
+        clubId: messageClubId, 
+        message: tempMessage,
+        senderId: typedPayload.new.sender_id,
+        isActiveClub: selectedClubRef === messageClubId
+      } 
     }));
     
     return {
@@ -104,9 +131,8 @@ export const handleNewMessagePayload = async (
     };
   });
   
-  // In parallel, fetch complete sender details (only for other users' messages)
-  // and only if sender_name is not already provided
-  if (!isCurrentUser && !typedPayload.new.sender_name) {
+  // In parallel, fetch complete sender details if needed (not for current user and not cached)
+  if (!isCurrentUser && !typedPayload.new.sender_name && !senderCache.has(typedPayload.new.sender_id)) {
     try {
       const { data: senderData } = await supabase
         .from('users')
@@ -115,6 +141,9 @@ export const handleNewMessagePayload = async (
         .single();
 
       if (senderData) {
+        // Cache the sender data for future use
+        senderCache.set(typedPayload.new.sender_id, senderData);
+        
         // Once we have sender data, update the message with complete info
         setClubMessages(prev => {
           const clubMsgs = prev[messageClubId] || [];
@@ -137,52 +166,6 @@ export const handleNewMessagePayload = async (
       }
     } catch (error) {
       console.error('[subscriptionHandlers] Error fetching sender details:', error);
-    }
-  }
-  
-  // Check if this message is for the currently selected club
-  // If so, mark it as read optimistically
-  if (!isCurrentUser) {
-    // Get current active conversation
-    let isMessageInActiveConversation = false;
-    
-    // Check if the current club is selected
-    if (selectedClubRef === messageClubId) {
-      isMessageInActiveConversation = true;
-    }
-    
-    // If message is not for the active conversation, update unread count
-    if (!isMessageInActiveConversation) {
-      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
-        detail: { clubId: messageClubId } 
-      }));
-    } else {
-      // If message is for active conversation, mark it as read optimistically
-      console.log(`[subscriptionHandlers] 📖 Optimistically marking message as read for active club: ${messageClubId}`);
-      
-      try {
-        // Update in database using async/await for better error handling
-        (async () => {
-          try {
-            await supabase.from('club_messages_read')
-              .upsert({
-                club_id: messageClubId,
-                user_id: currentUser.id,
-                last_read_timestamp: new Date().toISOString()
-              });
-            console.log(`[subscriptionHandlers] Successfully marked club ${messageClubId} messages as read in DB`);
-            
-            // Dispatch event for local state update
-            window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
-              detail: { type: 'club', id: messageClubId } 
-            }));
-          } catch (error) {
-            console.error('[subscriptionHandlers] Error marking messages as read:', error);
-          }
-        })();
-      } catch (error) {
-        console.error('[subscriptionHandlers] Error in optimistic read update:', error);
-      }
     }
   }
 };
@@ -233,6 +216,15 @@ export const handleMessageDeletion = (
 export const fetchSenderDetails = async (message: any) => {
   if (!message?.sender_id) return message;
   
+  // Check cache first
+  if (senderCache.has(message.sender_id)) {
+    const cachedSender = senderCache.get(message.sender_id);
+    return {
+      ...message,
+      sender: cachedSender
+    };
+  }
+  
   try {
     const { data: senderData } = await supabase
       .from('users')
@@ -241,6 +233,9 @@ export const fetchSenderDetails = async (message: any) => {
       .single();
       
     if (senderData) {
+      // Cache the data for future use
+      senderCache.set(message.sender_id, senderData);
+      
       return {
         ...message,
         sender: senderData
@@ -252,4 +247,9 @@ export const fetchSenderDetails = async (message: any) => {
     console.error('[subscriptionHandlers] Error fetching sender details:', error);
     return message;
   }
+};
+
+// Clear sender cache - useful when testing or if user data might have changed
+export const clearSenderCache = () => {
+  senderCache.clear();
 };
