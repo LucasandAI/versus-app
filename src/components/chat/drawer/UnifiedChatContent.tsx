@@ -43,23 +43,14 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
   const { markClubMessagesAsRead, markDirectConversationAsRead } = useUnreadMessages();
   const [isSending, setIsSending] = useState(false);
 
-  // Mark messages as read when chat is selected, but with a delay to prevent badge flickering
+  // Mark messages as read when chat is selected
   useEffect(() => {
     if (selectedChat) {
-      // Use a 400ms delay to allow the notification badge to be visible before clearing
-      const MARK_AS_READ_DELAY = 400;
-      
-      const timer = setTimeout(() => {
-        if (selectedChat.type === 'club') {
-          console.log(`[UnifiedChatContent] Marking club ${selectedChat.id} messages as read after delay`);
-          markClubMessagesAsRead(selectedChat.id);
-        } else if (selectedChat.type === 'dm') {
-          console.log(`[UnifiedChatContent] Marking DM ${selectedChat.id} as read after delay`);
-          markDirectConversationAsRead(selectedChat.id);
-        }
-      }, MARK_AS_READ_DELAY);
-      
-      return () => clearTimeout(timer);
+      if (selectedChat.type === 'club') {
+        markClubMessagesAsRead(selectedChat.id);
+      } else if (selectedChat.type === 'dm') {
+        markDirectConversationAsRead(selectedChat.id);
+      }
     }
   }, [selectedChat, markClubMessagesAsRead, markDirectConversationAsRead]);
 

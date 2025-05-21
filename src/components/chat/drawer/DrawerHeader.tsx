@@ -19,20 +19,10 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
   const { unreadClubs, unreadConversations, markClubMessagesAsRead } = useUnreadMessages();
 
   // Mark club messages as read when a club is selected and the clubs tab is active
-  // Add a delay to prevent badge flickering
   useEffect(() => {
     if (activeTab === "clubs" && selectedClub) {
-      console.log(`[DrawerHeader] Scheduling marking club ${selectedClub.id} messages as read with delay`);
-      
-      // Use a 400ms delay to allow the notification badge to be visible before clearing
-      const MARK_AS_READ_DELAY = 400;
-      
-      const timer = setTimeout(() => {
-        console.log(`[DrawerHeader] Now marking club ${selectedClub.id} messages as read after delay`);
-        markClubMessagesAsRead(selectedClub.id);
-      }, MARK_AS_READ_DELAY);
-      
-      return () => clearTimeout(timer);
+      console.log(`[DrawerHeader] Marking club ${selectedClub.id} messages as read (selectedClub present and clubs tab active)`);
+      markClubMessagesAsRead(selectedClub.id);
     }
   }, [activeTab, selectedClub, markClubMessagesAsRead]);
   

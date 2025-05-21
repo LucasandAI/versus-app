@@ -10,7 +10,7 @@ import { useNavigation } from '@/hooks/useNavigation';
 import { useConversations } from '@/hooks/chat/dm/useConversations';
 import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
 import { useConversationManagement } from '@/hooks/chat/dm/useConversationManagement';
-import { useUnreadMessages } from '@/context/unread-messages';
+import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
 import DMMessageInput from './DMMessageInput';
 import DMHeader from './DMHeader';
@@ -106,20 +106,10 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   // Custom hooks for conversation management
   const { createConversation } = useConversationManagement(currentUser?.id, user.id);
   
-  // Mark conversation as read when opened, with a delay to prevent badge flickering
+  // Mark conversation as read when opened
   useEffect(() => {
     if (conversationId && conversationId !== 'new') {
-      console.log(`[DMConversation] Scheduling marking conversation ${conversationId} as read with delay`);
-      
-      // Use a 400ms delay to allow the notification badge to be visible before clearing
-      const MARK_AS_READ_DELAY = 400;
-      
-      const timer = setTimeout(() => {
-        console.log(`[DMConversation] Now marking conversation ${conversationId} as read after delay`);
-        markConversationAsRead(conversationId);
-      }, MARK_AS_READ_DELAY);
-      
-      return () => clearTimeout(timer);
+      markConversationAsRead(conversationId);
     }
   }, [conversationId, markConversationAsRead]);
 
