@@ -291,21 +291,21 @@ export type Database = {
           club_id: string
           created_at: string
           id: string
-          status: Database["public"]["Enums"]["request_status"]
+          status: "PENDING" | "SUCCESS" | "ERROR"
           user_id: string
         }
         Insert: {
           club_id: string
           created_at?: string
           id?: string
-          status?: Database["public"]["Enums"]["request_status"]
+          status?: "PENDING" | "SUCCESS" | "ERROR"
           user_id: string
         }
         Update: {
           club_id?: string
           created_at?: string
           id?: string
-          status?: Database["public"]["Enums"]["request_status"]
+          status?: "PENDING" | "SUCCESS" | "ERROR"
           user_id?: string
         }
         Relationships: [

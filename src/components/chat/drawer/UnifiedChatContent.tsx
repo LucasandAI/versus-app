@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Club } from '@/types';
@@ -57,7 +56,7 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
         } 
       }));
       
-      // Mark messages as read using the coalesced service - no direct DB calls here
+      // Mark messages as read using the coalesced service
       if (selectedChat.type === 'club') {
         // Use immediate marking for clubs to fix the badge issue
         markClubAsRead(selectedChat.id);
@@ -68,8 +67,13 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
       // Immediate refresh - this helps with badge updates when opening club messages
       refreshUnreadCounts();
       
-      // Also do a slightly delayed refresh to catch any race conditions
-      setTimeout(() => refreshUnreadCounts(), 300);
+      // Dispatch a special event for clarity
+      window.dispatchEvent(new CustomEvent('conversationOpened', {
+        detail: {
+          type: selectedChat.type,
+          id: selectedChat.id
+        }
+      }));
     }
     
     // Cleanup on unmount or change
@@ -98,15 +102,23 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
       // If this is a message for current conversation, mark it as read
       if (isCurrentConversation) {
         console.log('[UnifiedChatContent] Auto-marking new message as read (active conversation)');
-        if (selectedChat?.type === 'club') {
-          markClubAsRead(selectedChat.id);
-        } else if (selectedChat?.type === 'dm') {
-          markConversationAsRead(selectedChat.id);
+        
+        // Only mark as read if we didn't send the message ourselves
+        const isSelfMessage = 
+          (event.type === 'clubMessageReceived' && messageDetails.senderId === currentUser?.id) ||
+          (event.type === 'dmMessageReceived' && messageDetails.senderId === currentUser?.id);
+          
+        if (!isSelfMessage) {
+          if (selectedChat?.type === 'club') {
+            markClubAsRead(selectedChat.id);
+          } else if (selectedChat?.type === 'dm') {
+            markConversationAsRead(selectedChat.id);
+          }
+          
+          // Force a badge refresh when we mark messages as read
+          setTimeout(() => refreshUnreadCounts(), 100);
         }
       }
-      
-      // Force a refresh of unread counts to update badges
-      refreshUnreadCounts();
     };
     
     // Listen for both club and DM message events
@@ -117,7 +129,7 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
       window.removeEventListener('clubMessageReceived', handleNewMessage as EventListener);
       window.removeEventListener('dmMessageReceived', handleNewMessage as EventListener);
     };
-  }, [selectedChat, refreshUnreadCounts, markClubAsRead, markConversationAsRead]);
+  }, [selectedChat, refreshUnreadCounts, markClubAsRead, markConversationAsRead, currentUser?.id]);
 
   const handleSendMessage = async (message: string) => {
     if (!selectedChat) return;

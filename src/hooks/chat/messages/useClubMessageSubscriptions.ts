@@ -19,27 +19,34 @@ export const useClubMessageSubscriptions = (
   const subscriptionHealthy = useRef<boolean>(true);
   const lastEventTime = useRef<number>(Date.now());
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const activeClubRef = useRef<string | null>(null);
+  const lastMessageIdRef = useRef<Record<string, string>>({});
   
   // Keep clubs reference updated
   useEffect(() => {
     clubsRef.current = userClubs;
   }, [userClubs]);
   
-  // Handle active conversation changes
+  // Handle active conversation changes with improved tracking
   useEffect(() => {
     const handleActiveConversationChanged = (event: CustomEvent) => {
       // Only update if this is a club conversation
       if (event.detail.type === 'club') {
         console.log('[useClubMessageSubscriptions] Active club conversation changed:', event.detail.id);
         selectedClubRef.current = event.detail.id;
+        activeClubRef.current = event.detail.id;
         
         // Mark as read immediately when the conversation becomes active
         if (event.detail.id) {
           markClubAsRead(event.detail.id);
+          
+          // Immediate refresh to update badges
+          window.dispatchEvent(new CustomEvent('refreshUnreadCounts'));
         }
       } else if (event.detail.type === null && event.detail.id === null) {
         // Clear selected club if no active conversation
         selectedClubRef.current = null;
+        activeClubRef.current = null;
       }
     };
     
@@ -47,6 +54,22 @@ export const useClubMessageSubscriptions = (
     
     return () => {
       window.removeEventListener('activeConversationChanged', handleActiveConversationChanged as EventListener);
+    };
+  }, [markClubAsRead]);
+  
+  // Also listen for visibility changes to refresh read status
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && activeClubRef.current) {
+        // Re-mark as read when tab becomes visible if we have an active club
+        markClubAsRead(activeClubRef.current);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [markClubAsRead]);
   
@@ -82,7 +105,7 @@ export const useClubMessageSubscriptions = (
     }
   };
   
-  // Setup the subscription
+  // Setup the subscription with improved real-time handling
   const setupSubscription = () => {
     // Don't subscribe if not open or no clubs
     if (!isOpen || !userClubs.length || !currentUser?.id) {
@@ -111,16 +134,32 @@ export const useClubMessageSubscriptions = (
             lastEventTime.current = Date.now();
             subscriptionHealthy.current = true;
             
+            // Check if this is a duplicate message by ID
+            if (lastMessageIdRef.current[payload.new.club_id] === payload.new.id) {
+              console.log('[useClubMessageSubscriptions] Skipping duplicate message:', payload.new.id);
+              return;
+            }
+            
+            // Store this message ID to prevent duplicates
+            lastMessageIdRef.current[payload.new.club_id] = payload.new.id;
+            
             console.log('[useClubMessageSubscriptions] New club message detected:', payload.new?.id);
             
-            const isActiveClub = selectedClubRef.current === payload.new.club_id;
+            const isActiveClub = activeClubRef.current === payload.new.club_id;
             const isFromCurrentUser = String(payload.new.sender_id) === String(currentUser.id);
             
             // If this is a new message for the active club and not from the current user,
-            // mark it as read immediately
-            if (isActiveClub && !isFromCurrentUser) {
-              console.log('[useClubMessageSubscriptions] Auto-marking new message as read (active club)');
-              markClubAsRead(payload.new.club_id);
+            // mark it as read immediately and update UI
+            if (isActiveClub) {
+              console.log('[useClubMessageSubscriptions] Message is for active club:', isActiveClub);
+              if (!isFromCurrentUser) {
+                console.log('[useClubMessageSubscriptions] Auto-marking new message as read (active club)');
+                markClubAsRead(payload.new.club_id);
+              }
+              
+              // In active club case, we should never show a notification badge
+              // Force a refresh of unread counts
+              window.dispatchEvent(new CustomEvent('refreshUnreadCounts'));
             }
             
             // Process the message
@@ -133,7 +172,7 @@ export const useClubMessageSubscriptions = (
             );
             
             // Dispatch an event to notify components that a new club message was received
-            // This helps with badge updates and other UI syncs
+            // With additional flag to indicate if it was for the active conversation
             window.dispatchEvent(new CustomEvent('clubMessageReceived', {
               detail: {
                 clubId: payload.new.club_id,
@@ -201,7 +240,7 @@ export const useClubMessageSubscriptions = (
     return () => {
       cleanupSubscription();
     };
-  }, [isOpen, currentUser?.id]); // Remove userClubs.length dependency to avoid re-subscriptions
+  }, [isOpen, currentUser?.id]);
   
   // Health check timer for subscription
   useEffect(() => {

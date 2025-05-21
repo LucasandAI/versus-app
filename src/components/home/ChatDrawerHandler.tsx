@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Club } from '@/types';
 import ChatDrawer from '../chat/ChatDrawer';
 import { useClubMessages } from '@/hooks/chat/useClubMessages';
@@ -24,26 +24,53 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
   const { clubMessages, setClubMessages } = useClubMessages(userClubs, isOpen);
 
   // Refresh unread counts when drawer opens or closes
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       console.log('[ChatDrawerHandler] Drawer opened, refreshing unread counts');
       refreshUnreadCounts();
     }
   }, [isOpen, refreshUnreadCounts]);
+
+  // Listen for special refresh events for unread counts
+  useEffect(() => {
+    const handleRefreshUnreadCounts = () => {
+      console.log('[ChatDrawerHandler] Refresh unread counts requested');
+      refreshUnreadCounts();
+    };
+    
+    window.addEventListener('refreshUnreadCounts', handleRefreshUnreadCounts);
+    
+    return () => {
+      window.removeEventListener('refreshUnreadCounts', handleRefreshUnreadCounts);
+    };
+  }, [refreshUnreadCounts]);
   
   // Listen for club message events to refresh badges
-  React.useEffect(() => {
-    const handleClubMessageReceived = () => {
-      if (!isOpen) {
+  useEffect(() => {
+    const handleClubMessageReceived = (event: CustomEvent) => {
+      const { isActiveClub } = event.detail || {};
+      
+      if (!isActiveClub && !isOpen) {
         console.log('[ChatDrawerHandler] New club message while drawer closed, refreshing badges');
         refreshUnreadCounts();
       }
     };
     
-    window.addEventListener('clubMessageReceived', handleClubMessageReceived);
+    const handleDMMessageReceived = (event: CustomEvent) => {
+      const { isActiveConversation } = event.detail || {};
+      
+      if (!isActiveConversation && !isOpen) {
+        console.log('[ChatDrawerHandler] New DM while drawer closed, refreshing badges');
+        refreshUnreadCounts();
+      }
+    };
+    
+    window.addEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
+    window.addEventListener('dmMessageReceived', handleDMMessageReceived as EventListener);
     
     return () => {
-      window.removeEventListener('clubMessageReceived', handleClubMessageReceived);
+      window.removeEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
+      window.removeEventListener('dmMessageReceived', handleDMMessageReceived as EventListener);
     };
   }, [isOpen, refreshUnreadCounts]);
 

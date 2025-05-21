@@ -69,19 +69,44 @@ export const useUnreadSubscriptions = ({
   useEffect(() => {
     const handleActiveConversationChanged = (event: CustomEvent) => {
       console.log('[useUnreadSubscriptions] Active conversation changed:', event.detail);
+      
+      // Store previous state to handle transitions
+      const previousType = activeConversationRef.current.type;
+      const previousId = activeConversationRef.current.id;
+      
+      // Update current state
       activeConversationRef.current = {
         type: event.detail.type,
         id: event.detail.id
       };
+      
+      // If we're switching conversations, force a refresh of unread counts
+      if (previousId !== event.detail.id || previousType !== event.detail.type) {
+        // Small delay to allow other operations to complete
+        setTimeout(() => {
+          handlersRef.current.fetchUnreadCounts();
+        }, 100);
+      }
     };
     
     // Listen for active conversation changes
     window.addEventListener('activeConversationChanged', handleActiveConversationChanged as EventListener);
     
+    // Listen for special refreshUnreadCounts event
+    const handleRefreshUnreadCounts = () => {
+      console.log('[useUnreadSubscriptions] Manual refresh of unread counts requested');
+      handlersRef.current.fetchUnreadCounts();
+    };
+    
+    window.addEventListener('refreshUnreadCounts', handleRefreshUnreadCounts as EventListener);
+    
     // Listen for messages being marked as read
     const handleMessagesMarkedAsRead = (event: CustomEvent) => {
       console.log('[useUnreadSubscriptions] Messages marked as read:', event.detail);
-      // No need to do anything here as the handlers will update the UI
+      // Refresh counts to ensure badges are updated
+      setTimeout(() => {
+        handlersRef.current.fetchUnreadCounts();
+      }, 100);
     };
     
     window.addEventListener('messagesMarkedAsRead', handleMessagesMarkedAsRead as EventListener);
@@ -99,6 +124,7 @@ export const useUnreadSubscriptions = ({
     
     return () => {
       window.removeEventListener('activeConversationChanged', handleActiveConversationChanged as EventListener);
+      window.removeEventListener('refreshUnreadCounts', handleRefreshUnreadCounts as EventListener);
       window.removeEventListener('messagesMarkedAsRead', handleMessagesMarkedAsRead as EventListener);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
@@ -157,7 +183,7 @@ export const useUnreadSubscriptions = ({
             
             // Mark as read optimistically in database
             if (userId) {
-              // Fix: Use .then().then(null, error) pattern instead of .catch()
+              // Use .then().catch() pattern
               supabase.from('direct_messages_read')
                 .upsert({
                   conversation_id: conversationId,
@@ -167,7 +193,7 @@ export const useUnreadSubscriptions = ({
                 .then(() => {
                   console.log(`[useUnreadSubscriptions] Successfully marked conversation ${conversationId} as read in DB`);
                 })
-                .then(null, (error) => {
+                .catch((error) => {
                   console.error('[useUnreadSubscriptions] Error marking conversation as read:', error);
                 });
             }
@@ -190,7 +216,7 @@ export const useUnreadSubscriptions = ({
             
             // Mark as read optimistically in database
             if (userId) {
-              // Fix: Use .then().then(null, error) pattern instead of .catch()
+              // Use .then().catch() pattern
               supabase.from('club_messages_read')
                 .upsert({
                   club_id: clubId,
@@ -200,7 +226,7 @@ export const useUnreadSubscriptions = ({
                 .then(() => {
                   console.log(`[useUnreadSubscriptions] Successfully marked club ${clubId} messages as read in DB`);
                 })
-                .then(null, (error) => {
+                .catch((error) => {
                   console.error('[useUnreadSubscriptions] Error marking club messages as read:', error);
                 });
             }
@@ -243,7 +269,34 @@ export const useUnreadSubscriptions = ({
             channelHealthyRef.current.dm = true;
             
             if (payload.new.receiver_id === userId) {
-              // Queue the update instead of processing immediately
+              // Don't mark as unread if this is the active conversation
+              if (
+                activeConversationRef.current.type === 'dm' && 
+                activeConversationRef.current.id === payload.new.conversation_id
+              ) {
+                console.log(`[useUnreadSubscriptions] Received message for active DM conversation: ${payload.new.conversation_id}`);
+                
+                // Instead of queueing an unread update, mark it as read immediately
+                supabase.from('direct_messages_read')
+                  .upsert({
+                    conversation_id: payload.new.conversation_id,
+                    user_id: userId,
+                    last_read_timestamp: new Date().toISOString()
+                  })
+                  .then(() => {
+                    console.log(`[useUnreadSubscriptions] Successfully marked active DM conversation as read`);
+                    // Dispatch read event to update UI
+                    window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
+                      detail: { type: 'dm', id: payload.new.conversation_id } 
+                    }));
+                  })
+                  .catch(error => {
+                    console.error('[useUnreadSubscriptions] Error marking DM as read:', error);
+                  });
+                return;
+              }
+              
+              // Queue the update for non-active conversations
               pendingUpdates.add(payload.new.conversation_id);
               queueUpdate();
             }
@@ -272,7 +325,34 @@ export const useUnreadSubscriptions = ({
             channelHealthyRef.current.club = true;
             
             if (payload.new.sender_id !== userId) {
-              // Queue the update instead of processing immediately
+              // Don't mark as unread if this is the active club
+              if (
+                activeConversationRef.current.type === 'club' && 
+                activeConversationRef.current.id === payload.new.club_id
+              ) {
+                console.log(`[useUnreadSubscriptions] Received message for active club: ${payload.new.club_id}`);
+                
+                // Instead of queueing an unread update, mark it as read immediately
+                supabase.from('club_messages_read')
+                  .upsert({
+                    club_id: payload.new.club_id,
+                    user_id: userId,
+                    last_read_timestamp: new Date().toISOString()
+                  })
+                  .then(() => {
+                    console.log(`[useUnreadSubscriptions] Successfully marked active club as read`);
+                    // Dispatch read event to update UI
+                    window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
+                      detail: { type: 'club', id: payload.new.club_id } 
+                    }));
+                  })
+                  .catch(error => {
+                    console.error('[useUnreadSubscriptions] Error marking club as read:', error);
+                  });
+                return;
+              }
+              
+              // Queue the update for non-active conversations
               pendingClubUpdates.add(payload.new.club_id);
               queueUpdate();
             }

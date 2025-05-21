@@ -12,6 +12,7 @@ export const useDirectMessages = (conversationId: string | null) => {
   const [subscriptionActive, setSubscriptionActive] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const previousConversationIdRef = useRef<string | null>(null);
+  const lastMessageIdRef = useRef<string | null>(null);
 
   // Fetch initial messages
   useEffect(() => {
@@ -68,6 +69,11 @@ export const useDirectMessages = (conversationId: string | null) => {
               name: 'Unknown User',
               avatar: null
             };
+            
+            // Track last message ID to prevent duplicates
+            if (message.id) {
+              lastMessageIdRef.current = message.id;
+            }
 
             return {
               id: message.id,
@@ -82,11 +88,22 @@ export const useDirectMessages = (conversationId: string | null) => {
             };
           });
           
-          console.log('[useDirectMessages] Normalized messages:', normalizedMessages);
+          console.log('[useDirectMessages] Normalized messages:', normalizedMessages.length);
           setMessages(normalizedMessages);
 
           // Mark as read immediately after loading
           markConversationAsRead(conversationId);
+          
+          // Trigger refresh of unread counts
+          setTimeout(() => refreshUnreadCounts(), 200);
+          
+          // Dispatch event that conversation was opened
+          window.dispatchEvent(new CustomEvent('conversationOpened', {
+            detail: {
+              type: 'dm',
+              id: conversationId
+            }
+          }));
         }
       } catch (error) {
         console.error('[useDirectMessages] Error fetching messages:', error);
@@ -94,7 +111,7 @@ export const useDirectMessages = (conversationId: string | null) => {
     };
 
     fetchMessages();
-  }, [conversationId, currentUser?.id, markConversationAsRead]);
+  }, [conversationId, currentUser?.id, markConversationAsRead, refreshUnreadCounts]);
 
   // Set up real-time subscription when conversation is active
   useEffect(() => {
@@ -123,7 +140,9 @@ export const useDirectMessages = (conversationId: string | null) => {
 
     // Mark as read immediately when conversation becomes active
     markConversationAsRead(conversationId);
-    setTimeout(() => refreshUnreadCounts(), 200);
+    
+    // Immediate refresh of unread counts
+    window.dispatchEvent(new CustomEvent('refreshUnreadCounts'));
 
     // Set up subscription for real-time updates
     const channel = supabase
@@ -140,10 +159,13 @@ export const useDirectMessages = (conversationId: string | null) => {
           const newMessage = payload.new;
           
           // Skip if we already have this message
-          if (messages.some(msg => msg.id === newMessage.id)) {
+          if (lastMessageIdRef.current === newMessage.id) {
             console.log('[useDirectMessages] Skipping duplicate message:', newMessage.id);
             return;
           }
+          
+          // Update last message ID
+          lastMessageIdRef.current = newMessage.id;
           
           // Fetch sender data for the new message
           const { data: userData } = await supabase
@@ -164,7 +186,7 @@ export const useDirectMessages = (conversationId: string | null) => {
             isUserMessage: String(newMessage.sender_id) === String(currentUser.id)
           };
           
-          console.log('[useDirectMessages] New real-time message received:', normalizedMessage);
+          console.log('[useDirectMessages] New real-time message received:', normalizedMessage.id);
           
           setMessages(prev => {
             // Double check we don't have this message
@@ -183,14 +205,18 @@ export const useDirectMessages = (conversationId: string | null) => {
           // If message is from someone else, mark it as read since we're in the conversation
           if (newMessage.sender_id !== currentUser.id) {
             markConversationAsRead(conversationId);
-            setTimeout(() => refreshUnreadCounts(), 200);
+            
+            // Trigger refresh of unread counts to update badges
+            setTimeout(() => refreshUnreadCounts(), 100);
           }
           
           // Dispatch event for other components to update
           window.dispatchEvent(new CustomEvent('dmMessageReceived', {
             detail: {
               conversationId: conversationId,
-              message: normalizedMessage
+              message: normalizedMessage,
+              senderId: newMessage.sender_id,
+              isActiveConversation: true
             }
           }));
         }
@@ -244,7 +270,7 @@ export const useDirectMessages = (conversationId: string | null) => {
         detail: { type: null, id: null }
       }));
     };
-  }, [conversationId, currentUser?.id]);
+  }, [conversationId, currentUser?.id, markConversationAsRead, refreshUnreadCounts]);
 
   return { messages, setMessages };
 };
