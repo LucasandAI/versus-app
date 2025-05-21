@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
@@ -52,7 +51,7 @@ export const useClubMessageSubscriptions = (
   }, [markClubAsRead]);
   
   // Clean up function for subscription
-  const cleanupSubscription = useRef(() => {
+  const cleanupSubscription = () => {
     if (channelRef.current) {
       console.log(`[useClubMessageSubscriptions] Cleaning up channel: ${subscriptionId.current}`);
       supabase.removeChannel(channelRef.current);
@@ -65,13 +64,13 @@ export const useClubMessageSubscriptions = (
       });
       activeSubscriptionsRef.current = updatedSubs;
     }
-  });
+  };
   
   // Reset subscription to fix stale connections
-  const resetSubscription = useRef(() => {
+  const resetSubscription = () => {
     if (subscriptionHealthy.current === false) {
       console.log(`[useClubMessageSubscriptions] Resetting stale subscription: ${subscriptionId.current}`);
-      cleanupSubscription.current();
+      cleanupSubscription();
       
       // Generate a new subscription ID
       subscriptionId.current = `clubs:${Date.now()}`;
@@ -81,7 +80,7 @@ export const useClubMessageSubscriptions = (
         setupSubscription();
       }, 1000);
     }
-  });
+  };
   
   // Setup the subscription
   const setupSubscription = () => {
@@ -96,9 +95,6 @@ export const useClubMessageSubscriptions = (
     }
     
     console.log('[useClubMessageSubscriptions] Setting up subscription for clubs:', userClubs.length);
-    
-    // Create a channel for all clubs with a unique ID
-    const clubIds = userClubs.map(club => club.id).join(',');
     
     // Set up a single channel for all inserts
     try {
@@ -115,10 +111,10 @@ export const useClubMessageSubscriptions = (
             lastEventTime.current = Date.now();
             subscriptionHealthy.current = true;
             
-            console.log('[useClubMessageSubscriptions] New message detected:', payload.new?.id);
+            console.log('[useClubMessageSubscriptions] New club message detected:', payload.new?.id);
             
             const isActiveClub = selectedClubRef.current === payload.new.club_id;
-            const isFromCurrentUser = payload.new.sender_id === currentUser.id;
+            const isFromCurrentUser = String(payload.new.sender_id) === String(currentUser.id);
             
             // If this is a new message for the active club and not from the current user,
             // mark it as read immediately
@@ -127,6 +123,7 @@ export const useClubMessageSubscriptions = (
               markClubAsRead(payload.new.club_id);
             }
             
+            // Process the message
             handleNewMessagePayload(
               payload, 
               clubsRef.current, 
@@ -134,6 +131,17 @@ export const useClubMessageSubscriptions = (
               currentUser, 
               selectedClubRef.current
             );
+            
+            // Dispatch an event to notify components that a new club message was received
+            // This helps with badge updates and other UI syncs
+            window.dispatchEvent(new CustomEvent('clubMessageReceived', {
+              detail: {
+                clubId: payload.new.club_id,
+                messageId: payload.new.id,
+                senderId: payload.new.sender_id,
+                isActiveClub: isActiveClub
+              }
+            }));
           }
         )
         .on('postgres_changes', 
@@ -156,7 +164,7 @@ export const useClubMessageSubscriptions = (
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             subscriptionHealthy.current = false;
             // Attempt to recover
-            setTimeout(() => resetSubscription.current(), 2000);
+            setTimeout(() => resetSubscription(), 2000);
           }
         });
       
@@ -174,14 +182,14 @@ export const useClubMessageSubscriptions = (
       subscriptionHealthy.current = false;
       
       // Try to recover
-      setTimeout(() => resetSubscription.current(), 3000);
+      setTimeout(() => resetSubscription(), 3000);
     }
   };
   
   // Set up real-time subscription for all clubs
   useEffect(() => {
     // Clean up any existing subscription
-    cleanupSubscription.current();
+    cleanupSubscription();
     
     // Generate a new subscription ID
     subscriptionId.current = `clubs:${Date.now()}`;
@@ -191,9 +199,9 @@ export const useClubMessageSubscriptions = (
     
     // Cleanup on unmount
     return () => {
-      cleanupSubscription.current();
+      cleanupSubscription();
     };
-  }, [isOpen, userClubs.length, currentUser?.id, setClubMessages, markClubAsRead]);
+  }, [isOpen, currentUser?.id]); // Remove userClubs.length dependency to avoid re-subscriptions
   
   // Health check timer for subscription
   useEffect(() => {
@@ -208,7 +216,7 @@ export const useClubMessageSubscriptions = (
         
         // If subscription is not healthy, try to reset
         if (!subscriptionHealthy.current) {
-          resetSubscription.current();
+          resetSubscription();
         }
       }
     }, 15000);

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { Club } from '@/types';
@@ -10,7 +11,6 @@ import UnifiedChatList from './UnifiedChatList';
 import UnifiedChatContent from './UnifiedChatContent';
 import { useClubMessages } from '@/hooks/chat/useClubMessages';
 import { useDirectMessages } from '@/hooks/chat/useDirectMessages';
-import { toast } from '@/hooks/use-toast';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -70,49 +70,51 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     return () => clearInterval(intervalId);
   }, [open, refreshUnreadCounts]);
 
-  // Listen for the messagesMarkedAsRead event to update badge counts
+  // Listen for club message and DM events to handle real-time messages
   useEffect(() => {
+    const handleClubMessageReceived = (event: CustomEvent) => {
+      console.log('[MainChatDrawer] Club message received:', event.detail);
+      
+      // If the message isn't for the currently selected chat, refresh unread counts
+      if (!selectedChat || 
+          selectedChat.type !== 'club' || 
+          selectedChat.id !== event.detail.clubId) {
+        // Small delay to ensure database operations complete
+        setTimeout(() => refreshUnreadCounts(), 100);
+      }
+    };
+    
+    const handleDMMessageReceived = (event: CustomEvent) => {
+      console.log('[MainChatDrawer] DM received:', event.detail);
+      
+      // If the message isn't for the currently selected chat, refresh unread counts
+      if (!selectedChat || 
+          selectedChat.type !== 'dm' || 
+          selectedChat.id !== event.detail.conversationId) {
+        // Small delay to ensure database operations complete
+        setTimeout(() => refreshUnreadCounts(), 100);
+      }
+    };
+    
     const handleMessagesMarkedAsRead = (event: CustomEvent) => {
       console.log('[MainChatDrawer] Messages marked as read:', event.detail);
       
-      // If this is for the currently selected chat, ensure counts are refreshed
-      if (
-        selectedChat && 
-        event.detail.type === selectedChat.type && 
-        (event.detail.id === selectedChat.id || event.detail.batched)
-      ) {
-        setTimeout(() => {
-          refreshUnreadCounts();
-        }, 300); // Short delay to ensure database operations complete
-      } else if (!selectedChat || event.detail.batched) {
-        // Also refresh counts for batch operations or when no chat is selected
-        setTimeout(() => {
-          refreshUnreadCounts();
-        }, 300);
-      }
+      // Refresh unread counts after a short delay to ensure database operations complete
+      setTimeout(() => {
+        refreshUnreadCounts();
+      }, 200);
     };
     
+    window.addEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
+    window.addEventListener('dmMessageReceived', handleDMMessageReceived as EventListener);
     window.addEventListener('messagesMarkedAsRead', handleMessagesMarkedAsRead as EventListener);
     
-    // Listen for new message events
-    const handleNewMessage = (event: CustomEvent) => {
-      // Update unread count for notification badge
-      if (onNewMessage && event.detail) {
-        setTimeout(() => {
-          refreshUnreadCounts();
-        }, 200);
-      }
-    };
-    
-    window.addEventListener('clubMessageReceived', handleNewMessage as EventListener);
-    window.addEventListener('dmMessageReceived', handleNewMessage as EventListener);
-    
     return () => {
+      window.removeEventListener('clubMessageReceived', handleClubMessageReceived as EventListener);
+      window.removeEventListener('dmMessageReceived', handleDMMessageReceived as EventListener);
       window.removeEventListener('messagesMarkedAsRead', handleMessagesMarkedAsRead as EventListener);
-      window.removeEventListener('clubMessageReceived', handleNewMessage as EventListener);
-      window.removeEventListener('dmMessageReceived', handleNewMessage as EventListener);
     };
-  }, [refreshUnreadCounts, onNewMessage, selectedChat]);
+  }, [selectedChat, refreshUnreadCounts]);
 
   // Effect to handle openDirectMessage event
   useEffect(() => {
@@ -156,11 +158,20 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
 
   const handleSelectChat = React.useCallback((type: 'club' | 'dm', id: string, name: string, avatar?: string) => {
     console.log(`[MainChatDrawer] Selecting chat: ${type} - ${id}`);
+    
+    // Set the selected chat
     setSelectedChat({ type, id, name, avatar });
     
+    // Mark as read immediately
+    if (type === 'club') {
+      markClubMessagesAsRead(id);
+    } else if (type === 'dm') {
+      markConversationAsRead(id);
+    }
+    
     // Refresh unread counts after chat selection
-    setTimeout(() => refreshUnreadCounts(), 300);
-  }, [refreshUnreadCounts]);
+    setTimeout(() => refreshUnreadCounts(), 200);
+  }, [refreshUnreadCounts, markClubMessagesAsRead, markConversationAsRead]);
 
   const handleSendMessage = React.useCallback(async (message: string, chatId: string, type: 'club' | 'dm') => {
     if (type === 'club' && setClubMessages) {

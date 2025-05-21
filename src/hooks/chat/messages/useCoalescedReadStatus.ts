@@ -77,7 +77,7 @@ export const useCoalescedReadStatus = () => {
     };
   }, []);
   
-  // Process pending conversation marks with debouncing
+  // Process pending conversation marks with debouncing - smaller delay for more responsiveness
   const processConversationMarks = useCallback(debounce(async () => {
     if (!currentUser?.id) return;
     
@@ -135,9 +135,9 @@ export const useCoalescedReadStatus = () => {
         });
       }
     }
-  }, 300), [currentUser?.id]);
+  }, 150), [currentUser?.id]); // Reduced debounce time for quicker updates
   
-  // Process pending club marks with debouncing
+  // Process pending club marks with debouncing - smaller delay for more responsiveness
   const processClubMarks = useCallback(debounce(async () => {
     if (!currentUser?.id) return;
     
@@ -195,7 +195,7 @@ export const useCoalescedReadStatus = () => {
         });
       }
     }
-  }, 300), [currentUser?.id]);
+  }, 150), [currentUser?.id]); // Reduced debounce time for quicker updates
   
   // Mark a conversation as read
   const markConversationAsRead = useCallback(async (conversationId: string) => {
@@ -216,6 +216,8 @@ export const useCoalescedReadStatus = () => {
   // Mark a club as read
   const markClubAsRead = useCallback(async (clubId: string) => {
     if (!currentUser?.id || !clubId) return;
+    
+    console.log(`[useCoalescedReadStatus] Marking club as read: ${clubId}`);
     
     // Add to pending set
     pendingMarkAsRead.current.clubs.add(clubId);

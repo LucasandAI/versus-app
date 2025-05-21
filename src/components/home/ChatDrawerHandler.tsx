@@ -5,6 +5,7 @@ import ChatDrawer from '../chat/ChatDrawer';
 import { useClubMessages } from '@/hooks/chat/useClubMessages';
 import { useApp } from '@/context/AppContext';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
+import { useUnreadMessages } from '@/context/unread-messages';
 
 interface ChatDrawerHandlerProps {
   userClubs: Club[];
@@ -17,16 +18,34 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
 }) => {
   const { isOpen, close } = useChatDrawerGlobal();
   const { currentUser } = useApp();
+  const { refreshUnreadCounts } = useUnreadMessages();
   
   // Use our hook for real-time club messages
   const { clubMessages, setClubMessages } = useClubMessages(userClubs, isOpen);
 
-  console.log('[ChatDrawerHandler] Rendering with clubMessages:', clubMessages);
-
-  const handleSendMessage = async (message: string, clubId?: string) => {
-    console.log('[ChatDrawerHandler] Send message requested:', { message, clubId });
-    // This is just a passthrough function - the actual implementation is in MainChatDrawer
-  };
+  // Refresh unread counts when drawer opens or closes
+  React.useEffect(() => {
+    if (isOpen) {
+      console.log('[ChatDrawerHandler] Drawer opened, refreshing unread counts');
+      refreshUnreadCounts();
+    }
+  }, [isOpen, refreshUnreadCounts]);
+  
+  // Listen for club message events to refresh badges
+  React.useEffect(() => {
+    const handleClubMessageReceived = () => {
+      if (!isOpen) {
+        console.log('[ChatDrawerHandler] New club message while drawer closed, refreshing badges');
+        refreshUnreadCounts();
+      }
+    };
+    
+    window.addEventListener('clubMessageReceived', handleClubMessageReceived);
+    
+    return () => {
+      window.removeEventListener('clubMessageReceived', handleClubMessageReceived);
+    };
+  }, [isOpen, refreshUnreadCounts]);
 
   return (
     <ChatDrawer 
@@ -37,7 +56,6 @@ const ChatDrawerHandler: React.FC<ChatDrawerHandlerProps> = ({
       clubs={userClubs}
       clubMessages={clubMessages}
       setClubMessages={setClubMessages}
-      onSendMessage={handleSendMessage}
     />
   );
 };

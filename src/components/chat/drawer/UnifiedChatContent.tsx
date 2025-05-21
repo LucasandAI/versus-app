@@ -43,8 +43,8 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
   const { markConversationAsRead, markClubAsRead } = useCoalescedReadStatus();
   const { refreshUnreadCounts } = useUnreadMessages();
   const [isSending, setIsSending] = useState(false);
-
-  // Notify about active conversation change and mark as read
+  
+  // Improved active conversation tracking with immediate read status update
   useEffect(() => {
     if (selectedChat && currentUser?.id) {
       console.log(`[UnifiedChatContent] Setting active conversation: ${selectedChat.type} - ${selectedChat.id}`);
@@ -59,12 +59,16 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
       
       // Mark messages as read using the coalesced service - no direct DB calls here
       if (selectedChat.type === 'club') {
+        // Use immediate marking for clubs to fix the badge issue
         markClubAsRead(selectedChat.id);
       } else if (selectedChat.type === 'dm') {
         markConversationAsRead(selectedChat.id);
       }
       
-      // Refresh badge counts after a delay to ensure operations complete
+      // Immediate refresh - this helps with badge updates when opening club messages
+      refreshUnreadCounts();
+      
+      // Also do a slightly delayed refresh to catch any race conditions
       setTimeout(() => refreshUnreadCounts(), 300);
     }
     
@@ -79,22 +83,41 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
     };
   }, [selectedChat, currentUser?.id, markClubAsRead, markConversationAsRead, refreshUnreadCounts]);
 
-  // Listen for new messages events
+  // Listen for new messages events with improved handling
   useEffect(() => {
-    const handleNewMessage = () => {
+    const handleNewMessage = (event: CustomEvent) => {
+      console.log('[UnifiedChatContent] New message received event:', event.type);
+      
+      // Get the details from event
+      const messageDetails = event.detail || {};
+      const isCurrentConversation = 
+        selectedChat && 
+        ((event.type === 'clubMessageReceived' && selectedChat.type === 'club' && messageDetails.clubId === selectedChat.id) ||
+         (event.type === 'dmMessageReceived' && selectedChat.type === 'dm' && messageDetails.conversationId === selectedChat.id));
+      
+      // If this is a message for current conversation, mark it as read
+      if (isCurrentConversation) {
+        console.log('[UnifiedChatContent] Auto-marking new message as read (active conversation)');
+        if (selectedChat?.type === 'club') {
+          markClubAsRead(selectedChat.id);
+        } else if (selectedChat?.type === 'dm') {
+          markConversationAsRead(selectedChat.id);
+        }
+      }
+      
       // Force a refresh of unread counts to update badges
       refreshUnreadCounts();
     };
     
     // Listen for both club and DM message events
-    window.addEventListener('clubMessageReceived', handleNewMessage);
-    window.addEventListener('dmMessageReceived', handleNewMessage);
+    window.addEventListener('clubMessageReceived', handleNewMessage as EventListener);
+    window.addEventListener('dmMessageReceived', handleNewMessage as EventListener);
     
     return () => {
-      window.removeEventListener('clubMessageReceived', handleNewMessage);
-      window.removeEventListener('dmMessageReceived', handleNewMessage);
+      window.removeEventListener('clubMessageReceived', handleNewMessage as EventListener);
+      window.removeEventListener('dmMessageReceived', handleNewMessage as EventListener);
     };
-  }, [refreshUnreadCounts]);
+  }, [selectedChat, refreshUnreadCounts, markClubAsRead, markConversationAsRead]);
 
   const handleSendMessage = async (message: string) => {
     if (!selectedChat) return;
