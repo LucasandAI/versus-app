@@ -1,3 +1,4 @@
+
 // Import required modules
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -123,10 +124,10 @@ export const useJoinRequests = (clubId?: string) => {
     } catch (error) {
       console.error('Error approving request:', error);
       
-      // Update status with REJECTED state instead of ERROR 
+      // Update status with REJECTED state 
       const { error: statusError } = await supabase
         .from('club_requests')
-        .update({ status: 'REJECTED' })
+        .update({ status: 'REJECTED' })  // Now matches our updated type
         .eq('id', requestId);
       
       if (statusError) {
@@ -156,10 +157,10 @@ export const useJoinRequests = (clubId?: string) => {
       // Optimistically remove from state
       setJoinRequests(prev => prev.filter(req => req.id !== requestId));
       
-      // Update the club_requests status to REJECTED (instead of ERROR)
+      // Update the club_requests status to REJECTED
       const { error } = await supabase
         .from('club_requests')
-        .update({ status: 'REJECTED' })
+        .update({ status: 'REJECTED' })  // Now matches our updated type
         .eq('id', requestId);
         
       if (error) throw error;
