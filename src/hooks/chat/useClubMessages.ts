@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Club } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,34 +9,15 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
   const { currentUser } = useApp();
   const activeSubscriptionsRef = useRef<Record<string, boolean>>({});
   const initialMessagesFetchedRef = useRef<Record<string, boolean>>({});
-  const lastFetchTimeRef = useRef<number>(0);
   
   // Fetch initial messages when drawer opens
   useEffect(() => {
     if (!isOpen || !currentUser?.id || !userClubs.length) return;
     
-    // Throttle fetching to prevent excessive calls
-    const now = Date.now();
-    if (now - lastFetchTimeRef.current < 5000) {
-      console.log('[useClubMessages] Skipping fetch, too soon since last fetch');
-      return;
-    }
-    
-    lastFetchTimeRef.current = now;
-    
     const fetchInitialMessages = async () => {
       try {
-        // Get last 50 messages for each club, but only for clubs that haven't been fetched yet
-        const unfetchedClubIds = userClubs
-          .filter(club => !initialMessagesFetchedRef.current[club.id])
-          .map(club => club.id);
-          
-        if (unfetchedClubIds.length === 0) {
-          console.log('[useClubMessages] All clubs have initial messages fetched');
-          return;
-        }
-        
-        console.log('[useClubMessages] Fetching initial messages for clubs:', unfetchedClubIds);
+        // Get last 50 messages for each club
+        const clubIds = userClubs.map(club => club.id);
         
         const { data, error } = await supabase
           .from('club_chat_messages')
@@ -53,15 +33,14 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
               avatar
             )
           `)
-          .in('club_id', unfetchedClubIds)
+          .in('club_id', clubIds)
           .order('timestamp', { ascending: false })
           .limit(50);
           
         if (error) throw error;
         
         if (data) {
-          // Create a new copy to avoid mutation issues
-          const messagesMap = { ...clubMessages };
+          const messagesMap: Record<string, any[]> = {};
           
           // Group messages by club_id and normalize sender information
           data.forEach(message => {
@@ -80,13 +59,14 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
               isUserMessage: String(message.sender_id) === String(currentUser.id)
             };
             
-            const isDuplicate = messagesMap[message.club_id].some(
-              existingMsg => existingMsg.id === message.id
-            );
+            console.log('[useClubMessages] Normalizing message:', {
+              messageId: message.id,
+              senderId: message.sender_id,
+              currentUserId: currentUser.id,
+              isUserMessage: normalizedMessage.isUserMessage
+            });
             
-            if (!isDuplicate) {
-              messagesMap[message.club_id].push(normalizedMessage);
-            }
+            messagesMap[message.club_id].push(normalizedMessage);
           });
           
           // Sort messages by timestamp (oldest first) for each club
@@ -115,8 +95,12 @@ export const useClubMessages = (userClubs: Club[], isOpen: boolean) => {
       }
     };
     
-    fetchInitialMessages();
-  }, [isOpen, currentUser?.id, userClubs, clubMessages]);
+    // Only fetch messages for clubs that haven't been fetched yet
+    const unfetchedClubs = userClubs.filter(club => !initialMessagesFetchedRef.current[club.id]);
+    if (unfetchedClubs.length > 0) {
+      fetchInitialMessages();
+    }
+  }, [isOpen, currentUser?.id, userClubs]);
   
   // Set up real-time subscription for messages
   useClubMessageSubscriptions(userClubs, isOpen, activeSubscriptionsRef, setClubMessages);

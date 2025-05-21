@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useUnreadMessages } from '@/context/unread-messages';
 import { useChatNotifications } from '@/hooks/useChatNotifications';
 
@@ -12,16 +12,8 @@ const HomeNotifications: React.FC<HomeNotificationsProps> = ({
   setChatNotifications,
   setNotifications
 }) => {
-  // Use the unread messages context to get refresh capability
-  const { refreshUnreadCounts } = useUnreadMessages();
-  
-  // Force refresh unread counts on mount
-  useEffect(() => {
-    console.log('[HomeNotifications] Component mounted, refreshing unread counts');
-    
-    // Initial fetch of unread counts
-    refreshUnreadCounts();
-  }, [refreshUnreadCounts]);
+  // Use the unread messages context to get the total count
+  const { totalUnreadCount } = useUnreadMessages();
   
   // Update the chat notification count using our hook
   useChatNotifications({ setChatNotifications });

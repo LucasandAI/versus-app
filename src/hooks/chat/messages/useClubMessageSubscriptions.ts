@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
 import { handleNewMessagePayload, handleMessageDeletion } from './utils/subscriptionHandlers';
 import { useApp } from '@/context/AppContext';
-import { useCoalescedReadStatus } from './useCoalescedReadStatus';
 
 export const useClubMessageSubscriptions = (
   userClubs: Club[],
@@ -14,264 +13,90 @@ export const useClubMessageSubscriptions = (
   const { currentUser } = useApp();
   const selectedClubRef = useRef<string | null>(null);
   const clubsRef = useRef<Club[]>(userClubs);
-  const { markClubAsRead } = useCoalescedReadStatus();
-  const subscriptionId = useRef<string>(`clubs:${Date.now()}`);
-  const subscriptionHealthy = useRef<boolean>(true);
-  const lastEventTime = useRef<number>(Date.now());
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const activeClubRef = useRef<string | null>(null);
-  const lastMessageIdRef = useRef<Record<string, string>>({});
-  const lastProcessedMessageTimestamp = useRef<Record<string, number>>({});
-  const reconnectAttempts = useRef<number>(0);
-  const MAX_RECONNECT_ATTEMPTS = 5;
-  const reconnectTimeouts = [1000, 2000, 5000, 10000, 30000]; // Increasing timeouts
   
   // Keep clubs reference updated
   useEffect(() => {
     clubsRef.current = userClubs;
   }, [userClubs]);
   
-  // Handle active conversation changes with improved tracking using refs for stability
+  // Handle selected club changes from events
   useEffect(() => {
-    const handleActiveConversationChanged = (event: CustomEvent) => {
-      // Only update if this is a club conversation
-      if (event.detail.type === 'club') {
-        console.log('[useClubMessageSubscriptions] Active club conversation changed:', event.detail.id);
-        selectedClubRef.current = event.detail.id;
-        activeClubRef.current = event.detail.id;
-        
-        // Mark as read immediately when the conversation becomes active (using local-first approach)
-        if (event.detail.id) {
-          markClubAsRead(event.detail.id, true);
-        }
-      } else if (event.detail.type === null && event.detail.id === null) {
-        // Clear selected club if no active conversation
-        selectedClubRef.current = null;
-        activeClubRef.current = null;
-      }
+    const handleClubSelect = (event: CustomEvent) => {
+      selectedClubRef.current = event.detail.clubId;
     };
     
-    window.addEventListener('activeConversationChanged', handleActiveConversationChanged as EventListener);
-    
+    window.addEventListener('clubSelected', handleClubSelect as EventListener);
     return () => {
-      window.removeEventListener('activeConversationChanged', handleActiveConversationChanged as EventListener);
+      window.removeEventListener('clubSelected', handleClubSelect as EventListener);
     };
-  }, [markClubAsRead]);
-  
-  // Clean up function for subscription
-  const cleanupSubscription = () => {
-    if (channelRef.current) {
-      console.log(`[useClubMessageSubscriptions] Cleaning up channel: ${subscriptionId.current}`);
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-      
-      // Mark all clubs as unsubscribed
-      const updatedSubs = { ...activeSubscriptionsRef.current };
-      clubsRef.current.forEach(club => {
-        delete updatedSubs[club.id];
-      });
-      activeSubscriptionsRef.current = updatedSubs;
-    }
-  };
-  
-  // Reset subscription to fix stale connections
-  const resetSubscription = () => {
-    if (subscriptionHealthy.current === false) {
-      console.log(`[useClubMessageSubscriptions] Resetting stale subscription: ${subscriptionId.current}`);
-      cleanupSubscription();
-      
-      // Generate a new subscription ID
-      subscriptionId.current = `clubs:${Date.now()}`;
-      
-      // Implement exponential backoff for reconnection
-      const timeout = reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS 
-        ? reconnectTimeouts[reconnectAttempts.current] 
-        : reconnectTimeouts[reconnectTimeouts.length - 1];
-      
-      console.log(`[useClubMessageSubscriptions] Reconnecting in ${timeout}ms (attempt ${reconnectAttempts.current + 1}/${MAX_RECONNECT_ATTEMPTS})`);
-      
-      // Wait before recreating to avoid thrashing
-      setTimeout(() => {
-        reconnectAttempts.current++;
-        setupSubscription();
-      }, timeout);
-    }
-  };
-  
-  // Setup the subscription with improved real-time handling and deduplication
-  const setupSubscription = () => {
-    // Don't subscribe if not open or no clubs
-    if (!isOpen || !userClubs.length || !currentUser?.id) {
-      console.log('[useClubMessageSubscriptions] Not setting up subscriptions, conditions not met:', {
-        isOpen,
-        clubsCount: userClubs.length,
-        hasCurrentUser: !!currentUser?.id
-      });
-      return;
-    }
-    
-    console.log('[useClubMessageSubscriptions] Setting up subscription for clubs:', userClubs.length);
-    
-    // Set up a single channel for all inserts with better message deduplication
-    try {
-      const channel = supabase
-        .channel(subscriptionId.current)
-        .on('postgres_changes', 
-          { 
-            event: 'INSERT', 
-            schema: 'public', 
-            table: 'club_chat_messages',
-            filter: userClubs.length > 0 ? `club_id=in.(${userClubs.map(c => `'${c.id}'`).join(',')})` : undefined
-          }, 
-          (payload) => {
-            lastEventTime.current = Date.now();
-            subscriptionHealthy.current = true;
-            reconnectAttempts.current = 0; // Reset reconnect attempts on successful event
-            
-            // Enhanced duplicate detection using both ID and timestamp
-            if (!payload.new || !payload.new.id || !payload.new.timestamp || !payload.new.club_id) {
-              console.log('[useClubMessageSubscriptions] Invalid payload:', payload);
-              return;
-            }
-            
-            const messageId = payload.new.id;
-            const messageTimestamp = new Date(payload.new.timestamp).getTime();
-            const clubId = payload.new.club_id;
-            
-            // Check if this is a duplicate message by ID
-            if (lastMessageIdRef.current[clubId] === messageId) {
-              console.log('[useClubMessageSubscriptions] Skipping duplicate message by ID:', messageId);
-              return;
-            }
-            
-            // Check if we've already processed a newer message for this club
-            const lastProcessedTimestamp = lastProcessedMessageTimestamp.current[clubId] || 0;
-            if (messageTimestamp < lastProcessedTimestamp) {
-              console.log('[useClubMessageSubscriptions] Skipping out-of-order message:', {
-                messageId,
-                messageTime: messageTimestamp,
-                lastProcessedTime: lastProcessedTimestamp
-              });
-              return;
-            }
-            
-            // Update our tracking references
-            lastMessageIdRef.current[clubId] = messageId;
-            lastProcessedMessageTimestamp.current[clubId] = messageTimestamp;
-            
-            console.log('[useClubMessageSubscriptions] Processing new club message:', messageId);
-            
-            const isActiveClub = activeClubRef.current === payload.new.club_id;
-            const isFromCurrentUser = String(payload.new.sender_id) === String(currentUser.id);
-            
-            // If this is a new message for the active club and not from the current user,
-            // mark it as read immediately using local-first approach
-            if (isActiveClub && !isFromCurrentUser) {
-              console.log('[useClubMessageSubscriptions] Auto-marking new message as read (active club)');
-              markClubAsRead(payload.new.club_id, false);
-            }
-            
-            // Process the message with enhanced handling for better performance
-            handleNewMessagePayload(
-              payload, 
-              clubsRef.current, 
-              setClubMessages, 
-              currentUser, 
-              selectedClubRef.current
-            );
-          }
-        )
-        .on('postgres_changes', 
-          { 
-            event: 'DELETE', 
-            schema: 'public', 
-            table: 'club_chat_messages',
-            filter: userClubs.length > 0 ? `club_id=in.(${userClubs.map(c => `'${c.id}'`).join(',')})` : undefined
-          }, 
-          (payload) => {
-            lastEventTime.current = Date.now();
-            reconnectAttempts.current = 0; // Reset reconnect attempts on successful event
-            console.log('[useClubMessageSubscriptions] Message deletion detected:', payload.old?.id);
-            handleMessageDeletion(payload, setClubMessages);
-          }
-        )
-        .subscribe((status) => {
-          console.log(`[useClubMessageSubscriptions] Subscription status for ${subscriptionId.current}: ${status}`);
-          if (status === 'SUBSCRIBED') {
-            subscriptionHealthy.current = true;
-            reconnectAttempts.current = 0; // Reset reconnect attempts on successful subscribe
-          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            subscriptionHealthy.current = false;
-            // Attempt to recover
-            setTimeout(() => resetSubscription(), 2000);
-          }
-        });
-      
-      channelRef.current = channel;
-      
-      // Mark all clubs as subscribed
-      const updatedSubs = { ...activeSubscriptionsRef.current };
-      userClubs.forEach(club => {
-        updatedSubs[club.id] = true;
-      });
-      activeSubscriptionsRef.current = updatedSubs;
-      
-    } catch (error) {
-      console.error('[useClubMessageSubscriptions] Error setting up subscription:', error);
-      subscriptionHealthy.current = false;
-      
-      // Try to recover with exponential backoff
-      const timeout = reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS 
-        ? reconnectTimeouts[reconnectAttempts.current] 
-        : reconnectTimeouts[reconnectTimeouts.length - 1];
-      
-      console.log(`[useClubMessageSubscriptions] Will retry in ${timeout}ms (attempt ${reconnectAttempts.current + 1}/${MAX_RECONNECT_ATTEMPTS})`);
-      
-      setTimeout(() => {
-        reconnectAttempts.current++;
-        resetSubscription();
-      }, timeout);
-    }
-  };
+  }, []);
   
   // Set up real-time subscription for all clubs
   useEffect(() => {
-    // Clean up any existing subscription
-    cleanupSubscription();
+    // Don't subscribe if not open or no clubs
+    if (!isOpen || userClubs.length === 0 || !currentUser?.id) return;
     
-    // Reset reconnect attempts when dependencies change
-    reconnectAttempts.current = 0;
+    console.log('[useClubMessageSubscriptions] Setting up subscription for clubs:', userClubs.length);
     
-    // Generate a new subscription ID
-    subscriptionId.current = `clubs:${Date.now()}`;
+    // Create a channel for all clubs
+    const clubIds = userClubs.map(club => club.id).join(',');
+    const channelId = `clubs-${clubIds.substring(0, 20)}`; // Truncate to keep channelId reasonable
     
-    // Setup the new subscription
-    setupSubscription();
-    
-    // Cleanup on unmount
-    return () => {
-      cleanupSubscription();
-    };
-  }, [isOpen, currentUser?.id]);
-  
-  // Health check timer for subscription with improved resilience
-  useEffect(() => {
-    // Only run health checks for active drawer
-    if (!isOpen) return;
-    
-    const healthCheck = setInterval(() => {
-      // If no event received in 30 seconds, check health
-      const timeSinceLastEvent = Date.now() - lastEventTime.current;
-      if (timeSinceLastEvent > 30000) {
-        console.log(`[useClubMessageSubscriptions] Health check: No events for ${Math.round(timeSinceLastEvent/1000)}s`);
-        
-        // If subscription is not healthy, try to reset
-        if (!subscriptionHealthy.current) {
-          resetSubscription();
+    // Set up a single channel for all inserts
+    const channel = supabase
+      .channel(channelId)
+      .on('postgres_changes', 
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'club_chat_messages',
+          filter: userClubs.length > 0 ? `club_id=in.(${userClubs.map(c => `'${c.id}'`).join(',')})` : undefined
+        }, 
+        (payload) => {
+          console.log('[useClubMessageSubscriptions] New message detected');
+          handleNewMessagePayload(
+            payload, 
+            clubsRef.current, 
+            setClubMessages, 
+            currentUser, 
+            selectedClubRef.current
+          );
         }
-      }
-    }, 15000);
+      )
+      .on('postgres_changes', 
+        { 
+          event: 'DELETE', 
+          schema: 'public', 
+          table: 'club_chat_messages',
+          filter: userClubs.length > 0 ? `club_id=in.(${userClubs.map(c => `'${c.id}'`).join(',')})` : undefined
+        }, 
+        (payload) => {
+          console.log('[useClubMessageSubscriptions] Message deletion detected');
+          handleMessageDeletion(payload, setClubMessages);
+        }
+      )
+      .subscribe((status) => {
+        console.log(`[useClubMessageSubscriptions] Subscription status: ${status}`);
+      });
     
-    return () => clearInterval(healthCheck);
-  }, [isOpen]);
+    // Mark all clubs as subscribed
+    const updatedSubs = { ...activeSubscriptionsRef.current };
+    userClubs.forEach(club => {
+      updatedSubs[club.id] = true;
+    });
+    activeSubscriptionsRef.current = updatedSubs;
+    
+    // Cleanup
+    return () => {
+      console.log('[useClubMessageSubscriptions] Cleaning up channel');
+      supabase.removeChannel(channel);
+      
+      // Mark all clubs as unsubscribed
+      const updatedSubs = { ...activeSubscriptionsRef.current };
+      userClubs.forEach(club => {
+        delete updatedSubs[club.id];
+      });
+      activeSubscriptionsRef.current = updatedSubs;
+    };
+  }, [isOpen, userClubs, currentUser?.id, setClubMessages]);
 };

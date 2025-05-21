@@ -36,36 +36,6 @@ function hasClubId(payload: any): payload is { new: { club_id: string } } {
          typeof payload.new.club_id === 'string';
 }
 
-// Cache for sender data to avoid duplicate fetches
-const senderCache = new Map<string, {
-  id: string;
-  name: string;
-  avatar?: string;
-}>();
-
-// Set to track processed message IDs to prevent duplicates
-const processedMessageIds = new Set<string>();
-// Expire processed message IDs after some time to avoid memory growth
-const MESSAGE_CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
-
-// Function to cleanup old message IDs periodically
-const cleanupOldMessages = () => {
-  const now = Date.now();
-  const expiredIds: string[] = [];
-  
-  processedMessageIds.forEach((value, key) => {
-    const [id, timestamp] = key.split('|');
-    if (now - Number(timestamp) > MESSAGE_CACHE_EXPIRY) {
-      expiredIds.push(key);
-    }
-  });
-  
-  expiredIds.forEach(id => processedMessageIds.delete(id));
-};
-
-// Set up periodic cleanup
-setInterval(cleanupOldMessages, 60 * 1000); // Clean up every minute
-
 export const handleNewMessagePayload = async (
   payload: RealtimePostgresChangesPayload<{
     [key: string]: any;
@@ -82,19 +52,7 @@ export const handleNewMessagePayload = async (
   }
   
   const typedPayload = payload as unknown as MessagePayload;
-  const messageId = typedPayload.new.id;
-  
-  // Check for duplicate messages using combined key of id and timestamp
-  const messageKey = `${messageId}|${Date.now()}`;
-  if (processedMessageIds.has(messageId)) {
-    console.log(`[subscriptionHandlers] Skipping duplicate message: ${messageId}`);
-    return;
-  }
-  
-  // Add to processed set immediately
-  processedMessageIds.add(messageId);
-  
-  console.log('[subscriptionHandlers] Received message payload:', messageId);
+  console.log('[subscriptionHandlers] Received message payload:', typedPayload.new.id);
   
   // Get the club ID from the message
   const messageClubId = typedPayload.new.club_id;
@@ -106,38 +64,23 @@ export const handleNewMessagePayload = async (
     return;
   }
   
-  console.log(`[subscriptionHandlers] 🔥 New message received for club ${messageClubId}:`, messageId);
+  console.log(`[subscriptionHandlers] 🔥 New message received for club ${messageClubId}:`, typedPayload.new.id);
   
-  // Check if this is from the current user
+  // Create a temporary message object with sender info
   const isCurrentUser = typedPayload.new.sender_id === currentUser?.id;
+  const senderName = isCurrentUser ? "You" : (typedPayload.new.sender_name || "Loading...");
   
-  // Get sender info from cache first, or use the provided sender_name, or a placeholder
-  let senderName = "Loading...";
-  let senderAvatar: string | undefined = undefined;
-  
-  if (isCurrentUser) {
-    senderName = "You";
-    senderAvatar = currentUser?.avatar;
-  } else if (typedPayload.new.sender_name) {
-    senderName = typedPayload.new.sender_name;
-  } else if (senderCache.has(typedPayload.new.sender_id)) {
-    const cachedSender = senderCache.get(typedPayload.new.sender_id);
-    senderName = cachedSender?.name || "Unknown";
-    senderAvatar = cachedSender?.avatar;
-  }
-  
-  // Create a temporary message object with sender info using cached data or placeholders
   const tempMessage = {
     ...typedPayload.new,
     isUserMessage: isCurrentUser,
     sender: {
       id: typedPayload.new.sender_id,
       name: senderName,
-      avatar: senderAvatar
+      avatar: isCurrentUser ? currentUser?.avatar : undefined
     }
   };
   
-  // Immediately update with the temporary message (instant UI feedback)
+  // First update with the temporary message (instant UI feedback)
   setClubMessages(prev => {
     const clubMsgs = prev[messageClubId] || [];
     
@@ -145,19 +88,14 @@ export const handleNewMessagePayload = async (
     const messageExists = clubMsgs.some(msg => msg.id === typedPayload.new.id);
     if (messageExists) return prev;
 
-    // Add the message and sort by timestamp
+    // Sort messages by timestamp
     const updatedMessages = [...clubMsgs, tempMessage].sort(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
     
-    // Dispatch event to notify of new message
+    // Create and dispatch a global event with the new message details
     window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
-      detail: { 
-        clubId: messageClubId, 
-        message: tempMessage,
-        senderId: typedPayload.new.sender_id,
-        isActiveClub: selectedClubRef === messageClubId
-      } 
+      detail: { clubId: messageClubId, message: tempMessage } 
     }));
     
     return {
@@ -166,8 +104,9 @@ export const handleNewMessagePayload = async (
     };
   });
   
-  // In parallel, fetch complete sender details if needed (not for current user and not cached)
-  if (!isCurrentUser && !typedPayload.new.sender_name && !senderCache.has(typedPayload.new.sender_id)) {
+  // In parallel, fetch complete sender details (only for other users' messages)
+  // and only if sender_name is not already provided
+  if (!isCurrentUser && !typedPayload.new.sender_name) {
     try {
       const { data: senderData } = await supabase
         .from('users')
@@ -176,9 +115,6 @@ export const handleNewMessagePayload = async (
         .single();
 
       if (senderData) {
-        // Cache the sender data for future use
-        senderCache.set(typedPayload.new.sender_id, senderData);
-        
         // Once we have sender data, update the message with complete info
         setClubMessages(prev => {
           const clubMsgs = prev[messageClubId] || [];
@@ -202,6 +138,14 @@ export const handleNewMessagePayload = async (
     } catch (error) {
       console.error('[subscriptionHandlers] Error fetching sender details:', error);
     }
+  }
+  
+  // If the message is from another user and NOT the currently viewed club,
+  // we need to update the unread count for this club
+  if (!isCurrentUser && (!selectedClubRef || selectedClubRef !== messageClubId)) {
+    window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
+      detail: { clubId: messageClubId } 
+    }));
   }
 };
 
@@ -251,15 +195,6 @@ export const handleMessageDeletion = (
 export const fetchSenderDetails = async (message: any) => {
   if (!message?.sender_id) return message;
   
-  // Check cache first
-  if (senderCache.has(message.sender_id)) {
-    const cachedSender = senderCache.get(message.sender_id);
-    return {
-      ...message,
-      sender: cachedSender
-    };
-  }
-  
   try {
     const { data: senderData } = await supabase
       .from('users')
@@ -268,9 +203,6 @@ export const fetchSenderDetails = async (message: any) => {
       .single();
       
     if (senderData) {
-      // Cache the data for future use
-      senderCache.set(message.sender_id, senderData);
-      
       return {
         ...message,
         sender: senderData
@@ -282,10 +214,4 @@ export const fetchSenderDetails = async (message: any) => {
     console.error('[subscriptionHandlers] Error fetching sender details:', error);
     return message;
   }
-};
-
-// Clear sender cache - useful when testing or if user data might have changed
-export const clearSenderCache = () => {
-  senderCache.clear();
-  processedMessageIds.clear();
 };

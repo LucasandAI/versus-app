@@ -88,15 +88,15 @@ export const acceptJoinRequest = async (userId: string, clubId: string, userName
 
 export const denyJoinRequest = async (userId: string, clubId: string): Promise<boolean> => {
   try {
-    // Update the request status to REJECTED
+    // Delete the request instead of updating status
     const { error } = await supabase
       .from('club_requests')
-      .update({ status: 'REJECTED' })  // Changed from 'ERROR' to 'REJECTED'
+      .delete()
       .eq('user_id', userId)
       .eq('club_id', clubId);
 
     if (error) {
-      console.error('[denyJoinRequest] Error rejecting join request:', error);
+      console.error('[denyJoinRequest] Error deleting join request:', error);
       return false;
     }
 

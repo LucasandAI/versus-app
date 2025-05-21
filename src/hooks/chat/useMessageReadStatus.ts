@@ -1,21 +1,38 @@
 
 import { useCallback } from 'react';
-import { useCoalescedReadStatus } from './messages/useCoalescedReadStatus';
+import { supabase } from '@/integrations/supabase/client';
+import { useUnreadMessages } from '@/context/unread-messages';
 
 export const useMessageReadStatus = () => {
-  const { markConversationAsRead, markClubAsRead } = useCoalescedReadStatus();
+  const { markDirectConversationAsRead, markClubMessagesAsRead } = useUnreadMessages();
 
-  // Updated to use the local-first approach for direct messages
-  const markDirectMessagesAsRead = useCallback(async (conversationId: string, userId: string) => {
-    // Use false for debounced database update (local storage updated immediately)
-    await markConversationAsRead(conversationId, false);
-  }, [markConversationAsRead]);
+  const markDirectMessagesAsRead = useCallback(async (conversationId: string, userId: string, delay = 0) => {
+    if (delay > 0) {
+      // Add delay before marking as read to prevent badge flickering
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    
+    try {
+      // Use the context method for optimistic updates
+      await markDirectConversationAsRead(conversationId);
+    } catch (error) {
+      console.error('[useMessageReadStatus] Error marking DM as read:', error);
+    }
+  }, [markDirectConversationAsRead]);
 
-  // Updated to use the local-first approach for club messages
-  const markClubMessagesAsReadLegacy = useCallback(async (clubId: string, userId: string) => {
-    // Use false for debounced database update (local storage updated immediately)
-    await markClubAsRead(clubId, false);
-  }, [markClubAsRead]);
+  const markClubMessagesAsReadLegacy = useCallback(async (clubId: string, userId: string, delay = 0) => {
+    if (delay > 0) {
+      // Add delay before marking as read to prevent badge flickering
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+
+    try {
+      // Use the context method for optimistic updates
+      await markClubMessagesAsRead(clubId);
+    } catch (error) {
+      console.error('[useMessageReadStatus] Error marking club messages as read:', error);
+    }
+  }, [markClubMessagesAsRead]);
 
   return {
     markDirectMessagesAsRead,

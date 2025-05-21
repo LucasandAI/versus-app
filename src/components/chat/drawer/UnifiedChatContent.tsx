@@ -1,9 +1,10 @@
 
 import React from 'react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Club } from '@/types';
 import { useApp } from '@/context/AppContext';
 import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
+import { supabase } from '@/integrations/supabase/client';
 import ChatHeader from '../ChatHeader';
 import ChatMessages from '../ChatMessages';
 import ChatInput from '../ChatInput';
@@ -12,7 +13,6 @@ import { useChatActions } from '@/hooks/chat/useChatActions';
 import { useUnreadMessages } from '@/context/unread-messages';
 import { ArrowLeft } from 'lucide-react';
 import UserAvatar from '@/components/shared/UserAvatar';
-import { useCoalescedReadStatus } from '@/hooks/chat/messages/useCoalescedReadStatus';
 
 interface UnifiedChatContentProps {
   selectedChat: {
@@ -40,91 +40,28 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
 }) => {
   const { currentUser } = useApp();
   const { navigateToClubDetail, navigateToUserProfile } = useNavigation();
-  const { markConversationAsRead, markClubAsRead } = useCoalescedReadStatus();
-  const { refreshUnreadCounts } = useUnreadMessages();
+  const { markClubMessagesAsRead, markDirectConversationAsRead } = useUnreadMessages();
   const [isSending, setIsSending] = useState(false);
-  const selectedChatRef = useRef(selectedChat);
-  
-  // Update ref when selectedChat changes
-  useEffect(() => {
-    selectedChatRef.current = selectedChat;
-  }, [selectedChat]);
-  
-  // Improved active conversation tracking with immediate read status update using local-first approach
-  useEffect(() => {
-    if (selectedChat && currentUser?.id) {
-      console.log(`[UnifiedChatContent] Setting active conversation: ${selectedChat.type} - ${selectedChat.id}`);
-      
-      // Dispatch event to notify about active conversation immediately
-      window.dispatchEvent(new CustomEvent('activeConversationChanged', { 
-        detail: { 
-          type: selectedChat.type, 
-          id: selectedChat.id 
-        } 
-      }));
-      
-      // Mark messages as read using the local-first approach
-      if (selectedChat.type === 'club') {
-        markClubAsRead(selectedChat.id, true); // Use true for immediate database update
-      } else if (selectedChat.type === 'dm') {
-        markConversationAsRead(selectedChat.id, true); // Use true for immediate database update
-      }
-      
-      // Refresh unread counts after a short delay to ensure local storage is updated
-      setTimeout(() => refreshUnreadCounts(), 50);
-    }
-    
-    // Cleanup on unmount or change
-    return () => {
-      if (selectedChatRef.current) {
-        console.log(`[UnifiedChatContent] Clearing active conversation: ${selectedChatRef.current.type} - ${selectedChatRef.current.id}`);
-        window.dispatchEvent(new CustomEvent('activeConversationChanged', { 
-          detail: { type: null, id: null } 
-        }));
-      }
-    };
-  }, [selectedChat, currentUser?.id, markClubAsRead, markConversationAsRead, refreshUnreadCounts]);
 
-  // Listen for new messages events with improved handling using local-first approach
+  // Mark messages as read when chat is selected, but with a delay to prevent badge flickering
   useEffect(() => {
-    const handleNewMessage = (event: CustomEvent) => {
-      console.log('[UnifiedChatContent] New message received event:', event.type);
+    if (selectedChat) {
+      // Use a 400ms delay to allow the notification badge to be visible before clearing
+      const MARK_AS_READ_DELAY = 400;
       
-      // Get the details from event
-      const messageDetails = event.detail || {};
-      const isCurrentConversation = 
-        selectedChat && 
-        ((event.type === 'clubMessageReceived' && selectedChat.type === 'club' && messageDetails.clubId === selectedChat.id) ||
-         (event.type === 'dmMessageReceived' && selectedChat.type === 'dm' && messageDetails.conversationId === selectedChat.id));
-      
-      // If this is a message for current conversation, mark it as read immediately using local-first approach
-      if (isCurrentConversation) {
-        console.log('[UnifiedChatContent] Auto-marking new message as read (active conversation)');
-        
-        // Only mark as read if we didn't send the message ourselves
-        const isSelfMessage = 
-          (event.type === 'clubMessageReceived' && messageDetails.senderId === currentUser?.id) ||
-          (event.type === 'dmMessageReceived' && messageDetails.senderId === currentUser?.id);
-          
-        if (!isSelfMessage) {
-          if (selectedChat?.type === 'club') {
-            markClubAsRead(selectedChat.id, false); // Use false for debounced database update
-          } else if (selectedChat?.type === 'dm') {
-            markConversationAsRead(selectedChat.id, false); // Use false for debounced database update
-          }
+      const timer = setTimeout(() => {
+        if (selectedChat.type === 'club') {
+          console.log(`[UnifiedChatContent] Marking club ${selectedChat.id} messages as read after delay`);
+          markClubMessagesAsRead(selectedChat.id);
+        } else if (selectedChat.type === 'dm') {
+          console.log(`[UnifiedChatContent] Marking DM ${selectedChat.id} as read after delay`);
+          markDirectConversationAsRead(selectedChat.id);
         }
-      }
-    };
-    
-    // Listen for both club and DM message events
-    window.addEventListener('clubMessageReceived', handleNewMessage as EventListener);
-    window.addEventListener('dmMessageReceived', handleNewMessage as EventListener);
-    
-    return () => {
-      window.removeEventListener('clubMessageReceived', handleNewMessage as EventListener);
-      window.removeEventListener('dmMessageReceived', handleNewMessage as EventListener);
-    };
-  }, [selectedChat, markClubAsRead, markConversationAsRead, currentUser?.id]);
+      }, MARK_AS_READ_DELAY);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [selectedChat, markClubMessagesAsRead, markDirectConversationAsRead]);
 
   const handleSendMessage = async (message: string) => {
     if (!selectedChat) return;
@@ -132,13 +69,6 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
     setIsSending(true);
     try {
       await onSendMessage(message, selectedChat.id, selectedChat.type);
-      
-      // Mark as read immediately after sending
-      if (selectedChat.type === 'club') {
-        markClubAsRead(selectedChat.id, false); // Use false for debounced database update
-      } else {
-        markConversationAsRead(selectedChat.id, false); // Use false for debounced database update
-      }
     } catch (error) {
       console.error('[UnifiedChatContent] Error sending message:', error);
     } finally {

@@ -1,6 +1,6 @@
 
-import React, { useEffect } from 'react';
-import { Club } from '@/types';
+import React, { useEffect, useState } from 'react';
+import { Club, JoinRequest } from '@/types';
 import {
   Dialog,
   DialogContent,
@@ -25,13 +25,13 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
   club 
 }) => {
   const {
-    joinRequests,
     isLoading,
-    isError,
-    fetchRequests,
-    approveRequest,
-    rejectRequest,
-    processingIds
+    error,
+    requests,
+    fetchClubRequests,
+    handleAcceptRequest,
+    handleDeclineRequest,
+    isProcessing
   } = useJoinRequests();
   
   const isClubFull = club.members.length >= 5;
@@ -40,13 +40,11 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
     const loadRequests = async () => {
       if (!open) return;
       console.log('[JoinRequestsDialog] Loading requests for club:', club.id);
-      await fetchRequests(club.id);
+      await fetchClubRequests(club.id);
     };
     
     loadRequests();
-  }, [open, club.id, fetchRequests]);
-
-  const isProcessing = (requestId: string) => processingIds.includes(requestId);
+  }, [open, club.id, fetchClubRequests]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -85,18 +83,18 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
                 </div>
               ))}
             </div>
-          ) : isError ? (
+          ) : error ? (
             <div className="py-8 text-center">
               <p className="text-red-500">Error loading requests. Please try again.</p>
             </div>
-          ) : joinRequests.length > 0 ? (
+          ) : requests.length > 0 ? (
             <div className="space-y-4">
-              {joinRequests.map(request => (
+              {requests.map(request => (
                 <JoinRequestItem
                   key={request.id}
                   request={request}
-                  onApprove={() => approveRequest(request.id)}
-                  onDeny={() => rejectRequest(request.id)}
+                  onApprove={() => handleAcceptRequest(request, club)}
+                  onDeny={() => handleDeclineRequest(request)}
                   isClubFull={isClubFull}
                   isProcessing={isProcessing(request.id)}
                 />

@@ -7,14 +7,15 @@ import ChatMessages from '../../ChatMessages';
 import { useActiveDMMessages } from '@/hooks/chat/dm/useActiveDMMessages';
 import { useDMSubscription } from '@/hooks/chat/dm/useDMSubscription';
 import { useNavigation } from '@/hooks/useNavigation';
+import { useConversations } from '@/hooks/chat/dm/useConversations';
 import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting';
-import { useCoalescedReadStatus } from '@/hooks/chat/messages/useCoalescedReadStatus';
+import { useConversationManagement } from '@/hooks/chat/dm/useConversationManagement';
+import { useUnreadMessages } from '@/context/unread-messages';
 import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
 import DMMessageInput from './DMMessageInput';
 import DMHeader from './DMHeader';
 import { ArrowLeft } from 'lucide-react';
 import { useUserData } from '@/hooks/chat/dm/useUserData';
-import { useConversationManagement } from '@/hooks/chat/dm/useConversationManagement';
 
 interface DMConversationProps {
   user: {
@@ -34,15 +35,9 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
 }) => {
   const { currentUser } = useApp();
   const { navigateToUserProfile } = useNavigation();
-  const { markConversationAsRead } = useCoalescedReadStatus();
+  const { markConversationAsRead } = useUnreadMessages();
   const [isSending, setIsSending] = React.useState(false);
   const { formatTime } = useMessageFormatting();
-  const conversationRef = useRef<string>(conversationId);
-  
-  // Update ref when conversationId changes
-  useEffect(() => {
-    conversationRef.current = conversationId;
-  }, [conversationId]);
   
   // Validate user data completeness at the component level
   const hasCompleteUserData = Boolean(user && user.id && user.name && user.avatar);
@@ -72,7 +67,6 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
               <div className="h-5 w-24 bg-gray-200 rounded animate-pulse"></div>
             </div>
           </div>
-          {/* This empty div helps maintain balance in the header */}
           <div className="w-9"></div>
         </div>
         <div className="flex-1 flex items-center justify-center">
@@ -112,35 +106,24 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   // Custom hooks for conversation management
   const { createConversation } = useConversationManagement(currentUser?.id, user.id);
   
-  // Mark conversation as read when opened - use local-first approach
+  // Mark conversation as read when opened, with a delay to prevent badge flickering
   useEffect(() => {
     if (conversationId && conversationId !== 'new') {
-      console.log(`[DMConversation] Setting active conversation: dm - ${conversationId}`);
+      console.log(`[DMConversation] Scheduling marking conversation ${conversationId} as read with delay`);
       
-      // Dispatch event to notify about active conversation
-      window.dispatchEvent(new CustomEvent('activeConversationChanged', { 
-        detail: { 
-          type: 'dm', 
-          id: conversationId 
-        } 
-      }));
+      // Use a 400ms delay to allow the notification badge to be visible before clearing
+      const MARK_AS_READ_DELAY = 400;
       
-      // Mark as read immediately using our local-first approach
-      markConversationAsRead(conversationId, true); // Use true for immediate database update
+      const timer = setTimeout(() => {
+        console.log(`[DMConversation] Now marking conversation ${conversationId} as read after delay`);
+        markConversationAsRead(conversationId);
+      }, MARK_AS_READ_DELAY);
+      
+      return () => clearTimeout(timer);
     }
-    
-    // Cleanup on unmount
-    return () => {
-      if (conversationRef.current && conversationRef.current !== 'new') {
-        console.log(`[DMConversation] Clearing active conversation: dm - ${conversationRef.current}`);
-        window.dispatchEvent(new CustomEvent('activeConversationChanged', { 
-          detail: { type: null, id: null } 
-        }));
-      }
-    };
   }, [conversationId, markConversationAsRead]);
 
-  // Stable send message handler with local-first approach
+  // Stable send message handler
   const handleSendMessage = useCallback(async (text: string) => {
     if (!text.trim() || !currentUser?.id) return;
     
@@ -160,7 +143,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       optimistic: true
     };
     
-    // Add optimistic message to UI immediately
+    // Add optimistic message to UI
     addOptimisticMessage(optimisticMessage);
     
     // Scroll to bottom - wrapped in requestAnimationFrame to avoid layout thrashing
@@ -195,9 +178,6 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       
       if (error) throw error;
       
-      // Mark conversation as read immediately after sending message using local-first approach
-      markConversationAsRead(finalConversationId, false); // Use false for debounced database update
-      
     } catch (error) {
       console.error('[DMConversation] Error sending message:', error);
       
@@ -212,7 +192,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     } finally {
       setIsSending(false);
     }
-  }, [currentUser, user, conversationId, addOptimisticMessage, createConversation, scrollToBottom, setMessages, markConversationAsRead]);
+  }, [currentUser, user, conversationId, addOptimisticMessage, createConversation, scrollToBottom, setMessages]);
   
   // Club members array for ChatMessages - memoized to prevent recreating
   const clubMembers = useMemo(() => 
