@@ -80,7 +80,7 @@ export const handleNewMessagePayload = async (
     }
   };
   
-  // First update with the temporary message (instant UI feedback)
+  // Immediately update with the temporary message (instant UI feedback)
   setClubMessages(prev => {
     const clubMsgs = prev[messageClubId] || [];
     
@@ -161,25 +161,25 @@ export const handleNewMessagePayload = async (
       console.log(`[subscriptionHandlers] 📖 Optimistically marking message as read for active club: ${messageClubId}`);
       
       try {
-        // Update in database (but don't wait)
-        // Fix: Use .then().then(null, error) pattern instead of .catch()
-        supabase.from('club_messages_read')
-          .upsert({
-            club_id: messageClubId,
-            user_id: currentUser.id,
-            last_read_timestamp: new Date().toISOString()
-          })
-          .then(() => {
+        // Update in database using async/await for better error handling
+        (async () => {
+          try {
+            await supabase.from('club_messages_read')
+              .upsert({
+                club_id: messageClubId,
+                user_id: currentUser.id,
+                last_read_timestamp: new Date().toISOString()
+              });
             console.log(`[subscriptionHandlers] Successfully marked club ${messageClubId} messages as read in DB`);
-          })
-          .then(null, (error) => {
+            
+            // Dispatch event for local state update
+            window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
+              detail: { type: 'club', id: messageClubId } 
+            }));
+          } catch (error) {
             console.error('[subscriptionHandlers] Error marking messages as read:', error);
-          });
-          
-        // Dispatch event for local state update
-        window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
-          detail: { type: 'club', id: messageClubId } 
-        }));
+          }
+        })();
       } catch (error) {
         console.error('[subscriptionHandlers] Error in optimistic read update:', error);
       }

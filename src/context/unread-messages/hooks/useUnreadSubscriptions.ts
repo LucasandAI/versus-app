@@ -277,6 +277,7 @@ export const useUnreadSubscriptions = ({
                 console.log(`[useUnreadSubscriptions] Received message for active DM conversation: ${payload.new.conversation_id}`);
                 
                 // Instead of queueing an unread update, mark it as read immediately
+                // Using async IIFE with try/catch for proper error handling
                 (async () => {
                   try {
                     await supabase.from('direct_messages_read')
@@ -334,6 +335,7 @@ export const useUnreadSubscriptions = ({
                 console.log(`[useUnreadSubscriptions] Received message for active club: ${payload.new.club_id}`);
                 
                 // Instead of queueing an unread update, mark it as read immediately
+                // Using async IIFE with try/catch for proper error handling
                 (async () => {
                   try {
                     await supabase.from('club_messages_read')
@@ -415,3 +417,4 @@ export const useUnreadSubscriptions = ({
     };
   }, [currentUserId, isSessionReady]);
 };
+

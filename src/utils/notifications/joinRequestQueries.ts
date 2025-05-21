@@ -1,5 +1,5 @@
-
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 import { JoinRequest } from '@/types';
 
 // Function to check if a user has pending join requests for a club
@@ -82,5 +82,74 @@ export const fetchClubJoinRequests = async (clubId: string): Promise<JoinRequest
   } catch (error) {
     console.error('[fetchClubJoinRequests] Error:', error);
     return [];
+  }
+};
+
+// Function to accept a join request
+export const acceptJoinRequest = async (
+  requestId: string,
+  clubId: string,
+  userId: string,
+  onSuccess?: () => void,
+  onError?: () => void
+) => {
+  try {
+    // First, update the request status to SUCCESS
+    const { error: updateError } = await supabase
+      .from('club_requests')
+      .update({ status: 'SUCCESS' })
+      .eq('id', requestId);
+      
+    if (updateError) {
+      throw updateError;
+    }
+    
+    // Then, add the user to the club
+    const { error: memberError } = await supabase
+      .from('club_members')
+      .insert({
+        club_id: clubId,
+        user_id: userId,
+        is_admin: false
+      });
+      
+    if (memberError) {
+      throw memberError;
+    }
+    
+    // Show success message
+    toast({
+      title: "Request accepted",
+      description: "User has been added to the club"
+    });
+    
+    // Call success callback if provided
+    if (onSuccess) onSuccess();
+    
+    return true;
+  } catch (error) {
+    console.error('Error accepting join request:', error);
+    
+    // Try to set the request back to PENDING or to REJECTED if that fails
+    const { error: resetError } = await supabase
+      .from('club_requests')
+      .update({ status: 'REJECTED' })
+      .eq('id', requestId);
+      
+    if (resetError) {
+      console.error('Error resetting join request status:', resetError);
+    }
+    
+    // Show error message
+    toast({
+      title: "Error accepting request",
+      description: "Could not add user to club. Please try again.",
+      variant: "destructive"
+    });
+    
+    // Call error callback if provided
+    if (onError) onError();
+    
+    return false;
   }
 };
