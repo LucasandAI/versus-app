@@ -1,6 +1,6 @@
 
 // Import required modules
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { JoinRequest } from '@/types';
 import { toast } from '@/hooks/use-toast';
@@ -45,10 +45,12 @@ export const useJoinRequests = (clubId?: string) => {
           id: request.id,
           userId: request.user_id,
           clubId: request.club_id,
-          userName: request.user?.name || 'Unknown User',
-          userAvatar: request.user?.avatar || '',
+          // Safely access nested properties with fallbacks
+          userName: request.user && typeof request.user === 'object' && 'name' in request.user ? request.user.name : 'Unknown User',
+          userAvatar: request.user && typeof request.user === 'object' && 'avatar' in request.user ? request.user.avatar : '',
           createdAt: request.created_at,
-          status: request.status
+          // Convert ERROR to REJECTED to match our JoinRequest type
+          status: request.status === 'ERROR' ? 'REJECTED' as const : request.status as "PENDING" | "SUCCESS" | "REJECTED"
         }));
         
         setJoinRequests(formattedRequests);

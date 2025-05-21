@@ -74,8 +74,8 @@ export const fetchClubJoinRequests = async (clubId: string): Promise<JoinRequest
         userName: userData?.name || 'Unknown User',
         userAvatar: userData?.avatar || '',
         createdAt: request.created_at,
-        status: request.status
-      });
+        status: request.status === 'ERROR' ? 'REJECTED' : request.status
+      } as JoinRequest);
     }
     
     console.log('[fetchClubJoinRequests] Formatted requests:', results);

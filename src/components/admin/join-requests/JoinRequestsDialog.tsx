@@ -1,6 +1,6 @@
 
-import React, { useEffect, useState } from 'react';
-import { Club, JoinRequest } from '@/types';
+import React, { useEffect } from 'react';
+import { Club } from '@/types';
 import {
   Dialog,
   DialogContent,
