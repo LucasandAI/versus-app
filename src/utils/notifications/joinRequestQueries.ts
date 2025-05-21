@@ -73,7 +73,7 @@ export const fetchClubJoinRequests = async (clubId: string): Promise<JoinRequest
         userName: userData?.name || 'Unknown User',
         userAvatar: userData?.avatar || '',
         createdAt: request.created_at,
-        status: request.status // This was being converted to lowercase, now using original value
+        status: request.status
       });
     }
     
