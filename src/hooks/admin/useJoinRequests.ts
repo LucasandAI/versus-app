@@ -1,3 +1,4 @@
+
 // Import required modules
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,8 +11,9 @@ export const useJoinRequests = (clubId?: string) => {
   const [isError, setIsError] = useState(false);
   const [processingIds, setProcessingIds] = useState<string[]>([]);
 
-  const fetchRequests = async () => {
-    if (!clubId) return;
+  const fetchRequests = async (clubIdParam?: string) => {
+    const targetClubId = clubIdParam || clubId;
+    if (!targetClubId) return;
 
     setIsLoading(true);
     setIsError(false);
@@ -24,31 +26,32 @@ export const useJoinRequests = (clubId?: string) => {
           user_id, 
           created_at,
           status,
+          club_id,
           user:user_id (
             id, 
             name, 
             avatar
           )
         `)
-        .eq('club_id', clubId)
+        .eq('club_id', targetClubId)
         .eq('status', 'PENDING')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       if (data) {
-        const normalizedRequests = data.map(request => ({
+        // Transform the data to match the JoinRequest type
+        const formattedRequests: JoinRequest[] = data.map(request => ({
           id: request.id,
-          user_id: request.user_id,
-          created_at: request.created_at,
-          status: request.status,
-          user: request.user || {
-            id: request.user_id,
-            name: 'Unknown User',
-            avatar: null
-          }
+          userId: request.user_id,
+          clubId: request.club_id,
+          userName: request.user?.name || 'Unknown User',
+          userAvatar: request.user?.avatar || '',
+          createdAt: request.created_at,
+          status: request.status
         }));
-        setJoinRequests(normalizedRequests);
+        
+        setJoinRequests(formattedRequests);
       }
     } catch (error) {
       setIsError(true);
@@ -59,7 +62,9 @@ export const useJoinRequests = (clubId?: string) => {
   };
 
   useEffect(() => {
-    fetchRequests();
+    if (clubId) {
+      fetchRequests();
+    }
   }, [clubId]);
 
   const approveRequest = async (requestId: string) => {
@@ -88,7 +93,7 @@ export const useJoinRequests = (clubId?: string) => {
           .from('club_members')
           .insert({
             club_id: clubId,
-            user_id: requestToApprove.user_id,
+            user_id: requestToApprove.userId,
             is_admin: false
           });
           
@@ -107,7 +112,7 @@ export const useJoinRequests = (clubId?: string) => {
     } catch (error) {
       console.error('Error approving request:', error);
       
-      // Update status with error state if something fails
+      // Update status with REJECTED state if something fails
       const { error: statusError } = await supabase
         .from('club_requests')
         .update({ status: 'REJECTED' })

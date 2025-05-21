@@ -25,13 +25,13 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
   club 
 }) => {
   const {
+    joinRequests,
     isLoading,
-    error,
-    requests,
-    fetchClubRequests,
-    handleAcceptRequest,
-    handleDeclineRequest,
-    isProcessing
+    isError,
+    fetchRequests,
+    approveRequest,
+    rejectRequest,
+    processingIds
   } = useJoinRequests();
   
   const isClubFull = club.members.length >= 5;
@@ -40,11 +40,13 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
     const loadRequests = async () => {
       if (!open) return;
       console.log('[JoinRequestsDialog] Loading requests for club:', club.id);
-      await fetchClubRequests(club.id);
+      await fetchRequests(club.id);
     };
     
     loadRequests();
-  }, [open, club.id, fetchClubRequests]);
+  }, [open, club.id, fetchRequests]);
+
+  const isProcessing = (requestId: string) => processingIds.includes(requestId);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -83,18 +85,18 @@ const JoinRequestsDialog: React.FC<JoinRequestsDialogProps> = ({
                 </div>
               ))}
             </div>
-          ) : error ? (
+          ) : isError ? (
             <div className="py-8 text-center">
               <p className="text-red-500">Error loading requests. Please try again.</p>
             </div>
-          ) : requests.length > 0 ? (
+          ) : joinRequests.length > 0 ? (
             <div className="space-y-4">
-              {requests.map(request => (
+              {joinRequests.map(request => (
                 <JoinRequestItem
                   key={request.id}
                   request={request}
-                  onApprove={() => handleAcceptRequest(request, club)}
-                  onDeny={() => handleDeclineRequest(request)}
+                  onApprove={() => approveRequest(request.id)}
+                  onDeny={() => rejectRequest(request.id)}
                   isClubFull={isClubFull}
                   isProcessing={isProcessing(request.id)}
                 />
