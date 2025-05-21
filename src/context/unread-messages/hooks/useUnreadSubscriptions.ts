@@ -183,19 +183,19 @@ export const useUnreadSubscriptions = ({
             
             // Mark as read optimistically in database
             if (userId) {
-              // Use .then().catch() pattern
-              supabase.from('direct_messages_read')
-                .upsert({
-                  conversation_id: conversationId,
-                  user_id: userId,
-                  last_read_timestamp: new Date().toISOString()
-                })
-                .then(() => {
+              (async () => {
+                try {
+                  await supabase.from('direct_messages_read')
+                    .upsert({
+                      conversation_id: conversationId,
+                      user_id: userId,
+                      last_read_timestamp: new Date().toISOString()
+                    });
                   console.log(`[useUnreadSubscriptions] Successfully marked conversation ${conversationId} as read in DB`);
-                })
-                .catch((error) => {
+                } catch (error) {
                   console.error('[useUnreadSubscriptions] Error marking conversation as read:', error);
-                });
+                }
+              })();
             }
           } else {
             console.log(`[useUnreadSubscriptions] Marking conversation as unread: ${conversationId}`);
@@ -216,19 +216,19 @@ export const useUnreadSubscriptions = ({
             
             // Mark as read optimistically in database
             if (userId) {
-              // Use .then().catch() pattern
-              supabase.from('club_messages_read')
-                .upsert({
-                  club_id: clubId,
-                  user_id: userId,
-                  last_read_timestamp: new Date().toISOString()
-                })
-                .then(() => {
+              (async () => {
+                try {
+                  await supabase.from('club_messages_read')
+                    .upsert({
+                      club_id: clubId,
+                      user_id: userId,
+                      last_read_timestamp: new Date().toISOString()
+                    });
                   console.log(`[useUnreadSubscriptions] Successfully marked club ${clubId} messages as read in DB`);
-                })
-                .catch((error) => {
+                } catch (error) {
                   console.error('[useUnreadSubscriptions] Error marking club messages as read:', error);
-                });
+                }
+              })();
             }
           } else {
             console.log(`[useUnreadSubscriptions] Marking club as unread: ${clubId}`);
@@ -277,22 +277,23 @@ export const useUnreadSubscriptions = ({
                 console.log(`[useUnreadSubscriptions] Received message for active DM conversation: ${payload.new.conversation_id}`);
                 
                 // Instead of queueing an unread update, mark it as read immediately
-                supabase.from('direct_messages_read')
-                  .upsert({
-                    conversation_id: payload.new.conversation_id,
-                    user_id: userId,
-                    last_read_timestamp: new Date().toISOString()
-                  })
-                  .then(() => {
+                (async () => {
+                  try {
+                    await supabase.from('direct_messages_read')
+                      .upsert({
+                        conversation_id: payload.new.conversation_id,
+                        user_id: userId,
+                        last_read_timestamp: new Date().toISOString()
+                      });
                     console.log(`[useUnreadSubscriptions] Successfully marked active DM conversation as read`);
                     // Dispatch read event to update UI
                     window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
                       detail: { type: 'dm', id: payload.new.conversation_id } 
                     }));
-                  })
-                  .catch(error => {
+                  } catch (error) {
                     console.error('[useUnreadSubscriptions] Error marking DM as read:', error);
-                  });
+                  }
+                })();
                 return;
               }
               
@@ -333,22 +334,23 @@ export const useUnreadSubscriptions = ({
                 console.log(`[useUnreadSubscriptions] Received message for active club: ${payload.new.club_id}`);
                 
                 // Instead of queueing an unread update, mark it as read immediately
-                supabase.from('club_messages_read')
-                  .upsert({
-                    club_id: payload.new.club_id,
-                    user_id: userId,
-                    last_read_timestamp: new Date().toISOString()
-                  })
-                  .then(() => {
+                (async () => {
+                  try {
+                    await supabase.from('club_messages_read')
+                      .upsert({
+                        club_id: payload.new.club_id,
+                        user_id: userId,
+                        last_read_timestamp: new Date().toISOString()
+                      });
                     console.log(`[useUnreadSubscriptions] Successfully marked active club as read`);
                     // Dispatch read event to update UI
                     window.dispatchEvent(new CustomEvent('messagesMarkedAsRead', { 
                       detail: { type: 'club', id: payload.new.club_id } 
                     }));
-                  })
-                  .catch(error => {
+                  } catch (error) {
                     console.error('[useUnreadSubscriptions] Error marking club as read:', error);
-                  });
+                  }
+                })();
                 return;
               }
               
