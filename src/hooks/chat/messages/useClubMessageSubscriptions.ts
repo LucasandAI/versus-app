@@ -22,6 +22,9 @@ export const useClubMessageSubscriptions = (
   const activeClubRef = useRef<string | null>(null);
   const lastMessageIdRef = useRef<Record<string, string>>({});
   const lastProcessedMessageTimestamp = useRef<Record<string, number>>({});
+  const reconnectAttempts = useRef<number>(0);
+  const MAX_RECONNECT_ATTEMPTS = 5;
+  const reconnectTimeouts = [1000, 2000, 5000, 10000, 30000]; // Increasing timeouts
   
   // Keep clubs reference updated
   useEffect(() => {
@@ -80,10 +83,18 @@ export const useClubMessageSubscriptions = (
       // Generate a new subscription ID
       subscriptionId.current = `clubs:${Date.now()}`;
       
-      // Wait a moment before recreating to avoid thrashing
+      // Implement exponential backoff for reconnection
+      const timeout = reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS 
+        ? reconnectTimeouts[reconnectAttempts.current] 
+        : reconnectTimeouts[reconnectTimeouts.length - 1];
+      
+      console.log(`[useClubMessageSubscriptions] Reconnecting in ${timeout}ms (attempt ${reconnectAttempts.current + 1}/${MAX_RECONNECT_ATTEMPTS})`);
+      
+      // Wait before recreating to avoid thrashing
       setTimeout(() => {
+        reconnectAttempts.current++;
         setupSubscription();
-      }, 1000);
+      }, timeout);
     }
   };
   
@@ -115,6 +126,7 @@ export const useClubMessageSubscriptions = (
           (payload) => {
             lastEventTime.current = Date.now();
             subscriptionHealthy.current = true;
+            reconnectAttempts.current = 0; // Reset reconnect attempts on successful event
             
             // Enhanced duplicate detection using both ID and timestamp
             if (!payload.new || !payload.new.id || !payload.new.timestamp || !payload.new.club_id) {
@@ -178,6 +190,7 @@ export const useClubMessageSubscriptions = (
           }, 
           (payload) => {
             lastEventTime.current = Date.now();
+            reconnectAttempts.current = 0; // Reset reconnect attempts on successful event
             console.log('[useClubMessageSubscriptions] Message deletion detected:', payload.old?.id);
             handleMessageDeletion(payload, setClubMessages);
           }
@@ -186,6 +199,7 @@ export const useClubMessageSubscriptions = (
           console.log(`[useClubMessageSubscriptions] Subscription status for ${subscriptionId.current}: ${status}`);
           if (status === 'SUBSCRIBED') {
             subscriptionHealthy.current = true;
+            reconnectAttempts.current = 0; // Reset reconnect attempts on successful subscribe
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             subscriptionHealthy.current = false;
             // Attempt to recover
@@ -206,8 +220,17 @@ export const useClubMessageSubscriptions = (
       console.error('[useClubMessageSubscriptions] Error setting up subscription:', error);
       subscriptionHealthy.current = false;
       
-      // Try to recover
-      setTimeout(() => resetSubscription(), 3000);
+      // Try to recover with exponential backoff
+      const timeout = reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS 
+        ? reconnectTimeouts[reconnectAttempts.current] 
+        : reconnectTimeouts[reconnectTimeouts.length - 1];
+      
+      console.log(`[useClubMessageSubscriptions] Will retry in ${timeout}ms (attempt ${reconnectAttempts.current + 1}/${MAX_RECONNECT_ATTEMPTS})`);
+      
+      setTimeout(() => {
+        reconnectAttempts.current++;
+        resetSubscription();
+      }, timeout);
     }
   };
   
@@ -215,6 +238,9 @@ export const useClubMessageSubscriptions = (
   useEffect(() => {
     // Clean up any existing subscription
     cleanupSubscription();
+    
+    // Reset reconnect attempts when dependencies change
+    reconnectAttempts.current = 0;
     
     // Generate a new subscription ID
     subscriptionId.current = `clubs:${Date.now()}`;

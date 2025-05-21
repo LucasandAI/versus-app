@@ -88,7 +88,7 @@ export const acceptJoinRequest = async (userId: string, clubId: string, userName
 
 export const denyJoinRequest = async (userId: string, clubId: string): Promise<boolean> => {
   try {
-    // Update the request status to REJECTED instead of deleting
+    // Update the request status to REJECTED instead of ERROR
     const { error } = await supabase
       .from('club_requests')
       .update({ status: 'REJECTED' })

@@ -9,12 +9,12 @@ const UnreadMessagesContext = createContext<UnreadMessagesContextType>({
   directMessageUnreadCounts: {},
   refreshUnreadCounts: async () => {},
   
-  // Add default values for all required properties
+  // Use the new local-first approach methods
   unreadConversations: new Set<string>(),
   unreadClubs: new Set<string>(),
-  markClubMessagesAsRead: async () => {},
-  markDirectConversationAsRead: async () => {},
-  markConversationAsRead: async () => {}, // Added missing method
+  markClubMessagesAsRead: async (clubId: string) => {},
+  markDirectConversationAsRead: async (conversationId: string) => {},
+  markConversationAsRead: async (conversationId: string) => {}, 
   fetchUnreadCounts: async () => {},
   
   // Properties from original interface

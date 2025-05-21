@@ -11,6 +11,7 @@ import UnifiedChatList from './UnifiedChatList';
 import UnifiedChatContent from './UnifiedChatContent';
 import { useClubMessages } from '@/hooks/chat/useClubMessages';
 import { useDirectMessages } from '@/hooks/chat/useDirectMessages';
+import { useCoalescedReadStatus } from '@/hooks/chat/messages/useCoalescedReadStatus';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -36,7 +37,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     avatar?: string;
   } | null>(null);
   
-  const { unreadClubs, unreadConversations, refreshUnreadCounts, markClubMessagesAsRead, markConversationAsRead } = useUnreadMessages();
+  const { unreadClubs, unreadConversations, refreshUnreadCounts } = useUnreadMessages();
+  const { markConversationAsRead, markClubAsRead } = useCoalescedReadStatus();
   const { currentUser } = useApp();
   const { fetchConversations, getOrCreateConversation } = useDirectConversationsContext();
   const { sendMessageToClub, sendDirectMessage, deleteMessage } = useChatActions();
@@ -83,7 +85,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       } else {
         // If it is for the active club, ensure it's not marked as unread
         if (selectedChat?.type === 'club' && selectedChat.id === clubId) {
-          markClubMessagesAsRead(clubId);
+          markClubAsRead(clubId, false); // Use false for debounced database update
         }
       }
     };
@@ -100,7 +102,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
         setTimeout(() => refreshUnreadCounts(), 100);
       } else {
         // If it is for the active conversation, ensure it's not marked as unread
-        markConversationAsRead(conversationId);
+        markConversationAsRead(conversationId, false); // Use false for debounced database update
       }
     };
     
@@ -127,7 +129,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       window.removeEventListener('messagesMarkedAsRead', handleMessagesMarkedAsRead as EventListener);
       window.removeEventListener('refreshUnreadCounts', handleRefreshRequest as EventListener);
     };
-  }, [selectedChat, refreshUnreadCounts, markClubMessagesAsRead, markConversationAsRead]);
+  }, [selectedChat, refreshUnreadCounts, markClubAsRead, markConversationAsRead]);
 
   // Effect to handle openDirectMessage event
   useEffect(() => {
@@ -175,11 +177,11 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     // Set the selected chat
     setSelectedChat({ type, id, name, avatar });
     
-    // Mark as read immediately
+    // Mark as read immediately using local-first approach
     if (type === 'club') {
-      markClubMessagesAsRead(id);
+      markClubAsRead(id, true); // Use true for immediate database update
     } else if (type === 'dm') {
-      markConversationAsRead(id);
+      markConversationAsRead(id, true); // Use true for immediate database update
     }
     
     // Refresh unread counts after chat selection
@@ -192,7 +194,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
         id
       }
     }));
-  }, [refreshUnreadCounts, markClubMessagesAsRead, markConversationAsRead]);
+  }, [refreshUnreadCounts, markClubAsRead, markConversationAsRead]);
 
   const handleSendMessage = React.useCallback(async (message: string, chatId: string, type: 'club' | 'dm') => {
     if (type === 'club' && setClubMessages) {

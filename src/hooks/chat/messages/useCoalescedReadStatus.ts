@@ -4,18 +4,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 import { toast } from '@/hooks/use-toast';
 
-// A utility function to debounce function calls with configurable options
+// A utility function to debounce function calls with configurable options and flush capability
 const debounce = <F extends (...args: any[]) => any>(
   func: F, 
   wait: number,
   options: { leading?: boolean } = {}
-): ((...args: Parameters<F>) => void) => {
+) => {
   let timeout: ReturnType<typeof setTimeout> | null = null;
+  let lastArgs: Parameters<F> | null = null;
   
-  return (...args: Parameters<F>) => {
+  const debounced = (...args: Parameters<F>) => {
+    lastArgs = args;
+    
     const later = () => {
       timeout = null;
-      func(...args);
+      if (lastArgs) func(...lastArgs);
     };
     
     // Execute immediately if leading is true and not currently in timeout
@@ -31,6 +34,27 @@ const debounce = <F extends (...args: any[]) => any>(
       func(...args);
     }
   };
+  
+  // Add flush method to immediately invoke the function
+  debounced.flush = () => {
+    if (timeout && lastArgs) {
+      clearTimeout(timeout);
+      timeout = null;
+      func(...lastArgs);
+      lastArgs = null;
+    }
+  };
+  
+  // Add cancel method to clear the timer without invoking
+  debounced.cancel = () => {
+    if (timeout) {
+      clearTimeout(timeout);
+      timeout = null;
+      lastArgs = null;
+    }
+  };
+  
+  return debounced;
 };
 
 // Local storage key constants for better maintainability
@@ -140,9 +164,9 @@ export const useCoalescedReadStatus = () => {
       
       // Try to process any pending updates
       if (activeConversation.current.type === 'dm' && activeConversation.current.id) {
-        processConversationMarks();
+        processConversationMarks.flush();
       } else if (activeConversation.current.type === 'club' && activeConversation.current.id) {
-        processClubMarks();
+        processClubMarks.flush();
       }
     };
     
@@ -181,7 +205,7 @@ export const useCoalescedReadStatus = () => {
   }, []);
   
   // Process pending conversation marks with increased debounce time and retry handling
-  const processConversationMarks = useCallback(debounce(async () => {
+  const processConversationMarks = debounce(async () => {
     if (!currentUser?.id || !isOnline.current) return;
     
     const conversationsToMark = Array.from(pendingMarkAsRead.current.conversations);
@@ -258,10 +282,10 @@ export const useCoalescedReadStatus = () => {
         });
       }
     }
-  }, 500), [currentUser?.id]); // Increased debounce to 500ms for better batching
+  }, 500);
   
   // Process pending club marks with increased debounce time and retry handling
-  const processClubMarks = useCallback(debounce(async () => {
+  const processClubMarks = debounce(async () => {
     if (!currentUser?.id || !isOnline.current) return;
     
     const clubsToMark = Array.from(pendingMarkAsRead.current.clubs);
@@ -338,7 +362,7 @@ export const useCoalescedReadStatus = () => {
         });
       }
     }
-  }, 500), [currentUser?.id]); // Increased debounce to 500ms for better batching
+  }, 500);
   
   // Mark a conversation as read - update local storage first, then queue database update
   const markConversationAsRead = useCallback((conversationId: string, immediate: boolean = false) => {
@@ -361,7 +385,7 @@ export const useCoalescedReadStatus = () => {
     
     // Process the database update (debounced or immediate)
     if (immediate) {
-      processConversationMarks.flush?.();
+      processConversationMarks.flush();
     } else {
       processConversationMarks();
     }
@@ -388,7 +412,7 @@ export const useCoalescedReadStatus = () => {
     
     // Process the database update (debounced or immediate)
     if (immediate) {
-      processClubMarks.flush?.();
+      processClubMarks.flush();
     } else {
       processClubMarks();
     }

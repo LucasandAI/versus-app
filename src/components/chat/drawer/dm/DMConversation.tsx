@@ -72,6 +72,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
               <div className="h-5 w-24 bg-gray-200 rounded animate-pulse"></div>
             </div>
           </div>
+          {/* This empty div helps maintain balance in the header */}
           <div className="w-9"></div>
         </div>
         <div className="flex-1 flex items-center justify-center">
@@ -125,7 +126,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       }));
       
       // Mark as read immediately using our local-first approach
-      markConversationAsRead(conversationId);
+      markConversationAsRead(conversationId, true); // Use true for immediate database update
     }
     
     // Cleanup on unmount
@@ -194,8 +195,8 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       
       if (error) throw error;
       
-      // Mark conversation as read immediately after sending message
-      markConversationAsRead(finalConversationId);
+      // Mark conversation as read immediately after sending message using local-first approach
+      markConversationAsRead(finalConversationId, false); // Use false for debounced database update
       
     } catch (error) {
       console.error('[DMConversation] Error sending message:', error);

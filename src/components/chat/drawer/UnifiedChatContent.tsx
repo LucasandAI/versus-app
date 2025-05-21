@@ -65,9 +65,9 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
       
       // Mark messages as read using the local-first approach
       if (selectedChat.type === 'club') {
-        markClubAsRead(selectedChat.id, true);
+        markClubAsRead(selectedChat.id, true); // Use true for immediate database update
       } else if (selectedChat.type === 'dm') {
-        markConversationAsRead(selectedChat.id, true);
+        markConversationAsRead(selectedChat.id, true); // Use true for immediate database update
       }
       
       // Refresh unread counts after a short delay to ensure local storage is updated
@@ -108,9 +108,9 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
           
         if (!isSelfMessage) {
           if (selectedChat?.type === 'club') {
-            markClubAsRead(selectedChat.id, false);
+            markClubAsRead(selectedChat.id, false); // Use false for debounced database update
           } else if (selectedChat?.type === 'dm') {
-            markConversationAsRead(selectedChat.id, false);
+            markConversationAsRead(selectedChat.id, false); // Use false for debounced database update
           }
         }
       }
@@ -135,9 +135,9 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
       
       // Mark as read immediately after sending
       if (selectedChat.type === 'club') {
-        markClubAsRead(selectedChat.id, false);
+        markClubAsRead(selectedChat.id, false); // Use false for debounced database update
       } else {
-        markConversationAsRead(selectedChat.id, false);
+        markConversationAsRead(selectedChat.id, false); // Use false for debounced database update
       }
     } catch (error) {
       console.error('[UnifiedChatContent] Error sending message:', error);

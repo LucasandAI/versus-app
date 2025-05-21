@@ -43,6 +43,29 @@ const senderCache = new Map<string, {
   avatar?: string;
 }>();
 
+// Set to track processed message IDs to prevent duplicates
+const processedMessageIds = new Set<string>();
+// Expire processed message IDs after some time to avoid memory growth
+const MESSAGE_CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
+
+// Function to cleanup old message IDs periodically
+const cleanupOldMessages = () => {
+  const now = Date.now();
+  const expiredIds: string[] = [];
+  
+  processedMessageIds.forEach((value, key) => {
+    const [id, timestamp] = key.split('|');
+    if (now - Number(timestamp) > MESSAGE_CACHE_EXPIRY) {
+      expiredIds.push(key);
+    }
+  });
+  
+  expiredIds.forEach(id => processedMessageIds.delete(id));
+};
+
+// Set up periodic cleanup
+setInterval(cleanupOldMessages, 60 * 1000); // Clean up every minute
+
 export const handleNewMessagePayload = async (
   payload: RealtimePostgresChangesPayload<{
     [key: string]: any;
@@ -59,7 +82,19 @@ export const handleNewMessagePayload = async (
   }
   
   const typedPayload = payload as unknown as MessagePayload;
-  console.log('[subscriptionHandlers] Received message payload:', typedPayload.new.id);
+  const messageId = typedPayload.new.id;
+  
+  // Check for duplicate messages using combined key of id and timestamp
+  const messageKey = `${messageId}|${Date.now()}`;
+  if (processedMessageIds.has(messageId)) {
+    console.log(`[subscriptionHandlers] Skipping duplicate message: ${messageId}`);
+    return;
+  }
+  
+  // Add to processed set immediately
+  processedMessageIds.add(messageId);
+  
+  console.log('[subscriptionHandlers] Received message payload:', messageId);
   
   // Get the club ID from the message
   const messageClubId = typedPayload.new.club_id;
@@ -71,7 +106,7 @@ export const handleNewMessagePayload = async (
     return;
   }
   
-  console.log(`[subscriptionHandlers] 🔥 New message received for club ${messageClubId}:`, typedPayload.new.id);
+  console.log(`[subscriptionHandlers] 🔥 New message received for club ${messageClubId}:`, messageId);
   
   // Check if this is from the current user
   const isCurrentUser = typedPayload.new.sender_id === currentUser?.id;
@@ -252,4 +287,5 @@ export const fetchSenderDetails = async (message: any) => {
 // Clear sender cache - useful when testing or if user data might have changed
 export const clearSenderCache = () => {
   senderCache.clear();
+  processedMessageIds.clear();
 };

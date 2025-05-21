@@ -1,4 +1,3 @@
-
 // Import required modules
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,18 +41,12 @@ export const useJoinRequests = (clubId?: string) => {
       if (data) {
         // Transform the data to match the JoinRequest type
         const formattedRequests: JoinRequest[] = data.map(request => {
-          // Safely access nested user properties with fallbacks and type assertions
-          const userName = request.user && 
-                          typeof request.user === 'object' && 
-                          request.user !== null &&
-                          'name' in request.user ? 
-                            String(request.user.name) : 'Unknown User';
-                            
-          const userAvatar = request.user && 
-                            typeof request.user === 'object' && 
-                            request.user !== null &&
-                            'avatar' in request.user ? 
-                              String(request.user.avatar) : '';
+          // Safely access nested user properties with fallbacks
+          const userData = request.user as Record<string, any> | null;
+          
+          // Use nullish coalescing for safer access with defaults
+          const userName = userData?.name ?? 'Unknown User';
+          const userAvatar = userData?.avatar ?? '';
                               
           // Create the formatted request with properly typed status
           return {
@@ -130,10 +123,10 @@ export const useJoinRequests = (clubId?: string) => {
     } catch (error) {
       console.error('Error approving request:', error);
       
-      // Update status with ERROR state (which maps to REJECTED in our UI) if something fails
+      // Update status with REJECTED state instead of ERROR 
       const { error: statusError } = await supabase
         .from('club_requests')
-        .update({ status: 'ERROR' })
+        .update({ status: 'REJECTED' })
         .eq('id', requestId);
       
       if (statusError) {
@@ -163,10 +156,10 @@ export const useJoinRequests = (clubId?: string) => {
       // Optimistically remove from state
       setJoinRequests(prev => prev.filter(req => req.id !== requestId));
       
-      // Update the club_requests status to ERROR (which maps to REJECTED in our UI)
+      // Update the club_requests status to REJECTED (instead of ERROR)
       const { error } = await supabase
         .from('club_requests')
-        .update({ status: 'ERROR' })
+        .update({ status: 'REJECTED' })
         .eq('id', requestId);
         
       if (error) throw error;
