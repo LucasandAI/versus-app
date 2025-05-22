@@ -14,7 +14,7 @@ import { useUnreadMessages } from '@/context/unread-messages';
 import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
 import { ArrowLeft } from 'lucide-react';
 import UserAvatar from '@/components/shared/UserAvatar';
-import { markConversationActive, clearActiveConversation } from '@/utils/chat/activeConversationTracker';
+import { markConversationActive, clearActiveConversations } from '@/utils/chat/activeConversationTracker';
 
 interface UnifiedChatContentProps {
   selectedChat: {
@@ -42,7 +42,7 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
 }) => {
   const { currentUser } = useApp();
   const { navigateToClubDetail, navigateToUserProfile } = useNavigation();
-  const { markDirectMessagesAsRead, markClubMessagesAsRead } = useMessageReadStatus();
+  const { markDirectMessagesAsRead, markClubMessagesAsRead, flushReadStatus } = useMessageReadStatus();
   const [isSending, setIsSending] = useState(false);
 
   // Mark conversation as active and set up read status handlers
@@ -53,23 +53,43 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
       // 1. Mark as active immediately
       markConversationActive(selectedChat.type, selectedChat.id);
       
-      // 2. Mark messages as read with a slight delay to ensure user has seen them
-      const readTimer = setTimeout(() => {
-        console.log(`[UnifiedChatContent] Marking ${selectedChat.type} ${selectedChat.id} as read after delay`);
-        
-        if (selectedChat.type === 'club') {
-          markClubMessagesAsRead(selectedChat.id, true); // Use immediate=true to flush the update
-        } else if (selectedChat.type === 'dm') {
-          markDirectMessagesAsRead(selectedChat.id, true); // Use immediate=true to flush the update
+      // 2. Dispatch specific event when a club is selected to ensure real-time updates
+      if (selectedChat.type === 'club') {
+        window.dispatchEvent(new CustomEvent('clubSelected', {
+          detail: { clubId: selectedChat.id }
+        }));
+      }
+      
+      // 3. Mark messages as read immediately to update badge
+      const markAsRead = async () => {
+        try {
+          if (selectedChat.type === 'club') {
+            await markClubMessagesAsRead(selectedChat.id, true); // Use immediate=true to flush the update
+          } else if (selectedChat.type === 'dm') {
+            await markDirectMessagesAsRead(selectedChat.id, true); // Use immediate=true to flush the update
+          }
+          
+          // Force flush any debounced operations to ensure immediate update
+          flushReadStatus();
+          
+          // Trigger event for UI components to refresh
+          window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+        } catch (error) {
+          console.error('[UnifiedChatContent] Error marking messages as read:', error);
         }
-      }, 500); // Short delay before marking as read
+      };
+      
+      // Execute immediately and also after a short delay to catch any race conditions
+      markAsRead();
+      
+      const markAsReadTimer = setTimeout(markAsRead, 500);
       
       return () => {
-        clearTimeout(readTimer);
-        clearActiveConversation();
+        clearTimeout(markAsReadTimer);
+        clearActiveConversations();
       };
     }
-  }, [selectedChat, markClubMessagesAsRead, markDirectMessagesAsRead]);
+  }, [selectedChat, markClubMessagesAsRead, markDirectMessagesAsRead, flushReadStatus]);
 
   const handleSendMessage = async (message: string) => {
     if (!selectedChat) return;
@@ -77,6 +97,18 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
     setIsSending(true);
     try {
       await onSendMessage(message, selectedChat.id, selectedChat.type);
+      
+      // Mark as read after sending to ensure badge updates correctly
+      if (selectedChat.type === 'club') {
+        await markClubMessagesAsRead(selectedChat.id, true);
+      } else {
+        await markDirectMessagesAsRead(selectedChat.id, true);
+      }
+      
+      // Trigger event for UI components to refresh
+      window.dispatchEvent(new CustomEvent('message-sent', { 
+        detail: { type: selectedChat.type, id: selectedChat.id }
+      }));
     } catch (error) {
       console.error('[UnifiedChatContent] Error sending message:', error);
     } finally {

@@ -45,121 +45,101 @@ export const handleNewMessagePayload = async (
   userClubs: Club[],
   setClubMessages: React.Dispatch<React.SetStateAction<Record<string, any[]>>>,
   currentUser: any,
-  selectedClubRef: string | null
+  selectedClubId: string | null
 ) => {
   // Make sure we have a valid payload with club_id
   if (!hasClubId(payload)) {
-    console.log('[subscriptionHandlers] Invalid payload or missing club_id:', payload);
+    console.log('[subscriptionHandlers] Invalid payload or missing club_id', payload);
     return;
   }
-  
-  const typedPayload = payload as unknown as MessagePayload;
-  console.log('[subscriptionHandlers] Received message payload:', typedPayload.new.id);
-  
-  // Get the club ID from the message
-  const messageClubId = typedPayload.new.club_id;
-  
-  // Check if this message belongs to one of the user's clubs
-  const isRelevantClub = userClubs.some(club => club.id === messageClubId);
-  if (!isRelevantClub) {
-    console.log(`[subscriptionHandlers] Message for club ${messageClubId} not relevant to user`);
-    return;
-  }
-  
-  console.log(`[subscriptionHandlers] 🔥 New message received for club ${messageClubId}:`, typedPayload.new.id);
-  
-  // Check if this club conversation is currently active/open
-  const isActive = isConversationActive('club', messageClubId);
-  console.log(`[subscriptionHandlers] Club ${messageClubId} active status:`, isActive);
-  
-  // Create a temporary message object with sender info
-  const isCurrentUser = typedPayload.new.sender_id === currentUser?.id;
-  const senderName = isCurrentUser ? "You" : (typedPayload.new.sender_name || "Loading...");
-  
-  const tempMessage = {
-    ...typedPayload.new,
-    isUserMessage: isCurrentUser,
-    sender: {
-      id: typedPayload.new.sender_id,
-      name: senderName,
-      avatar: isCurrentUser ? currentUser?.avatar : undefined
-    }
-  };
-  
-  // First update with the temporary message (instant UI feedback)
-  setClubMessages(prev => {
-    const clubMsgs = prev[messageClubId] || [];
-    
-    // Check if message already exists to prevent duplicates
-    const messageExists = clubMsgs.some(msg => msg.id === typedPayload.new.id);
-    if (messageExists) return prev;
 
-    // Sort messages by timestamp
-    const updatedMessages = [...clubMsgs, tempMessage].sort(
-      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
-    
-    // Create and dispatch a global event with the new message details
-    window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
-      detail: { 
-        clubId: messageClubId, 
-        message: tempMessage,
-        isActive: isActive
-      } 
-    }));
-    
-    return {
-      ...prev,
-      [messageClubId]: updatedMessages
-    };
+  const messagePayload = payload as unknown as MessagePayload;
+  const clubId = messagePayload.new.club_id;
+  const messageId = messagePayload.new.id;
+  const senderId = messagePayload.new.sender_id;
+  const isCurrentUserMessage = senderId === currentUser?.id;
+  
+  console.log('[subscriptionHandlers] Processing new message:', {
+    messageId,
+    clubId,
+    senderId,
+    isCurrentUserMessage,
+    selectedClubId,
+    isSelected: selectedClubId === clubId
   });
-  
-  // In parallel, fetch complete sender details (only for other users' messages)
-  // and only if sender_name is not already provided
-  if (!isCurrentUser && !typedPayload.new.sender_name) {
-    try {
-      const { data: senderData } = await supabase
-        .from('users')
-        .select('id, name, avatar')
-        .eq('id', typedPayload.new.sender_id)
-        .single();
 
-      if (senderData) {
-        // Once we have sender data, update the message with complete info
-        setClubMessages(prev => {
-          const clubMsgs = prev[messageClubId] || [];
-          
-          const updatedMessages = clubMsgs.map(msg => 
-            msg.id === typedPayload.new.id 
-              ? { 
-                  ...msg, 
-                  sender: senderData,
-                  sender_username: senderData.name
-                }
-              : msg
-          );
-          
-          return {
-            ...prev,
-            [messageClubId]: updatedMessages
-          };
-        });
+  try {
+    // Fetch sender details if needed
+    let senderDetails = messagePayload.new.sender || null;
+    
+    if (!senderDetails && senderId) {
+      try {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('id, name, avatar')
+          .eq('id', senderId)
+          .single();
+        
+        if (userError) {
+          console.error('[subscriptionHandlers] Error fetching sender details:', userError);
+        } else if (userData) {
+          senderDetails = userData;
+        }
+      } catch (error) {
+        console.error('[subscriptionHandlers] Error retrieving sender details:', error);
       }
-    } catch (error) {
-      console.error('[subscriptionHandlers] Error fetching sender details:', error);
     }
-  }
-  
-  // If the message is from another user and NOT the currently viewed club,
-  // we need to update the unread count for this club
-  if (!isCurrentUser && !isActive) {
-    const timestamp = new Date(typedPayload.new.created_at || typedPayload.new.timestamp).getTime();
-    window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
+    
+    // Create normalized message object
+    const normalizedMessage = {
+      ...messagePayload.new,
+      sender: senderDetails || {
+        id: senderId,
+        name: 'Unknown User',
+        avatar: null
+      },
+      isUserMessage: isCurrentUserMessage
+    };
+
+    // Update club messages
+    setClubMessages((prevMessages) => {
+      // Check if we already have this message
+      const existingMessages = prevMessages[clubId] || [];
+      const messageExists = existingMessages.some(msg => msg.id === messageId);
+      
+      if (messageExists) {
+        console.log(`[subscriptionHandlers] Message ${messageId} already exists, skipping`);
+        return prevMessages;
+      }
+      
+      console.log(`[subscriptionHandlers] Adding message ${messageId} to club ${clubId}`);
+      
+      // Add the new message to the correct club
+      return {
+        ...prevMessages,
+        [clubId]: [...existingMessages, normalizedMessage]
+      };
+    });
+
+    // Also dispatch an event to notify about the new message
+    // This helps update other components like badges even for the first message
+    window.dispatchEvent(new CustomEvent('club-message-received', { 
       detail: { 
-        clubId: messageClubId,
-        timestamp
+        clubId, 
+        message: normalizedMessage,
+        isUserMessage: isCurrentUserMessage
       } 
     }));
+    
+    // Trigger badge update if the message is not from current user
+    // and this is not the currently selected club
+    if (!isCurrentUserMessage && (!isConversationActive('club', clubId))) {
+      window.dispatchEvent(new CustomEvent('unread-club-message', { 
+        detail: { clubId } 
+      }));
+    }
+  } catch (error) {
+    console.error('[subscriptionHandlers] Error processing message:', error);
   }
 };
 
@@ -169,63 +149,30 @@ export const handleMessageDeletion = (
   }>,
   setClubMessages: React.Dispatch<React.SetStateAction<Record<string, any[]>>>
 ) => {
-  // Type guard to check if payload has the expected structure
-  if (!payload.old || typeof payload.old !== 'object' || !('id' in payload.old) || !('club_id' in payload.old)) {
-    console.log('[subscriptionHandlers] Invalid deletion payload:', payload);
-    return;
-  }
-  
-  const typedPayload = payload as unknown as DeletePayload;
-  console.log('[subscriptionHandlers] Message deletion event received:', typedPayload.old.id);
-  
-  const deletedMessageId = typedPayload.old.id;
-  const clubId = typedPayload.old.club_id;
-  
-  setClubMessages(prev => {
-    if (!prev[clubId]) return prev;
-    
-    const updatedClubMessages = prev[clubId].filter(msg => {
-      const msgId = typeof msg.id === 'string' ? msg.id : 
-                  (msg.id ? String(msg.id) : null);
-      const deleteId = typeof deletedMessageId === 'string' ? deletedMessageId : 
-                      String(deletedMessageId);
-      
-      return msgId !== deleteId;
-    });
-    
-    return {
-      ...prev,
-      [clubId]: updatedClubMessages
-    };
-  });
-  
-  // Dispatch an event for the message deletion
-  window.dispatchEvent(new CustomEvent('clubMessageDeleted', { 
-    detail: { clubId, messageId: deletedMessageId } 
-  }));
-};
-
-// Fetch user details for a message sender
-export const fetchSenderDetails = async (message: any) => {
-  if (!message?.sender_id) return message;
-  
   try {
-    const { data: senderData } = await supabase
-      .from('users')
-      .select('id, name, avatar')
-      .eq('id', message.sender_id)
-      .single();
-      
-    if (senderData) {
-      return {
-        ...message,
-        sender: senderData
-      };
+    const deletePayload = payload as unknown as DeletePayload;
+    if (!deletePayload.old || !deletePayload.old.id || !deletePayload.old.club_id) {
+      console.error('[subscriptionHandlers] Invalid delete payload:', payload);
+      return;
     }
     
-    return message;
+    const messageId = deletePayload.old.id;
+    const clubId = deletePayload.old.club_id;
+    
+    console.log(`[subscriptionHandlers] Deleting message ${messageId} from club ${clubId}`);
+    
+    // Remove the message from the club's message list
+    setClubMessages((prevMessages) => {
+      const clubMessages = prevMessages[clubId];
+      
+      if (!clubMessages) return prevMessages;
+      
+      return {
+        ...prevMessages,
+        [clubId]: clubMessages.filter(msg => msg.id !== messageId)
+      };
+    });
   } catch (error) {
-    console.error('[subscriptionHandlers] Error fetching sender details:', error);
-    return message;
+    console.error('[subscriptionHandlers] Error handling message deletion:', error);
   }
 };

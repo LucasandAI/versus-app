@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
 import { handleNewMessagePayload, handleMessageDeletion } from './utils/subscriptionHandlers';
 import { useApp } from '@/context/AppContext';
+import { isConversationActive } from '@/utils/chat/activeConversationTracker';
 
 export const useClubMessageSubscriptions = (
   userClubs: Club[],
@@ -23,8 +24,18 @@ export const useClubMessageSubscriptions = (
   // Handle selected club changes from events
   useEffect(() => {
     const handleClubSelect = (event: CustomEvent) => {
-      selectedClubRef.current = event.detail.clubId;
-      console.log(`[useClubMessageSubscriptions] Club selected from event: ${event.detail.clubId}`);
+      if (event.detail && event.detail.clubId) {
+        selectedClubRef.current = event.detail.clubId;
+        console.log(`[useClubMessageSubscriptions] Club selected from event: ${event.detail.clubId}`);
+        
+        // Explicitly mark as active to ensure real-time updates work
+        if (event.detail.clubId) {
+          console.log(`[useClubMessageSubscriptions] Marking club conversation active: ${event.detail.clubId}`);
+          window.dispatchEvent(new CustomEvent('club-conversation-active', {
+            detail: { clubId: event.detail.clubId }
+          }));
+        }
+      }
     };
     
     window.addEventListener('clubSelected', handleClubSelect as EventListener);
@@ -54,66 +65,74 @@ export const useClubMessageSubscriptions = (
     
     console.log('[useClubMessageSubscriptions] Setting up subscription for clubs:', userClubs.length);
     
-    // Create a channel for all clubs
-    const clubIds = userClubs.map(club => club.id).join(',');
-    const channelId = `clubs-${clubIds.substring(0, 20)}`; // Truncate to keep channelId reasonable
+    // Create channel IDs for each club to ensure proper tracking
+    const clubChannels: Record<string, any> = {};
     
-    // Set up a single channel for all inserts
-    const channel = supabase
-      .channel(channelId)
-      .on('postgres_changes', 
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'club_chat_messages',
-          filter: userClubs.length > 0 ? `club_id=in.(${userClubs.map(c => `'${c.id}'`).join(',')})` : undefined
-        }, 
-        (payload) => {
-          console.log('[useClubMessageSubscriptions] New message detected:', {
-            id: payload.new.id,
-            club_id: payload.new.club_id,
-            is_current_user: payload.new.sender_id === currentUser.id
-          });
-          
-          handleNewMessagePayload(
-            payload, 
-            clubsRef.current, 
-            setClubMessages, 
-            currentUser, 
-            selectedClubRef.current
-          );
-        }
-      )
-      .on('postgres_changes', 
-        { 
-          event: 'DELETE', 
-          schema: 'public', 
-          table: 'club_chat_messages',
-          filter: userClubs.length > 0 ? `club_id=in.(${userClubs.map(c => `'${c.id}'`).join(',')})` : undefined
-        }, 
-        (payload) => {
-          console.log('[useClubMessageSubscriptions] Message deletion detected:', payload.old?.id);
-          handleMessageDeletion(payload, setClubMessages);
-        }
-      )
-      .subscribe((status) => {
-        console.log(`[useClubMessageSubscriptions] Subscription status: ${status}`);
-      });
-    
-    // Mark all clubs as subscribed
-    const updatedSubs = { ...activeSubscriptionsRef.current };
+    // Set up individual channels for each club for better isolation
     userClubs.forEach(club => {
-      updatedSubs[club.id] = true;
+      const channelId = `club-messages-${club.id}`;
+      
+      const channel = supabase
+        .channel(channelId)
+        .on('postgres_changes', 
+          { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'club_chat_messages',
+            filter: `club_id=eq.${club.id}`
+          }, 
+          (payload) => {
+            console.log('[useClubMessageSubscriptions] New message detected for club:', {
+              id: payload.new.id,
+              club_id: payload.new.club_id,
+              is_current_user: payload.new.sender_id === currentUser.id,
+              is_active: isConversationActive('club', payload.new.club_id)
+            });
+            
+            // Always process messages for real-time display
+            handleNewMessagePayload(
+              payload, 
+              clubsRef.current, 
+              setClubMessages, 
+              currentUser, 
+              selectedClubRef.current
+            );
+          }
+        )
+        .on('postgres_changes', 
+          { 
+            event: 'DELETE', 
+            schema: 'public', 
+            table: 'club_chat_messages',
+            filter: `club_id=eq.${club.id}`
+          }, 
+          (payload) => {
+            console.log('[useClubMessageSubscriptions] Message deletion detected:', payload.old?.id);
+            handleMessageDeletion(payload, setClubMessages);
+          }
+        )
+        .subscribe((status) => {
+          console.log(`[useClubMessageSubscriptions] Subscription status for club ${club.id}: ${status}`);
+        });
+      
+      // Store the channel for cleanup
+      clubChannels[club.id] = channel;
+      
+      // Mark this club as subscribed
+      activeSubscriptionsRef.current[club.id] = true;
     });
-    activeSubscriptionsRef.current = updatedSubs;
     
     // Dispatch an event to notify that we're subscribed
     window.dispatchEvent(new CustomEvent('club-subscriptions-ready'));
     
     // Cleanup
     return () => {
-      console.log('[useClubMessageSubscriptions] Cleaning up channel');
-      supabase.removeChannel(channel);
+      console.log('[useClubMessageSubscriptions] Cleaning up channels');
+      
+      // Remove each club channel
+      Object.values(clubChannels).forEach(channel => {
+        supabase.removeChannel(channel);
+      });
       
       // Mark all clubs as unsubscribed
       const updatedSubs = { ...activeSubscriptionsRef.current };

@@ -10,6 +10,8 @@ interface DebouncedFunctions {
     timeoutId: ReturnType<typeof setTimeout> | null;
     lastArgs: any[];
     fn: (...args: any[]) => void;
+    delay: number;
+    lastExecuted: number;
   };
 }
 
@@ -27,9 +29,17 @@ const debouncedFunctions: DebouncedFunctions = {};
 export const debounce = (key: string, fn: (...args: any[]) => void, delay: number): DebouncedFunction => {
   // Store the original function for later use with flush
   if (!debouncedFunctions[key]) {
-    debouncedFunctions[key] = { timeoutId: null, lastArgs: [], fn };
+    debouncedFunctions[key] = { 
+      timeoutId: null, 
+      lastArgs: [], 
+      fn,
+      delay,
+      lastExecuted: 0
+    };
   } else {
-    debouncedFunctions[key].fn = fn; // Update the function reference
+    // Update the function reference and delay
+    debouncedFunctions[key].fn = fn;
+    debouncedFunctions[key].delay = delay;
   }
   
   return (...args: any[]) => {
@@ -43,7 +53,9 @@ export const debounce = (key: string, fn: (...args: any[]) => void, delay: numbe
     
     // Schedule a new execution
     debouncedFunctions[key].timeoutId = setTimeout(() => {
+      // Execute the function and mark as executed
       fn(...debouncedFunctions[key].lastArgs);
+      debouncedFunctions[key].lastExecuted = Date.now();
       debouncedFunctions[key].timeoutId = null;
     }, delay);
   };
@@ -63,15 +75,48 @@ export const cancelDebounce = (key: string): void => {
 
 /**
  * Execute a debounced function immediately, canceling any pending timeout
+ * Returns true if execution happened, false otherwise
+ * 
+ * @param key The unique identifier for the debounced function
+ * @returns boolean indicating if execution occurred
+ */
+export const flushDebounce = (key: string): boolean => {
+  if (debouncedFunctions[key]) {
+    // Cancel any pending execution
+    cancelDebounce(key);
+    
+    // Get the minimum time that should have passed since last execution
+    const minTimeBetweenExecutions = Math.min(debouncedFunctions[key].delay / 2, 500); // At least 500ms or half the delay
+    
+    // Check if enough time has passed since last execution
+    const timeSinceLastExecution = Date.now() - debouncedFunctions[key].lastExecuted;
+    if (timeSinceLastExecution < minTimeBetweenExecutions) {
+      console.log(`[debounceUtils] Skipping flush for ${key}, last executed ${timeSinceLastExecution}ms ago`);
+      return false;
+    }
+    
+    // Execute the function immediately with the last arguments
+    console.log(`[debounceUtils] Flushing debounced function: ${key}`);
+    debouncedFunctions[key].fn(...debouncedFunctions[key].lastArgs);
+    debouncedFunctions[key].lastExecuted = Date.now();
+    return true;
+  }
+  return false;
+};
+
+/**
+ * Force execute a debounced function immediately regardless of timing
  * 
  * @param key The unique identifier for the debounced function
  */
-export const flushDebounce = (key: string): void => {
+export const forceFlushDebounce = (key: string): void => {
   if (debouncedFunctions[key]) {
     // Cancel any pending execution
     cancelDebounce(key);
     
     // Execute the function immediately with the last arguments
+    console.log(`[debounceUtils] Force flushing debounced function: ${key}`);
     debouncedFunctions[key].fn(...debouncedFunctions[key].lastArgs);
+    debouncedFunctions[key].lastExecuted = Date.now();
   }
 };

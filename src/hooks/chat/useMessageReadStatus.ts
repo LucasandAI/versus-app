@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnreadMessages } from '@/context/unread-messages';
 import { markClubReadLocally, markDmReadLocally } from '@/utils/chat/readStatusStorage';
-import { debounce, flushDebounce } from '@/utils/chat/debounceUtils';
+import { debounce, flushDebounce, forceFlushDebounce } from '@/utils/chat/debounceUtils';
 import { markConversationActive } from '@/utils/chat/activeConversationTracker';
 
 // Constants for debounce delays
@@ -28,6 +28,11 @@ export const useMessageReadStatus = () => {
 
         if (error) {
           console.error('[useMessageReadStatus] Error updating DM read status in DB:', error);
+        } else {
+          // Dispatch an event to notify that read status has been updated in DB
+          window.dispatchEvent(new CustomEvent('dm-read-status-updated', { 
+            detail: { conversationId } 
+          }));
         }
       } catch (error) {
         console.error('[useMessageReadStatus] Error in debouncedMarkDmReadInDb:', error);
@@ -51,6 +56,11 @@ export const useMessageReadStatus = () => {
 
         if (error) {
           console.error('[useMessageReadStatus] Error updating club read status in DB:', error);
+        } else {
+          // Dispatch an event to notify that read status has been updated in DB
+          window.dispatchEvent(new CustomEvent('club-read-status-updated', {
+            detail: { clubId }
+          }));
         }
       } catch (error) {
         console.error('[useMessageReadStatus] Error in debouncedMarkClubReadInDb:', error);
@@ -74,9 +84,12 @@ export const useMessageReadStatus = () => {
         // 3. Use the context method for optimistic updates to any UI components
         await markDirectConversationAsRead(conversationId);
 
-        // 4. Schedule a debounced update to the database or do it immediately
+        // 4. Trigger an immediate UI refresh
+        window.dispatchEvent(new CustomEvent('unread-status-changed'));
+
+        // 5. Schedule a debounced update to the database or do it immediately
         if (immediate) {
-          flushDebounce('mark-dm-read');
+          forceFlushDebounce('mark-dm-read');
         } else {
           debouncedMarkDmReadInDb(conversationId);
         }
@@ -102,9 +115,12 @@ export const useMessageReadStatus = () => {
         // 3. Use the context method for optimistic updates to any UI components
         await markClubMessagesAsRead(clubId);
 
-        // 4. Schedule a debounced update to the database or do it immediately
+        // 4. Trigger an immediate UI refresh
+        window.dispatchEvent(new CustomEvent('unread-status-changed'));
+
+        // 5. Schedule a debounced update to the database or do it immediately
         if (immediate) {
-          flushDebounce('mark-club-read');
+          forceFlushDebounce('mark-club-read');
         } else {
           debouncedMarkClubReadInDb(clubId);
         }
@@ -119,8 +135,8 @@ export const useMessageReadStatus = () => {
     markDirectMessagesAsRead,
     markClubMessagesAsRead: markClubMessagesAsReadNew,
     flushReadStatus: () => {
-      flushDebounce('mark-dm-read');
-      flushDebounce('mark-club-read');
+      forceFlushDebounce('mark-dm-read');
+      forceFlushDebounce('mark-club-read');
     }
   };
 };
