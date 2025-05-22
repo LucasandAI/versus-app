@@ -37,7 +37,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
 }) => {
   const { currentUser } = useApp();
   const { navigateToUserProfile } = useNavigation();
-  const { markDirectMessagesAsRead } = useMessageReadStatus();
+  const { markDirectMessagesAsRead, flushReadStatus } = useMessageReadStatus();
   const [isSending, setIsSending] = React.useState(false);
   const { formatTime } = useMessageFormatting();
   
@@ -111,14 +111,16 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   // Mark conversation as active when opened and then as read after a delay
   useEffect(() => {
     if (conversationId && conversationId !== 'new') {
-      console.log(`[DMConversation] Marking conversation ${conversationId} as active`);
+      console.log(`[DMConversation] Conversation opened: ${conversationId}`);
+      
+      // 1. Mark as active immediately
       markConversationActive('dm', conversationId);
       
-      // Mark as read after a short delay to ensure user has seen messages
+      // 2. Mark messages as read with a slight delay
       const readTimer = setTimeout(() => {
         console.log(`[DMConversation] Marking conversation ${conversationId} as read after delay`);
-        markDirectMessagesAsRead(conversationId);
-      }, 500); // Short delay
+        markDirectMessagesAsRead(conversationId, true); // Use immediate=true to flush
+      }, 300); // Very short delay
       
       return () => {
         clearTimeout(readTimer);
@@ -126,6 +128,14 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       };
     }
   }, [conversationId, markDirectMessagesAsRead]);
+
+  // Handle back button click with proper cleanup
+  const handleBack = useCallback(() => {
+    // Flush any pending read status updates
+    flushReadStatus();
+    clearActiveConversation();
+    onBack();
+  }, [flushReadStatus, onBack]);
 
   // Stable send message handler
   const handleSendMessage = useCallback(async (text: string) => {
@@ -182,6 +192,9 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       
       if (error) throw error;
       
+      // Mark conversation as active and read to prevent this message from being marked unread
+      markConversationActive('dm', finalConversationId);
+      
     } catch (error) {
       console.error('[DMConversation] Error sending message:', error);
       
@@ -196,7 +209,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     } finally {
       setIsSending(false);
     }
-  }, [currentUser, user, conversationId, addOptimisticMessage, createConversation, scrollToBottom, setMessages]);
+  }, [currentUser, user, conversationId, addOptimisticMessage, createConversation, scrollToBottom, setMessages, markConversationActive]);
   
   // Club members array for ChatMessages - memoized to prevent recreating
   const clubMembers = useMemo(() => 
@@ -209,7 +222,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       {/* Header with back button and centered user info */}
       <div className="border-b p-3 flex items-center">
         <button 
-          onClick={onBack}
+          onClick={handleBack}
           className="p-2 rounded-full hover:bg-gray-100 transition-colors"
         >
           <ArrowLeft size={20} />

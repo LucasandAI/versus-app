@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Club } from '@/types';
@@ -23,11 +24,26 @@ export const useClubMessageSubscriptions = (
   useEffect(() => {
     const handleClubSelect = (event: CustomEvent) => {
       selectedClubRef.current = event.detail.clubId;
+      console.log(`[useClubMessageSubscriptions] Club selected from event: ${event.detail.clubId}`);
     };
     
     window.addEventListener('clubSelected', handleClubSelect as EventListener);
+    
+    // Also listen for active conversation changes
+    const handleConversationChange = (event: CustomEvent) => {
+      if (event.detail && event.detail.type === 'club') {
+        selectedClubRef.current = event.detail.id;
+        console.log(`[useClubMessageSubscriptions] Active club conversation updated: ${event.detail.id}`);
+      } else if (!event.detail) {
+        selectedClubRef.current = null;
+      }
+    };
+    
+    window.addEventListener('conversation-active-change', handleConversationChange as EventListener);
+    
     return () => {
       window.removeEventListener('clubSelected', handleClubSelect as EventListener);
+      window.removeEventListener('conversation-active-change', handleConversationChange as EventListener);
     };
   }, []);
   
@@ -53,7 +69,12 @@ export const useClubMessageSubscriptions = (
           filter: userClubs.length > 0 ? `club_id=in.(${userClubs.map(c => `'${c.id}'`).join(',')})` : undefined
         }, 
         (payload) => {
-          console.log('[useClubMessageSubscriptions] New message detected');
+          console.log('[useClubMessageSubscriptions] New message detected:', {
+            id: payload.new.id,
+            club_id: payload.new.club_id,
+            is_current_user: payload.new.sender_id === currentUser.id
+          });
+          
           handleNewMessagePayload(
             payload, 
             clubsRef.current, 
@@ -71,7 +92,7 @@ export const useClubMessageSubscriptions = (
           filter: userClubs.length > 0 ? `club_id=in.(${userClubs.map(c => `'${c.id}'`).join(',')})` : undefined
         }, 
         (payload) => {
-          console.log('[useClubMessageSubscriptions] Message deletion detected');
+          console.log('[useClubMessageSubscriptions] Message deletion detected:', payload.old?.id);
           handleMessageDeletion(payload, setClubMessages);
         }
       )
@@ -85,6 +106,9 @@ export const useClubMessageSubscriptions = (
       updatedSubs[club.id] = true;
     });
     activeSubscriptionsRef.current = updatedSubs;
+    
+    // Dispatch an event to notify that we're subscribed
+    window.dispatchEvent(new CustomEvent('club-subscriptions-ready'));
     
     // Cleanup
     return () => {

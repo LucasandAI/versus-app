@@ -2,6 +2,7 @@
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Club } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
+import { isConversationActive } from '@/utils/chat/activeConversationTracker';
 
 // Type for new message payload
 interface MessagePayload {
@@ -11,6 +12,7 @@ interface MessagePayload {
     sender_id: string;
     message: string;
     timestamp: string;
+    created_at?: string;
     sender_name?: string;
     [key: string]: any;
   };
@@ -66,6 +68,10 @@ export const handleNewMessagePayload = async (
   
   console.log(`[subscriptionHandlers] 🔥 New message received for club ${messageClubId}:`, typedPayload.new.id);
   
+  // Check if this club conversation is currently active/open
+  const isActive = isConversationActive('club', messageClubId);
+  console.log(`[subscriptionHandlers] Club ${messageClubId} active status:`, isActive);
+  
   // Create a temporary message object with sender info
   const isCurrentUser = typedPayload.new.sender_id === currentUser?.id;
   const senderName = isCurrentUser ? "You" : (typedPayload.new.sender_name || "Loading...");
@@ -95,7 +101,11 @@ export const handleNewMessagePayload = async (
     
     // Create and dispatch a global event with the new message details
     window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
-      detail: { clubId: messageClubId, message: tempMessage } 
+      detail: { 
+        clubId: messageClubId, 
+        message: tempMessage,
+        isActive: isActive
+      } 
     }));
     
     return {
@@ -142,9 +152,13 @@ export const handleNewMessagePayload = async (
   
   // If the message is from another user and NOT the currently viewed club,
   // we need to update the unread count for this club
-  if (!isCurrentUser && (!selectedClubRef || selectedClubRef !== messageClubId)) {
+  if (!isCurrentUser && !isActive) {
+    const timestamp = new Date(typedPayload.new.created_at || typedPayload.new.timestamp).getTime();
     window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', { 
-      detail: { clubId: messageClubId } 
+      detail: { 
+        clubId: messageClubId,
+        timestamp
+      } 
     }));
   }
 };

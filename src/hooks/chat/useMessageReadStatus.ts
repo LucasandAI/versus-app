@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnreadMessages } from '@/context/unread-messages';
 import { markClubReadLocally, markDmReadLocally } from '@/utils/chat/readStatusStorage';
-import { debounce } from '@/utils/chat/debounceUtils';
+import { debounce, flushDebounce } from '@/utils/chat/debounceUtils';
 import { markConversationActive } from '@/utils/chat/activeConversationTracker';
 
 // Constants for debounce delays
@@ -61,8 +61,10 @@ export const useMessageReadStatus = () => {
 
   // Mark direct messages as read with local-first approach
   const markDirectMessagesAsRead = useCallback(
-    async (conversationId: string, userId?: string) => {
+    async (conversationId: string, immediate: boolean = false) => {
       try {
+        console.log(`[useMessageReadStatus] Marking DM ${conversationId} as read${immediate ? ' (immediate)' : ''}`);
+        
         // 1. Mark the conversation as active to prevent incoming messages from being marked as unread
         markConversationActive('dm', conversationId);
 
@@ -72,8 +74,12 @@ export const useMessageReadStatus = () => {
         // 3. Use the context method for optimistic updates to any UI components
         await markDirectConversationAsRead(conversationId);
 
-        // 4. Schedule a debounced update to the database
-        debouncedMarkDmReadInDb(conversationId);
+        // 4. Schedule a debounced update to the database or do it immediately
+        if (immediate) {
+          flushDebounce('mark-dm-read');
+        } else {
+          debouncedMarkDmReadInDb(conversationId);
+        }
       } catch (error) {
         console.error('[useMessageReadStatus] Error marking DM as read:', error);
       }
@@ -83,8 +89,10 @@ export const useMessageReadStatus = () => {
 
   // Mark club messages as read with local-first approach
   const markClubMessagesAsReadNew = useCallback(
-    async (clubId: string, userId?: string) => {
+    async (clubId: string, immediate: boolean = false) => {
       try {
+        console.log(`[useMessageReadStatus] Marking club ${clubId} as read${immediate ? ' (immediate)' : ''}`);
+        
         // 1. Mark the club conversation as active
         markConversationActive('club', clubId);
 
@@ -94,8 +102,12 @@ export const useMessageReadStatus = () => {
         // 3. Use the context method for optimistic updates to any UI components
         await markClubMessagesAsRead(clubId);
 
-        // 4. Schedule a debounced update to the database
-        debouncedMarkClubReadInDb(clubId);
+        // 4. Schedule a debounced update to the database or do it immediately
+        if (immediate) {
+          flushDebounce('mark-club-read');
+        } else {
+          debouncedMarkClubReadInDb(clubId);
+        }
       } catch (error) {
         console.error('[useMessageReadStatus] Error marking club messages as read:', error);
       }
@@ -105,6 +117,10 @@ export const useMessageReadStatus = () => {
 
   return {
     markDirectMessagesAsRead,
-    markClubMessagesAsRead: markClubMessagesAsReadNew
+    markClubMessagesAsRead: markClubMessagesAsReadNew,
+    flushReadStatus: () => {
+      flushDebounce('mark-dm-read');
+      flushDebounce('mark-club-read');
+    }
   };
 };

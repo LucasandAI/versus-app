@@ -7,7 +7,6 @@ import { ChatStateData } from '@/types/chat-state';
 const MESSAGES_KEY = 'chatMessages';
 const UNREAD_MESSAGES_KEY = 'unreadMessages';
 const ACTIVE_CLUB_KEY = 'activeClub';
-const ACTIVE_CONVERSATION_KEY = 'activeConversation';
 const READ_TIMESTAMPS_KEY = 'readTimestamps';
 
 export const useLocalStorage = () => {
@@ -46,53 +45,43 @@ export const useLocalStorage = () => {
     window.dispatchEvent(event);
   }, []);
 
-  const getActiveClub = useCallback(() => {
+  const updateClubReadTimestamp = useCallback((clubId: string) => {
     try {
-      const active = localStorage.getItem(ACTIVE_CLUB_KEY);
-      return active ? JSON.parse(active) : null;
+      const timestampsJson = localStorage.getItem(READ_TIMESTAMPS_KEY);
+      const timestamps = timestampsJson ? JSON.parse(timestampsJson) : { clubs: {}, dms: {} };
+      
+      // Update the timestamp for the club
+      timestamps.clubs[clubId] = Date.now();
+      
+      // Save back to storage
+      localStorage.setItem(READ_TIMESTAMPS_KEY, JSON.stringify(timestamps));
+      
+      // Trigger event for any listeners
+      window.dispatchEvent(new CustomEvent('readTimestampsUpdated'));
+      
+      console.log(`[useLocalStorage] Updated read timestamp for club ${clubId}`);
     } catch (error) {
-      console.error('[useLocalStorage] Error getting active club:', error);
-      return null;
+      console.error('[useLocalStorage] Error updating club read timestamp:', error);
     }
   }, []);
 
-  const setActiveClub = useCallback((clubId: string | null) => {
+  const updateDmReadTimestamp = useCallback((conversationId: string) => {
     try {
-      if (clubId) {
-        localStorage.setItem(ACTIVE_CLUB_KEY, JSON.stringify({
-          id: clubId,
-          timestamp: Date.now()
-        }));
-      } else {
-        localStorage.removeItem(ACTIVE_CLUB_KEY);
-      }
+      const timestampsJson = localStorage.getItem(READ_TIMESTAMPS_KEY);
+      const timestamps = timestampsJson ? JSON.parse(timestampsJson) : { clubs: {}, dms: {} };
+      
+      // Update the timestamp for the conversation
+      timestamps.dms[conversationId] = Date.now();
+      
+      // Save back to storage
+      localStorage.setItem(READ_TIMESTAMPS_KEY, JSON.stringify(timestamps));
+      
+      // Trigger event for any listeners
+      window.dispatchEvent(new CustomEvent('readTimestampsUpdated'));
+      
+      console.log(`[useLocalStorage] Updated read timestamp for DM ${conversationId}`);
     } catch (error) {
-      console.error('[useLocalStorage] Error setting active club:', error);
-    }
-  }, []);
-
-  const getActiveConversation = useCallback(() => {
-    try {
-      const active = localStorage.getItem(ACTIVE_CONVERSATION_KEY);
-      return active ? JSON.parse(active) : null;
-    } catch (error) {
-      console.error('[useLocalStorage] Error getting active conversation:', error);
-      return null;
-    }
-  }, []);
-
-  const setActiveConversation = useCallback((conversationId: string | null) => {
-    try {
-      if (conversationId) {
-        localStorage.setItem(ACTIVE_CONVERSATION_KEY, JSON.stringify({
-          id: conversationId,
-          timestamp: Date.now()
-        }));
-      } else {
-        localStorage.removeItem(ACTIVE_CONVERSATION_KEY);
-      }
-    } catch (error) {
-      console.error('[useLocalStorage] Error setting active conversation:', error);
+      console.error('[useLocalStorage] Error updating DM read timestamp:', error);
     }
   }, []);
 
@@ -101,9 +90,7 @@ export const useLocalStorage = () => {
     saveMessages,
     saveUnreadMessages,
     saveReadTimestamps,
-    getActiveClub,
-    setActiveClub,
-    getActiveConversation,
-    setActiveConversation
+    updateClubReadTimestamp,
+    updateDmReadTimestamp
   };
 };

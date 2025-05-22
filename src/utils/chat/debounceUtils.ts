@@ -1,3 +1,4 @@
+
 /**
  * Utility for debouncing functions to avoid excessive operations
  */
@@ -8,6 +9,7 @@ interface DebouncedFunctions {
   [key: string]: {
     timeoutId: ReturnType<typeof setTimeout> | null;
     lastArgs: any[];
+    fn: (...args: any[]) => void;
   };
 }
 
@@ -23,6 +25,13 @@ const debouncedFunctions: DebouncedFunctions = {};
  * @returns A debounced version of the function
  */
 export const debounce = (key: string, fn: (...args: any[]) => void, delay: number): DebouncedFunction => {
+  // Store the original function for later use with flush
+  if (!debouncedFunctions[key]) {
+    debouncedFunctions[key] = { timeoutId: null, lastArgs: [], fn };
+  } else {
+    debouncedFunctions[key].fn = fn; // Update the function reference
+  }
+  
   return (...args: any[]) => {
     // If we already have a pending execution for this key, cancel it
     if (debouncedFunctions[key]?.timeoutId) {
@@ -30,9 +39,6 @@ export const debounce = (key: string, fn: (...args: any[]) => void, delay: numbe
     }
     
     // Store the latest arguments
-    if (!debouncedFunctions[key]) {
-      debouncedFunctions[key] = { timeoutId: null, lastArgs: [] };
-    }
     debouncedFunctions[key].lastArgs = args;
     
     // Schedule a new execution
@@ -59,11 +65,13 @@ export const cancelDebounce = (key: string): void => {
  * Execute a debounced function immediately, canceling any pending timeout
  * 
  * @param key The unique identifier for the debounced function
- * @param fn The function to execute
  */
-export const flushDebounce = (key: string, fn: (...args: any[]) => void): void => {
+export const flushDebounce = (key: string): void => {
   if (debouncedFunctions[key]) {
+    // Cancel any pending execution
     cancelDebounce(key);
-    fn(...debouncedFunctions[key].lastArgs);
+    
+    // Execute the function immediately with the last arguments
+    debouncedFunctions[key].fn(...debouncedFunctions[key].lastArgs);
   }
 };

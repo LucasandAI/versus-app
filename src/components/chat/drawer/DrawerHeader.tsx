@@ -4,6 +4,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnreadMessages } from '@/context/unread-messages';
 import { Club } from '@/types';
 import { Badge } from '@/components/ui/badge';
+import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
 
 interface DrawerHeaderProps {
   activeTab: "clubs" | "dm";
@@ -18,14 +19,16 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
   selectedClub 
 }) => {
   const { unreadClubs, unreadConversations, markClubMessagesAsRead } = useUnreadMessages();
+  const { markClubMessagesAsRead: markClubRead } = useMessageReadStatus();
 
   // Mark club messages as read when a club is selected and the clubs tab is active
   useEffect(() => {
     if (activeTab === "clubs" && selectedClub) {
       console.log(`[DrawerHeader] Marking club ${selectedClub.id} messages as read (selectedClub present and clubs tab active)`);
-      markClubMessagesAsRead(selectedClub.id);
+      // Use our enhanced function that also updates local storage
+      markClubRead(selectedClub.id, true);
     }
-  }, [activeTab, selectedClub, markClubMessagesAsRead]);
+  }, [activeTab, selectedClub, markClubRead]);
   
   // Use useMemo for stable rendering of unread indicators
   const clubsUnreadBadge = React.useMemo(() => {

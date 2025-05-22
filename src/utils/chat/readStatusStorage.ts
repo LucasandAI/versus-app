@@ -26,6 +26,7 @@ export const markClubReadLocally = (clubId: string): void => {
     readStatus[clubId] = timestamp;
     
     localStorage.setItem(CLUB_READ_STATUS_KEY, JSON.stringify(readStatus));
+    console.log(`[readStatusStorage] Club ${clubId} marked as read locally at ${timestamp}`);
     
     // Dispatch event for any listeners
     window.dispatchEvent(new CustomEvent('local-read-status-change'));
@@ -47,6 +48,7 @@ export const markDmReadLocally = (conversationId: string): void => {
     readStatus[conversationId] = timestamp;
     
     localStorage.setItem(DM_READ_STATUS_KEY, JSON.stringify(readStatus));
+    console.log(`[readStatusStorage] DM ${conversationId} marked as read locally at ${timestamp}`);
     
     // Dispatch event for any listeners
     window.dispatchEvent(new CustomEvent('local-read-status-change'));

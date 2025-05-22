@@ -45,18 +45,22 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
   const { markDirectMessagesAsRead, markClubMessagesAsRead } = useMessageReadStatus();
   const [isSending, setIsSending] = useState(false);
 
-  // Mark conversation as active when chat is selected
+  // Mark conversation as active and set up read status handlers
   useEffect(() => {
     if (selectedChat) {
-      console.log(`[UnifiedChatContent] Marking ${selectedChat.type} ${selectedChat.id} as active`);
+      console.log(`[UnifiedChatContent] Conversation opened: ${selectedChat.type} ${selectedChat.id}`);
+      
+      // 1. Mark as active immediately
       markConversationActive(selectedChat.type, selectedChat.id);
       
-      // Mark messages as read with a slight delay to ensure user has seen them
+      // 2. Mark messages as read with a slight delay to ensure user has seen them
       const readTimer = setTimeout(() => {
+        console.log(`[UnifiedChatContent] Marking ${selectedChat.type} ${selectedChat.id} as read after delay`);
+        
         if (selectedChat.type === 'club') {
-          markClubMessagesAsRead(selectedChat.id);
+          markClubMessagesAsRead(selectedChat.id, true); // Use immediate=true to flush the update
         } else if (selectedChat.type === 'dm') {
-          markDirectMessagesAsRead(selectedChat.id);
+          markDirectMessagesAsRead(selectedChat.id, true); // Use immediate=true to flush the update
         }
       }, 500); // Short delay before marking as read
       

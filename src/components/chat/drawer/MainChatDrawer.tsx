@@ -13,6 +13,7 @@ import { useClubMessages } from '@/hooks/chat/useClubMessages';
 import { useDirectMessages } from '@/hooks/chat/useDirectMessages';
 import { supabase } from '@/integrations/supabase/client';
 import { markConversationActive, clearActiveConversation } from '@/utils/chat/activeConversationTracker';
+import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -42,18 +43,24 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const { currentUser } = useApp();
   const { fetchConversations, getOrCreateConversation } = useDirectConversationsContext();
   const { sendMessageToClub, sendDirectMessage, deleteMessage } = useChatActions();
+  const { flushReadStatus, markDirectMessagesAsRead, markClubMessagesAsRead } = useMessageReadStatus();
 
   // Get messages based on chat type
   const { messages: directMessages, setMessages: setDirectMessages } = useDirectMessages(
     selectedChat?.type === 'dm' ? selectedChat.id : null
   );
   
-  // Clear active conversation when drawer closes
+  // Clear active conversation when drawer closes or component unmounts
   useEffect(() => {
     if (!open) {
+      console.log('[MainChatDrawer] Drawer closed, clearing active conversation');
       clearActiveConversation();
       setSelectedChat(null);
     }
+    
+    return () => {
+      clearActiveConversation();
+    };
   }, [open]);
 
   // Effect to fetch conversations when drawer opens
@@ -78,8 +85,9 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             avatar: userAvatar
           });
           
-          // Mark this conversation as active
+          // Mark this conversation as active and read immediately
           markConversationActive('dm', conversationId);
+          markDirectMessagesAsRead(conversationId, true);
         } else {
           // Otherwise, get or create a conversation
           const conversation = await getOrCreateConversation(userId, userName, userAvatar);
@@ -91,8 +99,9 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
               avatar: conversation.userAvatar
             });
             
-            // Mark this conversation as active
+            // Mark as active and read immediately
             markConversationActive('dm', conversation.conversationId);
+            markDirectMessagesAsRead(conversation.conversationId, true);
           }
         }
       } catch (error) {
@@ -104,14 +113,23 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     return () => {
       window.removeEventListener('openDirectMessage', handleOpenDirectMessage as EventListener);
     };
-  }, [getOrCreateConversation]);
+  }, [getOrCreateConversation, markDirectMessagesAsRead]);
 
   const handleSelectChat = React.useCallback((type: 'club' | 'dm', id: string, name: string, avatar?: string) => {
+    console.log(`[MainChatDrawer] Selecting chat: ${type} ${id}`);
+    
     setSelectedChat({ type, id, name, avatar });
     
-    // Mark this conversation as active
+    // Mark this conversation as active immediately
     markConversationActive(type, id);
-  }, []);
+    
+    // Mark as read immediately (flush any pending updates)
+    if (type === 'club') {
+      markClubMessagesAsRead(id, true);
+    } else {
+      markDirectMessagesAsRead(id, true);
+    }
+  }, [markClubMessagesAsRead, markDirectMessagesAsRead]);
 
   const handleSendMessage = React.useCallback(async (message: string, chatId: string, type: 'club' | 'dm') => {
     if (type === 'club' && setClubMessages) {
@@ -163,6 +181,9 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   }, [open]);
 
   const handleBack = () => {
+    // Flush any pending read status updates before navigating back
+    flushReadStatus();
+    
     setSelectedChat(null);
     clearActiveConversation();
     setListKey((k) => k + 1);

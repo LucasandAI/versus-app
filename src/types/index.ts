@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   name: string;
@@ -45,7 +46,7 @@ export interface JoinRequest {
   userName: string;
   userAvatar: string;
   createdAt: string;
-  status: 'PENDING' | 'SUCCESS' | 'ERROR' | 'REJECTED'; // Added 'REJECTED' to fix type errors
+  status: 'PENDING' | 'SUCCESS' | 'ERROR' | 'REJECTED';
 }
 
 export interface ClubRequest {
