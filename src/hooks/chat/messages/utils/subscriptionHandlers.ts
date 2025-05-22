@@ -2,7 +2,8 @@
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Club } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
-import { isConversationActive } from '@/utils/chat/activeConversationTracker';
+import { isConversationActive, hasBeenViewedSince } from '@/utils/chat/activeConversationTracker';
+import { getReadTimestamp } from '@/utils/chat/readStatusStorage';
 
 // Type for new message payload
 interface MessagePayload {
@@ -58,6 +59,7 @@ export const handleNewMessagePayload = async (
   const messageId = messagePayload.new.id;
   const senderId = messagePayload.new.sender_id;
   const isCurrentUserMessage = senderId === currentUser?.id;
+  const messageTime = new Date(messagePayload.new.created_at || messagePayload.new.timestamp).getTime();
   
   console.log('[subscriptionHandlers] Processing new message:', {
     messageId,
@@ -121,21 +123,45 @@ export const handleNewMessagePayload = async (
       };
     });
 
-    // Also dispatch an event to notify about the new message
-    // This helps update other components like badges even for the first message
+    // Check if the conversation is active (user is currently viewing it)
+    const isActive = isConversationActive('club', clubId);
+    
+    // Check if this conversation has been read since this message was sent
+    const readTimestamp = getReadTimestamp('club', clubId);
+    const hasBeenRead = readTimestamp > messageTime;
+    
+    // Always dispatch an event to notify about the new message
+    // This is critical for the first message case
     window.dispatchEvent(new CustomEvent('club-message-received', { 
       detail: { 
         clubId, 
         message: normalizedMessage,
-        isUserMessage: isCurrentUserMessage
+        isUserMessage: isCurrentUserMessage,
+        isFirstMessage: true // Flag to indicate this might be the first message
       } 
     }));
     
-    // Trigger badge update if the message is not from current user
-    // and this is not the currently selected club
-    if (!isCurrentUserMessage && (!isConversationActive('club', clubId))) {
+    // If the message is not from the current user and the conversation is not active,
+    // trigger a badge update
+    if (!isCurrentUserMessage && !isActive && !hasBeenRead) {
+      console.log('[subscriptionHandlers] Dispatching unread event for club message:', clubId);
+      
+      // Dispatch event to update unread messages
       window.dispatchEvent(new CustomEvent('unread-club-message', { 
-        detail: { clubId } 
+        detail: { 
+          clubId,
+          messageTimestamp: messageTime 
+        } 
+      }));
+      
+      // Also force a badge refresh
+      window.dispatchEvent(new CustomEvent('badge-refresh-required', {
+        detail: { forceTotalRecalculation: true }
+      }));
+      
+      // Force an unread message update to ensure the first message is caught
+      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', {
+        detail: { forceTotalRecalculation: true }
       }));
     }
   } catch (error) {

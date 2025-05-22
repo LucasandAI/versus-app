@@ -1,5 +1,5 @@
 
-import React, { useEffect, memo, useState } from 'react';
+import React, { useEffect, memo, useState, useCallback } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnreadMessages } from '@/context/unread-messages';
 import { Club } from '@/types';
@@ -22,19 +22,23 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
   const { markClubMessagesAsRead } = useMessageReadStatus();
   const [forceRender, setForceRender] = useState(0);
   
+  // Handle force updates more efficiently with a dedicated function
+  const handleUnreadUpdate = useCallback(() => {
+    console.log('[DrawerHeader] Unread status changed, forcing re-render');
+    setForceRender(prev => prev + 1);
+  }, []);
+  
   // Listen for unread status changes to update badges
   useEffect(() => {
-    const handleUnreadUpdate = () => {
-      console.log('[DrawerHeader] Unread status changed, forcing re-render');
-      setForceRender(prev => prev + 1);
-    };
-    
     // Listen for various events that might affect unread status
     window.addEventListener('unread-status-changed', handleUnreadUpdate);
     window.addEventListener('unreadMessagesUpdated', handleUnreadUpdate);
     window.addEventListener('local-read-status-change', handleUnreadUpdate);
     window.addEventListener('club-message-received', handleUnreadUpdate);
     window.addEventListener('message-sent', handleUnreadUpdate);
+    window.addEventListener('badge-refresh-required', handleUnreadUpdate);
+    window.addEventListener('club-read-status-changed', handleUnreadUpdate);
+    window.addEventListener('dm-read-status-changed', handleUnreadUpdate);
     
     // Refresh unread counts when component mounts
     fetchUnreadCounts();
@@ -45,8 +49,11 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
       window.removeEventListener('local-read-status-change', handleUnreadUpdate);
       window.removeEventListener('club-message-received', handleUnreadUpdate);
       window.removeEventListener('message-sent', handleUnreadUpdate);
+      window.removeEventListener('badge-refresh-required', handleUnreadUpdate);
+      window.removeEventListener('club-read-status-changed', handleUnreadUpdate);
+      window.removeEventListener('dm-read-status-changed', handleUnreadUpdate);
     };
-  }, [fetchUnreadCounts]);
+  }, [fetchUnreadCounts, handleUnreadUpdate]);
 
   // Mark club messages as read when a club is selected and the clubs tab is active
   useEffect(() => {

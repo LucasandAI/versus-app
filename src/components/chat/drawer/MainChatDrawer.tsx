@@ -39,7 +39,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     avatar?: string;
   } | null>(null);
   
-  const { unreadClubs, unreadConversations } = useUnreadMessages();
+  const { unreadClubs, unreadConversations, fetchUnreadCounts } = useUnreadMessages();
   const { currentUser } = useApp();
   const { fetchConversations, getOrCreateConversation } = useDirectConversationsContext();
   const { sendMessageToClub, sendDirectMessage, deleteMessage } = useChatActions();
@@ -56,6 +56,10 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       console.log('[MainChatDrawer] Drawer closed, clearing active conversation');
       clearActiveConversation();
       setSelectedChat(null);
+      // Force a badge refresh when drawer closes
+      window.dispatchEvent(new CustomEvent('badge-refresh-required', { 
+        detail: { immediate: true } 
+      }));
     }
     
     return () => {
@@ -67,8 +71,10 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   useEffect(() => {
     if (open && currentUser?.id) {
       fetchConversations();
+      // Also refresh unread counts when drawer opens
+      fetchUnreadCounts();
     }
-  }, [open, currentUser?.id, fetchConversations]);
+  }, [open, currentUser?.id, fetchConversations, fetchUnreadCounts]);
 
   // Effect to handle openDirectMessage event
   useEffect(() => {
@@ -88,6 +94,11 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
           // Mark this conversation as active and read immediately
           markConversationActive('dm', conversationId);
           markDirectMessagesAsRead(conversationId, true);
+          
+          // Notify about the conversation being opened
+          window.dispatchEvent(new CustomEvent('conversation-opened', {
+            detail: { type: 'dm', id: conversationId }
+          }));
         } else {
           // Otherwise, get or create a conversation
           const conversation = await getOrCreateConversation(userId, userName, userAvatar);
@@ -102,6 +113,11 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             // Mark as active and read immediately
             markConversationActive('dm', conversation.conversationId);
             markDirectMessagesAsRead(conversation.conversationId, true);
+            
+            // Notify about the conversation being opened
+            window.dispatchEvent(new CustomEvent('conversation-opened', {
+              detail: { type: 'dm', id: conversation.conversationId }
+            }));
           }
         }
       } catch (error) {
@@ -128,6 +144,18 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       markClubMessagesAsRead(id, true);
     } else {
       markDirectMessagesAsRead(id, true);
+    }
+    
+    // Notify about the conversation being opened
+    window.dispatchEvent(new CustomEvent('conversation-opened', {
+      detail: { type, id }
+    }));
+    
+    // For club selections, also dispatch the clubSelected event for backwards compatibility
+    if (type === 'club') {
+      window.dispatchEvent(new CustomEvent('clubSelected', {
+        detail: { clubId: id }
+      }));
     }
   }, [markClubMessagesAsRead, markDirectMessagesAsRead]);
 
@@ -187,10 +215,23 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     setSelectedChat(null);
     clearActiveConversation();
     setListKey((k) => k + 1);
+    
+    // Force a badge refresh when navigating back
+    window.dispatchEvent(new CustomEvent('badge-refresh-required', { 
+      detail: { immediate: true } 
+    }));
   };
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
+    <Drawer open={open} onOpenChange={(isOpen) => {
+      onOpenChange(isOpen);
+      if (!isOpen) {
+        // Force a badge refresh when drawer closes
+        window.dispatchEvent(new CustomEvent('badge-refresh-required', { 
+          detail: { immediate: true } 
+        }));
+      }
+    }}>
       <DrawerContent className="h-[80vh] rounded-t-xl p-0 flex flex-col">
         {selectedChat ? (
           <UnifiedChatContent

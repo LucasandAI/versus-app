@@ -6,6 +6,7 @@
 
 // Store active conversation information in local storage for persistence
 const ACTIVE_CONVERSATION_KEY = 'versus_active_conversations';
+const VIEWED_CONVERSATIONS_HISTORY_KEY = 'versus_viewed_conversations_history';
 
 // Interface for active conversation data
 interface ActiveConversation {
@@ -16,6 +17,7 @@ interface ActiveConversation {
 
 /**
  * Mark a conversation as active (user is currently viewing it)
+ * This indicates the user is currently looking at this conversation
  */
 export const markConversationActive = (type: 'club' | 'dm', id: string): void => {
   try {
@@ -41,12 +43,73 @@ export const markConversationActive = (type: 'club' | 'dm', id: string): void =>
     
     console.log(`[activeConversationTracker] Marking ${type} ${id} as active`);
     
+    // Also track in viewed history for badge refresh purposes
+    addToViewedHistory(type, id);
+    
     // Dispatch an event so other components can react to this change
     window.dispatchEvent(new CustomEvent('conversation-active-change', { 
       detail: { type, id, timestamp }
     }));
+    
+    // Dispatch a dedicated event for badge refresh
+    window.dispatchEvent(new CustomEvent('conversation-opened', {
+      detail: { type, id, timestamp }
+    }));
   } catch (error) {
     console.error('[activeConversationTracker] Error marking conversation active:', error);
+  }
+};
+
+/**
+ * Add a conversation to the viewed history
+ * This helps us track when a conversation was explicitly viewed by the user
+ */
+const addToViewedHistory = (type: 'club' | 'dm', id: string): void => {
+  try {
+    const timestamp = Date.now();
+    
+    // Get current viewed history
+    const historyJson = localStorage.getItem(VIEWED_CONVERSATIONS_HISTORY_KEY);
+    const viewedHistory: Record<string, number> = historyJson ? 
+      JSON.parse(historyJson) : {};
+    
+    // Create a unique key for this conversation
+    const conversationKey = `${type}_${id}`;
+    
+    // Update the timestamp for this conversation
+    viewedHistory[conversationKey] = timestamp;
+    
+    // Store the updated viewed history
+    localStorage.setItem(VIEWED_CONVERSATIONS_HISTORY_KEY, JSON.stringify(viewedHistory));
+    
+    console.log(`[activeConversationTracker] Added ${type} ${id} to viewed history at ${timestamp}`);
+  } catch (error) {
+    console.error('[activeConversationTracker] Error adding to viewed history:', error);
+  }
+};
+
+/**
+ * Check if a conversation has been viewed since a specific timestamp
+ */
+export const hasBeenViewedSince = (type: 'club' | 'dm', id: string, since: number): boolean => {
+  try {
+    // Get current viewed history
+    const historyJson = localStorage.getItem(VIEWED_CONVERSATIONS_HISTORY_KEY);
+    if (!historyJson) return false;
+    
+    const viewedHistory: Record<string, number> = JSON.parse(historyJson);
+    
+    // Create a unique key for this conversation
+    const conversationKey = `${type}_${id}`;
+    
+    // Check if the conversation has been viewed since the given timestamp
+    const viewedAt = viewedHistory[conversationKey];
+    if (!viewedAt) return false;
+    
+    return viewedAt > since;
+  } catch (error) {
+    console.error('[activeConversationTracker] Error checking viewed history:', error);
+    return false;
   }
 };
 

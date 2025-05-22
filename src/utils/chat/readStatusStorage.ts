@@ -1,114 +1,158 @@
 
 /**
- * Utility for locally storing read status information for messages
- * to provide immediate feedback while database updates happen in the background
+ * Utility for managing read status of conversations in local storage
+ * This provides a local-first approach to marking messages as read
+ * before the database is updated
  */
 
-// Store read status information in local storage
-const CLUB_READ_STATUS_KEY = 'versus_club_read_status';
-const DM_READ_STATUS_KEY = 'versus_dm_read_status';
+// Constants
+const LOCAL_READ_STATUS_KEY = 'versus_read_status';
 
-// Types for read status data
-interface ReadStatusMap {
-  [id: string]: number; // Map of conversation/club ID to timestamp
+// Type for read status data
+interface ReadStatusData {
+  dms: Record<string, number>; // Conversation ID -> timestamp
+  clubs: Record<string, number>; // Club ID -> timestamp
 }
 
 /**
- * Mark a club's messages as read locally
+ * Get all stored read statuses
  */
-export const markClubReadLocally = (clubId: string): void => {
+export const getLocalReadStatus = (): ReadStatusData => {
   try {
-    const timestamp = Date.now();
-    const storedData = localStorage.getItem(CLUB_READ_STATUS_KEY);
-    const readStatus: ReadStatusMap = storedData ? JSON.parse(storedData) : {};
-    
-    // Update the timestamp for this club
-    readStatus[clubId] = timestamp;
-    
-    localStorage.setItem(CLUB_READ_STATUS_KEY, JSON.stringify(readStatus));
-    console.log(`[readStatusStorage] Club ${clubId} marked as read locally at ${timestamp}`);
-    
-    // Dispatch event for any listeners
-    window.dispatchEvent(new CustomEvent('local-read-status-change'));
+    const data = localStorage.getItem(LOCAL_READ_STATUS_KEY);
+    if (!data) {
+      return { dms: {}, clubs: {} };
+    }
+    return JSON.parse(data);
   } catch (error) {
-    console.error('[readStatusStorage] Error marking club read locally:', error);
+    console.error('[readStatusStorage] Error getting local read status:', error);
+    return { dms: {}, clubs: {} };
   }
 };
 
 /**
- * Mark a DM conversation's messages as read locally
+ * Save read status data to local storage
+ */
+const saveLocalReadStatus = (data: ReadStatusData): void => {
+  try {
+    localStorage.setItem(LOCAL_READ_STATUS_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error('[readStatusStorage] Error saving local read status:', error);
+  }
+};
+
+/**
+ * Mark a DM conversation as read locally
  */
 export const markDmReadLocally = (conversationId: string): void => {
   try {
     const timestamp = Date.now();
-    const storedData = localStorage.getItem(DM_READ_STATUS_KEY);
-    const readStatus: ReadStatusMap = storedData ? JSON.parse(storedData) : {};
+    const data = getLocalReadStatus();
     
-    // Update the timestamp for this conversation
-    readStatus[conversationId] = timestamp;
+    // Update timestamp for this conversation
+    data.dms[conversationId] = timestamp;
     
-    localStorage.setItem(DM_READ_STATUS_KEY, JSON.stringify(readStatus));
-    console.log(`[readStatusStorage] DM ${conversationId} marked as read locally at ${timestamp}`);
+    // Save updated data
+    saveLocalReadStatus(data);
     
-    // Dispatch event for any listeners
-    window.dispatchEvent(new CustomEvent('local-read-status-change'));
+    console.log(`[readStatusStorage] Marked DM ${conversationId} as read locally at ${timestamp}`);
+    
+    // Dispatch event to notify other components
+    window.dispatchEvent(new CustomEvent('local-read-status-change', {
+      detail: { type: 'dm', id: conversationId, timestamp }
+    }));
+    
+    // Also dispatch an event specifically for updating the badge
+    window.dispatchEvent(new CustomEvent('badge-refresh-required', {
+      detail: { immediate: true }
+    }));
   } catch (error) {
-    console.error('[readStatusStorage] Error marking DM read locally:', error);
+    console.error('[readStatusStorage] Error marking DM as read locally:', error);
   }
 };
 
 /**
- * Check if a club has been read since a given timestamp
+ * Mark a club conversation as read locally
  */
-export const isClubReadSince = (clubId: string, messageTimestamp: number): boolean => {
+export const markClubReadLocally = (clubId: string): void => {
   try {
-    const storedData = localStorage.getItem(CLUB_READ_STATUS_KEY);
-    if (!storedData) return false;
+    const timestamp = Date.now();
+    const data = getLocalReadStatus();
     
-    const readStatus: ReadStatusMap = JSON.parse(storedData);
-    const readTimestamp = readStatus[clubId];
+    // Update timestamp for this club
+    data.clubs[clubId] = timestamp;
     
-    // If we have a read timestamp and it's newer than the message timestamp, the message is read
-    return !!readTimestamp && readTimestamp > messageTimestamp;
+    // Save updated data
+    saveLocalReadStatus(data);
+    
+    console.log(`[readStatusStorage] Marked club ${clubId} as read locally at ${timestamp}`);
+    
+    // Dispatch event to notify other components
+    window.dispatchEvent(new CustomEvent('local-read-status-change', {
+      detail: { type: 'club', id: clubId, timestamp }
+    }));
+    
+    // Also dispatch an event specifically for updating the badge
+    window.dispatchEvent(new CustomEvent('badge-refresh-required', {
+      detail: { immediate: true }
+    }));
   } catch (error) {
-    console.error('[readStatusStorage] Error checking club read status:', error);
-    return false;
+    console.error('[readStatusStorage] Error marking club as read locally:', error);
   }
 };
 
 /**
- * Check if a DM conversation has been read since a given timestamp
+ * Check if a DM conversation has been read since a specific timestamp
  */
 export const isDmReadSince = (conversationId: string, messageTimestamp: number): boolean => {
   try {
-    const storedData = localStorage.getItem(DM_READ_STATUS_KEY);
-    if (!storedData) return false;
+    const data = getLocalReadStatus();
+    const readTimestamp = data.dms[conversationId];
     
-    const readStatus: ReadStatusMap = JSON.parse(storedData);
-    const readTimestamp = readStatus[conversationId];
+    // If we have no read timestamp, it hasn't been read
+    if (!readTimestamp) return false;
     
-    // If we have a read timestamp and it's newer than the message timestamp, the message is read
-    return !!readTimestamp && readTimestamp > messageTimestamp;
+    // Check if the read timestamp is after the message timestamp
+    return readTimestamp > messageTimestamp;
   } catch (error) {
-    console.error('[readStatusStorage] Error checking DM read status:', error);
+    console.error('[readStatusStorage] Error checking DM read since:', error);
     return false;
   }
 };
 
 /**
- * Get all locally stored read status information
+ * Check if a club conversation has been read since a specific timestamp
  */
-export const getLocalReadStatus = () => {
+export const isClubReadSince = (clubId: string, messageTimestamp: number): boolean => {
   try {
-    const clubData = localStorage.getItem(CLUB_READ_STATUS_KEY);
-    const dmData = localStorage.getItem(DM_READ_STATUS_KEY);
+    const data = getLocalReadStatus();
+    const readTimestamp = data.clubs[clubId];
     
-    return {
-      clubs: clubData ? JSON.parse(clubData) as ReadStatusMap : {},
-      dms: dmData ? JSON.parse(dmData) as ReadStatusMap : {}
-    };
+    // If we have no read timestamp, it hasn't been read
+    if (!readTimestamp) return false;
+    
+    // Check if the read timestamp is after the message timestamp
+    return readTimestamp > messageTimestamp;
   } catch (error) {
-    console.error('[readStatusStorage] Error getting local read status:', error);
-    return { clubs: {}, dms: {} };
+    console.error('[readStatusStorage] Error checking club read since:', error);
+    return false;
+  }
+};
+
+/**
+ * Get the read timestamp for a specific conversation
+ * Returns 0 if not found
+ */
+export const getReadTimestamp = (type: 'dm' | 'club', id: string): number => {
+  try {
+    const data = getLocalReadStatus();
+    if (type === 'dm') {
+      return data.dms[id] || 0;
+    } else {
+      return data.clubs[id] || 0;
+    }
+  } catch (error) {
+    console.error('[readStatusStorage] Error getting read timestamp:', error);
+    return 0;
   }
 };

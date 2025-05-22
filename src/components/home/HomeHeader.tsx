@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useEffect, useState, useCallback } from 'react';
 import { MessageCircle, Watch, User, HelpCircle, LogOut } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '../shared/UserAvatar';
@@ -44,7 +45,8 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   } = useChatDrawerGlobal();
   
   const {
-    totalUnreadCount
+    totalUnreadCount,
+    fetchUnreadCounts
   } = useUnreadMessages();
   
   const navigate = useNavigate();
@@ -55,8 +57,9 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   
   console.log("[HomeHeader] Rendering with notifications:", notifications.length, notifications);
 
-  // Update badge count when totalUnreadCount changes
+  // Update badge count immediately when totalUnreadCount changes
   useEffect(() => {
+    console.log("[HomeHeader] Total unread count updated:", totalUnreadCount);
     setBadgeCount(totalUnreadCount);
   }, [totalUnreadCount]);
   
@@ -65,32 +68,61 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     setNotificationsCount(notifications.length);
   }, [notifications]);
 
+  // Handle badge update efficiently with a dedicated callback
+  const handleBadgeUpdate = useCallback(() => {
+    console.log("[HomeHeader] Badge update triggered");
+    // Force a full refresh of unread counts from server
+    fetchUnreadCounts().then(() => {
+      // Then ensure the badge displays the updated count
+      setTimeout(() => {
+        setBadgeCount(totalUnreadCount);
+        console.log("[HomeHeader] Badge count set to:", totalUnreadCount);
+      }, 50);
+    });
+  }, [fetchUnreadCounts, totalUnreadCount]);
+
   // Listen for unreadMessagesUpdated event to update badge count
   useEffect(() => {
     const handleUnreadMessagesUpdated = () => {
+      console.log("[HomeHeader] Unread messages updated event received");
       setTimeout(() => {
-        // This will trigger a re-render that will pick up the latest totalUnreadCount
-        setBadgeCount(prev => {
-          console.log("[HomeHeader] Updating badge count to:", totalUnreadCount);
-          return totalUnreadCount;
-        });
-      }, 100);
+        setBadgeCount(totalUnreadCount);
+        console.log("[HomeHeader] Badge count updated to:", totalUnreadCount);
+      }, 50);
     };
     
     const handleNotificationsUpdated = () => {
       setTimeout(() => {
         setNotificationsCount(notifications.length);
-      }, 100);
+      }, 50);
     };
     
+    // Handle events for conversation opened/read
+    const handleConversationOpened = () => {
+      console.log("[HomeHeader] Conversation opened event received");
+      setTimeout(() => {
+        handleBadgeUpdate();
+      }, 50);
+    };
+    
+    // Add listeners for all relevant events that should trigger badge updates
     window.addEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
     window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
+    window.addEventListener('conversation-opened', handleConversationOpened);
+    window.addEventListener('badge-refresh-required', handleBadgeUpdate);
+    window.addEventListener('local-read-status-change', handleBadgeUpdate);
+    
+    // Initial fetch to ensure we have the latest count
+    fetchUnreadCounts();
     
     return () => {
       window.removeEventListener('unreadMessagesUpdated', handleUnreadMessagesUpdated);
       window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
+      window.removeEventListener('conversation-opened', handleConversationOpened);
+      window.removeEventListener('badge-refresh-required', handleBadgeUpdate);
+      window.removeEventListener('local-read-status-change', handleBadgeUpdate);
     };
-  }, [notifications.length, totalUnreadCount]);
+  }, [notifications.length, totalUnreadCount, handleBadgeUpdate, fetchUnreadCounts]);
   
   const handleViewOwnProfile = () => {
     if (currentUser) {
@@ -101,6 +133,14 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   
   const handleConnectDevice = () => {
     navigate('/connect-device');
+  };
+  
+  const handleChatOpen = () => {
+    // When opening the chat drawer, fetch the latest unread counts
+    fetchUnreadCounts().then(() => {
+      // Then open the drawer
+      open();
+    });
   };
   
   const handleLogout = async () => {
@@ -134,7 +174,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
         />
         <Button 
           variant="link" 
-          onClick={open} 
+          onClick={handleChatOpen} 
           className="text-primary hover:bg-gray-100 rounded-full p-2" 
           icon={<MessageCircle className="h-5 w-5" />} 
           badge={badgeCount > 0 ? badgeCount : 0} 
