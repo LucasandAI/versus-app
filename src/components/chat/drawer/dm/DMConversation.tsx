@@ -12,10 +12,12 @@ import { useMessageFormatting } from '@/hooks/chat/messages/useMessageFormatting
 import { useConversationManagement } from '@/hooks/chat/dm/useConversationManagement';
 import { useUnreadMessages } from '@/context/UnreadMessagesContext';
 import { useMessageScroll } from '@/hooks/chat/useMessageScroll';
+import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
 import DMMessageInput from './DMMessageInput';
 import DMHeader from './DMHeader';
 import { ArrowLeft } from 'lucide-react';
 import { useUserData } from '@/hooks/chat/dm/useUserData';
+import { markConversationActive, clearActiveConversation } from '@/utils/chat/activeConversationTracker';
 
 interface DMConversationProps {
   user: {
@@ -35,7 +37,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
 }) => {
   const { currentUser } = useApp();
   const { navigateToUserProfile } = useNavigation();
-  const { markConversationAsRead } = useUnreadMessages();
+  const { markDirectMessagesAsRead } = useMessageReadStatus();
   const [isSending, setIsSending] = React.useState(false);
   const { formatTime } = useMessageFormatting();
   
@@ -106,12 +108,24 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   // Custom hooks for conversation management
   const { createConversation } = useConversationManagement(currentUser?.id, user.id);
   
-  // Mark conversation as read when opened
+  // Mark conversation as active when opened and then as read after a delay
   useEffect(() => {
     if (conversationId && conversationId !== 'new') {
-      markConversationAsRead(conversationId);
+      console.log(`[DMConversation] Marking conversation ${conversationId} as active`);
+      markConversationActive('dm', conversationId);
+      
+      // Mark as read after a short delay to ensure user has seen messages
+      const readTimer = setTimeout(() => {
+        console.log(`[DMConversation] Marking conversation ${conversationId} as read after delay`);
+        markDirectMessagesAsRead(conversationId);
+      }, 500); // Short delay
+      
+      return () => {
+        clearTimeout(readTimer);
+        clearActiveConversation();
+      };
     }
-  }, [conversationId, markConversationAsRead]);
+  }, [conversationId, markDirectMessagesAsRead]);
 
   // Stable send message handler
   const handleSendMessage = useCallback(async (text: string) => {

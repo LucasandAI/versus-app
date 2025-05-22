@@ -45,7 +45,7 @@ export interface JoinRequest {
   userName: string;
   userAvatar: string;
   createdAt: string;
-  status: 'PENDING' | 'SUCCESS' | 'ERROR'; // Changed back to uppercase to match database
+  status: 'PENDING' | 'SUCCESS' | 'ERROR' | 'REJECTED'; // Added 'REJECTED' to fix type errors
 }
 
 export interface ClubRequest {

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { Club } from '@/types';
@@ -11,6 +12,7 @@ import UnifiedChatContent from './UnifiedChatContent';
 import { useClubMessages } from '@/hooks/chat/useClubMessages';
 import { useDirectMessages } from '@/hooks/chat/useDirectMessages';
 import { supabase } from '@/integrations/supabase/client';
+import { markConversationActive, clearActiveConversation } from '@/utils/chat/activeConversationTracker';
 
 interface MainChatDrawerProps {
   open: boolean;
@@ -45,6 +47,14 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
   const { messages: directMessages, setMessages: setDirectMessages } = useDirectMessages(
     selectedChat?.type === 'dm' ? selectedChat.id : null
   );
+  
+  // Clear active conversation when drawer closes
+  useEffect(() => {
+    if (!open) {
+      clearActiveConversation();
+      setSelectedChat(null);
+    }
+  }, [open]);
 
   // Effect to fetch conversations when drawer opens
   useEffect(() => {
@@ -67,6 +77,9 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             name: userName,
             avatar: userAvatar
           });
+          
+          // Mark this conversation as active
+          markConversationActive('dm', conversationId);
         } else {
           // Otherwise, get or create a conversation
           const conversation = await getOrCreateConversation(userId, userName, userAvatar);
@@ -77,6 +90,9 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
               name: conversation.userName,
               avatar: conversation.userAvatar
             });
+            
+            // Mark this conversation as active
+            markConversationActive('dm', conversation.conversationId);
           }
         }
       } catch (error) {
@@ -92,6 +108,9 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
 
   const handleSelectChat = React.useCallback((type: 'club' | 'dm', id: string, name: string, avatar?: string) => {
     setSelectedChat({ type, id, name, avatar });
+    
+    // Mark this conversation as active
+    markConversationActive(type, id);
   }, []);
 
   const handleSendMessage = React.useCallback(async (message: string, chatId: string, type: 'club' | 'dm') => {
@@ -145,6 +164,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
 
   const handleBack = () => {
     setSelectedChat(null);
+    clearActiveConversation();
     setListKey((k) => k + 1);
   };
 

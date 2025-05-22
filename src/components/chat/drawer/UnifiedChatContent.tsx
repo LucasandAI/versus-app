@@ -11,8 +11,10 @@ import ChatInput from '../ChatInput';
 import { useNavigation } from '@/hooks/useNavigation';
 import { useChatActions } from '@/hooks/chat/useChatActions';
 import { useUnreadMessages } from '@/context/unread-messages';
+import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
 import { ArrowLeft } from 'lucide-react';
 import UserAvatar from '@/components/shared/UserAvatar';
+import { markConversationActive, clearActiveConversation } from '@/utils/chat/activeConversationTracker';
 
 interface UnifiedChatContentProps {
   selectedChat: {
@@ -40,19 +42,30 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
 }) => {
   const { currentUser } = useApp();
   const { navigateToClubDetail, navigateToUserProfile } = useNavigation();
-  const { markClubMessagesAsRead, markDirectConversationAsRead } = useUnreadMessages();
+  const { markDirectMessagesAsRead, markClubMessagesAsRead } = useMessageReadStatus();
   const [isSending, setIsSending] = useState(false);
 
-  // Mark messages as read when chat is selected
+  // Mark conversation as active when chat is selected
   useEffect(() => {
     if (selectedChat) {
-      if (selectedChat.type === 'club') {
-        markClubMessagesAsRead(selectedChat.id);
-      } else if (selectedChat.type === 'dm') {
-        markDirectConversationAsRead(selectedChat.id);
-      }
+      console.log(`[UnifiedChatContent] Marking ${selectedChat.type} ${selectedChat.id} as active`);
+      markConversationActive(selectedChat.type, selectedChat.id);
+      
+      // Mark messages as read with a slight delay to ensure user has seen them
+      const readTimer = setTimeout(() => {
+        if (selectedChat.type === 'club') {
+          markClubMessagesAsRead(selectedChat.id);
+        } else if (selectedChat.type === 'dm') {
+          markDirectMessagesAsRead(selectedChat.id);
+        }
+      }, 500); // Short delay before marking as read
+      
+      return () => {
+        clearTimeout(readTimer);
+        clearActiveConversation();
+      };
     }
-  }, [selectedChat, markClubMessagesAsRead, markDirectConversationAsRead]);
+  }, [selectedChat, markClubMessagesAsRead, markDirectMessagesAsRead]);
 
   const handleSendMessage = async (message: string) => {
     if (!selectedChat) return;

@@ -3,6 +3,7 @@ import React, { useEffect, memo } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnreadMessages } from '@/context/unread-messages';
 import { Club } from '@/types';
+import { Badge } from '@/components/ui/badge';
 
 interface DrawerHeaderProps {
   activeTab: "clubs" | "dm";
@@ -28,14 +29,16 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
   
   // Use useMemo for stable rendering of unread indicators
   const clubsUnreadBadge = React.useMemo(() => {
-    return unreadClubs && unreadClubs.size > 0 ? (
-      <span className="h-2 w-2 bg-red-500 rounded-full inline-block ml-1"></span>
+    const count = unreadClubs.size;
+    return count > 0 ? (
+      <Badge variant="dot" className="ml-1" />
     ) : null;
   }, [unreadClubs]);
 
   const dmUnreadBadge = React.useMemo(() => {
-    return unreadConversations && unreadConversations.size > 0 ? (
-      <span className="h-2 w-2 bg-red-500 rounded-full inline-block ml-1"></span>
+    const count = unreadConversations.size;
+    return count > 0 ? (
+      <Badge variant="dot" className="ml-1" />
     ) : null;
   }, [unreadConversations]);
   
