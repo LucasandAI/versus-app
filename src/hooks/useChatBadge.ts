@@ -1,12 +1,13 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   getBadgeCount, 
   setBadgeCount, 
   incrementBadgeCount, 
   decrementBadgeCount,
   resetBadgeCount,
-  initializeBadgeCountFromDatabase
+  initializeBadgeCountFromDatabase,
+  requestBadgeRefresh
 } from '@/utils/chat/simpleBadgeManager';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -17,6 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 export const useChatBadge = (userId?: string) => {
   // Local state for immediate UI updates
   const [badgeCount, setBadgeCountState] = useState<number>(getBadgeCount());
+  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Fetch initial unread counts from database when the component mounts
   useEffect(() => {
@@ -49,6 +51,60 @@ export const useChatBadge = (userId?: string) => {
     };
     
     fetchUnreadCountsFromDatabase();
+  }, [userId]);
+  
+  // Handle badge refresh requests
+  useEffect(() => {
+    const handleBadgeRefreshRequest = (event: CustomEvent) => {
+      const immediate = event.detail?.immediate === true;
+      
+      // Clear any existing timeout
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+        refreshTimeoutRef.current = null;
+      }
+      
+      // Schedule refresh
+      const refreshBadge = async () => {
+        if (!userId) return;
+        
+        try {
+          // Re-fetch from database
+          const [dmCountResult, clubCountResult] = await Promise.all([
+            supabase.rpc('get_unread_dm_count', { user_id: userId }),
+            supabase.rpc('get_unread_club_messages_count', { user_id: userId })
+          ]);
+          
+          if (dmCountResult.error) throw dmCountResult.error;
+          if (clubCountResult.error) throw clubCountResult.error;
+          
+          const totalCount = (dmCountResult.data || 0) + (clubCountResult.data || 0);
+          console.log(`[useChatBadge] Refreshed badge count from DB: ${totalCount}`);
+          
+          // Update badge count
+          setBadgeCount(totalCount);
+          setBadgeCountState(totalCount);
+        } catch (error) {
+          console.error('[useChatBadge] Error refreshing badge count:', error);
+        }
+      };
+      
+      // If immediate, refresh now, otherwise use short delay
+      if (immediate) {
+        refreshBadge();
+      } else {
+        refreshTimeoutRef.current = setTimeout(refreshBadge, 300);
+      }
+    };
+    
+    window.addEventListener('badge-refresh-required', handleBadgeRefreshRequest as EventListener);
+    
+    return () => {
+      window.removeEventListener('badge-refresh-required', handleBadgeRefreshRequest as EventListener);
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    };
   }, [userId]);
   
   // Synchronize with localStorage on mount and when badge count changes
@@ -120,6 +176,7 @@ export const useChatBadge = (userId?: string) => {
     increment,
     decrement,
     reset,
-    setCount
+    setCount,
+    refreshBadge: () => requestBadgeRefresh(true)
   };
 };

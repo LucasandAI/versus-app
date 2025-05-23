@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { Club } from '@/types';
@@ -11,7 +10,6 @@ import UnifiedChatList from './UnifiedChatList';
 import UnifiedChatContent from './UnifiedChatContent';
 import { useClubMessages } from '@/hooks/chat/useClubMessages';
 import { useDirectMessages } from '@/hooks/chat/useDirectMessages';
-import { supabase } from '@/integrations/supabase/client';
 import { markConversationActive, clearActiveConversation } from '@/utils/chat/activeConversationTracker';
 import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
 
@@ -56,7 +54,8 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
       console.log('[MainChatDrawer] Drawer closed, clearing active conversation');
       clearActiveConversation();
       setSelectedChat(null);
-      // Force a badge refresh when drawer closes
+      
+      // Request a badge refresh when drawer closes
       window.dispatchEvent(new CustomEvent('badge-refresh-required', { 
         detail: { immediate: true } 
       }));
@@ -91,11 +90,13 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             avatar: userAvatar
           });
           
-          // Mark this conversation as active and read immediately
+          // Mark this conversation as active - will enable badge count to be updated
           markConversationActive('dm', conversationId);
+          
+          // Mark as read immediately (which will now check if the conversation is active)
           markDirectMessagesAsRead(conversationId, true);
           
-          // Notify about the conversation being opened
+          // Dispatch conversation-opened event
           window.dispatchEvent(new CustomEvent('conversation-opened', {
             detail: { type: 'dm', id: conversationId }
           }));
@@ -114,7 +115,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             markConversationActive('dm', conversation.conversationId);
             markDirectMessagesAsRead(conversation.conversationId, true);
             
-            // Notify about the conversation being opened
+            // Dispatch conversation-opened event
             window.dispatchEvent(new CustomEvent('conversation-opened', {
               detail: { type: 'dm', id: conversation.conversationId }
             }));
@@ -136,20 +137,22 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     
     setSelectedChat({ type, id, name, avatar });
     
-    // Mark this conversation as active immediately
+    // Mark this conversation as active - will enable badge count to be updated
     markConversationActive(type, id);
     
-    // Mark as read immediately (flush any pending updates)
-    if (type === 'club') {
-      markClubMessagesAsRead(id, true);
-    } else {
-      markDirectMessagesAsRead(id, true);
-    }
-    
-    // Notify about the conversation being opened
-    window.dispatchEvent(new CustomEvent('conversation-opened', {
-      detail: { type, id }
-    }));
+    // Mark as read with a small delay to ensure active status is set
+    setTimeout(() => {
+      if (type === 'club') {
+        markClubMessagesAsRead(id, true);
+      } else {
+        markDirectMessagesAsRead(id, true);
+      }
+      
+      // Dispatch conversation-opened event
+      window.dispatchEvent(new CustomEvent('conversation-opened', {
+        detail: { type, id }
+      }));
+    }, 100);
     
     // For club selections, also dispatch the clubSelected event for backwards compatibility
     if (type === 'club') {
@@ -214,7 +217,6 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     
     setSelectedChat(null);
     clearActiveConversation();
-    setListKey((k) => k + 1);
     
     // Force a badge refresh when navigating back
     window.dispatchEvent(new CustomEvent('badge-refresh-required', { 
@@ -236,11 +238,27 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
         {selectedChat ? (
           <UnifiedChatContent
             selectedChat={selectedChat}
-            club={selectedClub}
-            messages={getMessages()}
-            onSendMessage={handleSendMessage}
-            onDeleteMessage={handleDeleteMessage}
-            onSelectUser={handleSelectUser}
+            club={selectedChat?.type === 'club' ? clubs.find(c => c.id === selectedChat.id) : undefined}
+            messages={selectedChat?.type === 'club' ? (clubMessages[selectedChat.id] || []) : directMessages}
+            onSendMessage={async (message) => {
+              if (selectedChat.type === 'club' && setClubMessages) {
+                await sendMessageToClub(selectedChat.id, message, setClubMessages);
+              } else if (selectedChat.type === 'dm' && setDirectMessages) {
+                await sendDirectMessage(selectedChat.id, message, setDirectMessages);
+              }
+            }}
+            onDeleteMessage={async (messageId) => {
+              if (selectedChat.type === 'club' && setClubMessages) {
+                await deleteMessage(messageId, setClubMessages);
+              } else if (selectedChat.type === 'dm' && setDirectMessages) {
+                await deleteMessage(messageId, undefined, setDirectMessages);
+              }
+            }}
+            onSelectUser={(userId, userName, userAvatar) => {
+              window.dispatchEvent(new CustomEvent('openDirectMessage', {
+                detail: { userId, userName, userAvatar }
+              }));
+            }}
             onBack={handleBack}
           />
         ) : (

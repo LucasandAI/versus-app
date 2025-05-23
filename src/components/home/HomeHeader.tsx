@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { MessageCircle, Watch, User, HelpCircle, LogOut } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -43,8 +44,8 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     open
   } = useChatDrawerGlobal();
   
-  // Use our new chat badge hook instead of UnreadMessagesContext
-  const { badgeCount, decrement } = useChatBadge(currentUser?.id);
+  // Use our chat badge hook
+  const { badgeCount } = useChatBadge(currentUser?.id);
   
   const navigate = useNavigate();
   
@@ -58,14 +59,6 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     setNotificationsCount(notifications.length);
   }, [notifications]);
 
-  // Handle conversation opened to decrement badge immediately
-  const handleConversationOpened = useCallback(() => {
-    console.log("[HomeHeader] Conversation opened event received");
-    
-    // Decrement the badge count by 1 when a conversation is opened
-    decrement(1);
-  }, [decrement]);
-
   // Listen for relevant events
   useEffect(() => {
     const handleNotificationsUpdated = () => {
@@ -74,15 +67,12 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
       }, 50);
     };
     
-    // Add event listeners for badge-related events
-    window.addEventListener('conversation-opened', handleConversationOpened);
     window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
     
     return () => {
-      window.removeEventListener('conversation-opened', handleConversationOpened);
       window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
     };
-  }, [notifications.length, handleConversationOpened]);
+  }, [notifications.length]);
   
   const handleViewOwnProfile = () => {
     if (currentUser) {
@@ -96,13 +86,8 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   };
   
   const handleChatOpen = () => {
-    // When opening the chat drawer, decrement the badge count
-    // This simulates marking messages as read when the user opens the chat drawer
-    if (badgeCount > 0) {
-      decrement(badgeCount);
-    }
-    
-    // Then open the drawer
+    // We don't decrement the badge count here anymore
+    // Badge will be updated only when a specific conversation is opened in the drawer
     open();
   };
   

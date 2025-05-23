@@ -1,3 +1,4 @@
+
 /**
  * Utility for managing read status of conversations in local storage
  * This provides a local-first approach to marking messages as read
@@ -5,7 +6,7 @@
  */
 
 // Import the badge manager functions
-import { decrementBadgeCount } from './simpleBadgeManager';
+import { decrementBadgeCount, requestBadgeRefresh } from './simpleBadgeManager';
 
 // Constants
 const LOCAL_READ_STATUS_KEY = 'versus_read_status';
@@ -52,6 +53,7 @@ const isValidId = (id: any): boolean => {
 
 /**
  * Mark a DM conversation as read locally
+ * This should only be called when the user actually opens the conversation
  */
 export const markDmReadLocally = (conversationId: string): boolean => {
   try {
@@ -78,7 +80,19 @@ export const markDmReadLocally = (conversationId: string): boolean => {
     }));
     
     // Decrement badge count and dispatch event to update the UI
-    decrementBadgeCount(1);
+    // But ONLY if this is a real conversation opening (not just a preview)
+    const isActiveConversation = isConversationActive('dm', conversationId);
+    console.log(`[readStatusStorage] Is DM active conversation: ${isActiveConversation}`);
+    
+    if (isActiveConversation) {
+      decrementBadgeCount(1);
+      console.log(`[readStatusStorage] Decremented badge count for DM ${conversationId}`);
+      
+      // Notify about the conversation being opened
+      window.dispatchEvent(new CustomEvent('conversation-opened', {
+        detail: { type: 'dm', id: conversationId }
+      }));
+    }
     
     return true;
   } catch (error) {
@@ -89,6 +103,7 @@ export const markDmReadLocally = (conversationId: string): boolean => {
 
 /**
  * Mark a club conversation as read locally
+ * This should only be called when the user actually opens the conversation
  */
 export const markClubReadLocally = (clubId: string): boolean => {
   try {
@@ -115,7 +130,19 @@ export const markClubReadLocally = (clubId: string): boolean => {
     }));
     
     // Decrement badge count and dispatch event to update the UI
-    decrementBadgeCount(1);
+    // But ONLY if this is a real conversation opening (not just a preview)
+    const isActiveConversation = isConversationActive('club', clubId);
+    console.log(`[readStatusStorage] Is club active conversation: ${isActiveConversation}`);
+    
+    if (isActiveConversation) {
+      decrementBadgeCount(1);
+      console.log(`[readStatusStorage] Decremented badge count for club ${clubId}`);
+      
+      // Notify about the conversation being opened
+      window.dispatchEvent(new CustomEvent('conversation-opened', {
+        detail: { type: 'club', id: clubId }
+      }));
+    }
     
     return true;
   } catch (error) {
@@ -208,10 +235,46 @@ export const clearReadStatus = (type: 'dm' | 'club', id: string): void => {
     console.log(`[readStatusStorage] Cleared ${type} read status for ${id}`);
     
     // Dispatch refresh event
-    window.dispatchEvent(new CustomEvent('badge-refresh-required', {
-      detail: { immediate: true }
-    }));
+    requestBadgeRefresh(true);
   } catch (error) {
     console.error('[readStatusStorage] Error clearing read status:', error);
+  }
+};
+
+/**
+ * Track active conversations to prevent badge decrementing on hover/preview
+ */
+let activeConversation: { type: 'dm' | 'club'; id: string; timestamp: number } | null = null;
+
+/**
+ * Mark a conversation as active (user has actually opened it)
+ */
+export const isConversationActive = (type: 'dm' | 'club', id: string): boolean => {
+  if (!activeConversation) return false;
+  return activeConversation.type === type && activeConversation.id === id;
+};
+
+/**
+ * Mark a conversation as active (user has actually opened it)
+ */
+export const markConversationActive = (type: 'dm' | 'club', id: string): void => {
+  activeConversation = { type, id, timestamp: Date.now() };
+  console.log(`[readStatusStorage] Marked conversation as active: ${type} ${id}`);
+};
+
+/**
+ * Clear the active conversation
+ */
+export const clearActiveConversation = (): void => {
+  activeConversation = null;
+  console.log('[readStatusStorage] Cleared active conversation');
+};
+
+/**
+ * Refresh the active timestamp to keep the conversation marked as active
+ */
+export const refreshActiveTimestamp = (type: 'dm' | 'club', id: string): void => {
+  if (activeConversation && activeConversation.type === type && activeConversation.id === id) {
+    activeConversation.timestamp = Date.now();
   }
 };

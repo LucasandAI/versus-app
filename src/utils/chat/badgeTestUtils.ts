@@ -8,7 +8,8 @@ import {
   getBadgeCount, 
   setBadgeCount, 
   incrementBadgeCount, 
-  simulateNewMessage 
+  simulateNewMessage,
+  requestBadgeRefresh
 } from './simpleBadgeManager';
 
 // Get the current badge count
@@ -33,6 +34,21 @@ export const debugAddMessage = (count: number = 1): void => {
 export const debugSimulateMessage = (): void => {
   console.log('[badgeTestUtils] Simulating new message');
   simulateNewMessage();
+};
+
+// Simulate a new message for a specific conversation
+export const debugSimulateConversationMessage = (
+  conversationId: string,
+  conversationType: 'dm' | 'club'
+): void => {
+  console.log(`[badgeTestUtils] Simulating message for ${conversationType} ${conversationId}`);
+  simulateNewMessage(conversationId, conversationType);
+};
+
+// Request badge refresh
+export const debugRefreshBadgeCount = (): void => {
+  console.log('[badgeTestUtils] Requesting badge refresh');
+  requestBadgeRefresh(true);
 };
 
 // Test all badge count operations

@@ -53,6 +53,7 @@ export const incrementBadgeCount = (amount: number = 1): number => {
 
 /**
  * Decrement the badge count by a specific amount (default: 1)
+ * Only if it's greater than zero
  */
 export const decrementBadgeCount = (amount: number = 1): number => {
   const currentCount = getBadgeCount();
@@ -81,8 +82,21 @@ export const initializeBadgeCountFromDatabase = (count: number): void => {
  * Helper function to simulate a new message notification
  * This is useful for testing the badge functionality
  */
-export const simulateNewMessage = (): void => {
+export const simulateNewMessage = (conversationId?: string, conversationType?: 'dm' | 'club'): void => {
   incrementBadgeCount();
+  
   // Dispatch event to notify components
-  window.dispatchEvent(new CustomEvent('unread-message-received'));
+  window.dispatchEvent(new CustomEvent('unread-message-received', {
+    detail: conversationId && conversationType ? { conversationId, conversationType } : undefined
+  }));
+};
+
+/**
+ * Request a badge refresh from all components
+ * This will trigger a full badge count recalculation if needed
+ */
+export const requestBadgeRefresh = (immediate: boolean = false): void => {
+  window.dispatchEvent(new CustomEvent('badge-refresh-required', {
+    detail: { immediate }
+  }));
 };
