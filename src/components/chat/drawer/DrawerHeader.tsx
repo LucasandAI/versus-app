@@ -21,10 +21,46 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
   const { unreadClubs, unreadConversations, fetchUnreadCounts } = useUnreadMessages();
   const { markClubMessagesAsRead } = useMessageReadStatus();
   const [forceRender, setForceRender] = useState(0);
+  const [clubsWithUnread, setClubsWithUnread] = useState<Set<string>>(new Set());
+  const [dmsWithUnread, setDmsWithUnread] = useState<Set<string>>(new Set());
+  
+  // Sync with context on mount and when unread collections change
+  useEffect(() => {
+    setClubsWithUnread(new Set(unreadClubs));
+    setDmsWithUnread(new Set(unreadConversations));
+  }, [unreadClubs, unreadConversations]);
   
   // Handle force updates more efficiently with a dedicated function
   const handleUnreadUpdate = useCallback(() => {
     console.log('[DrawerHeader] Unread status changed, forcing re-render');
+    setForceRender(prev => prev + 1);
+    
+    // Also update our local copies of the unread sets
+    setClubsWithUnread(new Set(unreadClubs));
+    setDmsWithUnread(new Set(unreadConversations));
+  }, [unreadClubs, unreadConversations]);
+  
+  // Handle specific conversation opened event
+  const handleConversationOpened = useCallback((event: CustomEvent) => {
+    console.log('[DrawerHeader] Conversation opened event received', event.detail);
+    const { type, id } = event.detail;
+    
+    // Update our local copies immediately for instant UI feedback
+    if (type === 'club') {
+      setClubsWithUnread(prev => {
+        const updated = new Set(prev);
+        updated.delete(id);
+        return updated;
+      });
+    } else if (type === 'dm') {
+      setDmsWithUnread(prev => {
+        const updated = new Set(prev);
+        updated.delete(id);
+        return updated;
+      });
+    }
+    
+    // Force re-render to update badges
     setForceRender(prev => prev + 1);
   }, []);
   
@@ -39,6 +75,7 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
     window.addEventListener('badge-refresh-required', handleUnreadUpdate);
     window.addEventListener('club-read-status-changed', handleUnreadUpdate);
     window.addEventListener('dm-read-status-changed', handleUnreadUpdate);
+    window.addEventListener('conversation-opened', handleConversationOpened);
     
     // Refresh unread counts when component mounts
     fetchUnreadCounts();
@@ -52,8 +89,9 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
       window.removeEventListener('badge-refresh-required', handleUnreadUpdate);
       window.removeEventListener('club-read-status-changed', handleUnreadUpdate);
       window.removeEventListener('dm-read-status-changed', handleUnreadUpdate);
+      window.removeEventListener('conversation-opened', handleConversationOpened);
     };
-  }, [fetchUnreadCounts, handleUnreadUpdate]);
+  }, [fetchUnreadCounts, handleUnreadUpdate, handleConversationOpened]);
 
   // Mark club messages as read when a club is selected and the clubs tab is active
   useEffect(() => {
@@ -61,23 +99,30 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
       console.log(`[DrawerHeader] Marking club ${selectedClub.id} messages as read (selectedClub present and clubs tab active)`);
       // Use our enhanced function that also updates local storage
       markClubMessagesAsRead(selectedClub.id, true);
+      
+      // Also update our local copy immediately for instant UI feedback
+      setClubsWithUnread(prev => {
+        const updated = new Set(prev);
+        updated.delete(selectedClub.id);
+        return updated;
+      });
     }
   }, [activeTab, selectedClub, markClubMessagesAsRead]);
   
   // Use useMemo for stable rendering of unread indicators
   const clubsUnreadBadge = React.useMemo(() => {
-    const count = unreadClubs.size;
+    const count = clubsWithUnread.size;
     return count > 0 ? (
       <Badge variant="dot" className="ml-1" />
     ) : null;
-  }, [unreadClubs, forceRender]); // Include forceRender to ensure updates
+  }, [clubsWithUnread, forceRender]); // Include forceRender to ensure updates
 
   const dmUnreadBadge = React.useMemo(() => {
-    const count = unreadConversations.size;
+    const count = dmsWithUnread.size;
     return count > 0 ? (
       <Badge variant="dot" className="ml-1" />
     ) : null;
-  }, [unreadConversations, forceRender]); // Include forceRender to ensure updates
+  }, [dmsWithUnread, forceRender]); // Include forceRender to ensure updates
   
   return (
     <div className="px-4 py-2 border-b">

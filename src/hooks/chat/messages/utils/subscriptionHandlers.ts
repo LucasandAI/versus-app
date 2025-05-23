@@ -61,6 +61,13 @@ export const handleNewMessagePayload = async (
   const isCurrentUserMessage = senderId === currentUser?.id;
   const messageTime = new Date(messagePayload.new.created_at || messagePayload.new.timestamp).getTime();
   
+  // Validate all required fields
+  if (!clubId || !messageId || !senderId) {
+    console.error('[subscriptionHandlers] Missing required fields in message payload:', 
+      { clubId, messageId, senderId });
+    return;
+  }
+  
   console.log('[subscriptionHandlers] Processing new message:', {
     messageId,
     clubId,
@@ -80,7 +87,7 @@ export const handleNewMessagePayload = async (
           .from('users')
           .select('id, name, avatar')
           .eq('id', senderId)
-          .single();
+          .maybeSingle(); // Use maybeSingle instead of single to avoid errors
         
         if (userError) {
           console.error('[subscriptionHandlers] Error fetching sender details:', userError);
@@ -103,7 +110,7 @@ export const handleNewMessagePayload = async (
       isUserMessage: isCurrentUserMessage
     };
 
-    // Update club messages
+    // Update club messages - ensure message isn't duplicated
     setClubMessages((prevMessages) => {
       // Check if we already have this message
       const existingMessages = prevMessages[clubId] || [];
@@ -130,6 +137,9 @@ export const handleNewMessagePayload = async (
     const readTimestamp = getReadTimestamp('club', clubId);
     const hasBeenRead = readTimestamp > messageTime;
     
+    // Determine if this could be the first message in a conversation
+    const isFirstMessage = !prevMessages || !prevMessages[clubId] || prevMessages[clubId].length === 0;
+    
     // Always dispatch an event to notify about the new message
     // This is critical for the first message case
     window.dispatchEvent(new CustomEvent('club-message-received', { 
@@ -137,7 +147,8 @@ export const handleNewMessagePayload = async (
         clubId, 
         message: normalizedMessage,
         isUserMessage: isCurrentUserMessage,
-        isFirstMessage: true // Flag to indicate this might be the first message
+        isFirstMessage, // Flag to indicate this might be the first message
+        messageTime
       } 
     }));
     
@@ -154,15 +165,26 @@ export const handleNewMessagePayload = async (
         } 
       }));
       
-      // Also force a badge refresh
-      window.dispatchEvent(new CustomEvent('badge-refresh-required', {
-        detail: { forceTotalRecalculation: true }
-      }));
-      
-      // Force an unread message update to ensure the first message is caught
-      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', {
-        detail: { forceTotalRecalculation: true }
-      }));
+      // Special handling for potentially first message - ensure badge is updated
+      if (isFirstMessage) {
+        // Force a badge refresh with immediate flag
+        window.dispatchEvent(new CustomEvent('badge-refresh-required', {
+          detail: { 
+            immediate: true, 
+            forceTotalRecalculation: true 
+          }
+        }));
+        
+        // Force an unread message update to ensure the first message is caught
+        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated', {
+          detail: { forceTotalRecalculation: true }
+        }));
+      } else {
+        // Regular badge refresh for non-first messages
+        window.dispatchEvent(new CustomEvent('badge-refresh-required', {
+          detail: { forceTotalRecalculation: false }
+        }));
+      }
     }
   } catch (error) {
     console.error('[subscriptionHandlers] Error processing message:', error);
@@ -201,4 +223,12 @@ export const handleMessageDeletion = (
   } catch (error) {
     console.error('[subscriptionHandlers] Error handling message deletion:', error);
   }
+};
+
+// Helper to manage prevMessages outside the handler
+let prevMessages: Record<string, any[]> = {};
+
+// Update the reference to prevMessages
+export const setPrevMessages = (messages: Record<string, any[]>) => {
+  prevMessages = messages;
 };

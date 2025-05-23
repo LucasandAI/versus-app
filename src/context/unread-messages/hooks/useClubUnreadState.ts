@@ -7,9 +7,15 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
   const [unreadClubs, setUnreadClubs] = useState<Set<string>>(new Set());
   const [clubUnreadCount, setClubUnreadCount] = useState(0);
   const [unreadMessagesPerClub, setUnreadMessagesPerClub] = useState<Record<string, number>>({});
+  const [pendingUpdates, setPendingUpdates] = useState<Record<string, boolean>>({});
   
   // Mark club as unread (for new incoming messages)
   const markClubAsUnread = useCallback((clubId: string) => {
+    if (!clubId || typeof clubId !== 'string' || !clubId.trim()) {
+      console.error(`[useClubUnreadState] Invalid clubId: ${clubId}, cannot mark as unread`);
+      return;
+    }
+    
     console.log(`[useClubUnreadState] Marking club ${clubId} as unread`);
     
     setUnreadClubs(prev => {
@@ -49,9 +55,22 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
 
   // Mark club messages as read
   const markClubMessagesAsRead = useCallback(async (clubId: string) => {
-    if (!currentUserId || !clubId) return;
+    // Validate inputs
+    if (!currentUserId || !clubId || typeof clubId !== 'string' || !clubId.trim()) {
+      console.error(`[useClubUnreadState] Invalid parameters - userId: ${currentUserId}, clubId: ${clubId}`);
+      return;
+    }
+    
+    // Check if there's already a pending update for this club
+    if (pendingUpdates[clubId]) {
+      console.log(`[useClubUnreadState] Update for club ${clubId} already in progress, skipping`);
+      return;
+    }
     
     console.log(`[useClubUnreadState] Marking club ${clubId} messages as read`);
+    
+    // Set this update as pending
+    setPendingUpdates(prev => ({ ...prev, [clubId]: true }));
     
     // Get the number of unread messages for this club
     const messageCount = unreadMessagesPerClub[clubId] || 0;
@@ -83,55 +102,82 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
       return updated;
     });
     
-    try {
-      // Update the read timestamp in the database
-      const normalizedClubId = clubId.toString(); // Ensure it's a string
-      console.log(`[useClubUnreadState] Updating read timestamp for club ${normalizedClubId} in database`);
-      
-      const { error } = await supabase
-        .from('club_messages_read')
-        .upsert({
-          user_id: currentUserId,
-          club_id: normalizedClubId,
-          last_read_timestamp: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,club_id'
+    // Track retries for better error handling
+    let retries = 0;
+    const maxRetries = 3;
+    let success = false;
+    
+    while (retries < maxRetries && !success) {
+      try {
+        // Update the read timestamp in the database
+        const normalizedClubId = clubId.toString(); // Ensure it's a string
+        console.log(`[useClubUnreadState] Updating read timestamp for club ${normalizedClubId} in database (attempt ${retries + 1})`);
+        
+        const { error } = await supabase
+          .from('club_messages_read')
+          .upsert({
+            user_id: currentUserId,
+            club_id: normalizedClubId,
+            last_read_timestamp: new Date().toISOString()
+          }, {
+            onConflict: 'user_id,club_id'
+          });
+        
+        if (error) {
+          console.error(`[useClubUnreadState] Error updating club_messages_read (attempt ${retries + 1}):`, error);
+          throw error;
+        }
+        
+        // If we got here, the update was successful
+        success = true;
+        
+        // Dispatch event to notify other components
+        window.dispatchEvent(new CustomEvent('clubMessagesRead', { 
+          detail: { clubId } 
+        }));
+        
+      } catch (error) {
+        retries++;
+        if (retries < maxRetries) {
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000 * retries));
+        } else {
+          console.error('[useClubUnreadState] Error marking club messages as read after all retries:', error);
+          
+          // Revert optimistic update on error
+          setUnreadClubs(prev => {
+            const reverted = new Set(prev);
+            reverted.add(clubId);
+            return reverted;
+          });
+          
+          // Restore the unread message count on error
+          setUnreadMessagesPerClub(prev => ({
+            ...prev,
+            [clubId]: messageCount
+          }));
+          
+          setClubUnreadCount(prev => prev + messageCount);
+          
+          // Notify UI components about the revert
+          window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+          
+          // Only show toast error after all retries
+          toast.error("Failed to mark club messages as read", {
+            id: `club-read-error-${clubId}`,
+            duration: 3000
+          });
+        }
+      } finally {
+        // Always clear the pending status
+        setPendingUpdates(prev => {
+          const updated = { ...prev };
+          delete updated[clubId];
+          return updated;
         });
-      
-      if (error) {
-        console.error(`[useClubUnreadState] Error updating club_messages_read:`, error);
-        throw error;
       }
-      
-      // Dispatch event to notify other components
-      window.dispatchEvent(new CustomEvent('clubMessagesRead', { 
-        detail: { clubId } 
-      }));
-      
-    } catch (error) {
-      console.error('[useClubUnreadState] Error marking club messages as read:', error);
-      
-      // Revert optimistic update on error
-      setUnreadClubs(prev => {
-        const reverted = new Set(prev);
-        reverted.add(clubId);
-        return reverted;
-      });
-      
-      // Restore the unread message count on error
-      setUnreadMessagesPerClub(prev => ({
-        ...prev,
-        [clubId]: messageCount
-      }));
-      
-      setClubUnreadCount(prev => prev + messageCount);
-      
-      // Notify UI components about the revert
-      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
-      
-      toast.error("Failed to mark club messages as read");
     }
-  }, [currentUserId, unreadMessagesPerClub]);
+  }, [currentUserId, unreadMessagesPerClub, pendingUpdates]);
 
   return {
     unreadClubs,

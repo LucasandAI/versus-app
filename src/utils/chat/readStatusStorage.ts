@@ -42,10 +42,23 @@ const saveLocalReadStatus = (data: ReadStatusData): void => {
 };
 
 /**
+ * Validate conversation ID to ensure it's a valid string and not empty
+ */
+const isValidId = (id: any): boolean => {
+  return typeof id === 'string' && id.trim().length > 0;
+};
+
+/**
  * Mark a DM conversation as read locally
  */
-export const markDmReadLocally = (conversationId: string): void => {
+export const markDmReadLocally = (conversationId: string): boolean => {
   try {
+    // Validate ID first
+    if (!isValidId(conversationId)) {
+      console.error(`[readStatusStorage] Invalid conversation ID: ${conversationId}`);
+      return false;
+    }
+
     const timestamp = Date.now();
     const data = getLocalReadStatus();
     
@@ -66,16 +79,25 @@ export const markDmReadLocally = (conversationId: string): void => {
     window.dispatchEvent(new CustomEvent('badge-refresh-required', {
       detail: { immediate: true }
     }));
+    
+    return true;
   } catch (error) {
     console.error('[readStatusStorage] Error marking DM as read locally:', error);
+    return false;
   }
 };
 
 /**
  * Mark a club conversation as read locally
  */
-export const markClubReadLocally = (clubId: string): void => {
+export const markClubReadLocally = (clubId: string): boolean => {
   try {
+    // Validate ID first
+    if (!isValidId(clubId)) {
+      console.error(`[readStatusStorage] Invalid club ID: ${clubId}`);
+      return false;
+    }
+
     const timestamp = Date.now();
     const data = getLocalReadStatus();
     
@@ -96,8 +118,11 @@ export const markClubReadLocally = (clubId: string): void => {
     window.dispatchEvent(new CustomEvent('badge-refresh-required', {
       detail: { immediate: true }
     }));
+    
+    return true;
   } catch (error) {
     console.error('[readStatusStorage] Error marking club as read locally:', error);
+    return false;
   }
 };
 
@@ -106,6 +131,9 @@ export const markClubReadLocally = (clubId: string): void => {
  */
 export const isDmReadSince = (conversationId: string, messageTimestamp: number): boolean => {
   try {
+    // Return false early for invalid IDs
+    if (!isValidId(conversationId)) return false;
+    
     const data = getLocalReadStatus();
     const readTimestamp = data.dms[conversationId];
     
@@ -125,6 +153,9 @@ export const isDmReadSince = (conversationId: string, messageTimestamp: number):
  */
 export const isClubReadSince = (clubId: string, messageTimestamp: number): boolean => {
   try {
+    // Return false early for invalid IDs
+    if (!isValidId(clubId)) return false;
+    
     const data = getLocalReadStatus();
     const readTimestamp = data.clubs[clubId];
     
@@ -145,6 +176,9 @@ export const isClubReadSince = (clubId: string, messageTimestamp: number): boole
  */
 export const getReadTimestamp = (type: 'dm' | 'club', id: string): number => {
   try {
+    // Return 0 for invalid IDs
+    if (!isValidId(id)) return 0;
+    
     const data = getLocalReadStatus();
     if (type === 'dm') {
       return data.dms[id] || 0;

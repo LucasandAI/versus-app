@@ -7,18 +7,27 @@ export const useDirectMessageUnreadState = (currentUserId: string | undefined) =
   const [unreadConversations, setUnreadConversations] = useState<Set<string>>(new Set());
   const [dmUnreadCount, setDmUnreadCount] = useState(0);
   const [unreadMessagesPerConversation, setUnreadMessagesPerConversation] = useState<Record<string, number>>({});
+  const [pendingUpdates, setPendingUpdates] = useState<Record<string, boolean>>({});
 
   // Mark conversation as unread (for new incoming messages)
   const markConversationAsUnread = useCallback((conversationId: string) => {
+    // Validate the conversationId
+    if (!conversationId || typeof conversationId !== 'string' || !conversationId.trim()) {
+      console.error(`[useDirectMessageUnreadState] Invalid conversationId: ${conversationId}, cannot mark as unread`);
+      return;
+    }
+    
     setUnreadConversations(prev => {
       const updated = new Set(prev);
-      if (!updated.has(conversationId)) {
-        updated.add(conversationId);
+      const normalizedId = conversationId.toString(); // Ensure consistency
+      
+      if (!updated.has(normalizedId)) {
+        updated.add(normalizedId);
         
         // Update unread messages per conversation
         setUnreadMessagesPerConversation(prev => {
           const updated = { ...prev };
-          updated[conversationId] = (updated[conversationId] || 0) + 1;
+          updated[normalizedId] = (updated[normalizedId] || 0) + 1;
           return updated;
         });
         
@@ -30,7 +39,7 @@ export const useDirectMessageUnreadState = (currentUserId: string | undefined) =
         // If conversation is already marked as unread, just increment the message count
         setUnreadMessagesPerConversation(prev => {
           const updated = { ...prev };
-          updated[conversationId] = (updated[conversationId] || 0) + 1;
+          updated[normalizedId] = (updated[normalizedId] || 0) + 1;
           return updated;
         });
         
@@ -42,14 +51,30 @@ export const useDirectMessageUnreadState = (currentUserId: string | undefined) =
 
   // Mark conversation as read
   const markConversationAsRead = useCallback(async (conversationId: string) => {
-    if (!currentUserId || !conversationId) return;
+    // Validate inputs
+    if (!currentUserId || !conversationId || typeof conversationId !== 'string' || !conversationId.trim()) {
+      console.error(`[useDirectMessageUnreadState] Invalid parameters - userId: ${currentUserId}, conversationId: ${conversationId}`);
+      return;
+    }
+    
+    // Check if there's already a pending update for this conversation
+    if (pendingUpdates[conversationId]) {
+      console.log(`[useDirectMessageUnreadState] Update for conversation ${conversationId} already in progress, skipping`);
+      return;
+    }
+    
+    // Set this update as pending
+    setPendingUpdates(prev => ({ ...prev, [conversationId]: true }));
     
     // Get the number of unread messages for this conversation
     const messageCount = unreadMessagesPerConversation[conversationId] || 0;
     
     // Optimistically update local state
     setUnreadConversations(prev => {
-      if (!prev.has(conversationId)) return prev;
+      if (!prev.has(conversationId)) {
+        console.log(`[useDirectMessageUnreadState] Conversation ${conversationId} not in unread set`);
+        return prev;
+      }
       
       const updated = new Set(prev);
       updated.delete(conversationId);
@@ -70,44 +95,82 @@ export const useDirectMessageUnreadState = (currentUserId: string | undefined) =
       return updated;
     });
     
-    try {
-      // Update the read timestamp in the database
-      const { error } = await supabase
-        .from('direct_messages_read')
-        .upsert({
-          user_id: currentUserId,
-          conversation_id: conversationId,
-          last_read_timestamp: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,conversation_id'
+    // Track retries for better error handling
+    let retries = 0;
+    const maxRetries = 3;
+    let success = false;
+    
+    while (retries < maxRetries && !success) {
+      try {
+        console.log(`[useDirectMessageUnreadState] Updating read timestamp for conversation ${conversationId} (attempt ${retries + 1})`);
+        
+        // Update the read timestamp in the database
+        const { error } = await supabase
+          .from('direct_messages_read')
+          .upsert({
+            user_id: currentUserId,
+            conversation_id: conversationId,
+            last_read_timestamp: new Date().toISOString()
+          }, {
+            onConflict: 'user_id,conversation_id'
+          });
+        
+        if (error) {
+          console.error(`[useDirectMessageUnreadState] Error updating direct_messages_read (attempt ${retries + 1}):`, error);
+          throw error;
+        }
+        
+        // If we got here, the update was successful
+        success = true;
+        
+        // Dispatch event to notify other components of success
+        window.dispatchEvent(new CustomEvent('dm-read-status-updated', { 
+          detail: { conversationId } 
+        }));
+        
+      } catch (error) {
+        retries++;
+        
+        if (retries < maxRetries) {
+          // Wait before retrying with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries - 1)));
+        } else {
+          console.error('[useDirectMessageUnreadState] Error marking conversation as read after all retries:', error);
+          
+          // Revert optimistic update on error
+          setUnreadConversations(prev => {
+            const reverted = new Set(prev);
+            reverted.add(conversationId);
+            return reverted;
+          });
+          
+          // Restore the unread message count on error
+          setUnreadMessagesPerConversation(prev => ({
+            ...prev,
+            [conversationId]: messageCount
+          }));
+          
+          setDmUnreadCount(prev => prev + messageCount);
+          
+          // Notify UI components about the revert
+          window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+          
+          // Only show toast error after all retries
+          toast.error("Failed to mark conversation as read", {
+            id: `dm-read-error-${conversationId}`,
+            duration: 3000
+          });
+        }
+      } finally {
+        // Always clear the pending status
+        setPendingUpdates(prev => {
+          const updated = { ...prev };
+          delete updated[conversationId];
+          return updated;
         });
-      
-      if (error) throw error;
-      
-    } catch (error) {
-      console.error('[useDirectMessageUnreadState] Error marking conversation as read:', error);
-      
-      // Revert optimistic update on error
-      setUnreadConversations(prev => {
-        const reverted = new Set(prev);
-        reverted.add(conversationId);
-        return reverted;
-      });
-      
-      // Restore the unread message count on error
-      setUnreadMessagesPerConversation(prev => ({
-        ...prev,
-        [conversationId]: messageCount
-      }));
-      
-      setDmUnreadCount(prev => prev + messageCount);
-      
-      // Notify UI components about the revert
-      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
-      
-      toast.error("Failed to mark conversation as read");
+      }
     }
-  }, [currentUserId, unreadMessagesPerConversation]);
+  }, [currentUserId, unreadMessagesPerConversation, pendingUpdates]);
 
   return {
     unreadConversations,

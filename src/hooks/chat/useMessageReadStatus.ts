@@ -8,6 +8,27 @@ import { markConversationActive } from '@/utils/chat/activeConversationTracker';
 
 // Constants for debounce delays
 const READ_STATUS_DEBOUNCE_DELAY = 1000; // 1 second
+const MAX_RETRIES = 3; 
+const RETRY_DELAYS = [1000, 3000, 5000]; // 1s, 3s, 5s
+
+// Helper to retry operations with exponential backoff
+const retryOperation = async (
+  operation: () => Promise<any>,
+  retries = MAX_RETRIES,
+  delayIndex = 0
+): Promise<any> => {
+  try {
+    return await operation();
+  } catch (error) {
+    if (retries <= 0) throw error;
+    
+    // Wait for the specified delay
+    await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[delayIndex] || 5000));
+    
+    // Retry with one less retry and next delay
+    return retryOperation(operation, retries - 1, Math.min(delayIndex + 1, RETRY_DELAYS.length - 1));
+  }
+};
 
 export const useMessageReadStatus = () => {
   const { markDirectConversationAsRead, markClubMessagesAsRead } = useUnreadMessages();
@@ -15,27 +36,50 @@ export const useMessageReadStatus = () => {
   // Debounced database update functions
   const debouncedMarkDmReadInDb = useCallback(
     debounce('mark-dm-read', async (conversationId: string) => {
+      // Early validation
+      if (!conversationId || typeof conversationId !== 'string' || !conversationId.trim()) {
+        console.error('[useMessageReadStatus] Invalid DM conversation ID, skipping DB update');
+        return;
+      }
+      
       try {
         console.log(`[useMessageReadStatus] Updating DB read status for DM ${conversationId}`);
-        const { error } = await supabase.from('direct_messages_read').upsert(
-          {
-            conversation_id: conversationId,
-            user_id: (await supabase.auth.getUser()).data.user?.id,
-            last_read_timestamp: new Date().toISOString()
-          },
-          { onConflict: 'conversation_id,user_id' }
-        );
-
-        if (error) {
-          console.error('[useMessageReadStatus] Error updating DM read status in DB:', error);
-        } else {
-          // Dispatch an event to notify that read status has been updated in DB
-          window.dispatchEvent(new CustomEvent('dm-read-status-updated', { 
-            detail: { conversationId } 
-          }));
+        
+        // Get the current user ID immediately for better stability
+        const { data: userData } = await supabase.auth.getUser();
+        const userId = userData?.user?.id;
+        
+        if (!userId) {
+          console.error('[useMessageReadStatus] No user ID available, cannot update read status');
+          return;
         }
+        
+        await retryOperation(async () => {
+          const { error } = await supabase.from('direct_messages_read').upsert(
+            {
+              conversation_id: conversationId,
+              user_id: userId,
+              last_read_timestamp: new Date().toISOString()
+            },
+            { onConflict: 'conversation_id,user_id' }
+          );
+
+          if (error) {
+            console.error('[useMessageReadStatus] Error updating DM read status in DB:', error);
+            throw error;
+          }
+        });
+        
+        // Only dispatch success event if we made it here (no errors thrown)
+        window.dispatchEvent(new CustomEvent('dm-read-status-updated', { 
+          detail: { conversationId } 
+        }));
       } catch (error) {
-        console.error('[useMessageReadStatus] Error in debouncedMarkDmReadInDb:', error);
+        console.error('[useMessageReadStatus] Error in debouncedMarkDmReadInDb after retries:', error);
+        // Only show toast after multiple retries
+        window.dispatchEvent(new CustomEvent('read-status-error', { 
+          detail: { type: 'dm', id: conversationId, error } 
+        }));
       }
     }, READ_STATUS_DEBOUNCE_DELAY),
     []
@@ -43,27 +87,50 @@ export const useMessageReadStatus = () => {
 
   const debouncedMarkClubReadInDb = useCallback(
     debounce('mark-club-read', async (clubId: string) => {
+      // Early validation
+      if (!clubId || typeof clubId !== 'string' || !clubId.trim()) {
+        console.error('[useMessageReadStatus] Invalid club ID, skipping DB update');
+        return;
+      }
+      
       try {
         console.log(`[useMessageReadStatus] Updating DB read status for club ${clubId}`);
-        const { error } = await supabase.from('club_messages_read').upsert(
-          {
-            club_id: clubId,
-            user_id: (await supabase.auth.getUser()).data.user?.id,
-            last_read_timestamp: new Date().toISOString()
-          },
-          { onConflict: 'club_id,user_id' }
-        );
-
-        if (error) {
-          console.error('[useMessageReadStatus] Error updating club read status in DB:', error);
-        } else {
-          // Dispatch an event to notify that read status has been updated in DB
-          window.dispatchEvent(new CustomEvent('club-read-status-updated', {
-            detail: { clubId }
-          }));
+        
+        // Get the current user ID immediately for better stability
+        const { data: userData } = await supabase.auth.getUser();
+        const userId = userData?.user?.id;
+        
+        if (!userId) {
+          console.error('[useMessageReadStatus] No user ID available, cannot update club read status');
+          return;
         }
+        
+        await retryOperation(async () => {
+          const { error } = await supabase.from('club_messages_read').upsert(
+            {
+              club_id: clubId,
+              user_id: userId,
+              last_read_timestamp: new Date().toISOString()
+            },
+            { onConflict: 'club_id,user_id' }
+          );
+
+          if (error) {
+            console.error('[useMessageReadStatus] Error updating club read status in DB:', error);
+            throw error;
+          }
+        });
+        
+        // Only dispatch success event if we made it here (no errors thrown)
+        window.dispatchEvent(new CustomEvent('club-read-status-updated', {
+          detail: { clubId }
+        }));
       } catch (error) {
-        console.error('[useMessageReadStatus] Error in debouncedMarkClubReadInDb:', error);
+        console.error('[useMessageReadStatus] Error in debouncedMarkClubReadInDb after retries:', error);
+        // Only show toast after multiple retries
+        window.dispatchEvent(new CustomEvent('read-status-error', { 
+          detail: { type: 'club', id: clubId, error } 
+        }));
       }
     }, READ_STATUS_DEBOUNCE_DELAY),
     []
@@ -73,16 +140,30 @@ export const useMessageReadStatus = () => {
   const markDirectMessagesAsRead = useCallback(
     async (conversationId: string, immediate: boolean = false) => {
       try {
+        // Validate ID
+        if (!conversationId || typeof conversationId !== 'string' || !conversationId.trim()) {
+          console.error(`[useMessageReadStatus] Invalid DM conversation ID: ${conversationId}`);
+          return;
+        }
+        
         console.log(`[useMessageReadStatus] Marking DM ${conversationId} as read${immediate ? ' (immediate)' : ''}`);
         
         // 1. Mark the conversation as active to prevent incoming messages from being marked as unread
         markConversationActive('dm', conversationId);
 
         // 2. Update local storage immediately for instant UI feedback
-        markDmReadLocally(conversationId);
+        const localUpdateSuccess = markDmReadLocally(conversationId);
+        
+        if (!localUpdateSuccess) {
+          console.error(`[useMessageReadStatus] Failed to update local storage for DM ${conversationId}`);
+        }
 
         // 3. Use the context method for optimistic updates to any UI components
-        await markDirectConversationAsRead(conversationId);
+        try {
+          await markDirectConversationAsRead(conversationId);
+        } catch (error) {
+          console.error('[useMessageReadStatus] Error in context method for DM read status:', error);
+        }
 
         // 4. Trigger an immediate UI refresh
         window.dispatchEvent(new CustomEvent('unread-status-changed'));
@@ -104,16 +185,30 @@ export const useMessageReadStatus = () => {
   const markClubMessagesAsReadNew = useCallback(
     async (clubId: string, immediate: boolean = false) => {
       try {
+        // Validate ID
+        if (!clubId || typeof clubId !== 'string' || !clubId.trim()) {
+          console.error(`[useMessageReadStatus] Invalid club ID: ${clubId}`);
+          return;
+        }
+        
         console.log(`[useMessageReadStatus] Marking club ${clubId} as read${immediate ? ' (immediate)' : ''}`);
         
         // 1. Mark the club conversation as active
         markConversationActive('club', clubId);
 
         // 2. Update local storage immediately for instant UI feedback
-        markClubReadLocally(clubId);
+        const localUpdateSuccess = markClubReadLocally(clubId);
+        
+        if (!localUpdateSuccess) {
+          console.error(`[useMessageReadStatus] Failed to update local storage for club ${clubId}`);
+        }
 
         // 3. Use the context method for optimistic updates to any UI components
-        await markClubMessagesAsRead(clubId);
+        try {
+          await markClubMessagesAsRead(clubId);
+        } catch (error) {
+          console.error('[useMessageReadStatus] Error in context method for club read status:', error);
+        }
 
         // 4. Trigger an immediate UI refresh
         window.dispatchEvent(new CustomEvent('unread-status-changed'));
