@@ -21,6 +21,11 @@ interface ActiveConversation {
  */
 export const markConversationActive = (type: 'club' | 'dm', id: string): void => {
   try {
+    if (!id || !type) {
+      console.error('[activeConversationTracker] Invalid params:', { type, id });
+      return;
+    }
+    
     const timestamp = Date.now();
     
     // Get current active conversations
@@ -41,12 +46,12 @@ export const markConversationActive = (type: 'club' | 'dm', id: string): void =>
     // Store the updated list of active conversations
     localStorage.setItem(ACTIVE_CONVERSATION_KEY, JSON.stringify(activeConversations));
     
-    console.log(`[activeConversationTracker] Marking ${type} ${id} as active`);
+    console.log(`[activeConversationTracker] Marking ${type} ${id} as active at ${timestamp}`);
     
     // Also track in viewed history for badge refresh purposes
     addToViewedHistory(type, id);
     
-    // Dispatch an event so other components can react to this change
+    // Dispatch events synchronously to ensure immediate notification
     window.dispatchEvent(new CustomEvent('conversation-active-change', { 
       detail: { type, id, timestamp }
     }));
@@ -66,6 +71,8 @@ export const markConversationActive = (type: 'club' | 'dm', id: string): void =>
  */
 const addToViewedHistory = (type: 'club' | 'dm', id: string): void => {
   try {
+    if (!id || !type) return;
+    
     const timestamp = Date.now();
     
     // Get current viewed history
@@ -93,6 +100,8 @@ const addToViewedHistory = (type: 'club' | 'dm', id: string): void => {
  */
 export const hasBeenViewedSince = (type: 'club' | 'dm', id: string, since: number): boolean => {
   try {
+    if (!id || !type) return false;
+    
     // Get current viewed history
     const historyJson = localStorage.getItem(VIEWED_CONVERSATIONS_HISTORY_KEY);
     if (!historyJson) return false;
@@ -118,6 +127,8 @@ export const hasBeenViewedSince = (type: 'club' | 'dm', id: string, since: numbe
  */
 export const removeActiveConversation = (type: 'club' | 'dm', id: string): void => {
   try {
+    if (!id || !type) return;
+    
     // Get current active conversations
     const activeJson = localStorage.getItem(ACTIVE_CONVERSATION_KEY);
     if (!activeJson) return;
@@ -166,9 +177,12 @@ export const clearActiveConversations = (): void => {
 
 /**
  * Check if a specific conversation is currently active
+ * Returns true if the conversation is active and the timestamp is recent
  */
 export const isConversationActive = (type: 'club' | 'dm', id: string): boolean => {
   try {
+    if (!id || !type) return false;
+    
     const activeJson = localStorage.getItem(ACTIVE_CONVERSATION_KEY);
     if (!activeJson) return false;
     
@@ -182,6 +196,7 @@ export const isConversationActive = (type: 'club' | 'dm', id: string): boolean =
     if (!conversation) return false;
     
     // Check if the timestamp is recent (within last 5 minutes)
+    // Using a shorter time window to ensure we don't miss new messages
     const isRecent = Date.now() - conversation.timestamp < 5 * 60 * 1000;
     
     return isRecent;
@@ -193,6 +208,7 @@ export const isConversationActive = (type: 'club' | 'dm', id: string): boolean =
 
 /**
  * Get all currently active conversations
+ * Returns only fresh conversations (active in last 5 minutes)
  */
 export const getActiveConversations = (): Record<string, ActiveConversation> => {
   try {
@@ -224,6 +240,8 @@ export const getActiveConversations = (): Record<string, ActiveConversation> => 
  */
 export const getActiveConversation = (type: 'club' | 'dm', id: string): ActiveConversation | null => {
   try {
+    if (!id || !type) return null;
+    
     const activeJson = localStorage.getItem(ACTIVE_CONVERSATION_KEY);
     if (!activeJson) return null;
     
@@ -243,6 +261,29 @@ export const getActiveConversation = (type: 'club' | 'dm', id: string): ActiveCo
   } catch (error) {
     console.error('[activeConversationTracker] Error getting active conversation:', error);
     return null;
+  }
+};
+
+/**
+ * Update the active timestamp for a conversation
+ * This is useful to refresh the active status without triggering events
+ */
+export const refreshActiveTimestamp = (type: 'club' | 'dm', id: string): void => {
+  try {
+    if (!id || !type) return;
+    
+    const activeJson = localStorage.getItem(ACTIVE_CONVERSATION_KEY);
+    if (!activeJson) return;
+    
+    const activeConversations: Record<string, ActiveConversation> = JSON.parse(activeJson);
+    const conversationKey = `${type}_${id}`;
+    
+    if (activeConversations[conversationKey]) {
+      activeConversations[conversationKey].timestamp = Date.now();
+      localStorage.setItem(ACTIVE_CONVERSATION_KEY, JSON.stringify(activeConversations));
+    }
+  } catch (error) {
+    console.error('[activeConversationTracker] Error refreshing active timestamp:', error);
   }
 };
 

@@ -7,12 +7,15 @@ import { toast } from 'sonner';
  */
 const ToastErrorHandler: React.FC = () => {
   // Keep track of errors to avoid showing duplicate toasts
-  const errorTracker = useRef<Record<string, { count: number, timeout?: NodeJS.Timeout }>>({});
+  const errorTracker = useRef<Record<string, { count: number, timeout?: NodeJS.Timeout, lastShown?: number }>>({});
   
   useEffect(() => {
     const handleReadStatusError = (event: CustomEvent) => {
       const { type, id, error } = event.detail;
+      if (!type || !id) return;
+      
       const errorKey = `${type}-${id}`;
+      const now = Date.now();
       
       // If this is the first error for this item, initialize tracking
       if (!errorTracker.current[errorKey]) {
@@ -22,8 +25,14 @@ const ToastErrorHandler: React.FC = () => {
       // Increment error count
       errorTracker.current[errorKey].count += 1;
       
-      // Only show toast if we've had multiple errors for this item
-      if (errorTracker.current[errorKey].count >= 2) {
+      // Check if we've shown a toast for this item recently (in the last 30 seconds)
+      const lastShown = errorTracker.current[errorKey].lastShown || 0;
+      const timeSinceLastShown = now - lastShown;
+      
+      // Only show toast if:
+      // 1. We've had multiple errors for this item (at least 3)
+      // 2. We haven't shown a toast recently (to avoid spamming)
+      if (errorTracker.current[errorKey].count >= 3 && timeSinceLastShown > 30000) {
         // Show a toast only once, even if we get multiple errors
         toast.error(
           type === 'club' 
@@ -34,6 +43,9 @@ const ToastErrorHandler: React.FC = () => {
             duration: 3000
           }
         );
+        
+        // Update the last shown timestamp
+        errorTracker.current[errorKey].lastShown = now;
         
         // Reset the counter after showing toast
         errorTracker.current[errorKey].count = 0;
@@ -46,7 +58,7 @@ const ToastErrorHandler: React.FC = () => {
         // Set a timeout to clean up this entry
         errorTracker.current[errorKey].timeout = setTimeout(() => {
           delete errorTracker.current[errorKey];
-        }, 5000);
+        }, 60000); // Clean up after 1 minute of no errors
       }
     };
     

@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUnreadMessages } from '@/context/unread-messages';
 import { markClubReadLocally, markDmReadLocally } from '@/utils/chat/readStatusStorage';
 import { debounce, flushDebounce, forceFlushDebounce } from '@/utils/chat/debounceUtils';
-import { markConversationActive } from '@/utils/chat/activeConversationTracker';
+import { markConversationActive, refreshActiveTimestamp } from '@/utils/chat/activeConversationTracker';
 
 // Constants for debounce delays
 const READ_STATUS_DEBOUNCE_DELAY = 1000; // 1 second
@@ -149,8 +149,9 @@ export const useMessageReadStatus = () => {
         console.log(`[useMessageReadStatus] Marking DM ${conversationId} as read${immediate ? ' (immediate)' : ''}`);
         
         // 1. Mark the conversation as active to prevent incoming messages from being marked as unread
+        // Do this FIRST, before any other operations
         markConversationActive('dm', conversationId);
-
+        
         // 2. Update local storage immediately for instant UI feedback
         const localUpdateSuccess = markDmReadLocally(conversationId);
         
@@ -171,9 +172,18 @@ export const useMessageReadStatus = () => {
         // 5. Schedule a debounced update to the database or do it immediately
         if (immediate) {
           forceFlushDebounce('mark-dm-read');
+          await debouncedMarkDmReadInDb(conversationId);
         } else {
           debouncedMarkDmReadInDb(conversationId);
         }
+        
+        // 6. Force a periodic refresh of active status to handle race conditions
+        const intervalId = setInterval(() => {
+          refreshActiveTimestamp('dm', conversationId);
+        }, 5000);
+        
+        // Clear interval after a minute
+        setTimeout(() => clearInterval(intervalId), 60000);
       } catch (error) {
         console.error('[useMessageReadStatus] Error marking DM as read:', error);
       }
@@ -193,7 +203,7 @@ export const useMessageReadStatus = () => {
         
         console.log(`[useMessageReadStatus] Marking club ${clubId} as read${immediate ? ' (immediate)' : ''}`);
         
-        // 1. Mark the club conversation as active
+        // 1. Mark the club conversation as active FIRST
         markConversationActive('club', clubId);
 
         // 2. Update local storage immediately for instant UI feedback
@@ -216,9 +226,18 @@ export const useMessageReadStatus = () => {
         // 5. Schedule a debounced update to the database or do it immediately
         if (immediate) {
           forceFlushDebounce('mark-club-read');
+          await debouncedMarkClubReadInDb(clubId);
         } else {
           debouncedMarkClubReadInDb(clubId);
         }
+        
+        // 6. Force a periodic refresh of active status to handle race conditions
+        const intervalId = setInterval(() => {
+          refreshActiveTimestamp('club', clubId);
+        }, 5000);
+        
+        // Clear interval after a minute
+        setTimeout(() => clearInterval(intervalId), 60000);
       } catch (error) {
         console.error('[useMessageReadStatus] Error marking club messages as read:', error);
       }

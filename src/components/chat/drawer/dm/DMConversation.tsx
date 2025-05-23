@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useCallback, memo, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,7 +16,7 @@ import DMMessageInput from './DMMessageInput';
 import DMHeader from './DMHeader';
 import { ArrowLeft } from 'lucide-react';
 import { useUserData } from '@/hooks/chat/dm/useUserData';
-import { markConversationActive, clearActiveConversation } from '@/utils/chat/activeConversationTracker';
+import { markConversationActive, clearActiveConversation, refreshActiveTimestamp } from '@/utils/chat/activeConversationTracker';
 
 interface DMConversationProps {
   user: {
@@ -40,6 +39,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   const { markDirectMessagesAsRead, flushReadStatus } = useMessageReadStatus();
   const [isSending, setIsSending] = React.useState(false);
   const { formatTime } = useMessageFormatting();
+  const activeMountRef = useRef(false);
   
   // Validate user data completeness at the component level
   const hasCompleteUserData = Boolean(user && user.id && user.name && user.avatar);
@@ -108,26 +108,75 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
   // Custom hooks for conversation management
   const { createConversation } = useConversationManagement(currentUser?.id, user.id);
   
-  // Mark conversation as active when opened and then as read after a delay
+  // Setup active conversation status on mount
   useEffect(() => {
+    // Mark this component as mounted
+    activeMountRef.current = true;
+    
     if (conversationId && conversationId !== 'new') {
       console.log(`[DMConversation] Conversation opened: ${conversationId}`);
       
-      // 1. Mark as active immediately
+      // 1. Mark as active IMMEDIATELY (synchronously)
       markConversationActive('dm', conversationId);
       
-      // 2. Mark messages as read with a slight delay
+      // 2. Mark messages as read with a short delay to ensure active status is recognized
       const readTimer = setTimeout(() => {
+        if (!activeMountRef.current) return; // Skip if unmounted
+        
         console.log(`[DMConversation] Marking conversation ${conversationId} as read after delay`);
         markDirectMessagesAsRead(conversationId, true); // Use immediate=true to flush
-      }, 300); // Very short delay
+      }, 200); // Short delay to ensure active status propagates
+      
+      // 3. Set up a refresh interval to keep conversation marked as active
+      const refreshTimer = setInterval(() => {
+        if (!activeMountRef.current) return; // Skip if unmounted
+        
+        refreshActiveTimestamp('dm', conversationId);
+      }, 5000); // Refresh every 5 seconds
       
       return () => {
+        // Mark as unmounted
+        activeMountRef.current = false;
+        
+        // Clean up timers
         clearTimeout(readTimer);
+        clearInterval(refreshTimer);
+        
+        // Clear active conversation
         clearActiveConversation();
       };
     }
   }, [conversationId, markDirectMessagesAsRead]);
+
+  // Additional handler for new messages - mark as read immediately
+  useEffect(() => {
+    if (!messages.length || !conversationId || conversationId === 'new') return;
+    
+    const handleNewMessage = (event: CustomEvent) => {
+      if (!event.detail || !activeMountRef.current) return;
+      
+      if (event.detail.conversationId === conversationId) {
+        console.log(`[DMConversation] New message detected for open conversation ${conversationId}`);
+        
+        // Mark conversation as active
+        markConversationActive('dm', conversationId);
+        
+        // Mark as read immediately
+        setTimeout(() => {
+          if (activeMountRef.current) { // Only if still mounted
+            markDirectMessagesAsRead(conversationId, true);
+          }
+        }, 50); // Very short delay
+      }
+    };
+    
+    // Listen for new messages in this conversation
+    window.addEventListener('direct-message-received', handleNewMessage as EventListener);
+    
+    return () => {
+      window.removeEventListener('direct-message-received', handleNewMessage as EventListener);
+    };
+  }, [conversationId, messages.length, markDirectMessagesAsRead]);
 
   // Handle back button click with proper cleanup
   const handleBack = useCallback(() => {
@@ -178,6 +227,9 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
         }
       }
       
+      // Mark as active immediately
+      markConversationActive('dm', finalConversationId);
+      
       // Send message to database
       const { data, error } = await supabase
         .from('direct_messages')
@@ -192,8 +244,16 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       
       if (error) throw error;
       
-      // Mark conversation as active and read to prevent this message from being marked unread
+      // Mark as active again after sending to ensure it's still active
       markConversationActive('dm', finalConversationId);
+      
+      // Mark as read immediately to prevent race conditions
+      if (finalConversationId !== 'new') {
+        // Small delay to ensure server has processed the message
+        setTimeout(() => {
+          markDirectMessagesAsRead(finalConversationId, true);
+        }, 100);
+      }
       
     } catch (error) {
       console.error('[DMConversation] Error sending message:', error);
@@ -209,7 +269,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
     } finally {
       setIsSending(false);
     }
-  }, [currentUser, user, conversationId, addOptimisticMessage, createConversation, scrollToBottom, setMessages, markConversationActive]);
+  }, [currentUser, user, conversationId, addOptimisticMessage, createConversation, scrollToBottom, setMessages, markDirectMessagesAsRead]);
   
   // Club members array for ChatMessages - memoized to prevent recreating
   const clubMembers = useMemo(() => 

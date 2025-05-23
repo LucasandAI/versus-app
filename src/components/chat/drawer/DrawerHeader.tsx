@@ -1,10 +1,11 @@
 
-import React, { useEffect, memo, useState, useCallback } from 'react';
+import React, { useEffect, memo, useState, useCallback, useRef } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnreadMessages } from '@/context/unread-messages';
 import { Club } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
+import { getLocalReadStatus } from '@/utils/chat/readStatusStorage';
 
 interface DrawerHeaderProps {
   activeTab: "clubs" | "dm";
@@ -23,6 +24,7 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
   const [forceRender, setForceRender] = useState(0);
   const [clubsWithUnread, setClubsWithUnread] = useState<Set<string>>(new Set());
   const [dmsWithUnread, setDmsWithUnread] = useState<Set<string>>(new Set());
+  const lastSelectedClubRef = useRef<string | null>(null);
   
   // Sync with context on mount and when unread collections change
   useEffect(() => {
@@ -39,6 +41,18 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
     setClubsWithUnread(new Set(unreadClubs));
     setDmsWithUnread(new Set(unreadConversations));
   }, [unreadClubs, unreadConversations]);
+  
+  // When a club is selected and changes, mark it as read
+  useEffect(() => {
+    if (selectedClub?.id && lastSelectedClubRef.current !== selectedClub.id) {
+      lastSelectedClubRef.current = selectedClub.id;
+      
+      if (activeTab === "clubs") {
+        console.log(`[DrawerHeader] Selected club changed to ${selectedClub.id}, marking as read`);
+        markClubMessagesAsRead(selectedClub.id, true);
+      }
+    }
+  }, [selectedClub, activeTab, markClubMessagesAsRead]);
   
   // Handle specific conversation opened event
   const handleConversationOpened = useCallback((event: CustomEvent) => {
@@ -62,6 +76,66 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
     
     // Force re-render to update badges
     setForceRender(prev => prev + 1);
+  }, []);
+  
+  // Listen for tab changes to mark selected club as read when clubs tab is activated
+  useEffect(() => {
+    if (activeTab === "clubs" && selectedClub) {
+      console.log(`[DrawerHeader] Marking club ${selectedClub.id} messages as read (clubs tab activated)`);
+      markClubMessagesAsRead(selectedClub.id, true);
+      
+      // Also update our local copy immediately for instant UI feedback
+      setClubsWithUnread(prev => {
+        const updated = new Set(prev);
+        updated.delete(selectedClub.id);
+        return updated;
+      });
+    }
+  }, [activeTab, selectedClub, markClubMessagesAsRead]);
+  
+  // Also sync with local storage read status
+  useEffect(() => {
+    const syncLocalReadStatus = () => {
+      const localReadStatus = getLocalReadStatus();
+      
+      // Update club unread status based on local storage
+      setClubsWithUnread(prev => {
+        const updated = new Set(prev);
+        
+        // Remove clubs that have been marked as read locally
+        for (const clubId of Array.from(updated)) {
+          if (localReadStatus.clubs[clubId]) {
+            updated.delete(clubId);
+          }
+        }
+        
+        return updated;
+      });
+      
+      // Update DM unread status based on local storage
+      setDmsWithUnread(prev => {
+        const updated = new Set(prev);
+        
+        // Remove conversations that have been marked as read locally
+        for (const conversationId of Array.from(updated)) {
+          if (localReadStatus.dms[conversationId]) {
+            updated.delete(conversationId);
+          }
+        }
+        
+        return updated;
+      });
+    };
+    
+    // Do an initial sync
+    syncLocalReadStatus();
+    
+    // Listen for local storage changes
+    window.addEventListener('local-read-status-change', syncLocalReadStatus);
+    
+    return () => {
+      window.removeEventListener('local-read-status-change', syncLocalReadStatus);
+    };
   }, []);
   
   // Listen for unread status changes to update badges
@@ -92,22 +166,6 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
       window.removeEventListener('conversation-opened', handleConversationOpened);
     };
   }, [fetchUnreadCounts, handleUnreadUpdate, handleConversationOpened]);
-
-  // Mark club messages as read when a club is selected and the clubs tab is active
-  useEffect(() => {
-    if (activeTab === "clubs" && selectedClub) {
-      console.log(`[DrawerHeader] Marking club ${selectedClub.id} messages as read (selectedClub present and clubs tab active)`);
-      // Use our enhanced function that also updates local storage
-      markClubMessagesAsRead(selectedClub.id, true);
-      
-      // Also update our local copy immediately for instant UI feedback
-      setClubsWithUnread(prev => {
-        const updated = new Set(prev);
-        updated.delete(selectedClub.id);
-        return updated;
-      });
-    }
-  }, [activeTab, selectedClub, markClubMessagesAsRead]);
   
   // Use useMemo for stable rendering of unread indicators
   const clubsUnreadBadge = React.useMemo(() => {

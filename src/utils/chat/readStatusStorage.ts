@@ -190,3 +190,30 @@ export const getReadTimestamp = (type: 'dm' | 'club', id: string): number => {
     return 0;
   }
 };
+
+/**
+ * Clear read status for testing or reset purposes
+ */
+export const clearReadStatus = (type: 'dm' | 'club', id: string): void => {
+  try {
+    if (!isValidId(id)) return;
+    
+    const data = getLocalReadStatus();
+    if (type === 'dm') {
+      delete data.dms[id];
+    } else {
+      delete data.clubs[id];
+    }
+    
+    saveLocalReadStatus(data);
+    
+    console.log(`[readStatusStorage] Cleared ${type} read status for ${id}`);
+    
+    // Dispatch refresh event
+    window.dispatchEvent(new CustomEvent('badge-refresh-required', {
+      detail: { immediate: true }
+    }));
+  } catch (error) {
+    console.error('[readStatusStorage] Error clearing read status:', error);
+  }
+};
