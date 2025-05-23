@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnreadMessages } from '@/context/unread-messages';
@@ -69,18 +68,34 @@ export const useMessageReadStatus = () => {
             
             // Fallback: Update read_by array directly if the RPC fails
             console.log('[useMessageReadStatus] Falling back to direct update');
-            const { error: directError } = await supabase
+            
+            // First fetch the current messages to update
+            const { data: messages, error: fetchError } = await supabase
               .from('direct_messages')
-              .update({ 
-                // Fix: Use array literal instead of string for read_by
-                read_by: supabase.sql`array_append(read_by, ${userId}::uuid)` 
-              })
+              .select('id, read_by')
               .eq('conversation_id', conversationId)
-              .not('read_by', 'cs', `{${userId}}`); // Only update if user is not already in the array
+              .not('read_by', 'cs', `{${userId}}`); // Only select those without user in read_by
               
-            if (directError) {
-              console.error('[useMessageReadStatus] Error in direct update fallback:', directError);
-              throw directError;
+            if (fetchError) {
+              console.error('[useMessageReadStatus] Error fetching messages:', fetchError);
+              throw fetchError;
+            }
+            
+            // Then update each message individually
+            if (messages && messages.length > 0) {
+              for (const message of messages) {
+                const newReadBy = [...(message.read_by || []), userId];
+                
+                const { error: updateError } = await supabase
+                  .from('direct_messages')
+                  .update({ read_by: newReadBy })
+                  .eq('id', message.id);
+                  
+                if (updateError) {
+                  console.error('[useMessageReadStatus] Error updating message read status:', updateError);
+                  throw updateError;
+                }
+              }
             }
           }
         });
@@ -135,18 +150,34 @@ export const useMessageReadStatus = () => {
             
             // Fallback: Update read_by array directly if the RPC fails
             console.log('[useMessageReadStatus] Falling back to direct update');
-            const { error: directError } = await supabase
+            
+            // First fetch the current messages to update
+            const { data: messages, error: fetchError } = await supabase
               .from('club_chat_messages')
-              .update({ 
-                // Fix: Use array literal instead of string for read_by
-                read_by: supabase.sql`array_append(read_by, ${userId}::uuid)` 
-              })
+              .select('id, read_by')
               .eq('club_id', clubId)
-              .not('read_by', 'cs', `{${userId}}`); // Only update if user is not already in the array
+              .not('read_by', 'cs', `{${userId}}`); // Only select those without user in read_by
               
-            if (directError) {
-              console.error('[useMessageReadStatus] Error in direct update fallback:', directError);
-              throw directError;
+            if (fetchError) {
+              console.error('[useMessageReadStatus] Error fetching club messages:', fetchError);
+              throw fetchError;
+            }
+            
+            // Then update each message individually
+            if (messages && messages.length > 0) {
+              for (const message of messages) {
+                const newReadBy = [...(message.read_by || []), userId];
+                
+                const { error: updateError } = await supabase
+                  .from('club_chat_messages')
+                  .update({ read_by: newReadBy })
+                  .eq('id', message.id);
+                  
+                if (updateError) {
+                  console.error('[useMessageReadStatus] Error updating message read status:', updateError);
+                  throw updateError;
+                }
+              }
             }
           }
         });
