@@ -999,6 +999,14 @@ export type Database = {
         Args: { club_id: string; user_id: string }
         Returns: boolean
       }
+      mark_club_as_read: {
+        Args: { p_club_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      mark_conversation_as_read: {
+        Args: { p_conversation_id: string; p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       notification_status:
