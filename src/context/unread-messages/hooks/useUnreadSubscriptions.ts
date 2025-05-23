@@ -43,7 +43,7 @@ export const useUnreadSubscriptions = ({
     };
   }, [markConversationAsUnread, markClubAsUnread, fetchUnreadCounts]);
   
-  // Handle badge refresh events
+  // Handle badge refresh events with optimistic UI updates
   useEffect(() => {
     const handleBadgeRefresh = (event: CustomEvent) => {
       const { immediate, forceTotalRecalculation } = event.detail || {};
@@ -51,13 +51,21 @@ export const useUnreadSubscriptions = ({
       if (forceTotalRecalculation) {
         // Force a full refresh of unread counts
         console.log('[useUnreadSubscriptions] Forcing total unread count recalculation');
-        setTimeout(() => {
-          handlersRef.current.fetchUnreadCounts();
-        }, 50);
+        // Use requestAnimationFrame for immediate UI update and then fetch data
+        requestAnimationFrame(() => {
+          // Dispatch empty event first for optimistic UI update
+          window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+          // Then fetch actual data
+          setTimeout(() => {
+            handlersRef.current.fetchUnreadCounts();
+          }, 10); // Very small timeout to ensure UI gets updated first
+        });
       } else if (immediate) {
-        // Quick badge refresh
+        // Quick badge refresh - use requestAnimationFrame for smoother UI update
         console.log('[useUnreadSubscriptions] Immediate badge refresh requested');
-        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+        requestAnimationFrame(() => {
+          window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+        });
       }
     };
     
@@ -77,8 +85,10 @@ export const useUnreadSubscriptions = ({
       
       console.log(`[useUnreadSubscriptions] Conversation opened: ${type} ${id}`);
       
-      // Force an immediate badge refresh
-      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+      // Force an immediate badge refresh using requestAnimationFrame for smoother updates
+      requestAnimationFrame(() => {
+        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+      });
       
       // For club conversations, also notify about read status change
       if (type === 'club') {
@@ -99,6 +109,7 @@ export const useUnreadSubscriptions = ({
     };
   }, []);
   
+  // Setup real-time subscriptions
   useEffect(() => {
     if (!isSessionReady || !currentUserId) return;
     
@@ -109,7 +120,7 @@ export const useUnreadSubscriptions = ({
     let pendingClubUpdates = new Set<{ id: string, timestamp?: number, messageId?: string }>();
     let updateTimeout: NodeJS.Timeout | null = null;
     
-    // Batch-process updates with RAF to avoid flickering
+    // Batch-process updates with requestAnimationFrame for smoother UI
     const processUpdates = () => {
       if (pendingUpdates.size > 0) {
         pendingUpdates.forEach(update => {
@@ -123,43 +134,47 @@ export const useUnreadSubscriptions = ({
             processingMessagesRef.current.add(update.messageId);
           }
           
-          // Double-check if conversation is active before marking as unread
-          // Add a small delay to ensure the active state has been properly set
-          setTimeout(() => {
-            const isActive = isConversationActive('dm', update.id);
-            console.log(`[useUnreadSubscriptions] Checking if DM ${update.id} is active: ${isActive}`);
-            
-            if (!isActive) {
-              // Also check if it's been read locally since this message
-              if (!update.timestamp || !isDmReadSince(update.id, update.timestamp)) {
-                handlersRef.current.markConversationAsUnread(update.id, update.timestamp);
-                localUnreadConversations.add(update.id);
-              }
-            } else {
-              // If conversation is active, refresh the timestamp to prevent races
-              refreshActiveTimestamp('dm', update.id);
+          // Check if conversation is active before marking as unread
+          const isActive = isConversationActive('dm', update.id);
+          console.log(`[useUnreadSubscriptions] Checking if DM ${update.id} is active: ${isActive}`);
+          
+          if (!isActive) {
+            // Also check if it's been read locally since this message
+            if (!update.timestamp || !isDmReadSince(update.id, update.timestamp)) {
+              handlersRef.current.markConversationAsUnread(update.id, update.timestamp);
+              localUnreadConversations.add(update.id);
               
-              // Also mark the message as read if it's active
-              if (update.messageId) {
-                try {
-                  supabase.rpc('mark_message_as_read', {
-                    p_message_id: update.messageId,
-                    p_user_id: currentUserId,
-                    p_message_type: 'dm'
-                  });
-                } catch (error) {
-                  console.error('[useUnreadSubscriptions] Error marking active DM message as read:', error);
-                }
+              // Trigger optimistic UI update right away
+              requestAnimationFrame(() => {
+                window.dispatchEvent(new CustomEvent('dm-unread-status-changed', { 
+                  detail: { conversationId: update.id } 
+                }));
+              });
+            }
+          } else {
+            // If conversation is active, refresh the timestamp to prevent races
+            refreshActiveTimestamp('dm', update.id);
+            
+            // Also mark the message as read if it's active
+            if (update.messageId) {
+              try {
+                supabase.rpc('mark_message_as_read', {
+                  p_message_id: update.messageId,
+                  p_user_id: currentUserId,
+                  p_message_type: 'dm'
+                });
+              } catch (error) {
+                console.error('[useUnreadSubscriptions] Error marking active DM message as read:', error);
               }
             }
-            
-            // Remove from processing set after a short delay
-            if (update.messageId) {
-              setTimeout(() => {
-                processingMessagesRef.current.delete(update.messageId as string);
-              }, 5000); // Keep in set for 5 seconds to prevent duplicate processing
-            }
-          }, 100); // Small delay to allow for active state to be set
+          }
+          
+          // Remove from processing set after a short delay
+          if (update.messageId) {
+            setTimeout(() => {
+              processingMessagesRef.current.delete(update.messageId as string);
+            }, 5000); // Keep in set for 5 seconds to prevent duplicate processing
+          }
         });
         pendingUpdates.clear();
       }
@@ -176,63 +191,70 @@ export const useUnreadSubscriptions = ({
             processingMessagesRef.current.add(update.messageId);
           }
           
-          // Small delay to ensure active state is properly set
-          setTimeout(() => {
-            const isActive = isConversationActive('club', update.id);
-            console.log(`[useUnreadSubscriptions] Checking if club ${update.id} is active: ${isActive}`);
-            
-            if (!isActive) {
-              // Also check if it's been read locally since this message
-              if (!update.timestamp || !isClubReadSince(update.id, update.timestamp)) {
-                handlersRef.current.markClubAsUnread(update.id, update.timestamp);
-                localUnreadClubs.add(update.id);
-              }
-            } else {
-              // If club is active, refresh the timestamp to prevent races
-              refreshActiveTimestamp('club', update.id);
+          // Check if club is active
+          const isActive = isConversationActive('club', update.id);
+          console.log(`[useUnreadSubscriptions] Checking if club ${update.id} is active: ${isActive}`);
+          
+          if (!isActive) {
+            // Also check if it's been read locally since this message
+            if (!update.timestamp || !isClubReadSince(update.id, update.timestamp)) {
+              handlersRef.current.markClubAsUnread(update.id, update.timestamp);
+              localUnreadClubs.add(update.id);
               
-              // Also mark the message as read if conversation is active
-              if (update.messageId) {
-                try {
-                  supabase.rpc('mark_message_as_read', {
-                    p_message_id: update.messageId,
-                    p_user_id: currentUserId,
-                    p_message_type: 'club'
-                  });
-                } catch (error) {
-                  console.error('[useUnreadSubscriptions] Error marking active club message as read:', error);
-                }
+              // Trigger optimistic UI update right away
+              requestAnimationFrame(() => {
+                window.dispatchEvent(new CustomEvent('club-unread-status-changed', { 
+                  detail: { clubId: update.id } 
+                }));
+              });
+            }
+          } else {
+            // If club is active, refresh the timestamp to prevent races
+            refreshActiveTimestamp('club', update.id);
+            
+            // Also mark the message as read if conversation is active
+            if (update.messageId) {
+              try {
+                supabase.rpc('mark_message_as_read', {
+                  p_message_id: update.messageId,
+                  p_user_id: currentUserId,
+                  p_message_type: 'club'
+                });
+              } catch (error) {
+                console.error('[useUnreadSubscriptions] Error marking active club message as read:', error);
               }
             }
-            
-            // Remove from processing set after a short delay
-            if (update.messageId) {
-              setTimeout(() => {
-                processingMessagesRef.current.delete(update.messageId as string);
-              }, 5000); // Keep in set for 5 seconds to prevent duplicate processing
-            }
-          }, 100); // Small delay to allow for active state to be set
+          }
+          
+          // Remove from processing set after a short delay
+          if (update.messageId) {
+            setTimeout(() => {
+              processingMessagesRef.current.delete(update.messageId as string);
+            }, 5000); // Keep in set for 5 seconds to prevent duplicate processing
+          }
         });
         pendingClubUpdates.clear();
       }
       
       // Only dispatch one event regardless of how many updates
       if (pendingUpdates.size > 0 || pendingClubUpdates.size > 0) {
-        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+        requestAnimationFrame(() => {
+          window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+        });
       }
       
       updateTimeout = null;
     };
     
-    // Queue an update with debouncing
+    // Queue an update with reduced debounce delay
     const queueUpdate = () => {
       if (updateTimeout) return;
       updateTimeout = setTimeout(() => {
         requestAnimationFrame(processUpdates);
-      }, 200); // Slightly longer delay to allow for active state to be set
+      }, 50); // Reduced from 200ms to 50ms for faster updates
     };
     
-    // Handle club message events (including the first message case)
+    // Handle club message events with optimistic UI updates
     const handleUnreadClubMessage = (event: CustomEvent) => {
       const { clubId, messageTimestamp, messageId } = event.detail || {};
       
@@ -269,48 +291,53 @@ export const useUnreadSubscriptions = ({
         return;
       }
       
-      // If this is the first unread message, handle it specially
+      // If this is the first unread message, handle it specially with immediate UI feedback
       if (isFirstUnread) {
         console.log(`[useUnreadSubscriptions] First unread message for club ${clubId}`);
         
-        // Add a short delay to make sure active status is correct
-        setTimeout(() => {
-          // Double-check active status
-          if (!isConversationActive('club', clubId)) {
-            if (!messageTimestamp || !isClubReadSince(clubId, messageTimestamp)) {
-              // Add to processing set
-              if (messageId) {
-                processingMessagesRef.current.add(messageId);
-              }
-              
-              handlersRef.current.markClubAsUnread(clubId, messageTimestamp);
-              localUnreadClubs.add(clubId);
-              
-              // Force an immediate badge refresh
+        // Double-check active status
+        if (!isConversationActive('club', clubId)) {
+          if (!messageTimestamp || !isClubReadSince(clubId, messageTimestamp)) {
+            // Add to processing set
+            if (messageId) {
+              processingMessagesRef.current.add(messageId);
+            }
+            
+            handlersRef.current.markClubAsUnread(clubId, messageTimestamp);
+            localUnreadClubs.add(clubId);
+            
+            // Force an immediate UI update using requestAnimationFrame
+            requestAnimationFrame(() => {
+              // Dispatch event for badge update
               window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
               
-              // Remove from processing set after a short delay
-              if (messageId) {
-                setTimeout(() => {
-                  processingMessagesRef.current.delete(messageId);
-                }, 5000);
-              }
-            }
-          } else if (messageId) {
-            // If active, mark the message as read
-            try {
-              supabase.rpc('mark_message_as_read', {
-                p_message_id: messageId,
-                p_user_id: currentUserId,
-                p_message_type: 'club'
-              });
-            } catch (error) {
-              console.error('[useUnreadSubscriptions] Error marking active club message as read:', error);
+              // Also dispatch specific event for clubId
+              window.dispatchEvent(new CustomEvent('club-unread-status-changed', { 
+                detail: { clubId } 
+              }));
+            });
+            
+            // Remove from processing set after a short delay
+            if (messageId) {
+              setTimeout(() => {
+                processingMessagesRef.current.delete(messageId);
+              }, 5000);
             }
           }
-        }, 100); // Small delay to ensure active state is properly set
+        } else if (messageId) {
+          // If active, mark the message as read
+          try {
+            supabase.rpc('mark_message_as_read', {
+              p_message_id: messageId,
+              p_user_id: currentUserId,
+              p_message_type: 'club'
+            });
+          } catch (error) {
+            console.error('[useUnreadSubscriptions] Error marking active club message as read:', error);
+          }
+        }
       } else {
-        // For subsequent messages, use the normal batching process
+        // For subsequent messages, use the normal batching process but ensure UI is updated quickly
         pendingClubUpdates.add({
           id: clubId,
           timestamp: messageTimestamp,
@@ -322,7 +349,7 @@ export const useUnreadSubscriptions = ({
     
     window.addEventListener('unread-club-message', handleUnreadClubMessage as EventListener);
     
-    // Set up real-time subscriptions for new messages
+    // Set up real-time subscriptions for new messages with optimistic UI updates
     const dmChannel = supabase
       .channel('global-dm-unread-tracking')
       .on('postgres_changes', 
@@ -371,43 +398,49 @@ export const useUnreadSubscriptions = ({
                 return;
               }
               
+              // For first unread message, provide immediate UI feedback
               if (isFirstUnread) {
                 console.log(`[useUnreadSubscriptions] First unread message for DM ${payload.new.conversation_id}`);
                 
-                // Add a short delay to make sure active status is correct
-                setTimeout(() => {
-                  // Double-check active status
-                  if (!isConversationActive('dm', payload.new.conversation_id)) {
-                    if (!timestamp || !isDmReadSince(payload.new.conversation_id, timestamp)) {
-                      // Add to processing set
-                      processingMessagesRef.current.add(payload.new.id);
-                      
-                      handlersRef.current.markConversationAsUnread(payload.new.conversation_id, timestamp);
-                      localUnreadConversations.add(payload.new.conversation_id);
-                      
-                      // Force an immediate badge refresh
+                // Double-check active status
+                if (!isConversationActive('dm', payload.new.conversation_id)) {
+                  if (!timestamp || !isDmReadSince(payload.new.conversation_id, timestamp)) {
+                    // Add to processing set
+                    processingMessagesRef.current.add(payload.new.id);
+                    
+                    handlersRef.current.markConversationAsUnread(payload.new.conversation_id, timestamp);
+                    localUnreadConversations.add(payload.new.conversation_id);
+                    
+                    // Force immediate UI update using requestAnimationFrame
+                    requestAnimationFrame(() => {
+                      // Update badge counts
                       window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
                       
-                      // Remove from processing set after a short delay
-                      setTimeout(() => {
-                        processingMessagesRef.current.delete(payload.new.id);
-                      }, 5000);
-                    }
-                  } else {
-                    // If active, mark the message as read
-                    try {
-                      supabase.rpc('mark_message_as_read', {
-                        p_message_id: payload.new.id,
-                        p_user_id: currentUserId,
-                        p_message_type: 'dm'
-                      });
-                    } catch (error) {
-                      console.error('[useUnreadSubscriptions] Error marking active DM message as read:', error);
-                    }
+                      // Also dispatch specific event
+                      window.dispatchEvent(new CustomEvent('dm-unread-status-changed', { 
+                        detail: { conversationId: payload.new.conversation_id } 
+                      }));
+                    });
+                    
+                    // Remove from processing set after a short delay
+                    setTimeout(() => {
+                      processingMessagesRef.current.delete(payload.new.id);
+                    }, 5000);
                   }
-                }, 100); // Small delay to ensure active state is properly set
+                } else {
+                  // If active, mark the message as read
+                  try {
+                    supabase.rpc('mark_message_as_read', {
+                      p_message_id: payload.new.id,
+                      p_user_id: currentUserId,
+                      p_message_type: 'dm'
+                    });
+                  } catch (error) {
+                    console.error('[useUnreadSubscriptions] Error marking active DM message as read:', error);
+                  }
+                }
               } else {
-                // Queue the update instead of processing immediately
+                // Queue the update for batch processing but ensure UI gets updated quickly
                 pendingUpdates.add({
                   id: payload.new.conversation_id,
                   timestamp,
@@ -447,6 +480,16 @@ export const useUnreadSubscriptions = ({
                       clubId: payload.new.club_id,
                       messageTimestamp: timestamp,
                       messageId: payload.new.id
+                    } 
+                  }));
+                  
+                  // Also dispatch message preview update event
+                  window.dispatchEvent(new CustomEvent('message-preview-update', { 
+                    detail: { 
+                      type: 'club',
+                      id: payload.new.club_id,
+                      message: payload.new.message,
+                      timestamp
                     } 
                   }));
                 }

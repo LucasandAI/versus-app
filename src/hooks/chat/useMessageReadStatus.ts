@@ -7,7 +7,7 @@ import { debounce, flushDebounce, forceFlushDebounce } from '@/utils/chat/deboun
 import { markConversationActive, refreshActiveTimestamp } from '@/utils/chat/activeConversationTracker';
 
 // Constants for debounce delays
-const READ_STATUS_DEBOUNCE_DELAY = 1000; // 1 second
+const READ_STATUS_DEBOUNCE_DELAY = 300; // Reduced from 1000ms to 300ms for faster updates
 const MAX_RETRIES = 3; 
 const RETRY_DELAYS = [1000, 3000, 5000]; // 1s, 3s, 5s
 
@@ -177,7 +177,7 @@ export const useMessageReadStatus = () => {
       } catch (error) {
         console.error('[useMessageReadStatus] Error marking message as read:', error);
       }
-    }, 500), // Use a shorter delay for individual messages
+    }, 200), // Reduced from 500ms to 200ms for faster updates
     []
   );
 
@@ -211,8 +211,12 @@ export const useMessageReadStatus = () => {
           console.error('[useMessageReadStatus] Error in context method for DM read status:', error);
         }
 
-        // 4. Trigger an immediate UI refresh
-        window.dispatchEvent(new CustomEvent('unread-status-changed'));
+        // 4. Trigger an immediate UI refresh using requestAnimationFrame for smoother updates
+        requestAnimationFrame(() => {
+          window.dispatchEvent(new CustomEvent('unread-status-changed', {
+            detail: { type: 'dm', id: conversationId }
+          }));
+        });
 
         // 5. Schedule a debounced update to the database or do it immediately
         if (immediate) {
@@ -265,8 +269,12 @@ export const useMessageReadStatus = () => {
           console.error('[useMessageReadStatus] Error in context method for club read status:', error);
         }
 
-        // 4. Trigger an immediate UI refresh
-        window.dispatchEvent(new CustomEvent('unread-status-changed'));
+        // 4. Trigger an immediate UI refresh using requestAnimationFrame for smoother updates
+        requestAnimationFrame(() => {
+          window.dispatchEvent(new CustomEvent('unread-status-changed', {
+            detail: { type: 'club', id: clubId }
+          }));
+        });
 
         // 5. Schedule a debounced update to the database or do it immediately
         if (immediate) {

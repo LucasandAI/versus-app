@@ -30,33 +30,46 @@ export const useFetchUnreadCounts = ({
     try {
       console.log('[useFetchUnreadCounts] Fetching unread counts');
       
-      // Fetch DM unread counts using the RPC function
-      const { data: dmCount, error: dmError } = await supabase.rpc('get_unread_dm_count', {
-        user_id: currentUserId
-      });
-      
-      if (dmError) throw dmError;
-      setDmUnreadCount(dmCount || 0);
-
-      // Fetch club unread counts using the RPC function
-      const { data: clubCount, error: clubError } = await supabase.rpc('get_unread_club_messages_count', {
-        user_id: currentUserId
-      });
-      
-      if (clubError) throw clubError;
-      setClubUnreadCount(clubCount || 0);
-
-      // Query unread direct messages using the unread_by field
-      const { data: directMessages } = await supabase
-        .from('direct_messages')
-        .select('id, conversation_id, timestamp')
-        .contains('unread_by', [currentUserId]);
+      // Use Promise.all to parallelize the database queries for performance
+      const [dmCountResult, clubCountResult, directMessagesResult, clubMembersResult] = await Promise.all([
+        // 1. Fetch DM unread counts using the RPC function
+        supabase.rpc('get_unread_dm_count', {
+          user_id: currentUserId
+        }),
         
-      // Identify unread conversations and count messages
+        // 2. Fetch club unread counts using the RPC function
+        supabase.rpc('get_unread_club_messages_count', {
+          user_id: currentUserId
+        }),
+        
+        // 3. Query unread direct messages using the unread_by field
+        supabase
+          .from('direct_messages')
+          .select('id, conversation_id, timestamp')
+          .contains('unread_by', [currentUserId]),
+          
+        // 4. Get user's clubs
+        supabase
+          .from('club_members')
+          .select('club_id')
+          .eq('user_id', currentUserId)
+      ]);
+      
+      // Handle errors for each query
+      if (dmCountResult.error) throw dmCountResult.error;
+      if (clubCountResult.error) throw clubCountResult.error;
+      if (directMessagesResult.error) throw directMessagesResult.error;
+      if (clubMembersResult.error) throw clubMembersResult.error;
+      
+      // Set total counts
+      setDmUnreadCount(dmCountResult.data || 0);
+      setClubUnreadCount(clubCountResult.data || 0);
+      
+      // Process direct messages results
       const unreadConvs = new Set<string>();
       const messagesPerConversation: Record<string, number> = {};
       
-      directMessages?.forEach(msg => {
+      directMessagesResult.data?.forEach(msg => {
         if (msg.conversation_id) {
           unreadConvs.add(msg.conversation_id);
           // Count unread messages per conversation
@@ -67,19 +80,13 @@ export const useFetchUnreadCounts = ({
       setUnreadConversations(unreadConvs);
       setUnreadMessagesPerConversation(messagesPerConversation);
       
-      // Get user's clubs
-      const { data: clubMembers } = await supabase
-        .from('club_members')
-        .select('club_id')
-        .eq('user_id', currentUserId);
-        
-      if (!clubMembers?.length) {
+      // If no club memberships, reset club unread state and exit
+      const clubIds = clubMembersResult.data?.map(member => member.club_id) || [];
+      if (!clubIds.length) {
         setUnreadClubs(new Set());
         setUnreadMessagesPerClub({});
         return;
       }
-      
-      const clubIds = clubMembers.map(member => member.club_id);
       
       console.log('[useFetchUnreadCounts] User club IDs:', clubIds);
       
@@ -112,16 +119,18 @@ export const useFetchUnreadCounts = ({
       setUnreadMessagesPerClub(messagesPerClub);
       
       console.log('[useFetchUnreadCounts] Unread counts fetched:', { 
-        dmCount, 
-        clubCount,
+        dmCount: dmCountResult.data, 
+        clubCount: clubCountResult.data,
         unreadConversations: unreadConvs.size,
         unreadClubs: unreadClubsSet.size,
         messagesPerConversation,
         messagesPerClub
       });
       
-      // Dispatch event to notify UI components of changes
-      window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+      // Use requestAnimationFrame to improve UI responsiveness when updating unread counts
+      requestAnimationFrame(() => {
+        window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+      });
       
     } catch (error) {
       console.error('[useFetchUnreadCounts] Error fetching unread counts:', error);

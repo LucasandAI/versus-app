@@ -88,10 +88,19 @@ export const handleNewMessagePayload = async (
   });
 
   try {
-    // Fetch sender details if needed
+    // Use optimistic UI update approach - immediately render with available data
     let senderDetails = messagePayload.new.sender || null;
     
+    // If sender info isn't in the payload, use a placeholder until we can fetch it
     if (!senderDetails && senderId) {
+      // Start with a placeholder
+      senderDetails = {
+        id: senderId,
+        name: isCurrentUserMessage ? 'You' : 'Loading...',
+        avatar: null
+      };
+      
+      // Try to fetch actual sender details in the background
       try {
         const { data: userData, error: userError } = await supabase
           .from('users')
@@ -99,13 +108,12 @@ export const handleNewMessagePayload = async (
           .eq('id', senderId)
           .maybeSingle(); // Use maybeSingle instead of single to avoid errors
         
-        if (userError) {
-          console.error('[subscriptionHandlers] Error fetching sender details:', userError);
-        } else if (userData) {
+        if (!userError && userData) {
           senderDetails = userData;
         }
       } catch (error) {
         console.error('[subscriptionHandlers] Error retrieving sender details:', error);
+        // Continue with placeholder data if fetch fails
       }
     }
     
@@ -114,7 +122,7 @@ export const handleNewMessagePayload = async (
       ...messagePayload.new,
       sender: senderDetails || {
         id: senderId,
-        name: 'Unknown User',
+        name: isCurrentUserMessage ? 'You' : 'Unknown User',
         avatar: null
       },
       isUserMessage: isCurrentUserMessage,
@@ -122,23 +130,26 @@ export const handleNewMessagePayload = async (
     };
 
     // Update club messages - ensure message isn't duplicated
-    setClubMessages((prevMessages) => {
-      // Check if we already have this message
-      const existingMessages = prevMessages[clubId] || [];
-      const messageExists = existingMessages.some(msg => msg.id === messageId);
-      
-      if (messageExists) {
-        console.log(`[subscriptionHandlers] Message ${messageId} already exists, skipping`);
-        return prevMessages;
-      }
-      
-      console.log(`[subscriptionHandlers] Adding message ${messageId} to club ${clubId}`);
-      
-      // Add the new message to the correct club
-      return {
-        ...prevMessages,
-        [clubId]: [...existingMessages, normalizedMessage]
-      };
+    // Use requestAnimationFrame for smoother UI updates
+    requestAnimationFrame(() => {
+      setClubMessages((prevMessages) => {
+        // Check if we already have this message
+        const existingMessages = prevMessages[clubId] || [];
+        const messageExists = existingMessages.some(msg => msg.id === messageId);
+        
+        if (messageExists) {
+          console.log(`[subscriptionHandlers] Message ${messageId} already exists, skipping`);
+          return prevMessages;
+        }
+        
+        console.log(`[subscriptionHandlers] Adding message ${messageId} to club ${clubId}`);
+        
+        // Add the new message to the correct club
+        return {
+          ...prevMessages,
+          [clubId]: [...existingMessages, normalizedMessage]
+        };
+      });
     });
 
     // Check if the conversation is active (user is currently viewing it)
@@ -152,6 +163,12 @@ export const handleNewMessagePayload = async (
     if (isActive && !isCurrentUserMessage && isUnread && currentUser?.id) {
       console.log('[subscriptionHandlers] Conversation is active, marking message as read:', messageId);
       
+      // Optimistic UI update first
+      window.dispatchEvent(new CustomEvent('message-read', {
+        detail: { messageId, type: 'club', clubId }
+      }));
+      
+      // Then update in database
       try {
         await supabase.rpc('mark_message_as_read', {
           p_message_id: messageId,
@@ -167,14 +184,25 @@ export const handleNewMessagePayload = async (
     const isFirstMessage = !prevMessages || !prevMessages[clubId] || prevMessages[clubId].length === 0;
     
     // Always dispatch an event to notify about the new message
-    // This is critical for the first message case
     window.dispatchEvent(new CustomEvent('club-message-received', { 
       detail: { 
         clubId, 
         message: normalizedMessage,
         isUserMessage: isCurrentUserMessage,
         isFirstMessage,
-        messageTime
+        messageTime,
+        messageId
+      } 
+    }));
+    
+    // Dispatch a specific event for message preview updates
+    window.dispatchEvent(new CustomEvent('message-preview-update', { 
+      detail: { 
+        type: 'club',
+        id: clubId,
+        message: normalizedMessage.message,
+        sender: normalizedMessage.sender,
+        timestamp: messageTime
       } 
     }));
     
@@ -209,7 +237,7 @@ export const handleNewMessagePayload = async (
       } else {
         // Regular badge refresh for non-first messages
         window.dispatchEvent(new CustomEvent('badge-refresh-required', {
-          detail: { forceTotalRecalculation: false }
+          detail: { immediate: true, forceTotalRecalculation: false }
         }));
       }
     }
@@ -236,16 +264,18 @@ export const handleMessageDeletion = (
     
     console.log(`[subscriptionHandlers] Deleting message ${messageId} from club ${clubId}`);
     
-    // Remove the message from the club's message list
-    setClubMessages((prevMessages) => {
-      const clubMessages = prevMessages[clubId];
-      
-      if (!clubMessages) return prevMessages;
-      
-      return {
-        ...prevMessages,
-        [clubId]: clubMessages.filter(msg => msg.id !== messageId)
-      };
+    // Remove the message from the club's message list - use requestAnimationFrame for smoother UI updates
+    requestAnimationFrame(() => {
+      setClubMessages((prevMessages) => {
+        const clubMessages = prevMessages[clubId];
+        
+        if (!clubMessages) return prevMessages;
+        
+        return {
+          ...prevMessages,
+          [clubId]: clubMessages.filter(msg => msg.id !== messageId)
+        };
+      });
     });
   } catch (error) {
     console.error('[subscriptionHandlers] Error handling message deletion:', error);

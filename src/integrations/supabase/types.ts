@@ -249,49 +249,6 @@ export type Database = {
           },
         ]
       }
-      club_messages_read: {
-        Row: {
-          club_id: string
-          id: string
-          last_read_timestamp: string
-          user_id: string
-        }
-        Insert: {
-          club_id: string
-          id?: string
-          last_read_timestamp?: string
-          user_id: string
-        }
-        Update: {
-          club_id?: string
-          id?: string
-          last_read_timestamp?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "club_messages_read_club_id_fkey"
-            columns: ["club_id"]
-            isOneToOne: false
-            referencedRelation: "clubs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "club_messages_read_club_id_fkey"
-            columns: ["club_id"]
-            isOneToOne: false
-            referencedRelation: "view_full_match_info"
-            referencedColumns: ["away_club_id"]
-          },
-          {
-            foreignKeyName: "club_messages_read_club_id_fkey"
-            columns: ["club_id"]
-            isOneToOne: false
-            referencedRelation: "view_full_match_info"
-            referencedColumns: ["home_club_id"]
-          },
-        ]
-      }
       club_requests: {
         Row: {
           club_id: string
@@ -443,35 +400,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "direct_messages_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "direct_conversations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      direct_messages_read: {
-        Row: {
-          conversation_id: string
-          id: string
-          last_read_timestamp: string
-          user_id: string
-        }
-        Insert: {
-          conversation_id: string
-          id?: string
-          last_read_timestamp?: string
-          user_id: string
-        }
-        Update: {
-          conversation_id?: string
-          id?: string
-          last_read_timestamp?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "direct_messages_read_conversation_id_fkey"
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "direct_conversations"
