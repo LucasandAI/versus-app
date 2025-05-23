@@ -29,16 +29,14 @@ export const useUnreadCounts = () => {
     window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
     
     try {
-      // Update the read timestamp in the database
-      const { error } = await supabase
-        .from('club_messages_read')
-        .upsert({
-          user_id: userId,
-          club_id: clubId,
-          last_read_timestamp: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,club_id'
-        });
+      // Use RPC function to mark club messages as read
+      const { error } = await supabase.rpc(
+        'mark_club_as_read', 
+        { 
+          p_club_id: clubId,
+          p_user_id: userId
+        }
+      );
       
       if (error) throw error;
       
@@ -78,26 +76,34 @@ export const useUnreadCounts = () => {
         if (clubError) throw clubError;
         setClubUnreadCount(clubCount || 0);
 
-        // Get unread conversations
+        // Get unread conversations by querying direct messages
         const { data: unreadDMs } = await supabase
-          .from('direct_messages_read')
+          .from('direct_messages')
           .select('conversation_id')
-          .eq('user_id', userId)
-          .filter('has_unread', 'eq', true);
+          .contains('unread_by', [userId])
+          .order('timestamp', { ascending: false });
 
-        if (unreadDMs) {
-          setUnreadConversations(new Set(unreadDMs.map(dm => dm.conversation_id)));
+        if (unreadDMs && unreadDMs.length > 0) {
+          // Extract unique conversation IDs
+          const conversationIds = new Set(unreadDMs.map(dm => dm.conversation_id));
+          setUnreadConversations(conversationIds);
+        } else {
+          setUnreadConversations(new Set());
         }
 
-        // Get unread clubs
-        const { data: unreadClubsData } = await supabase
-          .from('club_messages_read')
+        // Get unread clubs by querying club messages
+        const { data: unreadClubMessages } = await supabase
+          .from('club_chat_messages')
           .select('club_id')
-          .eq('user_id', userId)
-          .filter('has_unread', 'eq', true);
+          .contains('unread_by', [userId])
+          .order('timestamp', { ascending: false });
 
-        if (unreadClubsData) {
-          setUnreadClubs(new Set(unreadClubsData?.map(club => club.club_id)));
+        if (unreadClubMessages && unreadClubMessages.length > 0) {
+          // Extract unique club IDs
+          const clubIds = new Set(unreadClubMessages.map(msg => msg.club_id));
+          setUnreadClubs(clubIds);
+        } else {
+          setUnreadClubs(new Set());
         }
       } catch (error) {
         console.error('[useUnreadCounts] Error fetching unread counts:', error);

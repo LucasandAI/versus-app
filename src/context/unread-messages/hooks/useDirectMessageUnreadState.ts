@@ -102,21 +102,19 @@ export const useDirectMessageUnreadState = (currentUserId: string | undefined) =
     
     while (retries < maxRetries && !success) {
       try {
-        console.log(`[useDirectMessageUnreadState] Updating read timestamp for conversation ${conversationId} (attempt ${retries + 1})`);
+        console.log(`[useDirectMessageUnreadState] Marking conversation ${conversationId} as read using RPC (attempt ${retries + 1})`);
         
-        // Update the read timestamp in the database
-        const { error } = await supabase
-          .from('direct_messages_read')
-          .upsert({
-            user_id: currentUserId,
-            conversation_id: conversationId,
-            last_read_timestamp: new Date().toISOString()
-          }, {
-            onConflict: 'user_id,conversation_id'
-          });
+        // Use the RPC function to mark the conversation as read
+        const { error } = await supabase.rpc(
+          'mark_conversation_as_read', 
+          { 
+            p_conversation_id: conversationId,
+            p_user_id: currentUserId
+          }
+        );
         
         if (error) {
-          console.error(`[useDirectMessageUnreadState] Error updating direct_messages_read (attempt ${retries + 1}):`, error);
+          console.error(`[useDirectMessageUnreadState] Error updating direct message read status (attempt ${retries + 1}):`, error);
           throw error;
         }
         

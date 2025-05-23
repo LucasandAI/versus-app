@@ -109,22 +109,20 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
     
     while (retries < maxRetries && !success) {
       try {
-        // Update the read timestamp in the database
+        // Use the RPC function to mark the club as read instead of trying to update a read status table
         const normalizedClubId = clubId.toString(); // Ensure it's a string
-        console.log(`[useClubUnreadState] Updating read timestamp for club ${normalizedClubId} in database (attempt ${retries + 1})`);
+        console.log(`[useClubUnreadState] Marking club ${normalizedClubId} as read using RPC (attempt ${retries + 1})`);
         
-        const { error } = await supabase
-          .from('club_messages_read')
-          .upsert({
-            user_id: currentUserId,
-            club_id: normalizedClubId,
-            last_read_timestamp: new Date().toISOString()
-          }, {
-            onConflict: 'user_id,club_id'
-          });
+        const { error } = await supabase.rpc(
+          'mark_club_as_read', 
+          { 
+            p_club_id: normalizedClubId,
+            p_user_id: currentUserId
+          }
+        );
         
         if (error) {
-          console.error(`[useClubUnreadState] Error updating club_messages_read (attempt ${retries + 1}):`, error);
+          console.error(`[useClubUnreadState] Error marking club as read (attempt ${retries + 1}):`, error);
           throw error;
         }
         
