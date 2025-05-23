@@ -102,6 +102,7 @@ export type Database = {
           read_by: string[] | null
           sender_id: string | null
           timestamp: string
+          unread_by: string[] | null
         }
         Insert: {
           club_id?: string | null
@@ -110,6 +111,7 @@ export type Database = {
           read_by?: string[] | null
           sender_id?: string | null
           timestamp?: string
+          unread_by?: string[] | null
         }
         Update: {
           club_id?: string | null
@@ -118,6 +120,7 @@ export type Database = {
           read_by?: string[] | null
           sender_id?: string | null
           timestamp?: string
+          unread_by?: string[] | null
         }
         Relationships: [
           {
@@ -415,6 +418,7 @@ export type Database = {
           sender_id: string
           text: string
           timestamp: string
+          unread_by: string[] | null
         }
         Insert: {
           conversation_id?: string | null
@@ -424,6 +428,7 @@ export type Database = {
           sender_id: string
           text: string
           timestamp?: string
+          unread_by?: string[] | null
         }
         Update: {
           conversation_id?: string | null
@@ -433,6 +438,7 @@ export type Database = {
           sender_id?: string
           text?: string
           timestamp?: string
+          unread_by?: string[] | null
         }
         Relationships: [
           {
@@ -905,6 +911,14 @@ export type Database = {
       }
       mark_conversation_as_read: {
         Args: { p_conversation_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      mark_message_as_read: {
+        Args: {
+          p_message_id: string
+          p_user_id: string
+          p_message_type: string
+        }
         Returns: undefined
       }
     }

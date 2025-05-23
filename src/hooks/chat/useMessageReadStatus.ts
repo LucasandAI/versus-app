@@ -137,6 +137,50 @@ export const useMessageReadStatus = () => {
     []
   );
 
+  // Debounced database update function for individual messages
+  const debouncedMarkMessageReadInDb = useCallback(
+    debounce('mark-message-read', async (messageId: string, messageType: 'dm' | 'club') => {
+      // Early validation
+      if (!messageId || typeof messageId !== 'string' || !messageId.trim()) {
+        console.error('[useMessageReadStatus] Invalid message ID, skipping DB update');
+        return;
+      }
+      
+      try {
+        console.log(`[useMessageReadStatus] Marking individual message as read: ${messageId} (${messageType})`);
+        
+        // Get the current user ID immediately for better stability
+        const { data: userData } = await supabase.auth.getUser();
+        const userId = userData?.user?.id;
+        
+        if (!userId) {
+          console.error('[useMessageReadStatus] No user ID available, cannot update message read status');
+          return;
+        }
+        
+        await retryOperation(async () => {
+          // Use the RPC function to mark the specific message as read
+          const { error } = await supabase.rpc(
+            'mark_message_as_read', 
+            { 
+              p_message_id: messageId,
+              p_user_id: userId,
+              p_message_type: messageType
+            }
+          );
+
+          if (error) {
+            console.error('[useMessageReadStatus] Error updating message read status in DB:', error);
+            throw error;
+          }
+        });
+      } catch (error) {
+        console.error('[useMessageReadStatus] Error marking message as read:', error);
+      }
+    }, 500), // Use a shorter delay for individual messages
+    []
+  );
+
   // Mark direct messages as read with local-first approach
   const markDirectMessagesAsRead = useCallback(
     async (conversationId: string, immediate: boolean = false) => {
@@ -246,12 +290,23 @@ export const useMessageReadStatus = () => {
     [markClubMessagesAsRead, debouncedMarkClubReadInDb]
   );
 
+  // Mark a specific message as read
+  const markMessageAsRead = useCallback(
+    (messageId: string, messageType: 'dm' | 'club') => {
+      if (!messageId) return;
+      debouncedMarkMessageReadInDb(messageId, messageType);
+    },
+    [debouncedMarkMessageReadInDb]
+  );
+
   return {
     markDirectMessagesAsRead,
     markClubMessagesAsRead: markClubMessagesAsReadNew,
+    markMessageAsRead,
     flushReadStatus: () => {
       forceFlushDebounce('mark-dm-read');
       forceFlushDebounce('mark-club-read');
+      forceFlushDebounce('mark-message-read');
     }
   };
 };

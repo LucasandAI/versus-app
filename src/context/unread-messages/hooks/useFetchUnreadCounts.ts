@@ -46,12 +46,11 @@ export const useFetchUnreadCounts = ({
       if (clubError) throw clubError;
       setClubUnreadCount(clubCount || 0);
 
-      // Directly query unread direct messages using the read_by field
+      // Query unread direct messages using the unread_by field
       const { data: directMessages } = await supabase
         .from('direct_messages')
         .select('id, conversation_id, timestamp')
-        .eq('receiver_id', currentUserId)
-        .not('read_by', 'cs', `{${currentUserId}}`);
+        .contains('unread_by', [currentUserId]);
         
       // Identify unread conversations and count messages
       const unreadConvs = new Set<string>();
@@ -84,13 +83,12 @@ export const useFetchUnreadCounts = ({
       
       console.log('[useFetchUnreadCounts] User club IDs:', clubIds);
       
-      // Directly query unread club messages using the read_by field
+      // Query unread club messages using the unread_by field
       const { data: clubMessages, error: clubMessagesError } = await supabase
         .from('club_chat_messages')
         .select('id, club_id')
         .in('club_id', clubIds)
-        .neq('sender_id', currentUserId) // Don't count own messages as unread
-        .not('read_by', 'cs', `{${currentUserId}}`);
+        .contains('unread_by', [currentUserId]);
         
       if (clubMessagesError) {
         console.error('[useFetchUnreadCounts] Error fetching club messages:', clubMessagesError);

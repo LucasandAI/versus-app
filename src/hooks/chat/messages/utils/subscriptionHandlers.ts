@@ -15,7 +15,8 @@ interface MessagePayload {
     timestamp: string;
     created_at?: string;
     sender_name?: string;
-    read_by?: string[];  // Updated for the new read_by array
+    read_by?: string[];  
+    unread_by?: string[]; // Added for the new unread_by array
     [key: string]: any;
   };
   [key: string]: any;
@@ -64,7 +65,9 @@ export const handleNewMessagePayload = async (
   
   // Check if the message is already marked as read by current user
   const readBy = messagePayload.new.read_by || [];
+  const unreadBy = messagePayload.new.unread_by || [];
   const isAlreadyRead = currentUser?.id && readBy.includes(currentUser.id);
+  const isUnread = currentUser?.id && unreadBy.includes(currentUser.id);
   
   // Validate all required fields
   if (!clubId || !messageId || !senderId) {
@@ -79,6 +82,7 @@ export const handleNewMessagePayload = async (
     senderId,
     isCurrentUserMessage,
     isAlreadyRead,
+    isUnread,
     selectedClubId,
     isSelected: selectedClubId === clubId
   });
@@ -114,7 +118,7 @@ export const handleNewMessagePayload = async (
         avatar: null
       },
       isUserMessage: isCurrentUserMessage,
-      isRead: isAlreadyRead
+      isRead: isAlreadyRead || !isUnread
     };
 
     // Update club messages - ensure message isn't duplicated
@@ -142,19 +146,18 @@ export const handleNewMessagePayload = async (
     
     // Check if this conversation has been read since this message was sent
     const readTimestamp = getReadTimestamp('club', clubId);
-    const hasBeenRead = readTimestamp > messageTime || isAlreadyRead;
+    const hasBeenRead = readTimestamp > messageTime || isAlreadyRead || !isUnread;
     
     // If conversation is active and message is not from current user, immediately mark it as read
-    if (isActive && !isCurrentUserMessage && !isAlreadyRead && currentUser?.id) {
+    if (isActive && !isCurrentUserMessage && isUnread && currentUser?.id) {
       console.log('[subscriptionHandlers] Conversation is active, marking message as read:', messageId);
       
       try {
-        await supabase
-          .from('club_chat_messages')
-          .update({ 
-            read_by: [...(readBy || []), currentUser.id]
-          })
-          .eq('id', messageId);
+        await supabase.rpc('mark_message_as_read', {
+          p_message_id: messageId,
+          p_user_id: currentUser.id,
+          p_message_type: 'club'
+        });
       } catch (error) {
         console.error('[subscriptionHandlers] Error marking message as read:', error);
       }
@@ -175,16 +178,17 @@ export const handleNewMessagePayload = async (
       } 
     }));
     
-    // If the message is not from the current user, not already read, and the conversation is not active,
+    // If the message is not from the current user, marked as unread, and the conversation is not active,
     // trigger a badge update
-    if (!isCurrentUserMessage && !isActive && !hasBeenRead) {
+    if (!isCurrentUserMessage && !isActive && isUnread) {
       console.log('[subscriptionHandlers] Dispatching unread event for club message:', clubId);
       
       // Dispatch event to update unread messages
       window.dispatchEvent(new CustomEvent('unread-club-message', { 
         detail: { 
           clubId,
-          messageTimestamp: messageTime 
+          messageTimestamp: messageTime,
+          messageId
         } 
       }));
       

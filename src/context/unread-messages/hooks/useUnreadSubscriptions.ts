@@ -138,6 +138,19 @@ export const useUnreadSubscriptions = ({
             } else {
               // If conversation is active, refresh the timestamp to prevent races
               refreshActiveTimestamp('dm', update.id);
+              
+              // Also mark the message as read if it's active
+              if (update.messageId) {
+                try {
+                  supabase.rpc('mark_message_as_read', {
+                    p_message_id: update.messageId,
+                    p_user_id: currentUserId,
+                    p_message_type: 'dm'
+                  });
+                } catch (error) {
+                  console.error('[useUnreadSubscriptions] Error marking active DM message as read:', error);
+                }
+              }
             }
             
             // Remove from processing set after a short delay
@@ -177,6 +190,19 @@ export const useUnreadSubscriptions = ({
             } else {
               // If club is active, refresh the timestamp to prevent races
               refreshActiveTimestamp('club', update.id);
+              
+              // Also mark the message as read if conversation is active
+              if (update.messageId) {
+                try {
+                  supabase.rpc('mark_message_as_read', {
+                    p_message_id: update.messageId,
+                    p_user_id: currentUserId,
+                    p_message_type: 'club'
+                  });
+                } catch (error) {
+                  console.error('[useUnreadSubscriptions] Error marking active club message as read:', error);
+                }
+              }
             }
             
             // Remove from processing set after a short delay
@@ -224,9 +250,22 @@ export const useUnreadSubscriptions = ({
       const isActive = isConversationActive('club', clubId);
       console.log(`[useUnreadSubscriptions] Club message received. Club ${clubId} active: ${isActive}`);
       
-      // If conversation is active, just refresh timestamp and exit
+      // If conversation is active, just refresh timestamp and mark as read
       if (isActive) {
         refreshActiveTimestamp('club', clubId);
+        
+        // If active, mark the message as read
+        if (messageId) {
+          try {
+            supabase.rpc('mark_message_as_read', {
+              p_message_id: messageId,
+              p_user_id: currentUserId,
+              p_message_type: 'club'
+            });
+          } catch (error) {
+            console.error('[useUnreadSubscriptions] Error marking active club message as read:', error);
+          }
+        }
         return;
       }
       
@@ -257,6 +296,17 @@ export const useUnreadSubscriptions = ({
                 }, 5000);
               }
             }
+          } else if (messageId) {
+            // If active, mark the message as read
+            try {
+              supabase.rpc('mark_message_as_read', {
+                p_message_id: messageId,
+                p_user_id: currentUserId,
+                p_message_type: 'club'
+              });
+            } catch (error) {
+              console.error('[useUnreadSubscriptions] Error marking active club message as read:', error);
+            }
           }
         }, 100); // Small delay to ensure active state is properly set
       } else {
@@ -282,8 +332,11 @@ export const useUnreadSubscriptions = ({
             table: 'direct_messages' 
           },
           (payload) => {
-            if (payload.new.receiver_id === currentUserId && payload.new.sender_id !== currentUserId) {
-              console.log('[useUnreadSubscriptions] New DM detected:', payload.new.id);
+            if (payload.new.sender_id !== currentUserId && 
+                payload.new.unread_by && 
+                Array.isArray(payload.new.unread_by) && 
+                payload.new.unread_by.includes(currentUserId)) {
+              console.log('[useUnreadSubscriptions] New unread DM detected:', payload.new.id);
               
               // Skip if this message is already being processed
               if (processingMessagesRef.current.has(payload.new.id)) {
@@ -300,9 +353,21 @@ export const useUnreadSubscriptions = ({
               const isActive = isConversationActive('dm', payload.new.conversation_id);
               console.log(`[useUnreadSubscriptions] DM received. Conversation ${payload.new.conversation_id} active: ${isActive}`);
               
-              // If conversation is active, just refresh timestamp and exit
+              // If conversation is active, mark as read and exit
               if (isActive) {
                 refreshActiveTimestamp('dm', payload.new.conversation_id);
+                
+                // Mark the message as read if conversation is active
+                try {
+                  supabase.rpc('mark_message_as_read', {
+                    p_message_id: payload.new.id,
+                    p_user_id: currentUserId,
+                    p_message_type: 'dm'
+                  });
+                } catch (error) {
+                  console.error('[useUnreadSubscriptions] Error marking active DM message as read:', error);
+                }
+                
                 return;
               }
               
@@ -328,6 +393,17 @@ export const useUnreadSubscriptions = ({
                         processingMessagesRef.current.delete(payload.new.id);
                       }, 5000);
                     }
+                  } else {
+                    // If active, mark the message as read
+                    try {
+                      supabase.rpc('mark_message_as_read', {
+                        p_message_id: payload.new.id,
+                        p_user_id: currentUserId,
+                        p_message_type: 'dm'
+                      });
+                    } catch (error) {
+                      console.error('[useUnreadSubscriptions] Error marking active DM message as read:', error);
+                    }
                   }
                 }, 100); // Small delay to ensure active state is properly set
               } else {
@@ -352,8 +428,11 @@ export const useUnreadSubscriptions = ({
             table: 'club_chat_messages'
           },
           (payload) => {
-            if (payload.new.sender_id !== currentUserId) {
-              console.log('[useUnreadSubscriptions] New club message detected:', payload.new.id);
+            if (payload.new.sender_id !== currentUserId && 
+                payload.new.unread_by && 
+                Array.isArray(payload.new.unread_by) && 
+                payload.new.unread_by.includes(currentUserId)) {
+              console.log('[useUnreadSubscriptions] New unread club message detected:', payload.new.id);
               
               // Extract timestamp from the message
               const timestamp = new Date(payload.new.created_at || payload.new.timestamp).getTime();
@@ -374,6 +453,17 @@ export const useUnreadSubscriptions = ({
               } else {
                 // Refresh the active timestamp to prevent race conditions
                 refreshActiveTimestamp('club', payload.new.club_id);
+                
+                // Also mark the message as read if conversation is active
+                try {
+                  supabase.rpc('mark_message_as_read', {
+                    p_message_id: payload.new.id,
+                    p_user_id: currentUserId,
+                    p_message_type: 'club'
+                  });
+                } catch (error) {
+                  console.error('[useUnreadSubscriptions] Error marking active club message as read:', error);
+                }
               }
             }
           })
