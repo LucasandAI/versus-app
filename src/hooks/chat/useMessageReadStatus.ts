@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnreadMessages } from '@/context/unread-messages';
@@ -32,7 +33,7 @@ const retryOperation = async (
 export const useMessageReadStatus = () => {
   const { markDirectConversationAsRead, markClubMessagesAsRead } = useUnreadMessages();
 
-  // Debounced database update functions
+  // Debounced database update function for DMs
   const debouncedMarkDmReadInDb = useCallback(
     debounce('mark-dm-read', async (conversationId: string) => {
       // Early validation
@@ -54,7 +55,7 @@ export const useMessageReadStatus = () => {
         }
         
         await retryOperation(async () => {
-          // Update the read_by array in all unread messages in this conversation
+          // Use the RPC function to mark the conversation as read
           const { error } = await supabase.rpc(
             'mark_conversation_as_read', 
             { 
@@ -65,38 +66,7 @@ export const useMessageReadStatus = () => {
 
           if (error) {
             console.error('[useMessageReadStatus] Error updating DM read status in DB:', error);
-            
-            // Fallback: Update read_by array directly if the RPC fails
-            console.log('[useMessageReadStatus] Falling back to direct update');
-            
-            // First fetch the current messages to update
-            const { data: messages, error: fetchError } = await supabase
-              .from('direct_messages')
-              .select('id, read_by')
-              .eq('conversation_id', conversationId)
-              .not('read_by', 'cs', `{${userId}}`); // Only select those without user in read_by
-              
-            if (fetchError) {
-              console.error('[useMessageReadStatus] Error fetching messages:', fetchError);
-              throw fetchError;
-            }
-            
-            // Then update each message individually
-            if (messages && messages.length > 0) {
-              for (const message of messages) {
-                const newReadBy = [...(message.read_by || []), userId];
-                
-                const { error: updateError } = await supabase
-                  .from('direct_messages')
-                  .update({ read_by: newReadBy })
-                  .eq('id', message.id);
-                  
-                if (updateError) {
-                  console.error('[useMessageReadStatus] Error updating message read status:', updateError);
-                  throw updateError;
-                }
-              }
-            }
+            throw error;
           }
         });
         
@@ -106,7 +76,7 @@ export const useMessageReadStatus = () => {
         }));
       } catch (error) {
         console.error('[useMessageReadStatus] Error in debouncedMarkDmReadInDb after retries:', error);
-        // Only show toast after multiple retries
+        // Notify UI of error
         window.dispatchEvent(new CustomEvent('read-status-error', { 
           detail: { type: 'dm', id: conversationId, error } 
         }));
@@ -115,6 +85,7 @@ export const useMessageReadStatus = () => {
     []
   );
 
+  // Debounced database update function for club messages
   const debouncedMarkClubReadInDb = useCallback(
     debounce('mark-club-read', async (clubId: string) => {
       // Early validation
@@ -136,7 +107,7 @@ export const useMessageReadStatus = () => {
         }
         
         await retryOperation(async () => {
-          // Update the read_by array in all unread messages in this club
+          // Use the RPC function to mark the club as read
           const { error } = await supabase.rpc(
             'mark_club_as_read', 
             { 
@@ -147,38 +118,7 @@ export const useMessageReadStatus = () => {
 
           if (error) {
             console.error('[useMessageReadStatus] Error updating club read status in DB:', error);
-            
-            // Fallback: Update read_by array directly if the RPC fails
-            console.log('[useMessageReadStatus] Falling back to direct update');
-            
-            // First fetch the current messages to update
-            const { data: messages, error: fetchError } = await supabase
-              .from('club_chat_messages')
-              .select('id, read_by')
-              .eq('club_id', clubId)
-              .not('read_by', 'cs', `{${userId}}`); // Only select those without user in read_by
-              
-            if (fetchError) {
-              console.error('[useMessageReadStatus] Error fetching club messages:', fetchError);
-              throw fetchError;
-            }
-            
-            // Then update each message individually
-            if (messages && messages.length > 0) {
-              for (const message of messages) {
-                const newReadBy = [...(message.read_by || []), userId];
-                
-                const { error: updateError } = await supabase
-                  .from('club_chat_messages')
-                  .update({ read_by: newReadBy })
-                  .eq('id', message.id);
-                  
-                if (updateError) {
-                  console.error('[useMessageReadStatus] Error updating message read status:', updateError);
-                  throw updateError;
-                }
-              }
-            }
+            throw error;
           }
         });
         
@@ -188,7 +128,7 @@ export const useMessageReadStatus = () => {
         }));
       } catch (error) {
         console.error('[useMessageReadStatus] Error in debouncedMarkClubReadInDb after retries:', error);
-        // Only show toast after multiple retries
+        // Notify UI of error
         window.dispatchEvent(new CustomEvent('read-status-error', { 
           detail: { type: 'club', id: clubId, error } 
         }));
