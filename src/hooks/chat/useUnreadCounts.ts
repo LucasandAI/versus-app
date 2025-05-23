@@ -77,11 +77,13 @@ export const useUnreadCounts = () => {
         setClubUnreadCount(clubCount || 0);
 
         // Get unread conversations by querying direct messages
-        const { data: unreadDMs } = await supabase
+        const { data: unreadDMs, error: unreadDMsError } = await supabase
           .from('direct_messages')
           .select('conversation_id')
           .contains('unread_by', [userId])
           .order('timestamp', { ascending: false });
+
+        if (unreadDMsError) throw unreadDMsError;
 
         if (unreadDMs && unreadDMs.length > 0) {
           // Extract unique conversation IDs
@@ -92,11 +94,13 @@ export const useUnreadCounts = () => {
         }
 
         // Get unread clubs by querying club messages
-        const { data: unreadClubMessages } = await supabase
+        const { data: unreadClubMessages, error: unreadClubsError } = await supabase
           .from('club_chat_messages')
           .select('club_id')
           .contains('unread_by', [userId])
           .order('timestamp', { ascending: false });
+
+        if (unreadClubsError) throw unreadClubsError;
 
         if (unreadClubMessages && unreadClubMessages.length > 0) {
           // Extract unique club IDs
@@ -130,22 +134,25 @@ export const useUnreadCounts = () => {
       .subscribe();
 
     const clubChannel = supabase.channel('club-notifications')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'club_chat_messages'
-      }, (payload) => {
-        if (payload.new.sender_id !== userId) {
-          setClubUnreadCount(prev => prev + 1);
-          setUnreadClubs(prev => new Set([...prev, payload.new.club_id]));
-          
-          // Dispatch global event to notify other parts of the app
-          window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
-          window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
-            detail: { clubId: payload.new.club_id } 
-          }));
+      .on('postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'club_chat_messages'
+        },
+        (payload) => {
+          if (payload.new.sender_id !== userId) {
+            setClubUnreadCount(prev => prev + 1);
+            setUnreadClubs(prev => new Set([...prev, payload.new.club_id]));
+            
+            // Dispatch global event to notify other parts of the app
+            window.dispatchEvent(new CustomEvent('unreadMessagesUpdated'));
+            window.dispatchEvent(new CustomEvent('clubMessageReceived', { 
+              detail: { clubId: payload.new.club_id } 
+            }));
+          }
         }
-      })
+      )
       .subscribe();
 
     return () => {

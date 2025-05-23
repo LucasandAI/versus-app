@@ -109,7 +109,7 @@ export const useClubUnreadState = (currentUserId: string | undefined) => {
     
     while (retries < maxRetries && !success) {
       try {
-        // Use the RPC function to mark the club as read instead of trying to update a read status table
+        // Use the RPC function to mark the club as read
         const normalizedClubId = clubId.toString(); // Ensure it's a string
         console.log(`[useClubUnreadState] Marking club ${normalizedClubId} as read using RPC (attempt ${retries + 1})`);
         
