@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
@@ -12,6 +11,7 @@ import { useClubActions } from '@/hooks/home/useClubActions';
 import { useHomeNotifications } from '@/hooks/home/useHomeNotifications';
 import { ChatDrawerProvider } from '@/context/ChatDrawerContext';
 import { UnreadMessagesProvider } from '@/context/UnreadMessagesContext';
+// No need to import the useChatBadge hook here - HomeHeader will handle it
 
 interface HomeViewProps {
   chatNotifications?: number;

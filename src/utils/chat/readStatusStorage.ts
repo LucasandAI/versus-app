@@ -1,9 +1,11 @@
-
 /**
  * Utility for managing read status of conversations in local storage
  * This provides a local-first approach to marking messages as read
  * before the database is updated
  */
+
+// Import the badge manager functions
+import { decrementBadgeCount } from './simpleBadgeManager';
 
 // Constants
 const LOCAL_READ_STATUS_KEY = 'versus_read_status';
@@ -75,10 +77,8 @@ export const markDmReadLocally = (conversationId: string): boolean => {
       detail: { type: 'dm', id: conversationId, timestamp }
     }));
     
-    // Also dispatch an event specifically for updating the badge
-    window.dispatchEvent(new CustomEvent('badge-refresh-required', {
-      detail: { immediate: true }
-    }));
+    // Decrement badge count and dispatch event to update the UI
+    decrementBadgeCount(1);
     
     return true;
   } catch (error) {
@@ -114,10 +114,8 @@ export const markClubReadLocally = (clubId: string): boolean => {
       detail: { type: 'club', id: clubId, timestamp }
     }));
     
-    // Also dispatch an event specifically for updating the badge
-    window.dispatchEvent(new CustomEvent('badge-refresh-required', {
-      detail: { immediate: true }
-    }));
+    // Decrement badge count and dispatch event to update the UI
+    decrementBadgeCount(1);
     
     return true;
   } catch (error) {
