@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import UnreadMessagesContext from './UnreadMessagesContext';
 import { useApp } from '@/context/app/AppContext';
 import { useClubUnreadState } from './hooks/useClubUnreadState';
@@ -12,11 +13,6 @@ import {
   isDmReadSince, 
   isClubReadSince 
 } from '@/utils/chat/readStatusStorage';
-import { 
-  startReadStatusSync, 
-  stopReadStatusSync, 
-  syncNow 
-} from '@/utils/chat/readStatusSyncService';
 import { debounce } from '@/utils/chat/debounceUtils';
 
 export const UnreadMessagesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -76,7 +72,7 @@ export const UnreadMessagesProvider: React.FC<{ children: React.ReactNode }> = (
     
     // 3. If not active and not read, mark as unread
     console.log(`[UnreadMessagesProvider] Marking club ${clubId} as unread`);
-    markClubAsUnread(clubId, messageTimestamp);
+    markClubAsUnread(clubId);
   }, [markClubAsUnread]);
   
   // Enhanced markConversationAsUnread function that checks active conversations and local read status
@@ -95,24 +91,8 @@ export const UnreadMessagesProvider: React.FC<{ children: React.ReactNode }> = (
     
     // 3. If not active and not read, mark as unread
     console.log(`[UnreadMessagesProvider] Marking DM ${conversationId} as unread`);
-    markConversationAsUnread(conversationId, messageTimestamp);
+    markConversationAsUnread(conversationId);
   }, [markConversationAsUnread]);
-  
-  // Start the background sync service when user is authenticated
-  useEffect(() => {
-    if (currentUser?.id) {
-      startReadStatusSync(currentUser.id);
-      
-      // Initial sync
-      syncNow(currentUser.id);
-    } else {
-      stopReadStatusSync();
-    }
-    
-    return () => {
-      stopReadStatusSync();
-    };
-  }, [currentUser?.id]);
   
   // Set up real-time subscriptions for unread messages with enhanced handlers
   useUnreadSubscriptions({
@@ -175,7 +155,7 @@ export const UnreadMessagesProvider: React.FC<{ children: React.ReactNode }> = (
     setTotalUnreadCount(clubUnreadCount + dmUnreadCount);
   }, [clubUnreadCount, dmUnreadCount]);
   
-  // Refresh unread counts periodically to stay in sync with the database
+  // Refresh unread counts periodically to stay in sync with the server
   useEffect(() => {
     if (!currentUser?.id || !isSessionReady) return;
     
@@ -189,23 +169,6 @@ export const UnreadMessagesProvider: React.FC<{ children: React.ReactNode }> = (
     
     return () => clearInterval(intervalId);
   }, [currentUser?.id, isSessionReady, fetchUnreadCounts]);
-  
-  // Force sync when app visibility changes (tab focus)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && currentUser?.id) {
-        console.log('[UnreadMessagesProvider] App became visible, syncing read status');
-        syncNow(currentUser.id);
-        fetchUnreadCounts();
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [currentUser?.id, fetchUnreadCounts]);
   
   // Legacy method for compatibility
   const refreshUnreadCounts = useCallback(async () => {
