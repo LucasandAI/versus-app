@@ -19,7 +19,7 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
   setActiveTab,
   selectedClub 
 }) => {
-  const { unreadClubs, unreadConversations, fetchUnreadCounts } = useUnreadMessages();
+  const { unreadClubs, unreadConversations } = useUnreadMessages();
   const { markClubMessagesAsRead } = useMessageReadStatus();
   const [forceRender, setForceRender] = useState(0);
   const [clubsWithUnread, setClubsWithUnread] = useState<Set<string>>(new Set());
@@ -28,18 +28,65 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
   
   // Sync with context on mount and when unread collections change
   useEffect(() => {
-    setClubsWithUnread(new Set(unreadClubs));
-    setDmsWithUnread(new Set(unreadConversations));
+    const syncWithLocalStorage = () => {
+      const localReadStatus = getLocalReadStatus();
+      
+      // Filter unreadClubs against local read status
+      const filteredClubs = new Set<string>();
+      unreadClubs.forEach(clubId => {
+        if (!localReadStatus.clubs[clubId]) {
+          filteredClubs.add(clubId);
+        }
+      });
+      
+      // Filter unreadConversations against local read status
+      const filteredConversations = new Set<string>();
+      unreadConversations.forEach(convId => {
+        if (!localReadStatus.dms[convId]) {
+          filteredConversations.add(convId);
+        }
+      });
+      
+      setClubsWithUnread(filteredClubs);
+      setDmsWithUnread(filteredConversations);
+    };
+    
+    // Initial sync
+    syncWithLocalStorage();
+    
   }, [unreadClubs, unreadConversations]);
   
   // Handle force updates more efficiently with a dedicated function
   const handleUnreadUpdate = useCallback(() => {
-    console.log('[DrawerHeader] Unread status changed, forcing re-render');
-    setForceRender(prev => prev + 1);
-    
-    // Also update our local copies of the unread sets
-    setClubsWithUnread(new Set(unreadClubs));
-    setDmsWithUnread(new Set(unreadConversations));
+    // Use requestAnimationFrame to ensure UI updates smoothly
+    requestAnimationFrame(() => {
+      console.log('[DrawerHeader] Unread status changed, updating UI');
+      
+      // Update our local copies based on both context and local storage
+      const localReadStatus = getLocalReadStatus();
+      
+      // Filter unreadClubs against local read status
+      const filteredClubs = new Set<string>();
+      unreadClubs.forEach(clubId => {
+        if (!localReadStatus.clubs[clubId]) {
+          filteredClubs.add(clubId);
+        }
+      });
+      
+      // Filter unreadConversations against local read status
+      const filteredConversations = new Set<string>();
+      unreadConversations.forEach(convId => {
+        if (!localReadStatus.dms[convId]) {
+          filteredConversations.add(convId);
+        }
+      });
+      
+      setClubsWithUnread(filteredClubs);
+      setDmsWithUnread(filteredConversations);
+      
+      // Force a re-render to update UI
+      setForceRender(prev => prev + 1);
+    });
   }, [unreadClubs, unreadConversations]);
   
   // When a club is selected and changes, mark it as read
@@ -50,6 +97,13 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
       if (activeTab === "clubs") {
         console.log(`[DrawerHeader] Selected club changed to ${selectedClub.id}, marking as read`);
         markClubMessagesAsRead(selectedClub.id, true);
+        
+        // Also update our local copy immediately for instant UI feedback
+        setClubsWithUnread(prev => {
+          const updated = new Set(prev);
+          updated.delete(selectedClub.id);
+          return updated;
+        });
       }
     }
   }, [selectedClub, activeTab, markClubMessagesAsRead]);
@@ -93,9 +147,9 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
     }
   }, [activeTab, selectedClub, markClubMessagesAsRead]);
   
-  // Also sync with local storage read status
+  // Listen for unread status changes to update badges
   useEffect(() => {
-    const syncLocalReadStatus = () => {
+    const handleLocalReadStatusChange = () => {
       const localReadStatus = getLocalReadStatus();
       
       // Update club unread status based on local storage
@@ -125,25 +179,15 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
         
         return updated;
       });
+      
+      // Force re-render
+      setForceRender(prev => prev + 1);
     };
     
-    // Do an initial sync
-    syncLocalReadStatus();
-    
-    // Listen for local storage changes
-    window.addEventListener('local-read-status-change', syncLocalReadStatus);
-    
-    return () => {
-      window.removeEventListener('local-read-status-change', syncLocalReadStatus);
-    };
-  }, []);
-  
-  // Listen for unread status changes to update badges
-  useEffect(() => {
     // Listen for various events that might affect unread status
     window.addEventListener('unread-status-changed', handleUnreadUpdate);
     window.addEventListener('unreadMessagesUpdated', handleUnreadUpdate);
-    window.addEventListener('local-read-status-change', handleUnreadUpdate);
+    window.addEventListener('local-read-status-change', handleLocalReadStatusChange);
     window.addEventListener('club-message-received', handleUnreadUpdate);
     window.addEventListener('message-sent', handleUnreadUpdate);
     window.addEventListener('badge-refresh-required', handleUnreadUpdate);
@@ -151,13 +195,10 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
     window.addEventListener('dm-read-status-changed', handleUnreadUpdate);
     window.addEventListener('conversation-opened', handleConversationOpened);
     
-    // Refresh unread counts when component mounts
-    fetchUnreadCounts();
-    
     return () => {
       window.removeEventListener('unread-status-changed', handleUnreadUpdate);
       window.removeEventListener('unreadMessagesUpdated', handleUnreadUpdate);
-      window.removeEventListener('local-read-status-change', handleUnreadUpdate);
+      window.removeEventListener('local-read-status-change', handleLocalReadStatusChange);
       window.removeEventListener('club-message-received', handleUnreadUpdate);
       window.removeEventListener('message-sent', handleUnreadUpdate);
       window.removeEventListener('badge-refresh-required', handleUnreadUpdate);
@@ -165,7 +206,7 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = memo(({
       window.removeEventListener('dm-read-status-changed', handleUnreadUpdate);
       window.removeEventListener('conversation-opened', handleConversationOpened);
     };
-  }, [fetchUnreadCounts, handleUnreadUpdate, handleConversationOpened]);
+  }, [handleUnreadUpdate, handleConversationOpened]);
   
   // Use useMemo for stable rendering of unread indicators
   const clubsUnreadBadge = React.useMemo(() => {

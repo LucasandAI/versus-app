@@ -7,11 +7,19 @@
 
 // Constants
 const LOCAL_READ_STATUS_KEY = 'versus_read_status';
+const SYNC_QUEUE_KEY = 'versus_read_sync_queue';
 
-// Type for read status data
+// Types for read status data
 interface ReadStatusData {
   dms: Record<string, number>; // Conversation ID -> timestamp
   clubs: Record<string, number>; // Club ID -> timestamp
+}
+
+interface SyncQueueItem {
+  type: 'dm' | 'club';
+  id: string;
+  timestamp: number;
+  retries?: number;
 }
 
 /**
@@ -39,6 +47,63 @@ const saveLocalReadStatus = (data: ReadStatusData): void => {
   } catch (error) {
     console.error('[readStatusStorage] Error saving local read status:', error);
   }
+};
+
+/**
+ * Get the queue of items that need to be synced with the database
+ */
+export const getSyncQueue = (): SyncQueueItem[] => {
+  try {
+    const data = localStorage.getItem(SYNC_QUEUE_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch (error) {
+    console.error('[readStatusStorage] Error getting sync queue:', error);
+    return [];
+  }
+};
+
+/**
+ * Save the sync queue to local storage
+ */
+const saveSyncQueue = (queue: SyncQueueItem[]): void => {
+  try {
+    localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
+  } catch (error) {
+    console.error('[readStatusStorage] Error saving sync queue:', error);
+  }
+};
+
+/**
+ * Add an item to the sync queue
+ */
+const addToSyncQueue = (item: SyncQueueItem): void => {
+  const queue = getSyncQueue();
+  
+  // Check if this item is already in the queue
+  const existingIndex = queue.findIndex(
+    queueItem => queueItem.type === item.type && queueItem.id === item.id
+  );
+  
+  if (existingIndex >= 0) {
+    // Update the existing item with the new timestamp
+    queue[existingIndex].timestamp = item.timestamp;
+  } else {
+    // Add the new item
+    queue.push(item);
+  }
+  
+  saveSyncQueue(queue);
+};
+
+/**
+ * Remove an item from the sync queue
+ */
+export const removeFromSyncQueue = (type: 'dm' | 'club', id: string): void => {
+  const queue = getSyncQueue();
+  const updatedQueue = queue.filter(
+    item => !(item.type === type && item.id === id)
+  );
+  saveSyncQueue(updatedQueue);
 };
 
 /**
@@ -70,12 +135,18 @@ export const markDmReadLocally = (conversationId: string): boolean => {
     
     console.log(`[readStatusStorage] Marked DM ${conversationId} as read locally at ${timestamp}`);
     
-    // Dispatch event to notify other components
+    // Add to sync queue for background sync
+    addToSyncQueue({
+      type: 'dm',
+      id: conversationId,
+      timestamp
+    });
+    
+    // Dispatch events to notify other components
     window.dispatchEvent(new CustomEvent('local-read-status-change', {
       detail: { type: 'dm', id: conversationId, timestamp }
     }));
     
-    // Also dispatch an event specifically for updating the badge
     window.dispatchEvent(new CustomEvent('badge-refresh-required', {
       detail: { immediate: true }
     }));
@@ -109,12 +180,18 @@ export const markClubReadLocally = (clubId: string): boolean => {
     
     console.log(`[readStatusStorage] Marked club ${clubId} as read locally at ${timestamp}`);
     
-    // Dispatch event to notify other components
+    // Add to sync queue for background sync
+    addToSyncQueue({
+      type: 'club',
+      id: clubId,
+      timestamp
+    });
+    
+    // Dispatch events to notify other components
     window.dispatchEvent(new CustomEvent('local-read-status-change', {
       detail: { type: 'club', id: clubId, timestamp }
     }));
     
-    // Also dispatch an event specifically for updating the badge
     window.dispatchEvent(new CustomEvent('badge-refresh-required', {
       detail: { immediate: true }
     }));
@@ -215,5 +292,53 @@ export const clearReadStatus = (type: 'dm' | 'club', id: string): void => {
     }));
   } catch (error) {
     console.error('[readStatusStorage] Error clearing read status:', error);
+  }
+};
+
+// Batch operations for efficiency
+export const markMultipleAsRead = (items: {type: 'dm' | 'club', id: string}[]): void => {
+  try {
+    if (!items.length) return;
+    
+    const data = getLocalReadStatus();
+    const timestamp = Date.now();
+    let changed = false;
+    
+    items.forEach(item => {
+      if (!isValidId(item.id)) return;
+      
+      if (item.type === 'dm') {
+        data.dms[item.id] = timestamp;
+      } else {
+        data.clubs[item.id] = timestamp;
+      }
+      changed = true;
+      
+      // Add each item to sync queue
+      addToSyncQueue({
+        type: item.type,
+        id: item.id,
+        timestamp
+      });
+    });
+    
+    if (changed) {
+      saveLocalReadStatus(data);
+      
+      // Dispatch a single event for all changes
+      window.dispatchEvent(new CustomEvent('local-read-status-change', {
+        detail: { 
+          batchUpdate: true,
+          timestamp,
+          items 
+        }
+      }));
+      
+      window.dispatchEvent(new CustomEvent('badge-refresh-required', {
+        detail: { immediate: true }
+      }));
+    }
+  } catch (error) {
+    console.error('[readStatusStorage] Error in batch mark as read:', error);
   }
 };
