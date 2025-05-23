@@ -55,18 +55,29 @@ export const useMessageReadStatus = () => {
         }
         
         await retryOperation(async () => {
-          const { error } = await supabase.from('direct_messages_read').upsert(
-            {
-              conversation_id: conversationId,
-              user_id: userId,
-              last_read_timestamp: new Date().toISOString()
-            },
-            { onConflict: 'conversation_id,user_id' }
-          );
+          // Update the read_by array in all unread messages in this conversation
+          const { error } = await supabase.rpc('mark_conversation_as_read', { 
+            p_conversation_id: conversationId,
+            p_user_id: userId
+          });
 
           if (error) {
             console.error('[useMessageReadStatus] Error updating DM read status in DB:', error);
-            throw error;
+            
+            // Fallback: Update read_by array directly if the RPC fails
+            console.log('[useMessageReadStatus] Falling back to direct update');
+            const { error: directError } = await supabase
+              .from('direct_messages')
+              .update({ 
+                read_by: supabase.sql`array_append(read_by, ${userId}::uuid)` 
+              })
+              .eq('conversation_id', conversationId)
+              .not('read_by', 'cs', `{${userId}}`); // Only update if user is not already in the array
+              
+            if (directError) {
+              console.error('[useMessageReadStatus] Error in direct update fallback:', directError);
+              throw directError;
+            }
           }
         });
         
@@ -106,18 +117,29 @@ export const useMessageReadStatus = () => {
         }
         
         await retryOperation(async () => {
-          const { error } = await supabase.from('club_messages_read').upsert(
-            {
-              club_id: clubId,
-              user_id: userId,
-              last_read_timestamp: new Date().toISOString()
-            },
-            { onConflict: 'club_id,user_id' }
-          );
+          // Update the read_by array in all unread messages in this club
+          const { error } = await supabase.rpc('mark_club_as_read', { 
+            p_club_id: clubId,
+            p_user_id: userId
+          });
 
           if (error) {
             console.error('[useMessageReadStatus] Error updating club read status in DB:', error);
-            throw error;
+            
+            // Fallback: Update read_by array directly if the RPC fails
+            console.log('[useMessageReadStatus] Falling back to direct update');
+            const { error: directError } = await supabase
+              .from('club_chat_messages')
+              .update({ 
+                read_by: supabase.sql`array_append(read_by, ${userId}::uuid)` 
+              })
+              .eq('club_id', clubId)
+              .not('read_by', 'cs', `{${userId}}`); // Only update if user is not already in the array
+              
+            if (directError) {
+              console.error('[useMessageReadStatus] Error in direct update fallback:', directError);
+              throw directError;
+            }
           }
         });
         

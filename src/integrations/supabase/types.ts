@@ -99,6 +99,7 @@ export type Database = {
           club_id: string | null
           id: string
           message: string
+          read_by: string[] | null
           sender_id: string | null
           timestamp: string
         }
@@ -106,6 +107,7 @@ export type Database = {
           club_id?: string | null
           id?: string
           message: string
+          read_by?: string[] | null
           sender_id?: string | null
           timestamp?: string
         }
@@ -113,6 +115,7 @@ export type Database = {
           club_id?: string | null
           id?: string
           message?: string
+          read_by?: string[] | null
           sender_id?: string | null
           timestamp?: string
         }
@@ -407,6 +410,7 @@ export type Database = {
         Row: {
           conversation_id: string | null
           id: string
+          read_by: string[] | null
           receiver_id: string
           sender_id: string
           text: string
@@ -415,6 +419,7 @@ export type Database = {
         Insert: {
           conversation_id?: string | null
           id?: string
+          read_by?: string[] | null
           receiver_id: string
           sender_id: string
           text: string
@@ -423,6 +428,7 @@ export type Database = {
         Update: {
           conversation_id?: string | null
           id?: string
+          read_by?: string[] | null
           receiver_id?: string
           sender_id?: string
           text?: string
@@ -849,6 +855,106 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      club_messages_unread: {
+        Row: {
+          club_id: string | null
+          id: string | null
+          is_unread: boolean | null
+          message: string | null
+          read_by: string[] | null
+          sender_id: string | null
+          timestamp: string | null
+        }
+        Insert: {
+          club_id?: string | null
+          id?: string | null
+          is_unread?: never
+          message?: string | null
+          read_by?: string[] | null
+          sender_id?: string | null
+          timestamp?: string | null
+        }
+        Update: {
+          club_id?: string | null
+          id?: string | null
+          is_unread?: never
+          message?: string | null
+          read_by?: string[] | null
+          sender_id?: string | null
+          timestamp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_chat_messages_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "club_chat_messages_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["away_club_id"]
+          },
+          {
+            foreignKeyName: "club_chat_messages_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["home_club_id"]
+          },
+          {
+            foreignKeyName: "club_chat_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direct_messages_unread: {
+        Row: {
+          conversation_id: string | null
+          id: string | null
+          is_unread: boolean | null
+          read_by: string[] | null
+          receiver_id: string | null
+          sender_id: string | null
+          text: string | null
+          timestamp: string | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          id?: string | null
+          is_unread?: never
+          read_by?: string[] | null
+          receiver_id?: string | null
+          sender_id?: string | null
+          text?: string | null
+          timestamp?: string | null
+        }
+        Update: {
+          conversation_id?: string | null
+          id?: string | null
+          is_unread?: never
+          read_by?: string[] | null
+          receiver_id?: string | null
+          sender_id?: string | null
+          text?: string | null
+          timestamp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "direct_conversations"
             referencedColumns: ["id"]
           },
         ]
