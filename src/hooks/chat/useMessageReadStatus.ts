@@ -72,7 +72,8 @@ export const useMessageReadStatus = () => {
             const { error: directError } = await supabase
               .from('direct_messages')
               .update({ 
-                read_by: `array_append(read_by, '${userId}'::uuid)` 
+                // Fix: Use array literal instead of string for read_by
+                read_by: supabase.sql`array_append(read_by, ${userId}::uuid)` 
               })
               .eq('conversation_id', conversationId)
               .not('read_by', 'cs', `{${userId}}`); // Only update if user is not already in the array
@@ -137,7 +138,8 @@ export const useMessageReadStatus = () => {
             const { error: directError } = await supabase
               .from('club_chat_messages')
               .update({ 
-                read_by: `array_append(read_by, '${userId}'::uuid)` 
+                // Fix: Use array literal instead of string for read_by
+                read_by: supabase.sql`array_append(read_by, ${userId}::uuid)` 
               })
               .eq('club_id', clubId)
               .not('read_by', 'cs', `{${userId}}`); // Only update if user is not already in the array
