@@ -3,9 +3,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   getBadgeCount, 
   setBadgeCount, 
-  incrementBadgeCount, 
-  decrementBadgeCount,
-  resetBadgeCount,
+  getConversationBadgeCount,
+  setConversationBadgeCount,
+  incrementConversationBadgeCount,
+  decrementConversationBadgeCount,
+  resetConversationBadgeCount,
   initializeBadgeCountFromDatabase,
   requestBadgeRefresh
 } from '@/utils/chat/simpleBadgeManager';
@@ -107,62 +109,63 @@ export const useChatBadge = (userId?: string) => {
     };
   }, [userId]);
   
-  // Synchronize with localStorage on mount and when badge count changes
+  // Listen for badge count changes (remove badgeCount dependency to avoid stale closures)
   useEffect(() => {
     // Update local state when storage changes (from other components)
     const handleBadgeCountChange = (event: CustomEvent) => {
       const newCount = event.detail?.count;
-      if (typeof newCount === 'number' && newCount !== badgeCount) {
+      if (typeof newCount === 'number') {
         console.log(`[useChatBadge] Badge count updated to ${newCount} from event`);
         setBadgeCountState(newCount);
       }
     };
     
-    // Listen for badge count changes
-    window.addEventListener(
-      'badge-count-changed',
-      handleBadgeCountChange as EventListener
-    );
+    // Listen for conversation-specific badge changes
+    const handleConversationBadgeChange = (event: CustomEvent) => {
+      const { totalCount } = event.detail;
+      if (typeof totalCount === 'number') {
+        console.log(`[useChatBadge] Total badge count updated to ${totalCount} from conversation event`);
+        setBadgeCountState(totalCount);
+      }
+    };
     
     // Listen for new message events
     const handleNewMessage = () => {
-      console.log('[useChatBadge] New message received');
+      console.log('[useChatBadge] New message received, updating badge count');
       setBadgeCountState(getBadgeCount());
     };
     
-    window.addEventListener(
-      'unread-message-received',
-      handleNewMessage
-    );
+    // Add event listeners
+    window.addEventListener('badge-count-changed', handleBadgeCountChange as EventListener);
+    window.addEventListener('conversation-badge-changed', handleConversationBadgeChange as EventListener);
+    window.addEventListener('unread-message-received', handleNewMessage);
     
     // Clean up event listeners on unmount
     return () => {
-      window.removeEventListener(
-        'badge-count-changed',
-        handleBadgeCountChange as EventListener
-      );
-      window.removeEventListener(
-        'unread-message-received',
-        handleNewMessage
-      );
+      window.removeEventListener('badge-count-changed', handleBadgeCountChange as EventListener);
+      window.removeEventListener('conversation-badge-changed', handleConversationBadgeChange as EventListener);
+      window.removeEventListener('unread-message-received', handleNewMessage);
     };
-  }, [badgeCount]);
+  }, []); // Remove badgeCount dependency
   
   // Callbacks for manipulating badge count with both local state and localStorage updates
   const increment = useCallback((amount: number = 1) => {
-    const newCount = incrementBadgeCount(amount);
+    const newCount = getBadgeCount() + amount;
+    setBadgeCount(newCount);
     setBadgeCountState(newCount);
     return newCount;
   }, []);
   
   const decrement = useCallback((amount: number = 1) => {
-    const newCount = decrementBadgeCount(amount);
+    const currentCount = getBadgeCount();
+    const newCount = Math.max(0, currentCount - amount);
+    setBadgeCount(newCount);
     setBadgeCountState(newCount);
     return newCount;
   }, []);
   
   const reset = useCallback(() => {
-    resetBadgeCount();
+    setBadgeCount(0);
     setBadgeCountState(0);
   }, []);
   
@@ -177,6 +180,12 @@ export const useChatBadge = (userId?: string) => {
     decrement,
     reset,
     setCount,
-    refreshBadge: () => requestBadgeRefresh(true)
+    refreshBadge: () => requestBadgeRefresh(true),
+    // Conversation-specific methods
+    getConversationBadgeCount,
+    setConversationBadgeCount,
+    incrementConversationBadgeCount,
+    decrementConversationBadgeCount,
+    resetConversationBadgeCount
   };
 };

@@ -10,7 +10,7 @@ import UnifiedChatList from './UnifiedChatList';
 import UnifiedChatContent from './UnifiedChatContent';
 import { useClubMessages } from '@/hooks/chat/useClubMessages';
 import { useDirectMessages } from '@/hooks/chat/useDirectMessages';
-import { markConversationActive, clearActiveConversation } from '@/utils/chat/activeConversationTracker';
+import { markConversationActive, clearActiveConversation } from '@/utils/chat/readStatusStorage';
 import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
 
 interface MainChatDrawerProps {

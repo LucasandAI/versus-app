@@ -8,6 +8,10 @@ import {
   getBadgeCount, 
   setBadgeCount, 
   incrementBadgeCount, 
+  getConversationBadgeCount,
+  setConversationBadgeCount,
+  incrementConversationBadgeCount,
+  decrementConversationBadgeCount,
   simulateNewMessage,
   requestBadgeRefresh
 } from './simpleBadgeManager';
@@ -51,6 +55,27 @@ export const debugRefreshBadgeCount = (): void => {
   requestBadgeRefresh(true);
 };
 
+// Test conversation-specific badge operations
+export const debugGetConversationBadge = (conversationId: string): void => {
+  const count = getConversationBadgeCount(conversationId);
+  console.log(`[badgeTestUtils] Conversation ${conversationId} badge count: ${count}`);
+};
+
+export const debugSetConversationBadge = (conversationId: string, count: number): void => {
+  console.log(`[badgeTestUtils] Setting conversation ${conversationId} badge count to: ${count}`);
+  setConversationBadgeCount(conversationId, count);
+};
+
+export const debugIncrementConversationBadge = (conversationId: string, amount: number = 1): void => {
+  console.log(`[badgeTestUtils] Incrementing conversation ${conversationId} badge count by: ${amount}`);
+  incrementConversationBadgeCount(conversationId, amount);
+};
+
+export const debugDecrementConversationBadge = (conversationId: string, amount: number = 1): void => {
+  console.log(`[badgeTestUtils] Decrementing conversation ${conversationId} badge count by: ${amount}`);
+  decrementConversationBadgeCount(conversationId, amount);
+};
+
 // Test all badge count operations
 export const runBadgeTest = (): void => {
   console.log('[badgeTestUtils] Running badge count test');
@@ -74,4 +99,33 @@ export const runBadgeTest = (): void => {
   // Reset to initial count
   setBadgeCount(initialCount);
   console.log(`[badgeTestUtils] Reset badge count to ${initialCount}`);
+};
+
+// Test conversation-specific operations
+export const runConversationBadgeTest = (conversationId: string = 'test-conversation'): void => {
+  console.log(`[badgeTestUtils] Running conversation badge test for: ${conversationId}`);
+  
+  // Get initial count
+  const initialCount = getConversationBadgeCount(conversationId);
+  console.log(`[badgeTestUtils] Initial conversation badge count: ${initialCount}`);
+  
+  // Set to 3
+  setConversationBadgeCount(conversationId, 3);
+  console.log('[badgeTestUtils] Set conversation badge count to 3');
+  
+  // Increment by 2
+  incrementConversationBadgeCount(conversationId, 2);
+  console.log('[badgeTestUtils] Incremented conversation badge by 2');
+  
+  // Get new count
+  const newCount = getConversationBadgeCount(conversationId);
+  console.log(`[badgeTestUtils] New conversation badge count: ${newCount}`);
+  
+  // Get total count
+  const totalCount = getBadgeCount();
+  console.log(`[badgeTestUtils] Total badge count: ${totalCount}`);
+  
+  // Reset conversation count
+  setConversationBadgeCount(conversationId, 0);
+  console.log(`[badgeTestUtils] Reset conversation badge count to 0`);
 };

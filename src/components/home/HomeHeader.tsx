@@ -86,8 +86,8 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   };
   
   const handleChatOpen = () => {
-    // We don't decrement the badge count here anymore
-    // Badge will be updated only when a specific conversation is opened in the drawer
+    // Don't decrement badge count here - it should only happen when a specific conversation is opened
+    console.log('[HomeHeader] Opening chat drawer without decrementing badge');
     open();
   };
   

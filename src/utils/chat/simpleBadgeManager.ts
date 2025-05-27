@@ -7,6 +7,36 @@
 
 // Constants
 const LOCAL_BADGE_COUNT_KEY = 'versus_badge_count';
+const LOCAL_CONVERSATION_BADGES_KEY = 'versus_conversation_badges';
+
+// Type for conversation-specific badge data
+interface ConversationBadgeData {
+  [conversationId: string]: number;
+}
+
+/**
+ * Get conversation-specific badge counts from local storage
+ */
+export const getConversationBadges = (): ConversationBadgeData => {
+  try {
+    const data = localStorage.getItem(LOCAL_CONVERSATION_BADGES_KEY);
+    return data ? JSON.parse(data) : {};
+  } catch (error) {
+    console.error('[simpleBadgeManager] Error getting conversation badges:', error);
+    return {};
+  }
+};
+
+/**
+ * Save conversation-specific badge data to local storage
+ */
+const saveConversationBadges = (data: ConversationBadgeData): void => {
+  try {
+    localStorage.setItem(LOCAL_CONVERSATION_BADGES_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error('[simpleBadgeManager] Error saving conversation badges:', error);
+  }
+};
 
 /**
  * Get the current badge count from local storage
@@ -42,6 +72,72 @@ export const setBadgeCount = (count: number): void => {
 };
 
 /**
+ * Get unread count for a specific conversation
+ */
+export const getConversationBadgeCount = (conversationId: string): number => {
+  const badges = getConversationBadges();
+  return badges[conversationId] || 0;
+};
+
+/**
+ * Set unread count for a specific conversation
+ */
+export const setConversationBadgeCount = (conversationId: string, count: number): void => {
+  try {
+    const badges = getConversationBadges();
+    const sanitizedCount = Math.max(0, count);
+    
+    if (sanitizedCount === 0) {
+      delete badges[conversationId];
+    } else {
+      badges[conversationId] = sanitizedCount;
+    }
+    
+    saveConversationBadges(badges);
+    
+    // Recalculate total badge count
+    const totalCount = Object.values(badges).reduce((sum, count) => sum + count, 0);
+    setBadgeCount(totalCount);
+    
+    // Dispatch conversation-specific event
+    window.dispatchEvent(new CustomEvent('conversation-badge-changed', {
+      detail: { conversationId, count: sanitizedCount, totalCount }
+    }));
+    
+    console.log(`[simpleBadgeManager] Conversation ${conversationId} badge count set to: ${sanitizedCount}`);
+  } catch (error) {
+    console.error('[simpleBadgeManager] Error setting conversation badge count:', error);
+  }
+};
+
+/**
+ * Increment the badge count for a specific conversation
+ */
+export const incrementConversationBadgeCount = (conversationId: string, amount: number = 1): number => {
+  const currentCount = getConversationBadgeCount(conversationId);
+  const newCount = currentCount + amount;
+  setConversationBadgeCount(conversationId, newCount);
+  return newCount;
+};
+
+/**
+ * Decrement the badge count for a specific conversation
+ */
+export const decrementConversationBadgeCount = (conversationId: string, amount: number = 1): number => {
+  const currentCount = getConversationBadgeCount(conversationId);
+  const newCount = Math.max(0, currentCount - amount);
+  setConversationBadgeCount(conversationId, newCount);
+  return newCount;
+};
+
+/**
+ * Reset the badge count for a specific conversation
+ */
+export const resetConversationBadgeCount = (conversationId: string): void => {
+  setConversationBadgeCount(conversationId, 0);
+};
+
+/**
  * Increment the badge count by a specific amount (default: 1)
  */
 export const incrementBadgeCount = (amount: number = 1): number => {
@@ -67,6 +163,8 @@ export const decrementBadgeCount = (amount: number = 1): number => {
  */
 export const resetBadgeCount = (): void => {
   setBadgeCount(0);
+  // Also clear all conversation badges
+  saveConversationBadges({});
 };
 
 /**
@@ -79,11 +177,14 @@ export const initializeBadgeCountFromDatabase = (count: number): void => {
 };
 
 /**
- * Helper function to simulate a new message notification
- * This is useful for testing the badge functionality
+ * Helper function to simulate a new message notification for a specific conversation
  */
 export const simulateNewMessage = (conversationId?: string, conversationType?: 'dm' | 'club'): void => {
-  incrementBadgeCount();
+  if (conversationId) {
+    incrementConversationBadgeCount(conversationId);
+  } else {
+    incrementBadgeCount();
+  }
   
   // Dispatch event to notify components
   window.dispatchEvent(new CustomEvent('unread-message-received', {
