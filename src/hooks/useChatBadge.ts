@@ -13,8 +13,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Hook for managing chat badge count with both local state for UI
- * and localStorage persistence for data survival across page reloads
+ * Hook for managing chat badge count with conversation-specific tracking
  */
 export const useChatBadge = (userId?: string) => {
   // Local state for immediate UI updates
@@ -25,63 +24,50 @@ export const useChatBadge = (userId?: string) => {
   useEffect(() => {
     if (!userId) return;
     
-    const fetchUnreadCountsFromDatabase = async () => {
+    const fetchConversationSpecificCounts = async () => {
       try {
-        console.log('[useChatBadge] Fetching initial unread counts from database');
+        console.log('[useChatBadge] Fetching conversation-specific unread counts from database');
         
-        // Fetch individual conversation unread counts
-        const [dmCountResult, clubCountResult, directMessagesResult, clubMembersResult] = await Promise.all([
-          supabase.rpc('get_unread_dm_count', { user_id: userId }),
-          supabase.rpc('get_unread_club_messages_count', { user_id: userId }),
-          // Get unread direct messages grouped by conversation
-          supabase
-            .from('direct_messages')
-            .select('conversation_id')
-            .contains('unread_by', [userId]),
-          // Get user's clubs for club conversation tracking
-          supabase
-            .from('club_members')
-            .select('club_id')
-            .eq('user_id', userId)
-        ]);
-        
-        // Handle any errors
-        if (dmCountResult.error) throw dmCountResult.error;
-        if (clubCountResult.error) throw clubCountResult.error;
-        if (directMessagesResult.error) throw directMessagesResult.error;
-        if (clubMembersResult.error) throw clubMembersResult.error;
-        
-        // Build conversation-specific counts
         const conversationCounts: Record<string, number> = {};
         
-        // Count unread messages per DM conversation
-        const dmConversations = directMessagesResult.data || [];
-        const dmConversationCounts: Record<string, number> = {};
-        dmConversations.forEach(msg => {
-          if (msg.conversation_id) {
-            dmConversationCounts[msg.conversation_id] = (dmConversationCounts[msg.conversation_id] || 0) + 1;
-          }
-        });
-        Object.assign(conversationCounts, dmConversationCounts);
+        // Get user's DM conversations and their unread counts
+        const { data: conversations } = await supabase
+          .from('direct_conversations')
+          .select('id')
+          .or(`user1_id.eq.${userId},user2_id.eq.${userId}`);
         
-        // For clubs, we need to get unread counts per club
-        const userClubs = clubMembersResult.data || [];
-        if (userClubs.length > 0) {
-          const clubIds = userClubs.map(member => member.club_id);
-          
-          const { data: clubMessages } = await supabase
-            .from('club_chat_messages')
-            .select('club_id')
-            .in('club_id', clubIds)
-            .contains('unread_by', [userId]);
-          
-          const clubConversationCounts: Record<string, number> = {};
-          (clubMessages || []).forEach(msg => {
-            if (msg.club_id) {
-              clubConversationCounts[msg.club_id] = (clubConversationCounts[msg.club_id] || 0) + 1;
+        if (conversations) {
+          for (const conv of conversations) {
+            const { data: unreadMessages } = await supabase
+              .from('direct_messages')
+              .select('id')
+              .eq('conversation_id', conv.id)
+              .contains('unread_by', [userId]);
+            
+            if (unreadMessages && unreadMessages.length > 0) {
+              conversationCounts[conv.id] = unreadMessages.length;
             }
-          });
-          Object.assign(conversationCounts, clubConversationCounts);
+          }
+        }
+        
+        // Get user's clubs and their unread counts
+        const { data: userClubs } = await supabase
+          .from('club_members')
+          .select('club_id')
+          .eq('user_id', userId);
+        
+        if (userClubs) {
+          for (const membership of userClubs) {
+            const { data: unreadMessages } = await supabase
+              .from('club_chat_messages')
+              .select('id')
+              .eq('club_id', membership.club_id)
+              .contains('unread_by', [userId]);
+            
+            if (unreadMessages && unreadMessages.length > 0) {
+              conversationCounts[membership.club_id] = unreadMessages.length;
+            }
+          }
         }
         
         // Initialize the conversation-specific badge system
@@ -93,11 +79,11 @@ export const useChatBadge = (userId?: string) => {
         
         console.log(`[useChatBadge] Initialized with conversation counts:`, conversationCounts, `Total: ${totalCount}`);
       } catch (error) {
-        console.error('[useChatBadge] Error fetching initial unread counts:', error);
+        console.error('[useChatBadge] Error fetching conversation-specific unread counts:', error);
       }
     };
     
-    fetchUnreadCountsFromDatabase();
+    fetchConversationSpecificCounts();
   }, [userId]);
   
   // Handle badge refresh requests
@@ -116,7 +102,6 @@ export const useChatBadge = (userId?: string) => {
         if (!userId) return;
         
         try {
-          // Re-fetch from database and rebuild conversation counts
           const [dmCountResult, clubCountResult] = await Promise.all([
             supabase.rpc('get_unread_dm_count', { user_id: userId }),
             supabase.rpc('get_unread_club_messages_count', { user_id: userId })
@@ -128,7 +113,6 @@ export const useChatBadge = (userId?: string) => {
           const totalCount = (dmCountResult.data || 0) + (clubCountResult.data || 0);
           console.log(`[useChatBadge] Refreshed badge count from DB: ${totalCount}`);
           
-          // Update badge count
           setBadgeCount(totalCount);
           setBadgeCountState(totalCount);
         } catch (error) {
@@ -136,7 +120,6 @@ export const useChatBadge = (userId?: string) => {
         }
       };
       
-      // If immediate, refresh now, otherwise use short delay
       if (immediate) {
         refreshBadge();
       } else {
@@ -174,22 +157,30 @@ export const useChatBadge = (userId?: string) => {
       }
     };
     
-    // Listen for new message events
-    const handleNewMessage = () => {
-      console.log('[useChatBadge] New message received, updating badge count');
-      setBadgeCountState(getBadgeCount());
+    // Listen for new message events and increment conversation-specific badges
+    const handleNewMessage = (event: CustomEvent) => {
+      const { conversationId, conversationType } = event.detail || {};
+      console.log('[useChatBadge] New message received:', { conversationId, conversationType });
+      
+      if (conversationId && conversationType) {
+        // Increment the specific conversation's badge count
+        incrementConversationBadgeCount(conversationId);
+      } else {
+        // Fallback to updating total badge count
+        setBadgeCountState(getBadgeCount());
+      }
     };
     
     // Add event listeners
     window.addEventListener('badge-count-changed', handleBadgeCountChange as EventListener);
     window.addEventListener('conversation-badge-changed', handleConversationBadgeChange as EventListener);
-    window.addEventListener('unread-message-received', handleNewMessage);
+    window.addEventListener('unread-message-received', handleNewMessage as EventListener);
     
     // Clean up event listeners on unmount
     return () => {
       window.removeEventListener('badge-count-changed', handleBadgeCountChange as EventListener);
       window.removeEventListener('conversation-badge-changed', handleConversationBadgeChange as EventListener);
-      window.removeEventListener('unread-message-received', handleNewMessage);
+      window.removeEventListener('unread-message-received', handleNewMessage as EventListener);
     };
   }, []); // No dependencies to prevent stale closures
   

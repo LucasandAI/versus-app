@@ -23,11 +23,15 @@ export function useClubPreviewData(clubs: Club[], clubMessages: Record<string, a
     .sort((a, b) => b.lastTimestamp - a.lastTimestamp)
     .map(item => item.club);
 
-  // Add unread counts for each club
-  const clubsWithUnreadCounts = sortedClubs.map(club => ({
-    ...club,
-    unreadCount: getConversationBadgeCount(club.id)
-  }));
+  // Add conversation-specific unread counts for each club
+  const clubsWithUnreadCounts = sortedClubs.map(club => {
+    const unreadCount = getConversationBadgeCount(club.id);
+    console.log(`[useClubPreviewData] Club ${club.name} (${club.id}) has ${unreadCount} unread messages`);
+    return {
+      ...club,
+      unreadCount
+    };
+  });
 
   return { lastMessages, sortedClubs: clubsWithUnreadCounts };
 }

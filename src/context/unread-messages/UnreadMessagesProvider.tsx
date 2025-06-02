@@ -6,14 +6,16 @@ import { useApp } from '@/context/app/AppContext';
 import { useClubUnreadState } from './hooks/useClubUnreadState';
 import { useDirectMessageUnreadState } from './hooks/useDirectMessageUnreadState';
 import { useFetchUnreadCounts } from './hooks/useFetchUnreadCounts';
-import { useUnreadSubscriptions } from './hooks/useUnreadSubscriptions';
 import { isConversationActive } from '@/utils/chat/activeConversationTracker';
 import { 
   getLocalReadStatus, 
   isDmReadSince, 
   isClubReadSince 
 } from '@/utils/chat/readStatusStorage';
-import { debounce } from '@/utils/chat/debounceUtils';
+import { 
+  incrementConversationBadgeCount,
+  simulateNewMessage
+} from '@/utils/chat/simpleBadgeManager';
 
 export const UnreadMessagesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, isSessionReady } = useApp();
@@ -70,9 +72,10 @@ export const UnreadMessagesProvider: React.FC<{ children: React.ReactNode }> = (
       return;
     }
     
-    // 3. If not active and not read, mark as unread
-    console.log(`[UnreadMessagesProvider] Marking club ${clubId} as unread`);
+    // 3. If not active and not read, mark as unread and increment badge
+    console.log(`[UnreadMessagesProvider] Marking club ${clubId} as unread and incrementing badge`);
     markClubAsUnread(clubId);
+    incrementConversationBadgeCount(clubId);
   }, [markClubAsUnread]);
   
   // Enhanced markConversationAsUnread function that checks active conversations and local read status
@@ -89,19 +92,67 @@ export const UnreadMessagesProvider: React.FC<{ children: React.ReactNode }> = (
       return;
     }
     
-    // 3. If not active and not read, mark as unread
-    console.log(`[UnreadMessagesProvider] Marking DM ${conversationId} as unread`);
+    // 3. If not active and not read, mark as unread and increment badge
+    console.log(`[UnreadMessagesProvider] Marking DM ${conversationId} as unread and incrementing badge`);
     markConversationAsUnread(conversationId);
+    incrementConversationBadgeCount(conversationId);
   }, [markConversationAsUnread]);
   
-  // Set up real-time subscriptions for unread messages with enhanced handlers
-  useUnreadSubscriptions({
-    currentUserId: currentUser?.id,
-    isSessionReady,
-    markConversationAsUnread: enhancedMarkConversationAsUnread,
-    markClubAsUnread: enhancedMarkClubAsUnread,
-    fetchUnreadCounts
-  });
+  // Set up real-time subscriptions for unread messages
+  useEffect(() => {
+    if (!isSessionReady || !currentUser?.id) return;
+
+    console.log('[UnreadMessagesProvider] Setting up real-time subscriptions');
+
+    // DM subscription
+    const dmChannel = supabase.channel('dm-notifications')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'direct_messages'
+      }, (payload) => {
+        console.log('[UnreadMessagesProvider] New DM received:', payload);
+        
+        if (payload.new.receiver_id === currentUser.id) {
+          const conversationId = payload.new.conversation_id;
+          const messageTimestamp = new Date(payload.new.timestamp).getTime();
+          
+          // Mark conversation as unread and increment badge
+          enhancedMarkConversationAsUnread(conversationId, messageTimestamp);
+          
+          // Trigger new message event for immediate UI updates
+          simulateNewMessage(conversationId, 'dm');
+        }
+      })
+      .subscribe();
+
+    // Club message subscription  
+    const clubChannel = supabase.channel('club-notifications')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'club_chat_messages'
+      }, (payload) => {
+        console.log('[UnreadMessagesProvider] New club message received:', payload);
+        
+        if (payload.new.sender_id !== currentUser.id) {
+          const clubId = payload.new.club_id;
+          const messageTimestamp = new Date(payload.new.timestamp).getTime();
+          
+          // Mark club as unread and increment badge
+          enhancedMarkClubAsUnread(clubId, messageTimestamp);
+          
+          // Trigger new message event for immediate UI updates
+          simulateNewMessage(clubId, 'club');
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(dmChannel);
+      supabase.removeChannel(clubChannel);
+    };
+  }, [currentUser?.id, isSessionReady, enhancedMarkConversationAsUnread, enhancedMarkClubAsUnread]);
   
   // Listen for local read status changes
   useEffect(() => {
