@@ -11,7 +11,7 @@ import {
   getConversationBadgeCount,
   setConversationBadgeCount,
   incrementConversationBadgeCount,
-  decrementConversationBadgeCount,
+  resetConversationBadgeCount,
   simulateNewMessage,
   requestBadgeRefresh
 } from './simpleBadgeManager';
@@ -71,9 +71,9 @@ export const debugIncrementConversationBadge = (conversationId: string, amount: 
   incrementConversationBadgeCount(conversationId, amount);
 };
 
-export const debugDecrementConversationBadge = (conversationId: string, amount: number = 1): void => {
-  console.log(`[badgeTestUtils] Decrementing conversation ${conversationId} badge count by: ${amount}`);
-  decrementConversationBadgeCount(conversationId, amount);
+export const debugResetConversationBadge = (conversationId: string): void => {
+  console.log(`[badgeTestUtils] Resetting conversation ${conversationId} badge count`);
+  resetConversationBadgeCount(conversationId);
 };
 
 // Test all badge count operations
@@ -126,6 +126,6 @@ export const runConversationBadgeTest = (conversationId: string = 'test-conversa
   console.log(`[badgeTestUtils] Total badge count: ${totalCount}`);
   
   // Reset conversation count
-  setConversationBadgeCount(conversationId, 0);
+  resetConversationBadgeCount(conversationId);
   console.log(`[badgeTestUtils] Reset conversation badge count to 0`);
 };

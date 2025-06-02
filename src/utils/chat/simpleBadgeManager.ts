@@ -80,7 +80,7 @@ export const getConversationBadgeCount = (conversationId: string): number => {
 };
 
 /**
- * Set unread count for a specific conversation
+ * Set unread count for a specific conversation and recalculate total
  */
 export const setConversationBadgeCount = (conversationId: string, count: number): void => {
   try {
@@ -95,7 +95,7 @@ export const setConversationBadgeCount = (conversationId: string, count: number)
     
     saveConversationBadges(badges);
     
-    // Recalculate total badge count
+    // Recalculate total badge count from all conversations
     const totalCount = Object.values(badges).reduce((sum, count) => sum + count, 0);
     setBadgeCount(totalCount);
     
@@ -104,9 +104,29 @@ export const setConversationBadgeCount = (conversationId: string, count: number)
       detail: { conversationId, count: sanitizedCount, totalCount }
     }));
     
-    console.log(`[simpleBadgeManager] Conversation ${conversationId} badge count set to: ${sanitizedCount}`);
+    console.log(`[simpleBadgeManager] Conversation ${conversationId} badge count set to: ${sanitizedCount}, total: ${totalCount}`);
   } catch (error) {
     console.error('[simpleBadgeManager] Error setting conversation badge count:', error);
+  }
+};
+
+/**
+ * Initialize conversation-specific badge counts from database data
+ */
+export const initializeConversationBadges = (conversationCounts: Record<string, number>): void => {
+  try {
+    console.log('[simpleBadgeManager] Initializing conversation badges:', conversationCounts);
+    
+    // Save the conversation-specific counts
+    saveConversationBadges(conversationCounts);
+    
+    // Calculate total count
+    const totalCount = Object.values(conversationCounts).reduce((sum, count) => sum + count, 0);
+    setBadgeCount(totalCount);
+    
+    console.log(`[simpleBadgeManager] Initialized with ${Object.keys(conversationCounts).length} conversations, total count: ${totalCount}`);
+  } catch (error) {
+    console.error('[simpleBadgeManager] Error initializing conversation badges:', error);
   }
 };
 
@@ -121,19 +141,10 @@ export const incrementConversationBadgeCount = (conversationId: string, amount: 
 };
 
 /**
- * Decrement the badge count for a specific conversation
- */
-export const decrementConversationBadgeCount = (conversationId: string, amount: number = 1): number => {
-  const currentCount = getConversationBadgeCount(conversationId);
-  const newCount = Math.max(0, currentCount - amount);
-  setConversationBadgeCount(conversationId, newCount);
-  return newCount;
-};
-
-/**
- * Reset the badge count for a specific conversation
+ * Reset the badge count for a specific conversation to 0
  */
 export const resetConversationBadgeCount = (conversationId: string): void => {
+  console.log(`[simpleBadgeManager] Resetting conversation badge count for: ${conversationId}`);
   setConversationBadgeCount(conversationId, 0);
 };
 

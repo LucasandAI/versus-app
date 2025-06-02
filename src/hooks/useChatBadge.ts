@@ -6,9 +6,8 @@ import {
   getConversationBadgeCount,
   setConversationBadgeCount,
   incrementConversationBadgeCount,
-  decrementConversationBadgeCount,
   resetConversationBadgeCount,
-  initializeBadgeCountFromDatabase,
+  initializeConversationBadges,
   requestBadgeRefresh
 } from '@/utils/chat/simpleBadgeManager';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,23 +29,69 @@ export const useChatBadge = (userId?: string) => {
       try {
         console.log('[useChatBadge] Fetching initial unread counts from database');
         
-        // Use Promise.all to fetch both DM and club unread counts in parallel
-        const [dmCountResult, clubCountResult] = await Promise.all([
+        // Fetch individual conversation unread counts
+        const [dmCountResult, clubCountResult, directMessagesResult, clubMembersResult] = await Promise.all([
           supabase.rpc('get_unread_dm_count', { user_id: userId }),
-          supabase.rpc('get_unread_club_messages_count', { user_id: userId })
+          supabase.rpc('get_unread_club_messages_count', { user_id: userId }),
+          // Get unread direct messages grouped by conversation
+          supabase
+            .from('direct_messages')
+            .select('conversation_id')
+            .contains('unread_by', [userId]),
+          // Get user's clubs for club conversation tracking
+          supabase
+            .from('club_members')
+            .select('club_id')
+            .eq('user_id', userId)
         ]);
         
         // Handle any errors
         if (dmCountResult.error) throw dmCountResult.error;
         if (clubCountResult.error) throw clubCountResult.error;
+        if (directMessagesResult.error) throw directMessagesResult.error;
+        if (clubMembersResult.error) throw clubMembersResult.error;
         
-        // Calculate total unread count
-        const totalCount = (dmCountResult.data || 0) + (clubCountResult.data || 0);
-        console.log(`[useChatBadge] Initial unread count from DB: ${totalCount}`);
+        // Build conversation-specific counts
+        const conversationCounts: Record<string, number> = {};
         
-        // Initialize badge count with database value
-        initializeBadgeCountFromDatabase(totalCount);
+        // Count unread messages per DM conversation
+        const dmConversations = directMessagesResult.data || [];
+        const dmConversationCounts: Record<string, number> = {};
+        dmConversations.forEach(msg => {
+          if (msg.conversation_id) {
+            dmConversationCounts[msg.conversation_id] = (dmConversationCounts[msg.conversation_id] || 0) + 1;
+          }
+        });
+        Object.assign(conversationCounts, dmConversationCounts);
+        
+        // For clubs, we need to get unread counts per club
+        const userClubs = clubMembersResult.data || [];
+        if (userClubs.length > 0) {
+          const clubIds = userClubs.map(member => member.club_id);
+          
+          const { data: clubMessages } = await supabase
+            .from('club_chat_messages')
+            .select('club_id')
+            .in('club_id', clubIds)
+            .contains('unread_by', [userId]);
+          
+          const clubConversationCounts: Record<string, number> = {};
+          (clubMessages || []).forEach(msg => {
+            if (msg.club_id) {
+              clubConversationCounts[msg.club_id] = (clubConversationCounts[msg.club_id] || 0) + 1;
+            }
+          });
+          Object.assign(conversationCounts, clubConversationCounts);
+        }
+        
+        // Initialize the conversation-specific badge system
+        initializeConversationBadges(conversationCounts);
+        
+        // Update local state with the total count
+        const totalCount = Object.values(conversationCounts).reduce((sum, count) => sum + count, 0);
         setBadgeCountState(totalCount);
+        
+        console.log(`[useChatBadge] Initialized with conversation counts:`, conversationCounts, `Total: ${totalCount}`);
       } catch (error) {
         console.error('[useChatBadge] Error fetching initial unread counts:', error);
       }
@@ -71,7 +116,7 @@ export const useChatBadge = (userId?: string) => {
         if (!userId) return;
         
         try {
-          // Re-fetch from database
+          // Re-fetch from database and rebuild conversation counts
           const [dmCountResult, clubCountResult] = await Promise.all([
             supabase.rpc('get_unread_dm_count', { user_id: userId }),
             supabase.rpc('get_unread_club_messages_count', { user_id: userId })
@@ -109,7 +154,7 @@ export const useChatBadge = (userId?: string) => {
     };
   }, [userId]);
   
-  // Listen for badge count changes (remove badgeCount dependency to avoid stale closures)
+  // Listen for badge count changes
   useEffect(() => {
     // Update local state when storage changes (from other components)
     const handleBadgeCountChange = (event: CustomEvent) => {
@@ -146,7 +191,7 @@ export const useChatBadge = (userId?: string) => {
       window.removeEventListener('conversation-badge-changed', handleConversationBadgeChange as EventListener);
       window.removeEventListener('unread-message-received', handleNewMessage);
     };
-  }, []); // Remove badgeCount dependency
+  }, []); // No dependencies to prevent stale closures
   
   // Callbacks for manipulating badge count with both local state and localStorage updates
   const increment = useCallback((amount: number = 1) => {
@@ -185,7 +230,6 @@ export const useChatBadge = (userId?: string) => {
     getConversationBadgeCount,
     setConversationBadgeCount,
     incrementConversationBadgeCount,
-    decrementConversationBadgeCount,
     resetConversationBadgeCount
   };
 };

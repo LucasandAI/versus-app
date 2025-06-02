@@ -90,7 +90,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
             avatar: userAvatar
           });
           
-          // Mark this conversation as active - will enable badge count to be updated
+          // Mark this conversation as active - will enable badge count to be reset
           markConversationActive('dm', conversationId);
           
           // Mark as read immediately (which will now check if the conversation is active)
@@ -137,7 +137,7 @@ const MainChatDrawer: React.FC<MainChatDrawerProps> = ({
     
     setSelectedChat({ type, id, name, avatar });
     
-    // Mark this conversation as active - will enable badge count to be updated
+    // Mark this conversation as active - will enable badge count to be reset
     markConversationActive(type, id);
     
     // Mark as read with a small delay to ensure active status is set

@@ -1,3 +1,4 @@
+
 /**
  * Utility for managing read status of conversations in local storage
  * This provides a local-first approach to marking messages as read
@@ -5,7 +6,7 @@
  */
 
 // Import the badge manager functions
-import { decrementConversationBadgeCount, requestBadgeRefresh } from './simpleBadgeManager';
+import { resetConversationBadgeCount, requestBadgeRefresh } from './simpleBadgeManager';
 
 // Constants
 const LOCAL_READ_STATUS_KEY = 'versus_read_status';
@@ -116,13 +117,13 @@ export const markDmReadLocally = (conversationId: string): boolean => {
       detail: { type: 'dm', id: conversationId, timestamp }
     }));
     
-    // Decrement badge count for this specific conversation ONLY if it's active
+    // Reset badge count for this specific conversation ONLY if it's active
     const isActiveConversation = isConversationActive('dm', conversationId);
     console.log(`[readStatusStorage] Is DM active conversation: ${isActiveConversation}`);
     
     if (isActiveConversation) {
-      decrementConversationBadgeCount(conversationId, 1);
-      console.log(`[readStatusStorage] Decremented badge count for DM ${conversationId}`);
+      resetConversationBadgeCount(conversationId);
+      console.log(`[readStatusStorage] Reset badge count for DM ${conversationId}`);
       
       // Notify about the conversation being opened
       window.dispatchEvent(new CustomEvent('conversation-opened', {
@@ -165,13 +166,13 @@ export const markClubReadLocally = (clubId: string): boolean => {
       detail: { type: 'club', id: clubId, timestamp }
     }));
     
-    // Decrement badge count for this specific conversation ONLY if it's active
+    // Reset badge count for this specific conversation ONLY if it's active
     const isActiveConversation = isConversationActive('club', clubId);
     console.log(`[readStatusStorage] Is club active conversation: ${isActiveConversation}`);
     
     if (isActiveConversation) {
-      decrementConversationBadgeCount(clubId, 1);
-      console.log(`[readStatusStorage] Decremented badge count for club ${clubId}`);
+      resetConversationBadgeCount(clubId);
+      console.log(`[readStatusStorage] Reset badge count for club ${clubId}`);
       
       // Notify about the conversation being opened
       window.dispatchEvent(new CustomEvent('conversation-opened', {

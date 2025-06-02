@@ -1,5 +1,7 @@
+
 import React from 'react';
 import { Club } from '@/types';
+import { getConversationBadgeCount } from '@/utils/chat/simpleBadgeManager';
 
 export function useClubPreviewData(clubs: Club[], clubMessages: Record<string, any[]>) {
   // Always recalculate lastMessages and sortedClubs on every render
@@ -21,5 +23,11 @@ export function useClubPreviewData(clubs: Club[], clubMessages: Record<string, a
     .sort((a, b) => b.lastTimestamp - a.lastTimestamp)
     .map(item => item.club);
 
-  return { lastMessages, sortedClubs };
-} 
+  // Add unread counts for each club
+  const clubsWithUnreadCounts = sortedClubs.map(club => ({
+    ...club,
+    unreadCount: getConversationBadgeCount(club.id)
+  }));
+
+  return { lastMessages, sortedClubs: clubsWithUnreadCounts };
+}
