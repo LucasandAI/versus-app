@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import { MessageCircle, Watch, User, HelpCircle, LogOut } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -44,7 +43,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     open
   } = useChatDrawerGlobal();
   
-  // Use our chat badge hook
+  // Use our unified chat badge hook
   const { badgeCount } = useChatBadge(currentUser?.id);
   
   const navigate = useNavigate();
@@ -52,7 +51,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   const [notificationsCount, setNotificationsCount] = useState(notifications.length);
   const [helpDialogOpen, setHelpDialogOpen] = useState(false);
   
-  console.log("[HomeHeader] Rendering with notifications:", notifications.length, notifications);
+  console.log("[HomeHeader] Rendering with badge count:", badgeCount, "notifications:", notifications.length);
 
   // Update notifications count when notifications array changes
   useEffect(() => {
@@ -86,8 +85,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   };
   
   const handleChatOpen = () => {
-    // Only open the drawer, don't modify badge counts
-    console.log('[HomeHeader] Opening chat drawer without modifying badge counts');
+    console.log('[HomeHeader] Opening chat drawer');
     open();
   };
   

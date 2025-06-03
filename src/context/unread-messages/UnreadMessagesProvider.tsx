@@ -7,15 +7,7 @@ import { useClubUnreadState } from './hooks/useClubUnreadState';
 import { useDirectMessageUnreadState } from './hooks/useDirectMessageUnreadState';
 import { useFetchUnreadCounts } from './hooks/useFetchUnreadCounts';
 import { isConversationActive } from '@/utils/chat/activeConversationTracker';
-import { 
-  getLocalReadStatus, 
-  isDmReadSince, 
-  isClubReadSince 
-} from '@/utils/chat/readStatusStorage';
-import { 
-  incrementConversationBadgeCount,
-  simulateNewMessage
-} from '@/utils/chat/simpleBadgeManager';
+import { incrementConversationBadge } from '@/utils/chat/unifiedBadgeManager';
 
 export const UnreadMessagesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, isSessionReady } = useApp();
@@ -58,44 +50,28 @@ export const UnreadMessagesProvider: React.FC<{ children: React.ReactNode }> = (
     setUnreadMessagesPerClub
   });
   
-  // Enhanced markClubAsUnread function that checks active conversations and local read status
-  const enhancedMarkClubAsUnread = useCallback((clubId: string, messageTimestamp?: number) => {
-    // 1. Check if this club conversation is currently active/open
-    if (isConversationActive('club', clubId)) {
+  // Enhanced function to handle club messages - only mark as unread if conversation is not active
+  const handleNewClubMessage = useCallback((clubId: string, messageTimestamp?: number) => {
+    // Only mark as unread if this club conversation is NOT currently active
+    if (!isConversationActive('club', clubId)) {
+      console.log(`[UnreadMessagesProvider] Marking club ${clubId} as unread (not active)`);
+      markClubAsUnread(clubId);
+      incrementConversationBadge(clubId);
+    } else {
       console.log(`[UnreadMessagesProvider] Club ${clubId} is active, not marking as unread`);
-      return;
     }
-    
-    // 2. Check local storage to see if this message has already been read
-    if (messageTimestamp && isClubReadSince(clubId, messageTimestamp)) {
-      console.log(`[UnreadMessagesProvider] Club ${clubId} was read since message timestamp, not marking as unread`);
-      return;
-    }
-    
-    // 3. If not active and not read, mark as unread and increment badge
-    console.log(`[UnreadMessagesProvider] Marking club ${clubId} as unread and incrementing badge`);
-    markClubAsUnread(clubId);
-    incrementConversationBadgeCount(clubId);
   }, [markClubAsUnread]);
   
-  // Enhanced markConversationAsUnread function that checks active conversations and local read status
-  const enhancedMarkConversationAsUnread = useCallback((conversationId: string, messageTimestamp?: number) => {
-    // 1. Check if this DM conversation is currently active/open
-    if (isConversationActive('dm', conversationId)) {
+  // Enhanced function to handle DM messages - only mark as unread if conversation is not active  
+  const handleNewDirectMessage = useCallback((conversationId: string, messageTimestamp?: number) => {
+    // Only mark as unread if this DM conversation is NOT currently active
+    if (!isConversationActive('dm', conversationId)) {
+      console.log(`[UnreadMessagesProvider] Marking DM ${conversationId} as unread (not active)`);
+      markConversationAsUnread(conversationId);
+      incrementConversationBadge(conversationId);
+    } else {
       console.log(`[UnreadMessagesProvider] DM ${conversationId} is active, not marking as unread`);
-      return;
     }
-    
-    // 2. Check local storage to see if this message has already been read
-    if (messageTimestamp && isDmReadSince(conversationId, messageTimestamp)) {
-      console.log(`[UnreadMessagesProvider] DM ${conversationId} was read since message timestamp, not marking as unread`);
-      return;
-    }
-    
-    // 3. If not active and not read, mark as unread and increment badge
-    console.log(`[UnreadMessagesProvider] Marking DM ${conversationId} as unread and incrementing badge`);
-    markConversationAsUnread(conversationId);
-    incrementConversationBadgeCount(conversationId);
   }, [markConversationAsUnread]);
   
   // Set up real-time subscriptions for unread messages
@@ -117,11 +93,8 @@ export const UnreadMessagesProvider: React.FC<{ children: React.ReactNode }> = (
           const conversationId = payload.new.conversation_id;
           const messageTimestamp = new Date(payload.new.timestamp).getTime();
           
-          // Mark conversation as unread and increment badge
-          enhancedMarkConversationAsUnread(conversationId, messageTimestamp);
-          
-          // Trigger new message event for immediate UI updates
-          simulateNewMessage(conversationId, 'dm');
+          // Handle new message with conversation-specific logic
+          handleNewDirectMessage(conversationId, messageTimestamp);
         }
       })
       .subscribe();
@@ -139,11 +112,8 @@ export const UnreadMessagesProvider: React.FC<{ children: React.ReactNode }> = (
           const clubId = payload.new.club_id;
           const messageTimestamp = new Date(payload.new.timestamp).getTime();
           
-          // Mark club as unread and increment badge
-          enhancedMarkClubAsUnread(clubId, messageTimestamp);
-          
-          // Trigger new message event for immediate UI updates
-          simulateNewMessage(clubId, 'club');
+          // Handle new message with conversation-specific logic
+          handleNewClubMessage(clubId, messageTimestamp);
         }
       })
       .subscribe();
@@ -152,54 +122,7 @@ export const UnreadMessagesProvider: React.FC<{ children: React.ReactNode }> = (
       supabase.removeChannel(dmChannel);
       supabase.removeChannel(clubChannel);
     };
-  }, [currentUser?.id, isSessionReady, enhancedMarkConversationAsUnread, enhancedMarkClubAsUnread]);
-  
-  // Listen for local read status changes
-  useEffect(() => {
-    const handleLocalReadStatusChange = () => {
-      console.log('[UnreadMessagesProvider] Local read status changed, updating UI');
-      
-      // Re-evaluate unread state based on local storage
-      const localReadStatus = getLocalReadStatus();
-      
-      // Update unread DM conversations
-      if (unreadConversations.size > 0) {
-        const newUnreadConversations = new Set(unreadConversations);
-        unreadConversations.forEach(conversationId => {
-          const readTimestamp = localReadStatus.dms[conversationId];
-          if (readTimestamp) {
-            // This conversation has been locally marked as read
-            newUnreadConversations.delete(conversationId);
-          }
-        });
-        
-        if (newUnreadConversations.size !== unreadConversations.size) {
-          setUnreadConversations(newUnreadConversations);
-        }
-      }
-      
-      // Update unread club conversations
-      if (unreadClubs.size > 0) {
-        const newUnreadClubs = new Set(unreadClubs);
-        unreadClubs.forEach(clubId => {
-          const readTimestamp = localReadStatus.clubs[clubId];
-          if (readTimestamp) {
-            // This club has been locally marked as read
-            newUnreadClubs.delete(clubId);
-          }
-        });
-        
-        if (newUnreadClubs.size !== unreadClubs.size) {
-          setUnreadClubs(newUnreadClubs);
-        }
-      }
-    };
-    
-    window.addEventListener('local-read-status-change', handleLocalReadStatusChange);
-    return () => {
-      window.removeEventListener('local-read-status-change', handleLocalReadStatusChange);
-    };
-  }, [unreadConversations, unreadClubs, setUnreadConversations, setUnreadClubs]);
+  }, [currentUser?.id, isSessionReady, handleNewDirectMessage, handleNewClubMessage]);
   
   // Update total count whenever individual counts change
   useEffect(() => {
@@ -240,7 +163,7 @@ export const UnreadMessagesProvider: React.FC<{ children: React.ReactNode }> = (
     fetchUnreadCounts,
     
     // Properties from original interface
-    unreadClubMessages: unreadClubs, // Map to equivalent properties
+    unreadClubMessages: unreadClubs,
     unreadDirectMessageConversations: unreadConversations,
     markDirectConversationAsRead: markConversationAsRead,
     unreadMessagesCount: totalUnreadCount
