@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useCallback, memo, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,7 +17,8 @@ import DMMessageInput from './DMMessageInput';
 import DMHeader from './DMHeader';
 import { ArrowLeft } from 'lucide-react';
 import { useUserData } from '@/hooks/chat/dm/useUserData';
-import { markConversationActive, clearActiveConversation, refreshActiveTimestamp } from '@/utils/chat/activeConversationTracker';
+import { setActiveConversation, clearActiveConversation } from '@/utils/chat/activeConversationTracker';
+import { resetConversationBadge } from '@/utils/chat/unifiedBadgeManager';
 
 interface DMConversationProps {
   user: {
@@ -117,9 +119,12 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       console.log(`[DMConversation] Conversation opened: ${conversationId}`);
       
       // 1. Mark as active IMMEDIATELY (synchronously)
-      markConversationActive('dm', conversationId);
+      setActiveConversation('dm', conversationId);
       
-      // 2. Mark messages as read with a short delay to ensure active status is recognized
+      // 2. Reset badge for this conversation
+      resetConversationBadge(conversationId);
+      
+      // 3. Mark messages as read with a short delay to ensure active status is recognized
       const readTimer = setTimeout(() => {
         if (!activeMountRef.current) return; // Skip if unmounted
         
@@ -127,20 +132,12 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
         markDirectMessagesAsRead(conversationId, true); // Use immediate=true to flush
       }, 200); // Short delay to ensure active status propagates
       
-      // 3. Set up a refresh interval to keep conversation marked as active
-      const refreshTimer = setInterval(() => {
-        if (!activeMountRef.current) return; // Skip if unmounted
-        
-        refreshActiveTimestamp('dm', conversationId);
-      }, 5000); // Refresh every 5 seconds
-      
       return () => {
         // Mark as unmounted
         activeMountRef.current = false;
         
         // Clean up timers
         clearTimeout(readTimer);
-        clearInterval(refreshTimer);
         
         // Clear active conversation
         clearActiveConversation();
@@ -159,7 +156,10 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
         console.log(`[DMConversation] New message detected for open conversation ${conversationId}`);
         
         // Mark conversation as active
-        markConversationActive('dm', conversationId);
+        setActiveConversation('dm', conversationId);
+        
+        // Reset badge for this conversation
+        resetConversationBadge(conversationId);
         
         // Mark as read immediately
         setTimeout(() => {
@@ -228,7 +228,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       }
       
       // Mark as active immediately
-      markConversationActive('dm', finalConversationId);
+      setActiveConversation('dm', finalConversationId);
       
       // Send message to database
       const { data, error } = await supabase
@@ -245,7 +245,7 @@ const DMConversation: React.FC<DMConversationProps> = memo(({
       if (error) throw error;
       
       // Mark as active again after sending to ensure it's still active
-      markConversationActive('dm', finalConversationId);
+      setActiveConversation('dm', finalConversationId);
       
       // Mark as read immediately to prevent race conditions
       if (finalConversationId !== 'new') {

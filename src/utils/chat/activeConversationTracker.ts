@@ -21,6 +21,13 @@ export const setActiveConversation = (type: 'dm' | 'club', id: string): void => 
 };
 
 /**
+ * Mark a conversation as active (alias for setActiveConversation)
+ */
+export const markConversationActive = (type: 'dm' | 'club', id: string): void => {
+  setActiveConversation(type, id);
+};
+
+/**
  * Check if a specific conversation is currently active
  */
 export const isConversationActive = (type: 'dm' | 'club', id: string): boolean => {
@@ -37,10 +44,27 @@ export const clearActiveConversation = (): void => {
 };
 
 /**
+ * Clear active conversations (alias for clearActiveConversation)
+ */
+export const clearActiveConversations = (): void => {
+  clearActiveConversation();
+};
+
+/**
  * Get the currently active conversation
  */
 export const getActiveConversation = (): ActiveConversation | null => {
   return activeConversation;
+};
+
+/**
+ * Refresh the timestamp of the active conversation
+ */
+export const refreshActiveTimestamp = (type: 'dm' | 'club', id: string): void => {
+  if (activeConversation && activeConversation.type === type && activeConversation.id === id) {
+    activeConversation.timestamp = Date.now();
+    console.log(`[activeConversationTracker] Refreshed timestamp for ${type} ${id}`);
+  }
 };
 
 /**

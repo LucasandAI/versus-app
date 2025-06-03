@@ -14,7 +14,8 @@ import { useUnreadMessages } from '@/context/unread-messages';
 import { useMessageReadStatus } from '@/hooks/chat/useMessageReadStatus';
 import { ArrowLeft } from 'lucide-react';
 import UserAvatar from '@/components/shared/UserAvatar';
-import { markConversationActive, clearActiveConversations } from '@/utils/chat/activeConversationTracker';
+import { setActiveConversation, clearActiveConversation } from '@/utils/chat/activeConversationTracker';
+import { resetConversationBadge } from '@/utils/chat/unifiedBadgeManager';
 
 interface UnifiedChatContentProps {
   selectedChat: {
@@ -51,16 +52,19 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
       console.log(`[UnifiedChatContent] Conversation opened: ${selectedChat.type} ${selectedChat.id}`);
       
       // 1. Mark as active immediately
-      markConversationActive(selectedChat.type, selectedChat.id);
+      setActiveConversation(selectedChat.type, selectedChat.id);
       
-      // 2. Dispatch specific event when a club is selected to ensure real-time updates
+      // 2. Reset badge for this conversation
+      resetConversationBadge(selectedChat.id);
+      
+      // 3. Dispatch specific event when a club is selected to ensure real-time updates
       if (selectedChat.type === 'club') {
         window.dispatchEvent(new CustomEvent('clubSelected', {
           detail: { clubId: selectedChat.id }
         }));
       }
       
-      // 3. Mark messages as read immediately to update badge
+      // 4. Mark messages as read immediately to update badge
       const markAsRead = async () => {
         try {
           if (selectedChat.type === 'club') {
@@ -86,7 +90,7 @@ const UnifiedChatContent: React.FC<UnifiedChatContentProps> = ({
       
       return () => {
         clearTimeout(markAsReadTimer);
-        clearActiveConversations();
+        clearActiveConversation();
       };
     }
   }, [selectedChat, markClubMessagesAsRead, markDirectMessagesAsRead, flushReadStatus]);
