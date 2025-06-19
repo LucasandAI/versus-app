@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -86,11 +85,6 @@ export const useHomeNotifications = () => {
                 localStorage.setItem('notifications', JSON.stringify(updated));
                 
                 return updated;
-              });
-              
-              // Show toast for new notification
-              toast.info(newNotification.title || 'New notification', {
-                description: newNotification.message || ''
               });
             }
           }
