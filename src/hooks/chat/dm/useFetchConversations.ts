@@ -15,7 +15,9 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
       // Strong guard clause - prevent fetching without a user ID or if it's not ready
       if (!currentUserId) {
         console.log('[fetchConversations] No current user ID, skipping fetch');
-        return loadConversationsFromStorage(); // Return cached conversations as fallback
+        const storedConversations = loadConversationsFromStorage();
+        // Pre-sort stored conversations to prevent flash
+        return storedConversations.sort((a, b) => new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime());
       }
 
       console.log('[fetchConversations] Fetching conversations for user:', currentUserId);
@@ -34,7 +36,8 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
       
       if (!messages || messages.length === 0) {
         console.log('[fetchConversations] No messages found in database');
-        return storedConversations;
+        // Pre-sort stored conversations before returning
+        return storedConversations.sort((a, b) => new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime());
       }
 
       // Get unique IDs of the other participants in conversations
@@ -52,7 +55,8 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
       // If no valid conversation partners found, return early
       if (uniqueUserIds.size === 0) {
         console.log('[fetchConversations] No valid conversation partners found');
-        return storedConversations;
+        // Pre-sort stored conversations before returning
+        return storedConversations.sort((a, b) => new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime());
       }
 
       // Fetch user information for conversation partners
@@ -97,6 +101,7 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
       });
 
       // Merge with stored conversations, prioritizing newer timestamps
+      // Sort immediately during data preparation to prevent flash
       const mergedConversations = Array.from(conversationsMap.values())
         .concat(storedConversations)
         .sort((a, b) => new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime())
@@ -107,7 +112,7 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
         // Filter out any self-conversations
         .filter(conv => conv.userId !== currentUserId);
 
-      // Save merged conversations to storage
+      // Save merged conversations to storage (already sorted)
       saveConversationsToStorage(mergedConversations);
 
       // Reset error toast flag on successful fetch
@@ -126,7 +131,9 @@ export const useFetchConversations = (currentUserId: string | undefined) => {
         });
         errorToastShownRef.current = true;
       }
-      return loadConversationsFromStorage();
+      const storedConversations = loadConversationsFromStorage();
+      // Pre-sort stored conversations even in error case
+      return storedConversations.sort((a, b) => new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime());
     }
   }, 300), [currentUserId, loadConversationsFromStorage, saveConversationsToStorage]);
 

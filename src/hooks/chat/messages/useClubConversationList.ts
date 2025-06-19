@@ -1,12 +1,11 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Club } from '@/types';
 import { useClubLastMessages } from './useClubLastMessages';
 import { ClubConversation } from './useClubConversations';
 
 // Make this interface match ClubConversation from useClubConversations.ts
 export const useClubConversationList = (clubs: Club[]): ClubConversation[] => {
-  const [clubConversationList, setClubConversationList] = useState<ClubConversation[]>([]);
   const { lastMessages, isLoading, senderCache } = useClubLastMessages(clubs);
   const [updateKey, setUpdateKey] = useState(Date.now());
   
@@ -24,7 +23,8 @@ export const useClubConversationList = (clubs: Club[]): ClubConversation[] => {
     };
   }, [handleMessagesUpdated]);
   
-  useEffect(() => {
+  // Use useMemo for synchronous sorting instead of useEffect to prevent flash
+  const clubConversationList = useMemo(() => {
     // Map clubs to their conversations with last messages
     const conversationList = clubs.map(club => {
       const lastMessage = lastMessages[club.id];
@@ -43,15 +43,15 @@ export const useClubConversationList = (clubs: Club[]): ClubConversation[] => {
     });
     
     // Sort conversation list by timestamp (newest first) to ensure that
-    // new messages appear at the top
+    // new messages appear at the top - done synchronously to prevent flash
     const sortedConversations = [...conversationList].sort((a, b) => {
       const timeA = a.lastMessage?.timestamp ? new Date(a.lastMessage.timestamp).getTime() : 0;
       const timeB = b.lastMessage?.timestamp ? new Date(b.lastMessage.timestamp).getTime() : 0;
       return timeB - timeA; // Descending order (newest first)
     });
     
-    console.log('[useClubConversationList] Updating conversation list with', sortedConversations.length, 'conversations');
-    setClubConversationList(sortedConversations);
+    console.log('[useClubConversationList] Synchronously sorted conversation list with', sortedConversations.length, 'conversations');
+    return sortedConversations;
   }, [clubs, lastMessages, senderCache, updateKey]);
   
   return clubConversationList;

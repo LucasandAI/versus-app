@@ -51,11 +51,6 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
   const isMounted = React.useRef(true);
   const { debouncedFetchConversations } = useConversationsFetcher(isMounted);
 
-  // Helper function to sort conversations by timestamp
-  const sortConversationsByTimestamp = (convs: DMConversation[]): DMConversation[] => {
-    return [...convs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  };
-
   const fetchConversations = React.useCallback(async (forceRefresh = false) => {
     if (!forceRefresh && hasLoaded) {
       console.log('[DirectConversationsProvider] Using cached conversations');
@@ -74,7 +69,8 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
       
       await debouncedFetchConversations(currentUser.id, setLoading, (convs: DMConversation[]) => {
         if (isMounted.current) {
-          setConversations(convs); // conversations are already sorted in fetcher
+          // Conversations are already sorted in fetcher, no need for additional sorting
+          setConversations(convs);
           setHasLoaded(true);
         }
       });
@@ -160,16 +156,16 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
         timestamp: new Date().toISOString()
       };
       
-      // Update local state
+      // Update local state with immediate sorting
       setConversations(prev => {
         // Don't add duplicate
         if (prev.some(c => c.conversationId === conversationId)) {
           return prev;
         }
         
-        // Add new conversation and sort
+        // Add new conversation and sort immediately
         const updatedConversations = [conversation, ...prev];
-        return sortConversationsByTimestamp(updatedConversations);
+        return updatedConversations.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       });
       
       return conversation;
@@ -228,8 +224,8 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
               return conv;
             });
             
-            // Sort conversations by timestamp (most recent first)
-            return sortConversationsByTimestamp(updatedConversations);
+            // Sort conversations by timestamp immediately (most recent first)
+            return updatedConversations.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
           });
         }
       )

@@ -41,8 +41,10 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
         console.log('[useDirectConversations] Session and user ready, fetching conversations');
         fetchAttemptedRef.current = true;
         debouncedFetchConversations(currentUser.id, setLoading, (convs: DMConversation[]) => {
-          // Filter out self-conversations
-          const filteredConvs = convs.filter(c => c.userId !== currentUser.id);
+          // Filter out self-conversations and ensure sorting
+          const filteredConvs = convs
+            .filter(c => c.userId !== currentUser.id)
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
           setConversations(filteredConvs);
           resolve(filteredConvs);
         });
@@ -62,7 +64,7 @@ export const useDirectConversations = (hiddenDMIds: string[] = []) => {
     };
   }, [debouncedFetchConversations]);
 
-  // Filter out hidden conversations and self-conversations
+  // Filter out hidden conversations and self-conversations, maintain sort order
   const filteredConversations = conversations.filter(
     conv => !hiddenDMIds.includes(conv.userId) && 
            !hiddenDMIds.includes(conv.conversationId) &&
