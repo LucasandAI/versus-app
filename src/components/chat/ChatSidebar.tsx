@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Club } from '@/types';
 import { useApp } from '@/context/AppContext';
@@ -14,7 +13,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import ClubsList from './sidebar/ClubsList';
 import { useClubConversationList } from '@/hooks/chat/messages/useClubConversationList';
-import { ClubConversation } from '@/hooks/chat/messages/useClubConversations';
 
 interface ChatSidebarProps {
   clubs: Club[];
@@ -39,7 +37,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
 }) => {
   const { setCurrentView, setSelectedUser } = useApp();
   const [chatToDelete, setChatToDelete] = React.useState<{id: string, name: string} | null>(null);
-  const clubConversations = useClubConversationList(clubs);
+  const { conversations: clubConversations } = useClubConversationList(clubs);
 
   const handleDeleteChat = () => {
     if (chatToDelete && onDeleteChat) {
@@ -62,6 +60,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
           setChatToDelete={setChatToDelete}
         />
       )}
+      
       <AlertDialog open={!!chatToDelete} onOpenChange={(open) => !open && setChatToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
