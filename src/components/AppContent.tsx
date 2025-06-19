@@ -11,7 +11,11 @@ import Navigation from '@/components/Navigation';
 import ToastErrorHandler from '@/components/ToastErrorHandler';
 import { useClubMembershipSync } from '@/hooks/useClubMembershipSync';
 
-const AppContent: React.FC = () => {
+interface AppContentProps {
+  children?: React.ReactNode;
+}
+
+const AppContent: React.FC<AppContentProps> = ({ children }) => {
   const { currentView, isSessionReady, currentUser } = useApp();
   
   // Set up real-time club membership sync
@@ -26,6 +30,11 @@ const AppContent: React.FC = () => {
   }
 
   const renderCurrentView = () => {
+    // If children are provided, render them instead of the default views
+    if (children) {
+      return children;
+    }
+
     switch (currentView) {
       case 'home':
         return <HomeView />;
