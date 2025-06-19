@@ -1,160 +1,128 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
-export const acceptJoinRequest = async (userId: string, clubId: string, userName: string): Promise<boolean> => {
+// Accept a join request and handle all related updates
+export const acceptJoinRequest = async (
+  userId: string, 
+  clubId: string, 
+  userName: string
+): Promise<boolean> => {
   try {
-    // Update the request status
-    const { error: updateError } = await supabase
+    console.log('[acceptJoinRequest] Processing acceptance for user:', userId, 'to club:', clubId);
+    
+    // Step 1: Add user to club members
+    const { error: memberError } = await supabase
+      .from('club_members')
+      .insert({
+        user_id: userId,
+        club_id: clubId,
+        is_admin: false
+      });
+      
+    if (memberError) {
+      console.error('[acceptJoinRequest] Error adding member:', memberError);
+      toast.error('Failed to add member to club');
+      return false;
+    }
+    
+    // Step 2: Update the join request status to SUCCESS (this will trigger the notification)
+    const { error: statusError } = await supabase
       .from('club_requests')
       .update({ status: 'SUCCESS' })
       .eq('user_id', userId)
       .eq('club_id', clubId);
-
-    if (updateError) {
-      console.error('[acceptJoinRequest] Error updating request status:', updateError);
-      return false;
+      
+    if (statusError) {
+      console.error('[acceptJoinRequest] Error updating request status:', statusError);
+      // Don't return false here as the member was already added
     }
-
-    // Add the user to the club
-    const { error: memberError } = await supabase
-      .from('club_members')
-      .insert({
-        club_id: clubId,
-        user_id: userId,
-        is_admin: false
-      });
-
-    if (memberError) {
-      console.error('[acceptJoinRequest] Error adding user to club:', memberError);
-      return false;
-    }
-
-    // Delete notifications related to this join request
-    try {
-      // Find notifications with type 'join_request' for this club where the data contains this user's ID
-      const { data: notifications, error: notificationError } = await supabase
-        .from('notifications')
-        .select('id, data')
-        .eq('club_id', clubId)
-        .eq('type', 'join_request');
-        
-      if (notificationError) {
-        console.error('[acceptJoinRequest] Error finding join request notifications:', notificationError);
-      } else if (notifications && notifications.length > 0) {
-        // Filter to only get notifications related to this user
-        const notificationsToDelete = notifications.filter(notification => {
-          // Safely check if data exists and contains userId matching this user
-          if (!notification.data) return false;
-          
-          const data = notification.data as Record<string, any>;
-          return (
-            (data.userId && data.userId === userId) || 
-            (data.requesterId && data.requesterId === userId)
-          );
-        });
-        
-        if (notificationsToDelete.length > 0) {
-          const notificationIds = notificationsToDelete.map(n => n.id);
-          
-          console.log(`[acceptJoinRequest] Deleting ${notificationIds.length} notifications:`, notificationIds);
-          
-          // Delete the notifications
-          const { error: deleteError } = await supabase
-            .from('notifications')
-            .delete()
-            .in('id', notificationIds);
-            
-          if (deleteError) {
-            console.error('[acceptJoinRequest] Error deleting notifications:', deleteError);
-          } else {
-            console.log('[acceptJoinRequest] Successfully deleted join request notifications');
-          }
-        }
-      }
-    } catch (error) {
-      console.error('[acceptJoinRequest] Error handling notification deletion:', error);
-    }
-
-    // Dispatch event to refresh user data
-    window.dispatchEvent(new Event('userDataUpdated'));
     
+    // Step 3: Delete the join request after successful processing
+    const { error: deleteError } = await supabase
+      .from('club_requests')
+      .delete()
+      .eq('user_id', userId)
+      .eq('club_id', clubId);
+      
+    if (deleteError) {
+      console.error('[acceptJoinRequest] Error deleting request:', deleteError);
+    }
+    
+    // Step 4: Delete admin notifications about this join request
+    await deleteJoinRequestNotifications(userId, clubId);
+    
+    // Step 5: Trigger real-time updates
+    window.dispatchEvent(new CustomEvent('userDataUpdated'));
+    window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+    window.dispatchEvent(new CustomEvent('clubMembershipChanged', { 
+      detail: { clubId, userId, action: 'added' } 
+    }));
+    
+    toast.success(`${userName} has been added to the club`);
     return true;
+    
   } catch (error) {
-    console.error('[acceptJoinRequest] Error:', error);
+    console.error('[acceptJoinRequest] Unexpected error:', error);
+    toast.error('Failed to accept join request');
     return false;
   }
 };
 
-export const denyJoinRequest = async (userId: string, clubId: string): Promise<boolean> => {
+// Deny a join request and clean up notifications
+export const denyJoinRequest = async (
+  userId: string, 
+  clubId: string
+): Promise<boolean> => {
   try {
-    // Update the request status to ERROR instead of REJECTED to match the enum
-    const { error } = await supabase
+    console.log('[denyJoinRequest] Processing denial for user:', userId, 'from club:', clubId);
+    
+    // Step 1: Delete the join request
+    const { error: deleteError } = await supabase
       .from('club_requests')
-      .update({ status: 'ERROR' })
+      .delete()
       .eq('user_id', userId)
       .eq('club_id', clubId);
-
-    if (error) {
-      console.error('[denyJoinRequest] Error updating join request status:', error);
+      
+    if (deleteError) {
+      console.error('[denyJoinRequest] Error deleting request:', deleteError);
+      toast.error('Failed to deny join request');
       return false;
     }
-
-    // Delete notifications related to this join request
-    try {
-      // Find notifications with type 'join_request' for this club where the data contains this user's ID
-      const { data: notifications, error: notificationError } = await supabase
-        .from('notifications')
-        .select('id, data')
-        .eq('club_id', clubId)
-        .eq('type', 'join_request');
-        
-      if (notificationError) {
-        console.error('[denyJoinRequest] Error finding join request notifications:', notificationError);
-      } else if (notifications && notifications.length > 0) {
-        // Filter to only get notifications related to this user
-        const notificationsToDelete = notifications.filter(notification => {
-          // Safely check if data exists and contains userId matching this user
-          if (!notification.data) return false;
-          
-          const data = notification.data as Record<string, any>;
-          return (
-            (data.userId && data.userId === userId) || 
-            (data.requesterId && data.requesterId === userId)
-          );
-        });
-        
-        if (notificationsToDelete.length > 0) {
-          const notificationIds = notificationsToDelete.map(n => n.id);
-          
-          console.log(`[denyJoinRequest] Deleting ${notificationIds.length} notifications:`, notificationIds);
-          
-          // Delete the notifications
-          const { error: deleteError } = await supabase
-            .from('notifications')
-            .delete()
-            .in('id', notificationIds);
-            
-          if (deleteError) {
-            console.error('[denyJoinRequest] Error deleting notifications:', deleteError);
-          } else {
-            console.log('[denyJoinRequest] Successfully deleted join request notifications');
-          }
-        }
-      }
-    } catch (error) {
-      console.error('[denyJoinRequest] Error handling notification deletion:', error);
-    }
-
-    // Show success toast
-    toast({
-      title: "Request Denied",
-      description: "The join request has been denied."
-    });
     
+    // Step 2: Delete admin notifications about this join request
+    await deleteJoinRequestNotifications(userId, clubId);
+    
+    // Step 3: Trigger real-time updates
+    window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+    
+    toast.success('Join request denied');
     return true;
+    
   } catch (error) {
-    console.error('[denyJoinRequest] Error:', error);
+    console.error('[denyJoinRequest] Unexpected error:', error);
+    toast.error('Failed to deny join request');
     return false;
+  }
+};
+
+// Helper function to delete join request notifications
+const deleteJoinRequestNotifications = async (userId: string, clubId: string) => {
+  try {
+    // Delete all join_request notifications for this user/club combination
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('type', 'join_request')
+      .eq('club_id', clubId)
+      .or(`data->>userId.eq.${userId},data->>requesterId.eq.${userId}`);
+      
+    if (error) {
+      console.error('[deleteJoinRequestNotifications] Error deleting notifications:', error);
+    } else {
+      console.log('[deleteJoinRequestNotifications] Successfully deleted join request notifications');
+    }
+  } catch (error) {
+    console.error('[deleteJoinRequestNotifications] Unexpected error:', error);
   }
 };
