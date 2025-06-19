@@ -69,8 +69,11 @@ export const DirectConversationsProvider: React.FC<{ children: React.ReactNode }
       
       await debouncedFetchConversations(currentUser.id, setLoading, (convs: DMConversation[]) => {
         if (isMounted.current) {
-          // Conversations are already sorted in fetcher, no need for additional sorting
-          setConversations(convs);
+          // Ensure conversations are sorted immediately when set
+          const sortedConversations = [...convs].sort((a, b) => 
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          );
+          setConversations(sortedConversations);
           setHasLoaded(true);
         }
       });

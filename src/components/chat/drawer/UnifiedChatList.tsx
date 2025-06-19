@@ -32,7 +32,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
   const userClubs = currentUser?.clubs || [];
   const clubConversations = useClubConversationList(userClubs);
 
-  // Combined loading state - show loading until both club and DM data are ready
+  // Show loading state until ALL data is ready and sorted
   const isLoading = loadingDMs;
   const isEmpty = !isLoading && directConversations.length === 0 && userClubs.length === 0;
 
@@ -124,7 +124,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
     }
   };
 
-  // Show loading state until data is ready to prevent flash
+  // Wait until data is fully loaded to prevent flash
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -166,7 +166,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
         )}
       </div>
 
-      {/* Club Chats Section - clubs are already sorted in useClubConversationList */}
+      {/* Club Chats Section - Already sorted in useClubConversationList */}
       {clubConversations.length > 0 && (
         <div className="mb-4">
           <h2 className="text-sm font-semibold text-gray-500 px-4 py-2">Club Chats</h2>
@@ -224,7 +224,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
         </div>
       )}
 
-      {/* Direct Messages Section - conversations are already sorted in context */}
+      {/* Direct Messages Section - Already sorted in context */}
       <div className="mb-4">
         <h2 className="text-sm font-semibold text-gray-500 px-4 py-2">Direct Messages</h2>
         {directConversations.map((conversation) => {
