@@ -66,23 +66,38 @@ export const useClubMembershipSync = () => {
     };
   }, [currentUser?.id, refreshCurrentUser]);
   
-  // Also listen for custom events from other parts of the app
+  // Listen for custom events from other parts of the app
   useEffect(() => {
     const handleClubMembershipChange = (event: CustomEvent) => {
       console.log('[useClubMembershipSync] Club membership change event:', event.detail);
       
-      // Only refresh if this affects the current user
-      if (event.detail?.userId === currentUser?.id && refreshCurrentUser) {
+      // Refresh for any membership change, not just for current user
+      if (refreshCurrentUser) {
         refreshCurrentUser().catch(err => {
           console.error('[useClubMembershipSync] Error refreshing user data from custom event:', err);
         });
       }
     };
     
+    const handleMembershipAccepted = (event: CustomEvent) => {
+      console.log('[useClubMembershipSync] Membership accepted event:', event.detail);
+      
+      // If this is for the current user, refresh immediately
+      if (event.detail?.userId === currentUser?.id && refreshCurrentUser) {
+        refreshCurrentUser().then(() => {
+          console.log('[useClubMembershipSync] User data refreshed after membership acceptance');
+        }).catch(err => {
+          console.error('[useClubMembershipSync] Error refreshing user data after acceptance:', err);
+        });
+      }
+    };
+    
     window.addEventListener('clubMembershipChanged', handleClubMembershipChange as EventListener);
+    window.addEventListener('membershipAccepted', handleMembershipAccepted as EventListener);
     
     return () => {
       window.removeEventListener('clubMembershipChanged', handleClubMembershipChange as EventListener);
+      window.removeEventListener('membershipAccepted', handleMembershipAccepted as EventListener);
     };
   }, [currentUser?.id, refreshCurrentUser]);
 };

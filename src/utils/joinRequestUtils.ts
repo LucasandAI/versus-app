@@ -52,11 +52,18 @@ export const acceptJoinRequest = async (
     // Step 4: Delete admin notifications about this join request
     await deleteJoinRequestNotifications(userId, clubId);
     
-    // Step 5: Trigger real-time updates
+    // Step 5: Trigger comprehensive real-time updates
     window.dispatchEvent(new CustomEvent('userDataUpdated'));
     window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+    
+    // Broadcast club membership change for all users
     window.dispatchEvent(new CustomEvent('clubMembershipChanged', { 
       detail: { clubId, userId, action: 'added' } 
+    }));
+    
+    // Trigger a global refresh event for the accepted user specifically
+    window.dispatchEvent(new CustomEvent('membershipAccepted', {
+      detail: { userId, clubId, userName }
     }));
     
     toast.success(`${userName} has been added to the club`);

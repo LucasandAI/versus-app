@@ -1,6 +1,6 @@
+
 import React, { useState } from 'react';
 import { Notification } from '@/types';
-import UserAvatar from '@/components/shared/UserAvatar';
 import { Button } from '@/components/ui/button';
 import { Check, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -191,38 +191,52 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
     }
   };
 
+  // Render message with clickable club names and usernames
+  const renderMessage = () => {
+    let message = notification.message;
+    
+    // Handle club name clicks for request_accepted notifications
+    if (notification.type === 'request_accepted' && notification.data?.clubName) {
+      const clubName = notification.data.clubName;
+      message = message.replace(
+        clubName,
+        `<span class="text-blue-600 hover:text-blue-800 cursor-pointer font-medium">${clubName}</span>`
+      );
+    }
+    
+    // Handle username clicks for join_request notifications
+    if (notification.type === 'join_request' && notification.data?.userName && notification.data?.userId) {
+      const userName = notification.data.userName;
+      message = message.replace(
+        userName,
+        `<span class="text-blue-600 hover:text-blue-800 cursor-pointer font-medium">${userName}</span>`
+      );
+    }
+    
+    return (
+      <div 
+        className="text-sm"
+        dangerouslySetInnerHTML={{ __html: message }}
+        onClick={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.tagName === 'SPAN' && target.classList.contains('cursor-pointer')) {
+            if (notification.type === 'request_accepted') {
+              handleClubClick();
+            } else if (notification.type === 'join_request' && notification.data?.userId) {
+              handleUserClick(notification.data.userId, notification.data.userName || 'User');
+            }
+          }
+        }}
+      />
+    );
+  };
+
   return (
     <div className="p-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
       <div className="flex items-start gap-3">
-        {/* User Avatar */}
-        {notification.userAvatar && (
-          <UserAvatar 
-            name={notification.userName || 'User'} 
-            image={notification.userAvatar} 
-            size="sm" 
-            onClick={() => notification.userId && handleUserClick(notification.userId, notification.userName || 'User')}
-            className="cursor-pointer hover:opacity-80"
-          />
-        )}
-        
-        {/* Club Logo for club-related notifications */}
-        {(notification.type === 'invite' || notification.type === 'request_accepted') && notification.clubLogo && (
-          <img 
-            src={notification.clubLogo} 
-            alt={notification.clubName || 'Club'} 
-            className="w-8 h-8 rounded-full object-cover cursor-pointer hover:opacity-80"
-            onClick={handleClubClick}
-          />
-        )}
-        
         <div className="flex-1 min-w-0">
-          {/* Message content */}
-          <div 
-            className={`text-sm ${notification.type === 'request_accepted' ? 'cursor-pointer hover:text-blue-600' : ''}`}
-            onClick={notification.type === 'request_accepted' ? handleClubClick : undefined}
-          >
-            {notification.message}
-          </div>
+          {/* Message content with clickable elements */}
+          {renderMessage()}
           
           {/* Timestamp */}
           <div className="text-xs text-gray-500 mt-1">
@@ -230,7 +244,9 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
           </div>
           
           {/* Action buttons */}
-          {getActionButtons()}
+          <div className="mt-2">
+            {getActionButtons()}
+          </div>
         </div>
         
         {/* Unread indicator */}
