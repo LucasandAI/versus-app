@@ -5,7 +5,7 @@ import { useClubLastMessages } from './useClubLastMessages';
 import { ClubConversation } from './useClubConversations';
 
 // Make this interface match ClubConversation from useClubConversations.ts
-export const useClubConversationList = (clubs: Club[]): ClubConversation[] => {
+export const useClubConversationList = (clubs: Club[]): { conversations: ClubConversation[], isLoading: boolean } => {
   const { lastMessages, isLoading, senderCache } = useClubLastMessages(clubs);
   const [updateKey, setUpdateKey] = useState(Date.now());
   
@@ -54,5 +54,8 @@ export const useClubConversationList = (clubs: Club[]): ClubConversation[] => {
     return sortedConversations;
   }, [clubs, lastMessages, senderCache, updateKey]);
   
-  return clubConversationList;
+  return {
+    conversations: clubConversationList,
+    isLoading
+  };
 };

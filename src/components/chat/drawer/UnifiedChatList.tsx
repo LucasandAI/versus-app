@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useDirectConversationsContext } from '@/context/DirectConversationsContext';
@@ -30,10 +29,10 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
   const [senderCache, setSenderCache] = useState<Record<string, {name: string, avatar?: string}>>({});
 
   const userClubs = currentUser?.clubs || [];
-  const clubConversations = useClubConversationList(userClubs);
+  const { conversations: clubConversations, isLoading: loadingClubs } = useClubConversationList(userClubs);
 
-  // Show loading state until ALL data is ready and sorted
-  const isLoading = loadingDMs;
+  // Combined loading state - show loading until BOTH club and DM data are ready
+  const isLoading = loadingDMs || loadingClubs;
   const isEmpty = !isLoading && directConversations.length === 0 && userClubs.length === 0;
 
   // Pre-load sender details for club messages
@@ -124,7 +123,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
     }
   };
 
-  // Wait until data is fully loaded to prevent flash
+  // Wait until ALL data is fully loaded to prevent flash
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -166,7 +165,7 @@ const UnifiedChatList: React.FC<UnifiedChatListProps> = ({
         )}
       </div>
 
-      {/* Club Chats Section - Already sorted in useClubConversationList */}
+      {/* Club Chats Section - Already sorted with loading state handled */}
       {clubConversations.length > 0 && (
         <div className="mb-4">
           <h2 className="text-sm font-semibold text-gray-500 px-4 py-2">Club Chats</h2>
