@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
@@ -11,8 +10,8 @@ export const useClubMembershipSync = () => {
     
     console.log('[useClubMembershipSync] Setting up club membership subscription for user:', currentUser.id);
     
-    // Subscribe to ALL club_members table changes (not just current user)
-    // This ensures User B gets updates when User A accepts them
+    // Subscribe to ALL club_members table changes
+    // This ensures all users get updates when memberships change in clubs they're part of
     const channel = supabase
       .channel('club-membership-changes')
       .on(
@@ -25,16 +24,15 @@ export const useClubMembershipSync = () => {
         (payload) => {
           console.log('[useClubMembershipSync] Club membership added:', payload);
           
-          // If this membership change involves the current user, refresh immediately
-          if (payload.new?.user_id === currentUser.id) {
-            console.log('[useClubMembershipSync] Current user was added to a club, refreshing...');
-            if (refreshCurrentUser) {
-              refreshCurrentUser().then(() => {
-                console.log('[useClubMembershipSync] User data refreshed after being added to club');
-              }).catch(err => {
-                console.error('[useClubMembershipSync] Error refreshing user data:', err);
-              });
-            }
+          // Always refresh current user data when any membership changes occur
+          // This ensures the UI updates for all affected users
+          if (refreshCurrentUser) {
+            console.log('[useClubMembershipSync] Refreshing user data due to membership change');
+            refreshCurrentUser().then(() => {
+              console.log('[useClubMembershipSync] User data refreshed after membership change');
+            }).catch(err => {
+              console.error('[useClubMembershipSync] Error refreshing user data:', err);
+            });
           }
         }
       )
@@ -48,16 +46,14 @@ export const useClubMembershipSync = () => {
         (payload) => {
           console.log('[useClubMembershipSync] Club membership removed:', payload);
           
-          // If this membership change involves the current user, refresh immediately
-          if (payload.old?.user_id === currentUser.id) {
-            console.log('[useClubMembershipSync] Current user was removed from a club, refreshing...');
-            if (refreshCurrentUser) {
-              refreshCurrentUser().then(() => {
-                console.log('[useClubMembershipSync] User data refreshed after being removed from club');
-              }).catch(err => {
-                console.error('[useClubMembershipSync] Error refreshing user data:', err);
-              });
-            }
+          // Always refresh current user data when any membership changes occur
+          if (refreshCurrentUser) {
+            console.log('[useClubMembershipSync] Refreshing user data due to membership removal');
+            refreshCurrentUser().then(() => {
+              console.log('[useClubMembershipSync] User data refreshed after membership removal');
+            }).catch(err => {
+              console.error('[useClubMembershipSync] Error refreshing user data:', err);
+            });
           }
         }
       )
@@ -71,12 +67,12 @@ export const useClubMembershipSync = () => {
     };
   }, [currentUser?.id, refreshCurrentUser]);
   
-  // Listen for custom events from other parts of the app
+  // Keep custom events for same-session optimizations only
   useEffect(() => {
     const handleClubMembershipChange = (event: CustomEvent) => {
-      console.log('[useClubMembershipSync] Club membership change event:', event.detail);
+      console.log('[useClubMembershipSync] Club membership change event (same session):', event.detail);
       
-      // Refresh for any membership change, not just for current user
+      // Only refresh for same-session optimizations
       if (refreshCurrentUser) {
         refreshCurrentUser().catch(err => {
           console.error('[useClubMembershipSync] Error refreshing user data from custom event:', err);
@@ -85,13 +81,12 @@ export const useClubMembershipSync = () => {
     };
     
     const handleMembershipAccepted = (event: CustomEvent) => {
-      console.log('[useClubMembershipSync] Membership accepted event:', event.detail);
+      console.log('[useClubMembershipSync] Membership accepted event (same session):', event.detail);
       
-      // Refresh user data immediately for ANY membership acceptance
-      // This ensures User B gets updates when User A accepts them
+      // Only refresh for same-session optimizations
       if (refreshCurrentUser) {
         refreshCurrentUser().then(() => {
-          console.log('[useClubMembershipSync] User data refreshed after membership acceptance');
+          console.log('[useClubMembershipSync] User data refreshed after membership acceptance (same session)');
         }).catch(err => {
           console.error('[useClubMembershipSync] Error refreshing user data after acceptance:', err);
         });
