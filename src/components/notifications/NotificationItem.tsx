@@ -8,6 +8,7 @@ import { acceptClubInvite, denyClubInvite } from '@/utils/clubInviteActions';
 import { acceptJoinRequest, denyJoinRequest } from '@/utils/joinRequestUtils';
 import { useClubNavigation } from '@/hooks/useClubNavigation';
 import { useUserNavigation } from '@/hooks/navigation/useUserNavigation';
+import { supabase } from '@/integrations/supabase/client';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -36,8 +37,65 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
     navigateToUserProfile(userId, userName);
   };
 
-  const handleClubClick = (clubId: string, clubName: string) => {
+  const handleClubClick = async (clubId: string, clubName: string) => {
     console.log(`[NotificationItem] Navigating to club: ${clubName} (${clubId})`);
+    
+    // For invite notifications, fetch the real club data from the database
+    if (notification.type === 'invite') {
+      try {
+        console.log(`[NotificationItem] Fetching real club data for invite notification: ${clubId}`);
+        
+        const { data: clubData, error } = await supabase
+          .from('clubs')
+          .select(`
+            id,
+            name,
+            logo,
+            division,
+            tier,
+            elite_points,
+            bio,
+            member_count
+          `)
+          .eq('id', clubId)
+          .single();
+
+        if (error) {
+          console.error('[NotificationItem] Error fetching club data:', error);
+          toast.error('Failed to load club information');
+          return;
+        }
+
+        if (clubData) {
+          // Create a complete club object with the real data
+          const realClub = {
+            id: clubData.id,
+            name: clubData.name,
+            logo: clubData.logo || '/placeholder.svg',
+            division: clubData.division,
+            tier: clubData.tier,
+            elitePoints: clubData.elite_points,
+            bio: clubData.bio,
+            members: [], // Will be loaded by the club detail page
+            matchHistory: [], // Will be loaded by the club detail page
+            currentMatch: null,
+            joinRequests: [],
+            isPreviewClub: false
+          };
+
+          console.log('[NotificationItem] Real club data fetched:', realClub);
+          setSelectedClub(realClub);
+          setCurrentView('clubDetail');
+          return;
+        }
+      } catch (error) {
+        console.error('[NotificationItem] Error fetching club data:', error);
+        toast.error('Failed to load club information');
+        return;
+      }
+    }
+
+    // For other notification types, use the standard navigation
     navigateToClub({ id: clubId, name: clubName });
   };
 
