@@ -9,6 +9,7 @@ import { acceptJoinRequest, denyJoinRequest } from '@/utils/joinRequestUtils';
 import { useClubNavigation } from '@/hooks/useClubNavigation';
 import { useUserNavigation } from '@/hooks/navigation/useUserNavigation';
 import { supabase } from '@/integrations/supabase/client';
+import { Division } from '@/types';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -72,7 +73,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
             id: clubData.id,
             name: clubData.name,
             logo: clubData.logo || '/placeholder.svg',
-            division: clubData.division,
+            division: clubData.division as Division,
             tier: clubData.tier,
             elitePoints: clubData.elite_points,
             bio: clubData.bio,
