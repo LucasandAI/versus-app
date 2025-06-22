@@ -84,7 +84,8 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
             isPreviewClub: false
           };
 
-          console.log('[NotificationItem] Real club data fetched:', realClub);
+          console.log('[NotificationItem] Real club data fetched, setting directly:', realClub);
+          // Directly set the club and navigate to avoid getClubToJoin logic
           setSelectedClub(realClub);
           setCurrentView('clubDetail');
           return;
