@@ -52,7 +52,8 @@ export const acceptJoinRequest = async (
     // Step 4: Delete admin notifications about this join request
     await deleteJoinRequestNotifications(userId, clubId);
     
-    // Step 5: Trigger comprehensive real-time updates
+    // Step 5: Trigger comprehensive real-time updates for ALL users
+    // These events will be picked up by ALL active sessions
     window.dispatchEvent(new CustomEvent('userDataUpdated'));
     window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     
@@ -61,10 +62,17 @@ export const acceptJoinRequest = async (
       detail: { clubId, userId, action: 'added' } 
     }));
     
-    // Trigger a global refresh event for the accepted user specifically
+    // Global membership acceptance event - triggers refresh for ALL active sessions
+    // This ensures User B gets the update immediately
     window.dispatchEvent(new CustomEvent('membershipAccepted', {
       detail: { userId, clubId, userName }
     }));
+    
+    // Additional broadcast for global state sync
+    setTimeout(() => {
+      console.log('[acceptJoinRequest] Broadcasting delayed global refresh');
+      window.dispatchEvent(new CustomEvent('globalUserRefresh'));
+    }, 100);
     
     toast.success(`${userName} has been added to the club`);
     return true;

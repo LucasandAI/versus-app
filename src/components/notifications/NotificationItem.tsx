@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { useApp } from '@/context/AppContext';
 import { acceptClubInvite, denyClubInvite } from '@/utils/clubInviteActions';
 import { acceptJoinRequest, denyJoinRequest } from '@/utils/joinRequestUtils';
+import { useClubNavigation } from '@/hooks/useClubNavigation';
+import { useUserNavigation } from '@/hooks/navigation/useUserNavigation';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -26,11 +28,18 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
   formatTime
 }) => {
   const { setCurrentView, setSelectedClub, currentUser } = useApp();
+  const { navigateToClub } = useClubNavigation();
+  const { navigateToUserProfile } = useUserNavigation();
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleUserClick = (userId: string, userName: string) => {
     console.log(`[NotificationItem] Opening profile for user: ${userName} (${userId})`);
-    onUserClick(userId, userName);
+    navigateToUserProfile(userId, userName);
+  };
+
+  const handleClubClick = (clubId: string, clubName: string) => {
+    console.log(`[NotificationItem] Navigating to club: ${clubName} (${clubId})`);
+    navigateToClub({ id: clubId, name: clubName });
   };
 
   const handleMarkAsRead = async (id: string) => {
@@ -167,68 +176,50 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
     }
   };
 
-  // Handle club navigation for request_accepted notifications
-  const handleClubClick = () => {
-    if (notification.type === 'request_accepted' && notification.data?.clubId) {
-      // Navigate to the club that the user was accepted to
-      const clubData = {
-        id: notification.data.clubId,
-        name: notification.data.clubName || 'Unknown Club',
-        logo: notification.data.clubLogo || '/placeholder.svg',
-        division: 'bronze' as const,
-        tier: 5,
-        elitePoints: 0,
-        members: []
-      };
-      
-      setSelectedClub(clubData);
-      setCurrentView('clubDetail');
-      
-      // Mark as read
-      if (!notification.read) {
-        onMarkAsRead(notification.id);
-      }
-    }
-  };
-
   // Render message with clickable club names and usernames
   const renderMessage = () => {
     let message = notification.message;
     
-    // Handle club name clicks for request_accepted notifications
-    if (notification.type === 'request_accepted' && notification.data?.clubName) {
+    // Handle request_accepted notifications - make club name clickable
+    if (notification.type === 'request_accepted' && notification.data?.clubName && notification.data?.clubId) {
       const clubName = notification.data.clubName;
-      message = message.replace(
-        clubName,
-        `<span class="text-blue-600 hover:text-blue-800 cursor-pointer font-medium">${clubName}</span>`
+      const clubId = notification.data.clubId;
+      
+      return (
+        <div className="text-sm">
+          You've been added to{' '}
+          <span
+            className="text-green-600 hover:text-green-800 cursor-pointer font-medium underline"
+            onClick={() => handleClubClick(clubId, clubName)}
+          >
+            {clubName}
+          </span>
+          .
+        </div>
       );
     }
     
-    // Handle username clicks for join_request notifications
+    // Handle join_request notifications - make username clickable
     if (notification.type === 'join_request' && notification.data?.userName && notification.data?.userId) {
       const userName = notification.data.userName;
-      message = message.replace(
-        userName,
-        `<span class="text-blue-600 hover:text-blue-800 cursor-pointer font-medium">${userName}</span>`
+      const userId = notification.data.userId;
+      const clubName = notification.data?.clubName || 'the club';
+      
+      return (
+        <div className="text-sm">
+          <span
+            className="text-green-600 hover:text-green-800 cursor-pointer font-medium underline"
+            onClick={() => handleUserClick(userId, userName)}
+          >
+            {userName}
+          </span>
+          {' '}has requested to join {clubName}
+        </div>
       );
     }
     
-    return (
-      <div 
-        className="text-sm"
-        dangerouslySetInnerHTML={{ __html: message }}
-        onClick={(e) => {
-          const target = e.target as HTMLElement;
-          if (target.tagName === 'SPAN' && target.classList.contains('cursor-pointer')) {
-            if (notification.type === 'request_accepted') {
-              handleClubClick();
-            } else if (notification.type === 'join_request' && notification.data?.userId) {
-              handleUserClick(notification.data.userId, notification.data.userName || 'User');
-            }
-          }
-        }}
-      />
-    );
+    // For other notification types, display the message as-is
+    return <div className="text-sm">{message}</div>;
   };
 
   return (

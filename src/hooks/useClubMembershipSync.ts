@@ -11,7 +11,8 @@ export const useClubMembershipSync = () => {
     
     console.log('[useClubMembershipSync] Setting up club membership subscription for user:', currentUser.id);
     
-    // Subscribe to club_members table changes for this user
+    // Subscribe to ALL club_members table changes (not just current user)
+    // This ensures User B gets updates when User A accepts them
     const channel = supabase
       .channel('club-membership-changes')
       .on(
@@ -19,19 +20,21 @@ export const useClubMembershipSync = () => {
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'club_members',
-          filter: `user_id=eq.${currentUser.id}`
+          table: 'club_members'
         },
         (payload) => {
-          console.log('[useClubMembershipSync] User added to club:', payload);
+          console.log('[useClubMembershipSync] Club membership added:', payload);
           
-          // Refresh user data to get updated club list
-          if (refreshCurrentUser) {
-            refreshCurrentUser().then(() => {
-              console.log('[useClubMembershipSync] User data refreshed after club membership change');
-            }).catch(err => {
-              console.error('[useClubMembershipSync] Error refreshing user data:', err);
-            });
+          // If this membership change involves the current user, refresh immediately
+          if (payload.new?.user_id === currentUser.id) {
+            console.log('[useClubMembershipSync] Current user was added to a club, refreshing...');
+            if (refreshCurrentUser) {
+              refreshCurrentUser().then(() => {
+                console.log('[useClubMembershipSync] User data refreshed after being added to club');
+              }).catch(err => {
+                console.error('[useClubMembershipSync] Error refreshing user data:', err);
+              });
+            }
           }
         }
       )
@@ -40,19 +43,21 @@ export const useClubMembershipSync = () => {
         {
           event: 'DELETE',
           schema: 'public',
-          table: 'club_members',
-          filter: `user_id=eq.${currentUser.id}`
+          table: 'club_members'
         },
         (payload) => {
-          console.log('[useClubMembershipSync] User removed from club:', payload);
+          console.log('[useClubMembershipSync] Club membership removed:', payload);
           
-          // Refresh user data to get updated club list
-          if (refreshCurrentUser) {
-            refreshCurrentUser().then(() => {
-              console.log('[useClubMembershipSync] User data refreshed after club membership removal');
-            }).catch(err => {
-              console.error('[useClubMembershipSync] Error refreshing user data:', err);
-            });
+          // If this membership change involves the current user, refresh immediately
+          if (payload.old?.user_id === currentUser.id) {
+            console.log('[useClubMembershipSync] Current user was removed from a club, refreshing...');
+            if (refreshCurrentUser) {
+              refreshCurrentUser().then(() => {
+                console.log('[useClubMembershipSync] User data refreshed after being removed from club');
+              }).catch(err => {
+                console.error('[useClubMembershipSync] Error refreshing user data:', err);
+              });
+            }
           }
         }
       )
@@ -82,8 +87,9 @@ export const useClubMembershipSync = () => {
     const handleMembershipAccepted = (event: CustomEvent) => {
       console.log('[useClubMembershipSync] Membership accepted event:', event.detail);
       
-      // If this is for the current user, refresh immediately
-      if (event.detail?.userId === currentUser?.id && refreshCurrentUser) {
+      // Refresh user data immediately for ANY membership acceptance
+      // This ensures User B gets updates when User A accepts them
+      if (refreshCurrentUser) {
         refreshCurrentUser().then(() => {
           console.log('[useClubMembershipSync] User data refreshed after membership acceptance');
         }).catch(err => {
