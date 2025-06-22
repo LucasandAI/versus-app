@@ -41,7 +41,84 @@ export const useClubNavigation = () => {
       }
     }
 
-    // For non-member clubs, get or create a complete club object
+    // For non-member clubs, fetch complete club data from database instead of creating preview
+    if (club.id) {
+      console.log('[useClubNavigation] Fetching complete club data for non-member club:', club.id);
+      try {
+        // Fetch complete club data including members
+        const { data: clubData, error: clubError } = await supabase
+          .from('clubs')
+          .select(`
+            id,
+            name,
+            logo,
+            division,
+            tier,
+            elite_points,
+            bio,
+            member_count
+          `)
+          .eq('id', club.id)
+          .single();
+
+        if (clubError) {
+          console.error('[useClubNavigation] Error fetching club data:', clubError);
+          throw clubError;
+        }
+
+        // Fetch club members
+        const { data: membersData, error: membersError } = await supabase
+          .from('club_members')
+          .select(`
+            user_id,
+            is_admin,
+            users:user_id (
+              id,
+              name,
+              avatar
+            )
+          `)
+          .eq('club_id', club.id);
+
+        if (membersError) {
+          console.error('[useClubNavigation] Error fetching members:', membersError);
+          // Continue with empty members array rather than failing
+        }
+
+        // Create club object with real data
+        const completeClub: Club = {
+          id: clubData.id,
+          name: clubData.name,
+          logo: clubData.logo || '/placeholder.svg',
+          division: ensureDivision(clubData.division),
+          tier: clubData.tier || 5,
+          elitePoints: clubData.elite_points || 0,
+          bio: clubData.bio || `Welcome to this running club! We're a group of passionate runners looking to challenge ourselves and improve together.`,
+          members: membersData?.map(member => ({
+            id: member.users?.id || '',
+            name: member.users?.name || 'Unknown Member',
+            avatar: member.users?.avatar || '/placeholder.svg',
+            isAdmin: member.is_admin,
+            distanceContribution: 0
+          })) || [],
+          matchHistory: [], // Will be loaded by club detail if needed
+          currentMatch: null,
+          joinRequests: [],
+          isPreviewClub: false
+        };
+
+        console.log('[useClubNavigation] Complete club data fetched:', completeClub);
+        setSelectedClub(completeClub);
+        setCurrentView('clubDetail');
+        return;
+
+      } catch (error) {
+        console.error('[useClubNavigation] Error fetching complete club data:', error);
+        // Fall back to preview club if fetching fails
+      }
+    }
+
+    // Fallback: For non-member clubs, get or create a complete club object (preview mode)
     const clubToJoin = getClubToJoin(
       club.id || '', 
       club.name || '', 
@@ -53,7 +130,7 @@ export const useClubNavigation = () => {
       clubToJoin.matchHistory = generateMatchHistoryFromDivision(clubToJoin);
     }
 
-    console.log("Navigating to non-member club:", clubToJoin);
+    console.log("Navigating to preview club:", clubToJoin);
     setSelectedClub(clubToJoin);
     setCurrentView('clubDetail');
   };
