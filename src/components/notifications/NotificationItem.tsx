@@ -189,7 +189,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
         <div className="text-sm">
           You've been added to{' '}
           <span
-            className="text-green-600 hover:text-green-800 cursor-pointer font-medium underline"
+            className="text-green-600 hover:text-green-800 cursor-pointer font-medium"
             onClick={() => handleClubClick(clubId, clubName)}
           >
             {clubName}
@@ -199,21 +199,32 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
       );
     }
     
-    // Handle join_request notifications - make username clickable
+    // Handle join_request notifications - make both username AND club name clickable
     if (notification.type === 'join_request' && notification.data?.userName && notification.data?.userId) {
       const userName = notification.data.userName;
       const userId = notification.data.userId;
       const clubName = notification.data?.clubName || 'the club';
+      const clubId = notification.data?.clubId || notification.clubId;
       
       return (
         <div className="text-sm">
           <span
-            className="text-green-600 hover:text-green-800 cursor-pointer font-medium underline"
+            className="text-green-600 hover:text-green-800 cursor-pointer font-medium"
             onClick={() => handleUserClick(userId, userName)}
           >
             {userName}
           </span>
-          {' '}has requested to join {clubName}
+          {' '}has requested to join{' '}
+          {clubId ? (
+            <span
+              className="text-green-600 hover:text-green-800 cursor-pointer font-medium"
+              onClick={() => handleClubClick(clubId, clubName)}
+            >
+              {clubName}
+            </span>
+          ) : (
+            clubName
+          )}
         </div>
       );
     }
