@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Notification } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -179,6 +178,25 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
   // Render message with clickable club names and usernames
   const renderMessage = () => {
     let message = notification.message;
+    
+    // Handle invite notifications - make club name clickable
+    if (notification.type === 'invite' && notification.data?.clubName && notification.data?.clubId) {
+      const clubName = notification.data.clubName;
+      const clubId = notification.data.clubId;
+      
+      return (
+        <div className="text-sm">
+          You've been invited to join{' '}
+          <span
+            className="text-green-600 hover:text-green-800 cursor-pointer font-medium"
+            onClick={() => handleClubClick(clubId, clubName)}
+          >
+            {clubName}
+          </span>
+          .
+        </div>
+      );
+    }
     
     // Handle request_accepted notifications - make club name clickable
     if (notification.type === 'request_accepted' && notification.data?.clubName && notification.data?.clubId) {
