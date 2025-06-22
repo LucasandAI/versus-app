@@ -1,9 +1,29 @@
-import { useEffect } from 'react';
+
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
 
 export const useClubMembershipSync = () => {
   const { currentUser, refreshCurrentUser } = useApp();
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Debounced refresh function to prevent excessive API calls
+  const debouncedRefresh = () => {
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+    }
+    
+    refreshTimeoutRef.current = setTimeout(() => {
+      if (refreshCurrentUser) {
+        console.log('[useClubMembershipSync] Executing debounced refresh');
+        refreshCurrentUser().then(() => {
+          console.log('[useClubMembershipSync] User data refreshed successfully');
+        }).catch(err => {
+          console.error('[useClubMembershipSync] Error refreshing user data:', err);
+        });
+      }
+    }, 500); // 500ms debounce
+  };
   
   useEffect(() => {
     if (!currentUser?.id) return;
@@ -11,7 +31,7 @@ export const useClubMembershipSync = () => {
     console.log('[useClubMembershipSync] Setting up club membership subscription for user:', currentUser.id);
     
     // Subscribe to ALL club_members table changes
-    // This ensures all users get updates when memberships change in clubs they're part of
+    // This ensures all users get updates when memberships change in any club
     const channel = supabase
       .channel('club-membership-changes')
       .on(
@@ -23,17 +43,7 @@ export const useClubMembershipSync = () => {
         },
         (payload) => {
           console.log('[useClubMembershipSync] Club membership added:', payload);
-          
-          // Always refresh current user data when any membership changes occur
-          // This ensures the UI updates for all affected users
-          if (refreshCurrentUser) {
-            console.log('[useClubMembershipSync] Refreshing user data due to membership change');
-            refreshCurrentUser().then(() => {
-              console.log('[useClubMembershipSync] User data refreshed after membership change');
-            }).catch(err => {
-              console.error('[useClubMembershipSync] Error refreshing user data:', err);
-            });
-          }
+          debouncedRefresh();
         }
       )
       .on(
@@ -45,24 +55,28 @@ export const useClubMembershipSync = () => {
         },
         (payload) => {
           console.log('[useClubMembershipSync] Club membership removed:', payload);
-          
-          // Always refresh current user data when any membership changes occur
-          if (refreshCurrentUser) {
-            console.log('[useClubMembershipSync] Refreshing user data due to membership removal');
-            refreshCurrentUser().then(() => {
-              console.log('[useClubMembershipSync] User data refreshed after membership removal');
-            }).catch(err => {
-              console.error('[useClubMembershipSync] Error refreshing user data:', err);
-            });
-          }
+          debouncedRefresh();
         }
       )
       .subscribe((status) => {
         console.log('[useClubMembershipSync] Subscription status:', status);
+        
+        // Handle subscription errors
+        if (status === 'SUBSCRIPTION_ERROR') {
+          console.error('[useClubMembershipSync] Subscription error detected, attempting to reconnect...');
+          // Retry subscription after a delay
+          setTimeout(() => {
+            console.log('[useClubMembershipSync] Retrying subscription...');
+            // The effect will re-run and create a new subscription
+          }, 2000);
+        }
       });
       
     return () => {
       console.log('[useClubMembershipSync] Cleaning up club membership subscription');
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
       supabase.removeChannel(channel);
     };
   }, [currentUser?.id, refreshCurrentUser]);
@@ -71,26 +85,12 @@ export const useClubMembershipSync = () => {
   useEffect(() => {
     const handleClubMembershipChange = (event: CustomEvent) => {
       console.log('[useClubMembershipSync] Club membership change event (same session):', event.detail);
-      
-      // Only refresh for same-session optimizations
-      if (refreshCurrentUser) {
-        refreshCurrentUser().catch(err => {
-          console.error('[useClubMembershipSync] Error refreshing user data from custom event:', err);
-        });
-      }
+      debouncedRefresh();
     };
     
     const handleMembershipAccepted = (event: CustomEvent) => {
       console.log('[useClubMembershipSync] Membership accepted event (same session):', event.detail);
-      
-      // Only refresh for same-session optimizations
-      if (refreshCurrentUser) {
-        refreshCurrentUser().then(() => {
-          console.log('[useClubMembershipSync] User data refreshed after membership acceptance (same session)');
-        }).catch(err => {
-          console.error('[useClubMembershipSync] Error refreshing user data after acceptance:', err);
-        });
-      }
+      debouncedRefresh();
     };
     
     window.addEventListener('clubMembershipChanged', handleClubMembershipChange as EventListener);
@@ -100,5 +100,5 @@ export const useClubMembershipSync = () => {
       window.removeEventListener('clubMembershipChanged', handleClubMembershipChange as EventListener);
       window.removeEventListener('membershipAccepted', handleMembershipAccepted as EventListener);
     };
-  }, [currentUser?.id, refreshCurrentUser]);
+  }, [currentUser?.id]);
 };

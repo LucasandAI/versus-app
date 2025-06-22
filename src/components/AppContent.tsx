@@ -10,6 +10,7 @@ import Leaderboard from '@/components/Leaderboard';
 import Navigation from '@/components/Navigation';
 import ToastErrorHandler from '@/components/ToastErrorHandler';
 import { useClubMembershipSync } from '@/hooks/useClubMembershipSync';
+import { useNotificationListener } from '@/hooks/useNotificationListener';
 
 interface AppContentProps {
   children?: React.ReactNode;
@@ -20,6 +21,9 @@ const AppContent: React.FC<AppContentProps> = ({ children }) => {
   
   // Set up real-time club membership sync
   useClubMembershipSync();
+  
+  // Set up notification listener for immediate UI updates
+  useNotificationListener();
 
   if (!isSessionReady) {
     return <LoadingScreen />;
