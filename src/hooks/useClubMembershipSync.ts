@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/context/AppContext';
+import { REALTIME_SUBSCRIBE_STATES } from '@supabase/supabase-js';
 
 export const useClubMembershipSync = () => {
   const { currentUser, refreshCurrentUser } = useApp();
@@ -61,8 +62,8 @@ export const useClubMembershipSync = () => {
       .subscribe((status) => {
         console.log('[useClubMembershipSync] Subscription status:', status);
         
-        // Handle subscription errors
-        if (status === 'SUBSCRIPTION_ERROR') {
+        // Handle subscription errors using the correct enum value
+        if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIPTION_ERROR) {
           console.error('[useClubMembershipSync] Subscription error detected, attempting to reconnect...');
           // Retry subscription after a delay
           setTimeout(() => {
