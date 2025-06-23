@@ -1,4 +1,5 @@
 
+
 declare module 'lucide-react' {
   import { FC, SVGProps } from 'react';
   
@@ -84,9 +85,8 @@ declare module 'lucide-react' {
   export const InfoIcon: FC<IconProps>; // Added
   export const Watch: FC<IconProps>; // Added
   
-  // Activity and sports icons - using correct lowercase names
+  // Activity and sports icons - using activity icon since run doesn't exist
   export const activity: FC<IconProps>; // Added
-  export const run: FC<IconProps>; // Added for running activities
   
   // Social media
   export const Instagram: FC<IconProps>;
@@ -95,3 +95,4 @@ declare module 'lucide-react' {
   export const Linkedin: FC<IconProps>;
   export const Globe: FC<IconProps>;
 }
+
