@@ -16,7 +16,7 @@ const TermsAndConditions: React.FC = () => {
         title="Terms & Conditions" 
         onBack={handleBack}
       />
-      <div className="container-mobile py-8">
+      <div className="container-mobile py-8 pb-16">
         <div className="bg-white rounded-lg p-6 shadow-sm">
           <div className="prose max-w-none">
             <h2 className="text-xl font-semibold mb-4">Terms of Service</h2>
@@ -56,7 +56,13 @@ const TermsAndConditions: React.FC = () => {
               We reserve the right to modify these terms at any time. Users will be notified of significant changes.
             </p>
 
-            <p className="text-sm text-gray-500 mt-8">
+            <h3 className="text-lg font-medium mt-6 mb-3">8. Contact Us</h3>
+            <p className="text-gray-700 mb-4">
+              If you have any questions about these Terms & Conditions, please contact us at{' '}
+              <a href="mailto:support@versus.run" className="text-primary font-medium">support@versus.run</a>.
+            </p>
+
+            <p className="text-sm text-gray-500 mt-8 mb-8">
               Last updated: June 23, 2025
             </p>
           </div>
