@@ -22,11 +22,11 @@ export const useLoadCurrentUser = () => {
         hasUserData: !!userData 
       });
 
-      // If there's an error or no user data, create a basic user profile
+      // If there's an error or no user data, return a basic user profile without creating one
       if (userError || !userData) {
-        console.warn('[useLoadCurrentUser] User not found in database, creating basic profile');
+        console.warn('[useLoadCurrentUser] User not found in database, returning basic profile');
         
-        // Create a basic user since we couldn't find one in the database
+        // Return a basic user since we couldn't find one in the database
         const basicUser: User = {
           id: userId,
           name: 'User',
@@ -34,26 +34,6 @@ export const useLoadCurrentUser = () => {
           bio: '',
           clubs: []
         };
-        
-        // Try to create the user record in the database
-        try {
-          const { error: insertError } = await safeSupabase
-            .from('users')
-            .insert([{
-              id: userId,
-              name: basicUser.name,
-              avatar: basicUser.avatar,
-              bio: basicUser.bio
-            }]);
-            
-          if (insertError) {
-            console.error('[useLoadCurrentUser] Error creating user profile:', insertError);
-          } else {
-            console.log('[useLoadCurrentUser] Created new user profile in database');
-          }
-        } catch (createError) {
-          console.error('[useLoadCurrentUser] Exception creating user profile:', createError);
-        }
         
         return basicUser;
       }
@@ -90,7 +70,7 @@ export const useLoadCurrentUser = () => {
                 return null;
               }
               
-              // NEW: Fetch club members for this club
+              // Fetch club members for this club
               const { data: clubMembers, error: membersError } = await safeSupabase
                 .from('club_members')
                 .select(`

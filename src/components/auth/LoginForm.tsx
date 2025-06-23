@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -434,16 +433,24 @@ const LoginForm: React.FC = () => {
       
       if (avatarFile) {
         console.log('[LoginForm] Uploading avatar file');
-        const uploadedUrl = await uploadAvatar(userId, avatarFile);
-        if (uploadedUrl) {
-          console.log('[LoginForm] Avatar URL:', uploadedUrl);
-          avatarUrl = uploadedUrl;
+        try {
+          const uploadedUrl = await uploadAvatar(userId, avatarFile);
+          if (uploadedUrl) {
+            console.log('[LoginForm] Avatar URL:', uploadedUrl);
+            avatarUrl = uploadedUrl;
+          } else {
+            console.warn('[LoginForm] Avatar upload failed, using default');
+          }
+        } catch (avatarError) {
+          console.error('[LoginForm] Avatar upload error:', avatarError);
+          // Continue with profile creation even if avatar upload fails
         }
       }
       
+      // Use UPSERT instead of INSERT to handle existing users
       const { error } = await supabase
         .from('users')
-        .insert({
+        .upsert({
           id: userId,
           name: values.name,
           bio: values.bio || null,
@@ -454,6 +461,9 @@ const LoginForm: React.FC = () => {
           linkedin: linkedin || null,
           website: website || null,
           tiktok: tiktok || null,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'id'
         });
 
       if (error) {
@@ -472,7 +482,23 @@ const LoginForm: React.FC = () => {
       window.location.reload();
     } catch (error) {
       console.error('[LoginForm] Profile completion error:', error);
-      setError(error instanceof Error ? error.message : 'Failed to complete profile');
+      let errorMessage = 'Failed to complete profile';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('duplicate key')) {
+          errorMessage = 'Profile already exists. Please try logging in instead.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setError(errorMessage);
+      
+      toast({
+        title: "Profile completion failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
