@@ -1,5 +1,5 @@
 
-export type AuthMode = 'login' | 'signup' | 'profile-completion';
+export type AuthMode = 'login' | 'signup' | 'profile-completion' | 'email-verification';
 
 export interface SignupFormValues {
   email: string;

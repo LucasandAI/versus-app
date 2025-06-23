@@ -70,6 +70,7 @@ const LoginForm: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [userId, setUserId] = useState<string | null>(null);
+  const [signupEmail, setSignupEmail] = useState(''); // Store email for verification
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [resetPasswordStep, setResetPasswordStep] = useState<'email' | 'verify' | 'newPassword'>('email');
   const [resetEmail, setResetEmail] = useState('');
@@ -89,6 +90,14 @@ const LoginForm: React.FC = () => {
   const [linkedin, setLinkedin] = useState('');
   const [website, setWebsite] = useState('');
   const [tiktok, setTiktok] = useState('');
+
+  // Email verification form
+  const emailVerificationForm = useForm<VerifyOtpFormValues>({
+    resolver: zodResolver(verifyOtpSchema),
+    defaultValues: {
+      otp: '',
+    },
+  });
 
   // Effect to check if we need to show the profile completion form
   useEffect(() => {
@@ -353,31 +362,6 @@ const LoginForm: React.FC = () => {
     try {
       console.log('[LoginForm] Submitting signup form with email:', values.email);
       
-      // First check if the email is already registered
-      const { data: existingUsers, error: userCheckError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('id', values.email)
-        .maybeSingle();
-        
-      if (userCheckError) {
-        console.error('[LoginForm] Error checking existing user:', userCheckError);
-      }
-      
-      // Also check auth.users (via the sign-in endpoint)
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: values.email,
-        password: 'temp-check-password-not-real'
-      });
-      
-      // If we can sign in with any password or get a specific error about password being wrong
-      // (but not about the user not existing), the email is already in use
-      if ((!signInError) || (signInError.message && !signInError.message.toLowerCase().includes('user') && signInError.message.toLowerCase().includes('password'))) {
-        setError('This email address is already registered. Please use a different email or try logging in.');
-        setIsLoading(false);
-        return;
-      }
-      
       const { data, error } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
@@ -394,6 +378,7 @@ const LoginForm: React.FC = () => {
       if (data.user) {
         console.log('[LoginForm] Signup successful, user:', data.user.id);
         setUserId(data.user.id);
+        setSignupEmail(values.email);
         
         // Check if email confirmation is required
         if (data.session) {
@@ -407,9 +392,10 @@ const LoginForm: React.FC = () => {
           });
         } else {
           // Email confirmation is required
+          setAuthMode('email-verification');
           toast({
-            title: "Sign-up successful",
-            description: "Please check your email to confirm your account.",
+            title: "Check your email",
+            description: "We've sent you a 6-digit verification code.",
           });
         }
       }
@@ -421,82 +407,36 @@ const LoginForm: React.FC = () => {
     }
   };
 
-  const handleProfileCompletion = async (values: ProfileFormValues) => {
-    if (isLoading || !userId) return;
+  const handleVerifySignupEmail = async (values: VerifyOtpFormValues) => {
+    if (isLoading) return;
+    
     setIsLoading(true);
     setError(null);
-
+    
     try {
-      console.log('[LoginForm] Completing profile for user:', userId);
-      
-      let avatarUrl = '/placeholder.svg'; // Default avatar
-      
-      if (avatarFile) {
-        console.log('[LoginForm] Uploading avatar file');
-        try {
-          const uploadedUrl = await uploadAvatar(userId, avatarFile);
-          if (uploadedUrl) {
-            console.log('[LoginForm] Avatar URL:', uploadedUrl);
-            avatarUrl = uploadedUrl;
-          } else {
-            console.warn('[LoginForm] Avatar upload failed, using default');
-          }
-        } catch (avatarError) {
-          console.error('[LoginForm] Avatar upload error:', avatarError);
-          // Continue with profile creation even if avatar upload fails
-        }
-      }
-      
-      // Use UPSERT instead of INSERT to handle existing users
-      const { error } = await supabase
-        .from('users')
-        .upsert({
-          id: userId,
-          name: values.name,
-          bio: values.bio || null,
-          avatar: avatarUrl,
-          instagram: instagram || null,
-          twitter: twitter || null,
-          facebook: facebook || null,
-          linkedin: linkedin || null,
-          website: website || null,
-          tiktok: tiktok || null,
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'id'
-        });
-
-      if (error) {
-        throw error;
-      }
-
-      // Signal that profile completion is done
-      setNeedsProfileCompletion(false);
-      
-      toast({
-        title: "Profile completed",
-        description: "Welcome to Versus!",
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: signupEmail,
+        token: values.otp,
+        type: 'signup'
       });
-
-      // Refresh the page to trigger the auth state change
-      window.location.reload();
-    } catch (error) {
-      console.error('[LoginForm] Profile completion error:', error);
-      let errorMessage = 'Failed to complete profile';
       
-      if (error instanceof Error) {
-        if (error.message.includes('duplicate key')) {
-          errorMessage = 'Profile already exists. Please try logging in instead.';
-        } else {
-          errorMessage = error.message;
-        }
+      if (error) throw error;
+      
+      if (data.user) {
+        setUserId(data.user.id);
+        setAuthMode('profile-completion');
+        setNeedsProfileCompletion(true);
+        
+        toast({
+          title: "Email verified",
+          description: "Please complete your profile"
+        });
       }
-      
-      setError(errorMessage);
-      
+    } catch (error) {
+      console.error('[LoginForm] Email verification error:', error);
       toast({
-        title: "Profile completion failed",
-        description: errorMessage,
+        title: "Invalid verification code",
+        description: error instanceof Error ? error.message : "Please check and try again",
         variant: "destructive"
       });
     } finally {
@@ -504,8 +444,123 @@ const LoginForm: React.FC = () => {
     }
   };
 
-  // Render the appropriate form based on the current auth mode
+  const handleResendVerificationCode = async () => {
+    if (isLoading) return;
+    
+    setIsLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: signupEmail
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Verification code sent",
+        description: "Please check your email for a new 6-digit code"
+      });
+    } catch (error) {
+      console.error('[LoginForm] Resend verification error:', error);
+      toast({
+        title: "Could not resend code",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Reset loading state after 10 seconds to prevent getting stuck
+
+  // Login form
+
+  // Sign-up form
+
+  // Profile completion form
+
   const renderForm = () => {
+    // Email verification form
+    if (authMode === 'email-verification') {
+      return (
+        <Form {...emailVerificationForm}>
+          <form onSubmit={emailVerificationForm.handleSubmit(handleVerifySignupEmail)} className="space-y-6">
+            <h2 className="text-xl font-bold text-center">Verify Your Email</h2>
+            
+            <div className="text-center mb-4">
+              <p className="text-sm text-gray-500">
+                Enter the 6-digit verification code sent to <span className="font-semibold">{signupEmail}</span>
+              </p>
+            </div>
+            
+            <FormField
+              control={emailVerificationForm.control}
+              name="otp"
+              render={({ field }) => (
+                <FormItem className="flex flex-col items-center">
+                  <FormControl>
+                    <InputOTP maxLength={6} {...field}>
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            {error && (
+              <div className="p-3 text-sm text-red-500 bg-red-50 rounded-lg">
+                {error}
+              </div>
+            )}
+            
+            <div className="pt-2">
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isLoading || emailVerificationForm.watch('otp')?.length !== 6}
+              >
+                {isLoading ? 'Verifying...' : 'Verify Email'}
+              </Button>
+            </div>
+            
+            <div className="text-center text-sm">
+              <Button 
+                variant="link" 
+                type="button"
+                className="p-0 h-auto text-sm"
+                onClick={handleResendVerificationCode}
+                disabled={isLoading}
+              >
+                Didn't receive a code? Send again
+              </Button>
+            </div>
+            
+            <div className="text-center text-sm">
+              <Button 
+                variant="link" 
+                type="button"
+                className="p-0 h-auto text-sm"
+                onClick={() => setAuthMode('signup')}
+                disabled={isLoading}
+              >
+                Back to sign up
+              </Button>
+            </div>
+          </form>
+        </Form>
+      );
+    }
+
     if (authMode === 'profile-completion') {
       return (
         <Form {...profileForm}>
@@ -767,7 +822,6 @@ const LoginForm: React.FC = () => {
     );
   };
 
-  // Render the appropriate reset password form based on the current step
   const renderResetPasswordForm = () => {
     switch (resetPasswordStep) {
       case 'email':
