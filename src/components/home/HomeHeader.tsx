@@ -80,7 +80,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     }
   };
   
-  const handleConnectDevice = () => {
+  const handleConnectAppleHealth = () => {
     navigate('/connect-device');
   };
   
@@ -140,9 +140,9 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
               <User className="mr-2 h-4 w-4" />
               <span>Visit Profile</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleConnectDevice}>
+            <DropdownMenuItem onClick={handleConnectAppleHealth}>
               <Watch className="mr-2 h-4 w-4" />
-              <span>Connect a Device</span>
+              <span>Connect Apple Health</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setHelpDialogOpen(true)}>

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Watch } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import AppHeader from '@/components/shared/AppHeader';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -12,64 +12,68 @@ const ConnectDevice: React.FC = () => {
     navigate('/');
   };
 
-  const deviceOptions = [
-    {
-      id: 'apple-watch',
-      name: 'Apple Watch',
-      description: 'Connect your Apple Watch to track runs automatically',
-      logo: '/lovable-uploads/c9f15dff-1812-49ea-9464-3969ddee6e5a.png'
-    },
-    {
-      id: 'garmin',
-      name: 'Garmin Watch',
-      description: 'Connect your Garmin device for accurate tracking',
-      logo: '/lovable-uploads/be90ac52-33ba-4c84-b86b-88b4925eea0c.png'
-    },
-    {
-      id: 'other',
-      name: 'Other Devices',
-      description: 'Connect other smartwatches like Fitbit, Suunto, etc.',
-      icon: Watch
-    }
-  ];
+  const handleConnectAppleHealth = () => {
+    // TODO: Implement Apple Health connection logic
+    console.log('Connecting to Apple Health...');
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <AppHeader 
-        title="Connect a Device" 
+        title="Connect Apple Health" 
         onBack={handleBack}
       />
       <div className="container-mobile py-8">
-        <h2 className="text-xl font-semibold mb-6">Choose your device</h2>
-        
-        <div className="space-y-4">
-          {deviceOptions.map(device => (
-            <Card key={device.id} className="overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-              <CardContent className="p-0">
-                <button className="w-full p-4 text-left flex items-center">
-                  <div className="flex-shrink-0 mr-4 w-12 h-12 flex items-center justify-center">
-                    {device.logo ? (
-                      <img 
-                        src={device.logo} 
-                        alt={`${device.name} logo`} 
-                        className="max-w-full max-h-full object-contain"
-                      />
-                    ) : device.icon ? (
-                      <device.icon className="h-8 w-8 text-primary" />
-                    ) : null}
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-base">{device.name}</h3>
-                    <p className="text-sm text-gray-500">{device.description}</p>
-                  </div>
-                </button>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+            <Heart className="h-8 w-8 text-red-500" />
+          </div>
+          <h2 className="text-xl font-semibold mb-2">Track Your Distance Automatically</h2>
+          <p className="text-gray-600 text-sm">
+            Connect to Apple Health to automatically sync your running distance with Versus
+          </p>
         </div>
         
-        <p className="mt-8 text-sm text-gray-500 text-center">
-          Connected devices will automatically sync your runs with Versus
+        <Card className="overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-0">
+            <button 
+              onClick={handleConnectAppleHealth}
+              className="w-full p-6 text-left flex items-center"
+            >
+              <div className="flex-shrink-0 mr-4 w-12 h-12 flex items-center justify-center">
+                <img 
+                  src="/lovable-uploads/f8b9b002-af8f-4f3f-b2b3-0a95d21fe7d4.png" 
+                  alt="Apple Health logo" 
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-medium text-base mb-1">Apple Health</h3>
+                <p className="text-sm text-gray-500 mb-2">
+                  Automatically sync your running workouts and distance data
+                </p>
+                <div className="text-xs text-gray-400">
+                  • Works with iPhone and Apple Watch
+                  • Tracks distance, pace, and workout duration
+                  • Secure and private data sharing
+                </div>
+              </div>
+            </button>
+          </CardContent>
+        </Card>
+        
+        <div className="mt-8 bg-blue-50 rounded-lg p-4">
+          <h4 className="font-medium text-blue-900 mb-2">How it works</h4>
+          <ul className="text-sm text-blue-800 space-y-1">
+            <li>• Connect your Apple Health account</li>
+            <li>• Run with your iPhone or Apple Watch</li>
+            <li>• Distance automatically syncs to Versus</li>
+            <li>• Contribute to your club's weekly matches</li>
+          </ul>
+        </div>
+        
+        <p className="mt-6 text-xs text-gray-500 text-center">
+          Apple Health integration will automatically sync your runs with Versus
         </p>
       </div>
     </div>
