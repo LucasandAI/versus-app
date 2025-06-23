@@ -58,7 +58,7 @@ const ConnectDevice: React.FC = () => {
         {/* Apple Health Badge - positioned below the card */}
         <div className="flex justify-center mt-4">
           <img 
-            src="/lovable-uploads/badge-standard_2x.svg" 
+            src="/lovable-uploads/f7254a58-4feb-4599-a07c-7544057d149e.png" 
             alt="Works with Apple Health" 
             className="h-16 object-contain"
           />
