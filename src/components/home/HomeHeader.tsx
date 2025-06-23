@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { MessageCircle, Run as ActivityIcon, User, HelpCircle, LogOut, ShieldCheck } from 'lucide-react';
+import { MessageCircle, Activity as ActivityIcon, User, HelpCircle, LogOut, ShieldCheck } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '../shared/UserAvatar';
 import Button from '../shared/Button';

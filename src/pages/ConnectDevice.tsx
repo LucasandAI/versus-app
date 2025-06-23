@@ -1,8 +1,7 @@
 
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Run as ActivityIcon } from 'lucide-react';
+import { Activity as ActivityIcon } from 'lucide-react';
 import AppHeader from '@/components/shared/AppHeader';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -91,4 +90,3 @@ const ConnectDevice: React.FC = () => {
 };
 
 export default ConnectDevice;
-
