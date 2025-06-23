@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -487,7 +488,7 @@ const LoginForm: React.FC = () => {
       // Upload avatar if provided
       if (avatarFile) {
         console.log('[LoginForm] Uploading avatar file');
-        const uploadedUrl = await uploadAvatar(avatarFile, userId);
+        const uploadedUrl = await uploadAvatar(userId, avatarFile);
         if (uploadedUrl) {
           avatarUrl = uploadedUrl;
           console.log('[LoginForm] Avatar uploaded successfully:', uploadedUrl);
