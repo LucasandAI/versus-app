@@ -6,18 +6,11 @@ import Button from '../shared/Button';
 import NotificationPopover from '../shared/NotificationPopover';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
 import { useChatBadge } from '@/hooks/useChatBadge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useNavigate } from 'react-router-dom';
 import { clearAllAuthData } from '@/integrations/supabase/safeClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from '@/hooks/use-toast';
-
 interface HomeHeaderProps {
   notifications: any[];
   onMarkAsRead: (id: string) => void;
@@ -25,7 +18,6 @@ interface HomeHeaderProps {
   onUserClick: (userId: string, name: string) => void;
   onDeclineInvite: (id: string) => void;
 }
-
 const HomeHeader: React.FC<HomeHeaderProps> = ({
   notifications,
   onMarkAsRead,
@@ -38,19 +30,17 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     currentUser,
     setSelectedUser
   } = useApp();
-  
   const {
     open
   } = useChatDrawerGlobal();
-  
+
   // Use our unified chat badge hook
-  const { badgeCount } = useChatBadge(currentUser?.id);
-  
+  const {
+    badgeCount
+  } = useChatBadge(currentUser?.id);
   const navigate = useNavigate();
-  
   const [notificationsCount, setNotificationsCount] = useState(notifications.length);
   const [helpDialogOpen, setHelpDialogOpen] = useState(false);
-  
   console.log("[HomeHeader] Rendering with badge count:", badgeCount, "notifications:", notifications.length);
 
   // Update notifications count when notifications array changes
@@ -65,30 +55,24 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
         setNotificationsCount(notifications.length);
       }, 50);
     };
-    
     window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
-    
     return () => {
       window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
     };
   }, [notifications.length]);
-  
   const handleViewOwnProfile = () => {
     if (currentUser) {
       setSelectedUser(currentUser);
       setCurrentView('profile');
     }
   };
-  
   const handleConnectAppleHealth = () => {
     navigate('/connect-device');
   };
-  
   const handleChatOpen = () => {
     console.log('[HomeHeader] Opening chat drawer');
     open();
   };
-  
   const handleLogout = async () => {
     try {
       await clearAllAuthData();
@@ -106,35 +90,17 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
       });
     }
   };
-  
-  return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200">
+  return <div className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200">
       <div className="container-mobile">
         <div className="flex items-center justify-between py-4">
           <h1 className="text-2xl font-bold">Versus</h1>
           <div className="flex items-center gap-2">
-            <NotificationPopover 
-              notifications={notifications} 
-              onMarkAsRead={onMarkAsRead} 
-              onClearAll={onClearAll} 
-              onUserClick={onUserClick} 
-              onDeclineInvite={onDeclineInvite} 
-            />
-            <Button 
-              variant="link" 
-              onClick={handleChatOpen} 
-              className="text-primary hover:bg-gray-100 rounded-full p-2" 
-              icon={<MessageCircle className="h-5 w-5" />} 
-              badge={badgeCount > 0 ? badgeCount : 0} 
-            />
+            <NotificationPopover notifications={notifications} onMarkAsRead={onMarkAsRead} onClearAll={onClearAll} onUserClick={onUserClick} onDeclineInvite={onDeclineInvite} />
+            <Button variant="link" onClick={handleChatOpen} className="text-primary hover:bg-gray-100 rounded-full p-2" icon={<MessageCircle className="h-5 w-5" />} badge={badgeCount > 0 ? badgeCount : 0} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <div className="cursor-pointer">
-                  <UserAvatar 
-                    name={currentUser?.name || "User"} 
-                    image={currentUser?.avatar} 
-                    size="sm"
-                  />
+                  <UserAvatar name={currentUser?.name || "User"} image={currentUser?.avatar} size="sm" />
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
@@ -144,7 +110,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleConnectAppleHealth}>
                   <Watch className="mr-2 h-4 w-4" />
-                  <span>Connect Apple Health</span>
+                  <span>Track Distance</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => navigate('/terms')}>
@@ -171,22 +137,17 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
       </div>
 
       {/* Help Dialog */}
-      {helpDialogOpen ? (
-        <Dialog open={helpDialogOpen} onOpenChange={(open) => {
-          setHelpDialogOpen(open);
-          // Ensure that when dialog is closed, any potential lingering overlay is cleared
-          if (!open) {
-            // Small timeout to ensure React has time to process the state change
-            setTimeout(() => {
-              document.body.style.pointerEvents = 'auto';
-            }, 100);
-          }
-        }}>
-          <DialogContent 
-            className="sm:max-w-md" 
-            onEscapeKeyDown={() => setHelpDialogOpen(false)}
-            onPointerDownOutside={() => setHelpDialogOpen(false)}
-          >
+      {helpDialogOpen ? <Dialog open={helpDialogOpen} onOpenChange={open => {
+      setHelpDialogOpen(open);
+      // Ensure that when dialog is closed, any potential lingering overlay is cleared
+      if (!open) {
+        // Small timeout to ensure React has time to process the state change
+        setTimeout(() => {
+          document.body.style.pointerEvents = 'auto';
+        }, 100);
+      }
+    }}>
+          <DialogContent className="sm:max-w-md" onEscapeKeyDown={() => setHelpDialogOpen(false)} onPointerDownOutside={() => setHelpDialogOpen(false)}>
             <DialogHeader>
               <DialogTitle>Need help?</DialogTitle>
               <DialogDescription className="sr-only">Help information</DialogDescription>
@@ -195,10 +156,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
               <p>For assistance, please email us at <a href="mailto:support@versus.run" className="text-primary font-medium">support@versus.run</a>.</p>
             </div>
           </DialogContent>
-        </Dialog>
-      ) : null}
-    </div>
-  );
+        </Dialog> : null}
+    </div>;
 };
-
 export default HomeHeader;
