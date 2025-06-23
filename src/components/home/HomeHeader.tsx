@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { MessageCircle, Activity, User, HelpCircle, LogOut, ShieldCheck } from 'lucide-react';
+import { MessageCircle, Run as RunIcon, User, HelpCircle, LogOut, ShieldCheck } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '../shared/UserAvatar';
 import Button from '../shared/Button';
@@ -110,7 +110,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                   <span>Visit Profile</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleConnectAppleHealth}>
-                  <Activity className="mr-2 h-4 w-4" />
+                  <RunIcon className="mr-2 h-4 w-4" />
                   <span>Track Distance</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

@@ -84,6 +84,10 @@ declare module 'lucide-react' {
   export const InfoIcon: FC<IconProps>; // Added
   export const Watch: FC<IconProps>; // Added
   
+  // Activity and sports icons
+  export const Activity: FC<IconProps>; // Added
+  export const Run: FC<IconProps>; // Added for running activities
+  
   // Social media
   export const Instagram: FC<IconProps>;
   export const Twitter: FC<IconProps>;
