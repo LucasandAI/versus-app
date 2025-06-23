@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { MessageCircle, Watch, User, HelpCircle, LogOut, FileText, ShieldCheck } from 'lucide-react';
+import { MessageCircle, Watch, User, HelpCircle, LogOut, File, ShieldCheck } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '../shared/UserAvatar';
 import Button from '../shared/Button';
@@ -146,7 +146,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate('/terms')}>
-              <FileText className="mr-2 h-4 w-4" />
+              <File className="mr-2 h-4 w-4" />
               <span>Terms & Conditions</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/privacy')}>
