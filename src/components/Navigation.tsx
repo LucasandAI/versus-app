@@ -10,11 +10,16 @@ interface NavigationProps {
 }
 
 const Navigation: React.FC<NavigationProps> = () => {
-  const { currentView, setCurrentView, setSelectedUser, currentUser, selectedUser } = useApp();
+  const { currentView, setCurrentView, setSelectedUser, currentUser, selectedUser, needsProfileCompletion } = useApp();
   const location = useLocation();
   
   // Don't show navigation on the connect-device page
   if (location.pathname === '/connect-device') {
+    return null;
+  }
+
+  // Don't show navigation during profile completion
+  if (needsProfileCompletion) {
     return null;
   }
 

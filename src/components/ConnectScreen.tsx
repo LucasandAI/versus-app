@@ -3,8 +3,11 @@ import React, { useEffect } from 'react';
 import LoginForm from './auth/LoginForm';
 import { clearAllAuthData } from '@/integrations/supabase/safeClient';
 import { Button } from './ui/button';
+import { useApp } from '@/context/AppContext';
 
 const ConnectScreen: React.FC = () => {
+  const { needsProfileCompletion } = useApp();
+  
   // Force logout when this component mounts to ensure clean testing state
   useEffect(() => {
     // Check if there's a force logout parameter in the URL
@@ -35,37 +38,40 @@ const ConnectScreen: React.FC = () => {
           </h2>
         </div>
 
-        <div className="bg-white shadow-md rounded-lg p-6 mb-6">
-          <div className="space-y-4">
-            {[
-              { 
-                number: 1, 
-                title: "Create Your Club", 
-                description: "Build a team of runners who share your competitive spirit" 
-              },
-              { 
-                number: 2, 
-                title: "Compete", 
-                description: "Challenge other clubs in 7-day matches" 
-              },
-              { 
-                number: 3, 
-                title: "Climb the Ranks", 
-                description: "Win matches to ascend through leagues" 
-              }
-            ].map((feature) => (
-              <div key={feature.number} className="flex items-center space-x-4">
-                <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">
-                  {feature.number}
+        {/* Only show app info box if not in profile completion mode */}
+        {!needsProfileCompletion && (
+          <div className="bg-white shadow-md rounded-lg p-6 mb-6">
+            <div className="space-y-4">
+              {[
+                { 
+                  number: 1, 
+                  title: "Create Your Club", 
+                  description: "Build a team of runners who share your competitive spirit" 
+                },
+                { 
+                  number: 2, 
+                  title: "Compete", 
+                  description: "Challenge other clubs in 7-day matches" 
+                },
+                { 
+                  number: 3, 
+                  title: "Climb the Ranks", 
+                  description: "Win matches to ascend through leagues" 
+                }
+              ].map((feature) => (
+                <div key={feature.number} className="flex items-center space-x-4">
+                  <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">
+                    {feature.number}
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-semibold text-gray-800">{feature.title}</h3>
+                    <p className="text-sm text-gray-600">{feature.description}</p>
+                  </div>
                 </div>
-                <div className="text-left">
-                  <h3 className="font-semibold text-gray-800">{feature.title}</h3>
-                  <p className="text-sm text-gray-600">{feature.description}</p>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <LoginForm />
         
