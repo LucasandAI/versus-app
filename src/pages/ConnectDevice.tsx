@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Watch } from 'lucide-react';
@@ -37,16 +38,9 @@ const ConnectDevice: React.FC = () => {
           <CardContent className="p-0">
             <button 
               onClick={handleConnectAppleHealth}
-              className="w-full p-6 text-left flex items-center"
+              className="w-full p-6 text-left"
             >
-              <div className="flex-shrink-0 mr-4 w-20 h-16 flex items-center justify-center">
-                <img 
-                  src="/lovable-uploads/apple-health-badge.png" 
-                  alt="Works with Apple Health" 
-                  className="max-w-full max-h-full object-contain"
-                />
-              </div>
-              <div className="flex-1">
+              <div>
                 <h3 className="font-medium text-base mb-1">Apple Health</h3>
                 <p className="text-sm text-gray-500 mb-2">
                   Automatically sync your running workouts and distance data
@@ -60,6 +54,15 @@ const ConnectDevice: React.FC = () => {
             </button>
           </CardContent>
         </Card>
+        
+        {/* Apple Health Badge - positioned below the card */}
+        <div className="flex justify-center mt-4">
+          <img 
+            src="/lovable-uploads/apple-health-badge.png" 
+            alt="Works with Apple Health" 
+            className="h-16 object-contain"
+          />
+        </div>
         
         <div className="mt-8 bg-blue-50 rounded-lg p-4">
           <h4 className="font-medium text-blue-900 mb-2">How it works</h4>
