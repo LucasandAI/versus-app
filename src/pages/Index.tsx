@@ -1,11 +1,14 @@
+
 import * as React from 'react';
 import { useApp } from '@/context/AppContext';
+import { useInitialAppLoad } from '@/hooks/useInitialAppLoad';
 import ConnectScreen from '@/components/ConnectScreen';
 import HomeView from '@/components/home/HomeView';
 import ClubDetail from '@/components/ClubDetail';
 import Leaderboard from '@/components/Leaderboard';
 import UserProfile from '@/components/UserProfile';
 import Navigation from '@/components/Navigation';
+import LoadingScreen from '@/components/shared/LoadingScreen';
 import { Toaster } from '@/components/ui/toaster';
 import ChatDrawer from '@/components/chat/ChatDrawer';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
@@ -15,9 +18,13 @@ const Index: React.FC = () => {
   const { currentView, currentUser, needsProfileCompletion } = useApp();
   const { totalUnreadCount } = useUnreadMessages();
   const { isOpen: chatDrawerOpen, open: openChatDrawer, close: closeChatDrawer } = useChatDrawerGlobal();
+  
+  // Use the initial app load hook to wait for data to be ready
+  const isAppReady = useInitialAppLoad();
 
   console.log('[Index] Current view:', currentView, 'Current user:', currentUser ? currentUser.id : 'null');
   console.log('[Index] Needs profile completion:', needsProfileCompletion);
+  console.log('[Index] App ready:', isAppReady);
 
   const memoizedClubs = React.useMemo(() => currentUser?.clubs || [], [currentUser?.clubs]);
 
@@ -35,7 +42,13 @@ const Index: React.FC = () => {
       return <ConnectScreen />;
     }
 
-    // Only render other views if user is authenticated and profile is completed
+    // Show loading screen while initial data is being fetched for authenticated users
+    if (!isAppReady) {
+      console.log('[Index] App not ready, showing loading screen');
+      return <LoadingScreen text="Loading your data..." className="min-h-[60vh]" />;
+    }
+
+    // Only render other views if user is authenticated, profile is completed, and app is ready
     switch (currentView) {
       case 'connect':
         console.log('[Index] Rendering ConnectScreen');
