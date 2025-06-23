@@ -473,13 +473,67 @@ const LoginForm: React.FC = () => {
     }
   };
 
-  // Reset loading state after 10 seconds to prevent getting stuck
-
-  // Login form
-
-  // Sign-up form
-
-  // Profile completion form
+  const handleProfileCompletion = async (values: ProfileFormValues) => {
+    if (isLoading || !userId) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      console.log('[LoginForm] Starting profile completion for user:', userId);
+      
+      let avatarUrl = '';
+      
+      // Upload avatar if provided
+      if (avatarFile) {
+        console.log('[LoginForm] Uploading avatar file');
+        const uploadedUrl = await uploadAvatar(avatarFile, userId);
+        if (uploadedUrl) {
+          avatarUrl = uploadedUrl;
+          console.log('[LoginForm] Avatar uploaded successfully:', uploadedUrl);
+        }
+      }
+      
+      // Create user profile
+      const { error: profileError } = await supabase
+        .from('users')
+        .insert({
+          id: userId,
+          name: values.name,
+          bio: values.bio || '',
+          avatar: avatarUrl || '/placeholder.svg',
+          instagram: instagram || null,
+          linkedin: linkedin || null,
+          twitter: twitter || null,
+          facebook: facebook || null,
+          website: website || null,
+          tiktok: tiktok || null,
+        });
+      
+      if (profileError) {
+        console.error('[LoginForm] Profile creation error:', profileError);
+        throw profileError;
+      }
+      
+      console.log('[LoginForm] Profile created successfully');
+      setNeedsProfileCompletion(false);
+      
+      toast({
+        title: "Profile completed",
+        description: "Welcome to Versus! Your profile has been set up successfully.",
+      });
+    } catch (error) {
+      console.error('[LoginForm] Profile completion error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to complete profile');
+      toast({
+        title: "Profile completion failed",
+        description: error instanceof Error ? error.message : "An error occurred while setting up your profile",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const renderForm = () => {
     // Email verification form
