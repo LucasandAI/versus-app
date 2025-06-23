@@ -29,19 +29,26 @@ const HomeClubsSection: React.FC<HomeClubsSectionProps> = ({
   const { currentUser } = useApp();
   const [isLoading, setIsLoading] = useState(true);
   
-  // Immediate loading state management - no delays
+  // Optimized loading state management - removed artificial delay
   useEffect(() => {
-    if (currentUser && !clubsLoading) {
-      // Set loading to false immediately when we have user data
+    // If we have user and clubs data, we can start rendering
+    if (currentUser && userClubs.length > 0 && !clubsLoading) {
+      // No more artificial delay - set loading to false immediately
       setIsLoading(false);
+    } else if (currentUser && !clubsLoading) {
+      // User with no clubs - show empty state immediately
+      setIsLoading(false);
+    } else {
+      setIsLoading(true);
     }
-  }, [currentUser, clubsLoading]);
+  }, [currentUser, userClubs, clubsLoading]);
 
   // Process clubs to ensure they have the necessary properties
-  const processedUserClubs = (userClubs || [])
-    .filter(club => club && club.name)
+  const processedUserClubs = userClubs
+    .filter(club => club && club.name) // Only include clubs with name
     .map(club => ({
       ...club,
+      // Ensure the members array exists
       members: club.members || []
     }));
 

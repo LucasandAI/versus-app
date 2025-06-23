@@ -17,13 +17,16 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
   onViewProfile
 }) => {
   const { matches, isLoading } = useMatchInfo(userClubs);
-  const [showingSkeleton, setShowingSkeleton] = useState(true);
+  const [renderState, setRenderState] = useState<'loading' | 'partial' | 'complete'>('loading');
   
-  // Optimized loading state - show content faster
+  // Progressive loading state management - no artificial delays
   useEffect(() => {
-    if (!isLoading || matches.length > 0) {
-      // Hide skeleton immediately when we have data or loading is complete
-      setShowingSkeleton(false);
+    if (isLoading) {
+      // Stay in loading state
+      setRenderState('loading');
+    } else {
+      // Immediately show content when data is ready
+      setRenderState('complete');
     }
   }, [isLoading, matches.length]);
 
@@ -35,61 +38,43 @@ const CurrentMatchesList: React.FC<CurrentMatchesListProps> = ({
     );
   }
 
-  // Show skeleton only briefly while waiting for initial data
-  if (showingSkeleton && matches.length === 0) {
-    return (
-      <div className="space-y-3">
-        {userClubs.slice(0, 3).map((club, i) => (
-          <div key={`skeleton-${club.id || i}`} className="bg-white rounded-lg shadow-md p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center space-x-3">
-                <Skeleton className="h-12 w-12 rounded-full" />
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-3 w-16" />
-                </div>
-              </div>
-              <div className="text-right space-y-2">
-                <Skeleton className="h-4 w-20 ml-auto" />
-                <Skeleton className="h-3 w-16 ml-auto" />
-              </div>
-            </div>
-            <Skeleton className="h-2 w-full" />
-          </div>
-        ))}
-      </div>
-    );
-  }
-
   return (
     <div>
-      {userClubs.map(club => {
-        if (!club) return null;
-        
-        // Find the active match for this club
-        const activeMatch = matches.find(match => 
-          (match.homeClub.id === club.id || match.awayClub.id === club.id) && 
-          match.status === 'active'
-        );
-        
-        const hasEnoughMembers = club.members && club.members.length >= 5;
-        
-        if (activeMatch) {
-          return (
-            <div key={`${club.id}-match`} className="mb-6">
-              <CurrentMatchCard
-                match={activeMatch}
-                userClub={club}
-                onViewProfile={onViewProfile}
-              />
-            </div>
+      {renderState === 'loading' ? (
+        <div className="space-y-3">
+          {userClubs.map((club, i) => (
+            <Skeleton key={`skeleton-${club.id || i}`} className="h-40 bg-gray-100 animate-pulse rounded-md" />
+          ))}
+        </div>
+      ) : (
+        userClubs.map(club => {
+          if (!club) return null;
+          
+          // Find the active match for this club
+          const activeMatch = matches.find(match => 
+            (match.homeClub.id === club.id || match.awayClub.id === club.id) && 
+            match.status === 'active'
           );
-        } else if (hasEnoughMembers) {
-          return <WaitingForMatchCard key={`${club.id}-waiting`} club={club} />;
-        } else {
-          return <NeedMoreMembersCard key={`${club.id}-needs-members`} club={club} />;
-        }
-      })}
+          
+          const hasEnoughMembers = club.members && club.members.length >= 5;
+          
+          if (activeMatch) {
+            return (
+              <div key={`${club.id}-match`} className="mb-6">
+                <CurrentMatchCard
+                  match={activeMatch}
+                  userClub={club}
+                  onViewProfile={onViewProfile}
+                />
+              </div>
+            );
+          } else if (hasEnoughMembers) {
+            return <WaitingForMatchCard key={`${club.id}-waiting`} club={club} />;
+          } else {
+            return <NeedMoreMembersCard key={`${club.id}-needs-members`} club={club} />;
+          }
+        })
+      )}
     </div>
   );
 };

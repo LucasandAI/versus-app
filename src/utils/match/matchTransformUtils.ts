@@ -2,18 +2,16 @@
 import { Club, Match, MatchTeam, ClubMember } from '@/types';
 import { ensureDivision } from '../club/leagueUtils';
 
-// Enhanced cache with longer TTL and preview data support
+// Cache to store processed match data
 const matchDataCache: Record<string, {
   data: Match,
-  timestamp: number,
-  isPreview?: boolean
+  timestamp: number
 }> = {};
 
-// Increased cache TTL for better performance
-const CACHE_TTL = 30000; // 30 seconds
-const PREVIEW_CACHE_TTL = 60000; // 1 minute for preview data
+// Cache TTL in milliseconds (10 seconds)
+const CACHE_TTL = 10000;
 
-// Parse members data with performance optimization
+// Parse members data consistently across components
 export const parseMembers = (membersJson: any): ClubMember[] => {
   if (!membersJson) return [];
   
@@ -54,25 +52,24 @@ export const getWinnerValue = (winnerStr: string | null): 'home' | 'away' | 'dra
   return undefined;
 };
 
-// Transform raw match data to Match type with enhanced caching
-export const transformMatchData = (rawMatch: any, userClubId: string, isPreview = false): Match => {
-  // Generate cache key with preview flag
-  const cacheKey = `${rawMatch.match_id}_${rawMatch.updated_at || ''}_${userClubId}_${isPreview}`;
+// Transform raw match data to Match type with caching
+export const transformMatchData = (rawMatch: any, userClubId: string): Match => {
+  // Generate cache key based on match id and last updated timestamp
+  const cacheKey = `${rawMatch.match_id}_${rawMatch.updated_at || ''}_${userClubId}`;
   
   // Check if we have a valid cached version
   const cachedMatch = matchDataCache[cacheKey];
   const now = Date.now();
-  const ttl = isPreview ? PREVIEW_CACHE_TTL : CACHE_TTL;
   
-  if (cachedMatch && (now - cachedMatch.timestamp < ttl)) {
+  if (cachedMatch && (now - cachedMatch.timestamp < CACHE_TTL)) {
     return cachedMatch.data;
   }
   
-  // Process members data - skip for preview mode for faster loading
-  const homeMembers = isPreview ? [] : parseMembers(rawMatch.home_club_members);
-  const awayMembers = isPreview ? [] : parseMembers(rawMatch.away_club_members);
+  // Process members data
+  const homeMembers = parseMembers(rawMatch.home_club_members);
+  const awayMembers = parseMembers(rawMatch.away_club_members);
   
-  // Calculate total distances - use provided totals if available for better performance
+  // Calculate total distances
   const homeTotalDistance = rawMatch.home_total_distance !== null ? 
     parseFloat(String(rawMatch.home_total_distance)) : 
     calculateTotalDistance(homeMembers);
@@ -116,8 +113,7 @@ export const transformMatchData = (rawMatch: any, userClubId: string, isPreview 
   // Cache the result
   matchDataCache[cacheKey] = {
     data: match,
-    timestamp: now,
-    isPreview
+    timestamp: now
   };
   
   return match;
@@ -134,17 +130,4 @@ export const clearMatchCache = () => {
   Object.keys(matchDataCache).forEach(key => {
     delete matchDataCache[key];
   });
-};
-
-// Get cached preview data if available
-export const getCachedPreviewData = (matchId: string, userClubId: string): Match | null => {
-  const cacheKey = `${matchId}__${userClubId}_true`;
-  const cachedMatch = matchDataCache[cacheKey];
-  const now = Date.now();
-  
-  if (cachedMatch && (now - cachedMatch.timestamp < PREVIEW_CACHE_TTL)) {
-    return cachedMatch.data;
-  }
-  
-  return null;
 };

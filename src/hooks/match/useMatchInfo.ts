@@ -6,52 +6,25 @@ import { debounce } from 'lodash';
 import { 
   transformMatchData, 
   getClubIdsString, 
-  clearMatchCache,
-  getCachedPreviewData
+  clearMatchCache 
 } from '@/utils/match/matchTransformUtils';
 
 export const useMatchInfo = (userClubs: Club[]) => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [hasPreviewData, setHasPreviewData] = useState(false);
   
   // Extract club IDs for efficient dependency tracking
   const clubIds = useMemo(() => getClubIdsString(userClubs), [userClubs]);
 
-  // Check for cached preview data first
-  const loadPreviewData = useCallback(() => {
-    if (!userClubs || userClubs.length === 0) return;
-    
-    const previewMatches: Match[] = [];
-    
-    userClubs.forEach(club => {
-      // Try to get cached preview data for each club's potential matches
-      const cachedMatch = getCachedPreviewData('', club.id);
-      if (cachedMatch) {
-        previewMatches.push(cachedMatch);
-      }
-    });
-    
-    if (previewMatches.length > 0) {
-      setMatches(previewMatches);
-      setHasPreviewData(true);
-      setIsLoading(false);
-      console.log('[useMatchInfo] Loaded preview data from cache');
-    }
-  }, [userClubs]);
-
-  // Optimized fetch function with progressive loading
-  const fetchMatches = useCallback(async (forceRefresh = false, loadFullData = true) => {
+  // Optimized fetch function with minimal query fields
+  const fetchMatches = useCallback(async (forceRefresh = false) => {
     if (!userClubs || userClubs.length === 0) {
       setMatches([]);
       setIsLoading(false);
       return;
     }
 
-    // Don't set loading if we already have preview data
-    if (!hasPreviewData) {
-      setIsLoading(true);
-    }
+    setIsLoading(true);
     
     // Clear cache if force refresh
     if (forceRefresh) {
@@ -66,30 +39,10 @@ export const useMatchInfo = (userClubs: Club[]) => {
         return;
       }
       
-      // Choose query based on whether we need full data or preview
-      const selectFields = loadFullData ? '*' : `
-        match_id,
-        status,
-        start_date,
-        end_date,
-        home_club_id,
-        away_club_id,
-        home_club_name,
-        away_club_name,
-        home_club_logo,
-        away_club_logo,
-        home_club_division,
-        away_club_division,
-        home_club_tier,
-        away_club_tier,
-        home_total_distance,
-        away_total_distance,
-        winner
-      `;
-      
+      // Use a more efficient query with only necessary fields
       const { data, error } = await supabase
         .from('view_full_match_info')
-        .select(selectFields)
+        .select('*')
         .or(clubIdsList.map(id => `home_club_id.eq.${id},away_club_id.eq.${id}`).join(','))
         .eq('status', 'active');
 
@@ -106,40 +59,26 @@ export const useMatchInfo = (userClubs: Club[]) => {
           club.id === match.home_club_id || club.id === match.away_club_id
         )?.id || '';
         
-        return transformMatchData(match, userClubId, !loadFullData);
+        return transformMatchData(match, userClubId);
       }) || [];
       
       setMatches(transformedMatches);
-      
-      // If this was preview data, schedule full data load
-      if (!loadFullData && transformedMatches.length > 0) {
-        setHasPreviewData(true);
-        // Load full data in background after a short delay
-        setTimeout(() => {
-          fetchMatches(false, true);
-        }, 100);
-      }
-      
     } catch (error) {
       console.error('Error processing matches:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [clubIds, hasPreviewData, userClubs]);
+  }, [clubIds]); // Depend only on club IDs instead of full objects
 
-  // Reduced debounce time for faster response
+  // Reduced debounce time from 300ms to 50ms for faster response
   const debouncedFetchMatches = useMemo(() => 
     debounce(fetchMatches, 50), 
   [fetchMatches]);
 
   useEffect(() => {
-    // First try to load preview data from cache
-    loadPreviewData();
-    
-    // Then fetch fresh data
     debouncedFetchMatches();
     
-    // Set up realtime subscription for matches
+    // Set up realtime subscription for matches with immediate return
     const matchChannel = supabase
       .channel('matches-changes')
       .on(
@@ -173,7 +112,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
 
     // Listen for custom events
     const handleMatchEvent = () => {
-      debouncedFetchMatches(true);
+      debouncedFetchMatches(true); // Force refresh on manual events
     };
 
     window.addEventListener('matchCreated', handleMatchEvent);
@@ -189,7 +128,7 @@ export const useMatchInfo = (userClubs: Club[]) => {
       window.removeEventListener('matchUpdated', handleMatchEvent);
       window.removeEventListener('matchEnded', handleMatchEvent);
     };
-  }, [debouncedFetchMatches, loadPreviewData]);
+  }, [debouncedFetchMatches]);
 
   return {
     matches,
