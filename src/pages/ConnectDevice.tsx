@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Run as RunIcon } from 'lucide-react';
+import { run as RunIcon } from 'lucide-react';
 import AppHeader from '@/components/shared/AppHeader';
 import { Card, CardContent } from '@/components/ui/card';
 
