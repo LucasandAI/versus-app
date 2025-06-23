@@ -13,7 +13,7 @@ interface UseEditProfileStateProps {
 export const useEditProfileState = ({ user, onOpenChange }: UseEditProfileStateProps) => {
   const { setCurrentUser, setSelectedUser, refreshCurrentUser } = useApp();
   const [name, setName] = useState(user?.name || "");
-  const [bio, setBio] = useState(user?.bio || "Strava Athlete");
+  const [bio, setBio] = useState(user?.bio || "Versus Athlete");
   const [instagram, setInstagram] = useState(user?.instagram || "");
   const [linkedin, setLinkedin] = useState(user?.linkedin || "");
   const [twitter, setTwitter] = useState(user?.twitter || "");
@@ -33,7 +33,7 @@ export const useEditProfileState = ({ user, onOpenChange }: UseEditProfileStateP
       console.log('[useEditProfileState] Setting initial data from user:', user.id);
       console.log('[useEditProfileState] Avatar URL:', user.avatar);
       setName(user.name || "");
-      setBio(user.bio || "Strava Athlete");
+      setBio(user.bio || "Versus Athlete");
       setInstagram(user.instagram || "");
       setTwitter(user.twitter || "");
       setFacebook(user.facebook || "");
