@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { MessageCircle, Watch, User, HelpCircle, LogOut, File, ShieldCheck } from 'lucide-react';
+import { MessageCircle, Watch, User, HelpCircle, LogOut, ShieldCheck } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '../shared/UserAvatar';
 import Button from '../shared/Button';
@@ -10,7 +10,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from 'react-router-dom';
@@ -146,7 +145,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate('/terms')}>
-              <File className="mr-2 h-4 w-4" />
+              <HelpCircle className="mr-2 h-4 w-4" />
               <span>Terms & Conditions</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/privacy')}>
