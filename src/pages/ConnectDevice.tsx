@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Watch, Heart } from 'lucide-react';
+import { Watch } from 'lucide-react';
 import AppHeader from '@/components/shared/AppHeader';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -65,14 +65,13 @@ const ConnectDevice: React.FC = () => {
         <div className="flex justify-center mt-4">
           {!imageError ? (
             <img 
-              src="/lovable-uploads/6020341c-493d-4a2f-a044-8bc54e2dcb04.png" 
+              src="/lovable-uploads/326902e1-497f-4ec6-8b62-4ce93faef150.png" 
               alt="Works with Apple Health" 
               className="h-16 object-contain"
               onError={handleImageError}
             />
           ) : (
-            <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg">
-              <Heart className="h-6 w-6 text-pink-500" />
+            <div className="px-4 py-2 bg-gray-100 rounded-lg">
               <span className="text-sm text-gray-600 font-medium">Works with Apple Health</span>
             </div>
           )}
