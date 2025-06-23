@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Watch } from 'lucide-react';
 import AppHeader from '@/components/shared/AppHeader';
@@ -7,7 +6,6 @@ import { Card, CardContent } from '@/components/ui/card';
 
 const ConnectDevice: React.FC = () => {
   const navigate = useNavigate();
-  const [imageError, setImageError] = useState(false);
 
   const handleBack = () => {
     navigate('/');
@@ -16,11 +14,6 @@ const ConnectDevice: React.FC = () => {
   const handleConnectAppleHealth = () => {
     // TODO: Implement Apple Health connection logic
     console.log('Connecting to Apple Health...');
-  };
-
-  const handleImageError = () => {
-    console.log('Apple Health badge image failed to load');
-    setImageError(true);
   };
 
   return (
@@ -63,18 +56,11 @@ const ConnectDevice: React.FC = () => {
         
         {/* Apple Health Badge - positioned below the card */}
         <div className="flex justify-center mt-4">
-          {!imageError ? (
-            <img 
-              src="/lovable-uploads/c2d11946-468d-43c2-979b-fae52c2012ae.png" 
-              alt="Works with Apple Health" 
-              className="h-16 object-contain"
-              onError={handleImageError}
-            />
-          ) : (
-            <div className="px-4 py-2 bg-gray-100 rounded-lg">
-              <span className="text-sm text-gray-600 font-medium">Works with Apple Health</span>
-            </div>
-          )}
+          <img 
+            src="/lovable-uploads/c2d11946-468d-43c2-979b-fae52c2012ae.png" 
+            alt="Works with Apple Health" 
+            className="h-16 object-contain"
+          />
         </div>
         
         <div className="mt-8 bg-blue-50 rounded-lg p-4">
