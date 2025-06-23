@@ -108,62 +108,66 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   };
   
   return (
-    <div className="flex items-center justify-between mb-6">
-      <h1 className="text-2xl font-bold">Versus</h1>
-      <div className="flex items-center gap-2">
-        <NotificationPopover 
-          notifications={notifications} 
-          onMarkAsRead={onMarkAsRead} 
-          onClearAll={onClearAll} 
-          onUserClick={onUserClick} 
-          onDeclineInvite={onDeclineInvite} 
-        />
-        <Button 
-          variant="link" 
-          onClick={handleChatOpen} 
-          className="text-primary hover:bg-gray-100 rounded-full p-2" 
-          icon={<MessageCircle className="h-5 w-5" />} 
-          badge={badgeCount > 0 ? badgeCount : 0} 
-        />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <div className="cursor-pointer">
-              <UserAvatar 
-                name={currentUser?.name || "User"} 
-                image={currentUser?.avatar} 
-                size="sm"
-              />
-            </div>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={handleViewOwnProfile}>
-              <User className="mr-2 h-4 w-4" />
-              <span>Visit Profile</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleConnectAppleHealth}>
-              <Watch className="mr-2 h-4 w-4" />
-              <span>Connect Apple Health</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate('/terms')}>
-              <HelpCircle className="mr-2 h-4 w-4" />
-              <span>Terms & Conditions</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/privacy')}>
-              <ShieldCheck className="mr-2 h-4 w-4" />
-              <span>Privacy Policy</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setHelpDialogOpen(true)}>
-              <HelpCircle className="mr-2 h-4 w-4" />
-              <span>Help</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Log Out</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+    <div className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200">
+      <div className="container-mobile">
+        <div className="flex items-center justify-between py-4">
+          <h1 className="text-2xl font-bold">Versus</h1>
+          <div className="flex items-center gap-2">
+            <NotificationPopover 
+              notifications={notifications} 
+              onMarkAsRead={onMarkAsRead} 
+              onClearAll={onClearAll} 
+              onUserClick={onUserClick} 
+              onDeclineInvite={onDeclineInvite} 
+            />
+            <Button 
+              variant="link" 
+              onClick={handleChatOpen} 
+              className="text-primary hover:bg-gray-100 rounded-full p-2" 
+              icon={<MessageCircle className="h-5 w-5" />} 
+              badge={badgeCount > 0 ? badgeCount : 0} 
+            />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className="cursor-pointer">
+                  <UserAvatar 
+                    name={currentUser?.name || "User"} 
+                    image={currentUser?.avatar} 
+                    size="sm"
+                  />
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={handleViewOwnProfile}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Visit Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleConnectAppleHealth}>
+                  <Watch className="mr-2 h-4 w-4" />
+                  <span>Connect Apple Health</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate('/terms')}>
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  <span>Terms & Conditions</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/privacy')}>
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  <span>Privacy Policy</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setHelpDialogOpen(true)}>
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  <span>Help</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log Out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
       </div>
 
       {/* Help Dialog */}

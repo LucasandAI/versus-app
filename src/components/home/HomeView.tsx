@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Club } from '@/types';
@@ -68,22 +67,22 @@ const HomeView: React.FC<HomeViewProps> = ({ chatNotifications = 0 }) => {
   return (
     <UnreadMessagesProvider>
       <ChatDrawerProvider>
-        <div className="pb-20 pt-6">
-          <div className="container-mobile">
-            <HomeNotificationsHandler 
-              userClubs={userClubs}
-              onJoinClub={handleJoinClub}
-              onSelectUser={handleSelectUser}
-            />
-            
-            <HomeHeader 
-              notifications={notifications}
-              onMarkAsRead={handleMarkAsRead}
-              onClearAll={handleClearAllNotifications}
-              onUserClick={handleSelectUser}
-              onDeclineInvite={handleDeclineInvite}
-            />
+        <div className="pb-20 pt-20">
+          <HomeNotificationsHandler 
+            userClubs={userClubs}
+            onJoinClub={handleJoinClub}
+            onSelectUser={handleSelectUser}
+          />
+          
+          <HomeHeader 
+            notifications={notifications}
+            onMarkAsRead={handleMarkAsRead}
+            onClearAll={handleClearAllNotifications}
+            onUserClick={handleSelectUser}
+            onDeclineInvite={handleDeclineInvite}
+          />
 
+          <div className="container-mobile">
             <HomeClubsSection 
               userClubs={userClubs}
               availableClubs={availableClubs}
