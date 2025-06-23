@@ -29,18 +29,41 @@ export const useAuthSessionEffect = ({
     // Start with showing the connect view until we verify auth status
     setCurrentView('connect');
     
-    // Check for an active session first
-    safeSupabase.auth.getSession().then(({ data: { session } }) => {
-      // If no active session, stay on connect view
+    // Check for an active session first - do this immediately without setTimeout
+    safeSupabase.auth.getSession().then(({ data: { session }, error }) => {
+      console.log('[useAuthSessionEffect] Initial session check:', { 
+        hasSession: !!session,
+        userId: session?.user?.id,
+        error: error?.message
+      });
+      
+      if (error) {
+        console.error('[useAuthSessionEffect] Session check error:', error);
+        setAuthError(error.message);
+        setAuthChecked(true);
+        setUserLoading(false);
+        setCurrentView('connect');
+        return;
+      }
+      
+      // If no active session, immediately show connect view
       if (!session || !session.user) {
         console.log('[useAuthSessionEffect] No active session found, showing login');
         setAuthChecked(true);
         setUserLoading(false);
+        setCurrentView('connect');
       }
+      // If session exists, the onAuthStateChange handler will be triggered
+    }).catch((error) => {
+      console.error('[useAuthSessionEffect] Session check failed:', error);
+      setAuthError(error.message);
+      setAuthChecked(true);
+      setUserLoading(false);
+      setCurrentView('connect');
     });
     
     console.log('[useAuthSessionEffect] Authentication effect initialized');
-  }, [setAuthChecked, setUserLoading, setCurrentView]);
+  }, [setAuthChecked, setUserLoading, setCurrentView, setAuthError]);
   
   // Setup the auth session core which will handle auth state changes
   useAuthSessionCore({

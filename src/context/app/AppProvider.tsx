@@ -1,3 +1,4 @@
+
 import React, { useState, ReactNode, useEffect, useCallback } from 'react';
 import { AppContext } from './AppContext';
 import { AppContextType, User } from '@/types';
@@ -12,7 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [authChecked, setAuthChecked] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false); // Changed from true to false
   const [authError, setAuthError] = useState<string | null>(null);
   const [userLoading, setUserLoading] = useState(false);
   const [isSessionReady, setIsSessionReady] = useState(false);
@@ -94,6 +95,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   }, [authChecked, userLoading, currentUser, currentView]);
 
+  // Reduced timeout to 3 seconds for faster resolution when stuck
   useEffect(() => {
     if (!authChecked) {
       const timeoutId = setTimeout(() => {
@@ -101,12 +103,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setAuthChecked(true);
         setUserLoading(false);
         setCurrentView('connect');
-      }, 5000); 
+      }, 3000); // Reduced from 5000 to 3000
       
       return () => clearTimeout(timeoutId);
     }
   }, [authChecked, setCurrentView]);
   
+  // Reduced timeout for user loading as well
   useEffect(() => {
     if (userLoading) {
       const timeoutId = setTimeout(() => {
@@ -123,7 +126,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         } else {
           setCurrentView('connect');
         }
-      }, 5000);
+      }, 3000); // Reduced from 5000 to 3000
       
       return () => clearTimeout(timeoutId);
     }
@@ -200,20 +203,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     refreshCurrentUser
   };
 
-  if (userLoading && !currentUser) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="flex flex-col items-center gap-2">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-        <p>Signing in...</p>
-      </div>
-    </div>;
-  }
-
+  // Only show loading screen when actively authenticating a user (userLoading = true)
+  // Never show loading for the initial logged-out state
   if (userLoading && currentUser) {
     return <div className="flex items-center justify-center min-h-screen">
       <div className="flex flex-col items-center gap-2">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
         <p>Loading your profile...</p>
+      </div>
+    </div>;
+  }
+
+  // Show loading only when auth hasn't been checked yet AND we're actively checking
+  if (!authChecked && userLoading) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="flex flex-col items-center gap-2">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+        <p>Checking authentication...</p>
       </div>
     </div>;
   }

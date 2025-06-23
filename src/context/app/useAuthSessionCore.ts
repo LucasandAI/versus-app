@@ -5,8 +5,8 @@ import { AppView, User } from '@/types';
 import { useLoadCurrentUser } from './useLoadCurrentUser';
 import { toast } from '@/hooks/use-toast';
 
-// Timeout for authentication check (10 seconds)
-export const AUTH_TIMEOUT = 10000;
+// Reduced timeout for faster resolution
+export const AUTH_TIMEOUT = 5000;
 
 interface AuthSessionCoreProps {
   setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>;
@@ -27,11 +27,10 @@ export const useAuthSessionCore = ({
 
   useEffect(() => {
     let isMounted = true;
-    let authTimeoutId: ReturnType<typeof setTimeout>;
     
     console.log('[useAuthSessionCore] Setting up auth session listener');
 
-    // First, set up the auth state change listener
+    // Set up the auth state change listener
     const { data } = safeSupabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return;
       
@@ -64,31 +63,26 @@ export const useAuthSessionCore = ({
             setCurrentUser(basicUser);
             
             // Fetch full user profile in the background
-            // Using setTimeout to avoid potential deadlocks with Supabase auth
-            setTimeout(async () => {
-              if (!isMounted) return;
-              
-              try {
-                const userProfile = await loadCurrentUser(session.user.id);
-                if (isMounted && userProfile) {
-                  console.log('[useAuthSessionCore] User profile loaded:', userProfile.id);
-                  setCurrentUser(userProfile);
-                  
-                  // Log additional user information for debugging
-                  console.log('[useAuthSessionCore] Updated user context with:', {
-                    id: userProfile.id,
-                    name: userProfile.name,
-                    clubsCount: userProfile.clubs?.length || 0
-                  });
-                }
-              } catch (profileError) {
-                console.warn('[useAuthSessionCore] Error loading full profile, using basic user:', profileError);
-              } finally {
-                if (isMounted) {
-                  setUserLoading(false);
-                }
+            // No setTimeout needed, call directly
+            loadCurrentUser(session.user.id).then((userProfile) => {
+              if (isMounted && userProfile) {
+                console.log('[useAuthSessionCore] User profile loaded:', userProfile.id);
+                setCurrentUser(userProfile);
+                
+                // Log additional user information for debugging
+                console.log('[useAuthSessionCore] Updated user context with:', {
+                  id: userProfile.id,
+                  name: userProfile.name,
+                  clubsCount: userProfile.clubs?.length || 0
+                });
               }
-            }, 0);
+            }).catch((profileError) => {
+              console.warn('[useAuthSessionCore] Error loading full profile, using basic user:', profileError);
+            }).finally(() => {
+              if (isMounted) {
+                setUserLoading(false);
+              }
+            });
             
             // Even with just the basic user, proceed to home view
             setCurrentView('home');
@@ -125,44 +119,9 @@ export const useAuthSessionCore = ({
         }
       }
     });
-    
-    // Then, check for an existing session, but don't show loading screen
-    // Using setTimeout to avoid potential deadlocks with the auth state change listener
-    setTimeout(() => {
-      if (!isMounted) return;
-      
-      safeSupabase.auth.getSession().then(({ data: { session }, error }) => {
-        if (!isMounted) return;
-        
-        console.log('[useAuthSessionCore] Initial session check:', { 
-          hasSession: !!session,
-          userId: session?.user?.id,
-          userEmail: session?.user?.email,
-          error: error?.message
-        });
-        
-        if (error) {
-          console.error('[useAuthSessionCore] Session check error:', error);
-          setAuthError(error.message);
-          setAuthChecked(true);
-          setUserLoading(false);
-          setCurrentView('connect');
-          return;
-        }
-        
-        if (!session || !session.user) {
-          // No valid session found, staying on connect view
-          setAuthChecked(true);
-          setUserLoading(false);
-          setCurrentView('connect');
-        }
-        // If session exists, the onAuthStateChange handler will be triggered
-      });
-    }, 0);
 
     return () => {
       isMounted = false;
-      clearTimeout(authTimeoutId);
       
       // Clean up the subscription
       if (data && data.subscription && typeof data.subscription.unsubscribe === 'function') {
