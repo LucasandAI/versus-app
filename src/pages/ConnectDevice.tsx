@@ -42,7 +42,7 @@ const ConnectDevice: React.FC = () => {
             >
               <div className="flex-shrink-0 mr-4 w-12 h-12 flex items-center justify-center">
                 <img 
-                  src="/lovable-uploads/works-with-apple-health-badge.jpg" 
+                  src="/lovable-uploads/bb9d1a67-52c9-4b61-b2b9-782b49613a55.png" 
                   alt="Works with Apple Health" 
                   className="max-w-full max-h-full object-contain"
                 />
