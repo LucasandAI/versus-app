@@ -9,14 +9,12 @@ import { useViewState } from '@/hooks/navigation/useViewState';
 import { useAuthSessionEffect } from './useAuthSessionEffect';
 import { useLoadCurrentUser } from './useLoadCurrentUser';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [authChecked, setAuthChecked] = useState(false); // Changed from true to false
+  const [authChecked, setAuthChecked] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [userLoading, setUserLoading] = useState(false);
-  const [isSessionReady, setIsSessionReady] = useState(false);
   const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
 
   const { signIn, signOut } = useAuth();
@@ -49,44 +47,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [currentUser, loadCurrentUser]);
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user?.id && currentUser?.id) {
-          console.log('[AppProvider] Session and user confirmed ready');
-          setIsSessionReady(true);
-        } else {
-          setIsSessionReady(false);
-        }
-      } catch (error) {
-        console.error('[AppProvider] Session check error:', error);
-        setIsSessionReady(false);
-      }
-    };
-
-    checkSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_OUT') {
-          setIsSessionReady(false);
-        } else if (session?.user) {
-          timeoutId = setTimeout(() => {
-            checkSession();
-          }, 50);
-        }
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [currentUser?.id]);
-
-  useEffect(() => {
     console.log('[AppProvider] State changed:', { 
       authChecked, 
       userLoading, 
@@ -95,7 +55,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   }, [authChecked, userLoading, currentUser, currentView]);
 
-  // Reduced timeout to 3 seconds for faster resolution when stuck
+  // Timeout for auth check - force completion after 3 seconds
   useEffect(() => {
     if (!authChecked) {
       const timeoutId = setTimeout(() => {
@@ -103,13 +63,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setAuthChecked(true);
         setUserLoading(false);
         setCurrentView('connect');
-      }, 3000); // Reduced from 5000 to 3000
+      }, 3000);
       
       return () => clearTimeout(timeoutId);
     }
   }, [authChecked, setCurrentView]);
   
-  // Reduced timeout for user loading as well
+  // Timeout for user loading
   useEffect(() => {
     if (userLoading) {
       const timeoutId = setTimeout(() => {
@@ -126,7 +86,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         } else {
           setCurrentView('connect');
         }
-      }, 3000); // Reduced from 5000 to 3000
+      }, 3000);
       
       return () => clearTimeout(timeoutId);
     }
@@ -190,7 +150,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     currentView,
     selectedClub,
     selectedUser,
-    isSessionReady,
+    isSessionReady: authChecked && !!currentUser, // Simplified - only true when auth is checked and user exists
     needsProfileCompletion,
     setNeedsProfileCompletion,
     setCurrentUser: setCurrentUserWithUpdates,
@@ -203,19 +163,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     refreshCurrentUser
   };
 
-  // Only show loading screen when actively authenticating a user (userLoading = true)
-  // Never show loading for the initial logged-out state
-  if (userLoading && currentUser) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="flex flex-col items-center gap-2">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-        <p>Loading your profile...</p>
-      </div>
-    </div>;
-  }
-
-  // Show loading only when auth hasn't been checked yet AND we're actively checking
-  if (!authChecked && userLoading) {
+  // Show loading only when auth hasn't been checked yet
+  if (!authChecked) {
     return <div className="flex items-center justify-center min-h-screen">
       <div className="flex flex-col items-center gap-2">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>

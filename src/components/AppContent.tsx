@@ -17,7 +17,7 @@ interface AppContentProps {
 }
 
 const AppContent: React.FC<AppContentProps> = ({ children }) => {
-  const { currentView, isSessionReady, currentUser } = useApp();
+  const { currentView, currentUser } = useApp();
   
   // Set up real-time club membership sync
   useClubMembershipSync();
@@ -25,10 +25,7 @@ const AppContent: React.FC<AppContentProps> = ({ children }) => {
   // Set up notification listener for immediate UI updates
   useNotificationListener();
 
-  if (!isSessionReady) {
-    return <LoadingScreen />;
-  }
-
+  // If no user is authenticated, show the connect screen
   if (!currentUser) {
     return <ConnectScreen />;
   }
