@@ -40,7 +40,7 @@ const ConnectDevice: React.FC = () => {
               onClick={handleConnectAppleHealth}
               className="w-full p-6 text-left flex items-center"
             >
-              <div className="flex-shrink-0 mr-4 w-12 h-12 flex items-center justify-center">
+              <div className="flex-shrink-0 mr-4 w-20 h-16 flex items-center justify-center">
                 <img 
                   src="/lovable-uploads/bb9d1a67-52c9-4b61-b2b9-782b49613a55.png" 
                   alt="Works with Apple Health" 
