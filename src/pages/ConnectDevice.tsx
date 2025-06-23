@@ -17,6 +17,14 @@ const ConnectDevice: React.FC = () => {
     console.log('Connecting to Apple Health...');
   };
 
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    console.error('Failed to load Apple Health badge image:', e.currentTarget.src);
+  };
+
+  const handleImageLoad = () => {
+    console.log('Apple Health badge image loaded successfully');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <AppHeader 
@@ -42,9 +50,11 @@ const ConnectDevice: React.FC = () => {
             >
               <div className="flex-shrink-0 mr-4 w-20 h-16 flex items-center justify-center">
                 <img 
-                  src="/lovable-uploads/08adc5b9-9ece-47c2-a4c2-5dbe97ddc00f.png" 
+                  src="https://jgwiazdxqscmhzulqatb.supabase.co/storage/v1/object/public/project-files/08adc5b9-9ece-47c2-a4c2-5dbe97ddc00f.png" 
                   alt="Works with Apple Health" 
                   className="max-w-full max-h-full object-contain"
+                  onError={handleImageError}
+                  onLoad={handleImageLoad}
                 />
               </div>
               <div className="flex-1">
