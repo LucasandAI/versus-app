@@ -45,10 +45,10 @@ const ConnectDevice: React.FC = () => {
                 <p className="text-sm text-gray-500 mb-2">
                   Automatically sync your running workouts and distance data
                 </p>
-                <div className="text-xs text-gray-400">
-                  • Works with iPhone and Apple Watch
-                  • Tracks distance, pace, and workout duration
-                  • Secure and private data sharing
+                <div className="text-xs text-gray-400 space-y-1">
+                  <div>• Works with iPhone and Apple Watch</div>
+                  <div>• Tracks distance, pace, and workout duration</div>
+                  <div>• Secure and private data sharing</div>
                 </div>
               </div>
             </button>
