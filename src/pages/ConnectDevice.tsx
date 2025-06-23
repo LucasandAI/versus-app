@@ -65,7 +65,7 @@ const ConnectDevice: React.FC = () => {
         <div className="flex justify-center mt-4">
           {!imageError ? (
             <img 
-              src="/lovable-uploads/326902e1-497f-4ec6-8b62-4ce93faef150.png" 
+              src="/lovable-uploads/46ad333f-35fe-4080-a176-b124fbe21f77.png" 
               alt="Works with Apple Health" 
               className="h-16 object-contain"
               onError={handleImageError}
