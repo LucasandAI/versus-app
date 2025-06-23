@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Badge } from 'lucide-react';
+import { Activity } from 'lucide-react';
 import AppHeader from '@/components/shared/AppHeader';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -25,7 +25,7 @@ const ConnectDevice: React.FC = () => {
       <div className="container-mobile pt-20 pb-8">
         <div className="text-center mb-8">
           <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
-            <Badge className="h-8 w-8 text-red-500" />
+            <Activity className="h-8 w-8 text-red-500" />
           </div>
           <h2 className="text-xl font-semibold mb-2">Track Your Distance Automatically</h2>
           <p className="text-gray-600 text-sm">
