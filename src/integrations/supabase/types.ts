@@ -36,64 +36,6 @@ export type Database = {
         }
         Relationships: []
       }
-      activity: {
-        Row: {
-          created_at: string | null
-          device_type: string | null
-          distance: number | null
-          end_time: string | null
-          id: string
-          match_id: string | null
-          start_time: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          device_type?: string | null
-          distance?: number | null
-          end_time?: string | null
-          id?: string
-          match_id?: string | null
-          start_time?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          device_type?: string | null
-          distance?: number | null
-          end_time?: string | null
-          id?: string
-          match_id?: string | null
-          start_time?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "activity_match_id_fkey"
-            columns: ["match_id"]
-            isOneToOne: false
-            referencedRelation: "matches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "activity_match_id_fkey"
-            columns: ["match_id"]
-            isOneToOne: false
-            referencedRelation: "view_full_match_info"
-            referencedColumns: ["match_id"]
-          },
-          {
-            foreignKeyName: "activity_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       club_chat_messages: {
         Row: {
           club_id: string | null
@@ -403,6 +345,64 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "direct_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      distance: {
+        Row: {
+          created_at: string | null
+          device_type: string | null
+          distance: number | null
+          end_time: string | null
+          id: string
+          match_id: string | null
+          start_time: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          device_type?: string | null
+          distance?: number | null
+          end_time?: string | null
+          id?: string
+          match_id?: string | null
+          start_time?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          device_type?: string | null
+          distance?: number | null
+          end_time?: string | null
+          id?: string
+          match_id?: string | null
+          start_time?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "view_full_match_info"
+            referencedColumns: ["match_id"]
+          },
+          {
+            foreignKeyName: "activity_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
