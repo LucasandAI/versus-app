@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Watch } from 'lucide-react';
@@ -15,14 +14,6 @@ const ConnectDevice: React.FC = () => {
   const handleConnectAppleHealth = () => {
     // TODO: Implement Apple Health connection logic
     console.log('Connecting to Apple Health...');
-  };
-
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    console.error('Failed to load Apple Health badge image:', e.currentTarget.src);
-  };
-
-  const handleImageLoad = () => {
-    console.log('Apple Health badge image loaded successfully');
   };
 
   return (
@@ -50,11 +41,9 @@ const ConnectDevice: React.FC = () => {
             >
               <div className="flex-shrink-0 mr-4 w-20 h-16 flex items-center justify-center">
                 <img 
-                  src="/lovable-uploads/574e6f96-78c7-459e-ac3c-55d09c085dba.png" 
+                  src="/lovable-uploads/apple-health-badge.png" 
                   alt="Works with Apple Health" 
                   className="max-w-full max-h-full object-contain"
-                  onError={handleImageError}
-                  onLoad={handleImageLoad}
                 />
               </div>
               <div className="flex-1">
