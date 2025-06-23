@@ -145,10 +145,19 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
               <span>Connect Apple Health</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate('/terms')}>
+              <file-text className="mr-2 h-4 w-4" />
+              <span>Terms & Conditions</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/privacy')}>
+              <scale className="mr-2 h-4 w-4" />
+              <span>Privacy Policy</span>
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setHelpDialogOpen(true)}>
               <HelpCircle className="mr-2 h-4 w-4" />
               <span>Help</span>
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log Out</span>

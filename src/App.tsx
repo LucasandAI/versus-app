@@ -11,6 +11,8 @@ import { AppProvider } from "./context/AppContext";
 import AppContent from "./components/AppContent";
 import Index from "./pages/Index";
 import ConnectDevice from "./pages/ConnectDevice";
+import TermsAndConditions from "./pages/TermsAndConditions";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +30,8 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<AppContent><Index /></AppContent>} />
                   <Route path="/connect-device" element={<AppContent><ConnectDevice /></AppContent>} />
+                  <Route path="/terms" element={<AppContent><TermsAndConditions /></AppContent>} />
+                  <Route path="/privacy" element={<AppContent><PrivacyPolicy /></AppContent>} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<AppContent><NotFound /></AppContent>} />
                 </Routes>
