@@ -23,7 +23,7 @@ const ConnectDevice: React.FC = () => {
         title="Connect Apple Health" 
         onBack={handleBack}
       />
-      <div className="container-mobile py-8">
+      <div className="container-mobile pt-20 pb-8">
         <div className="text-center mb-8">
           <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
             <Watch className="h-8 w-8 text-red-500" />
@@ -42,8 +42,8 @@ const ConnectDevice: React.FC = () => {
             >
               <div className="flex-shrink-0 mr-4 w-12 h-12 flex items-center justify-center">
                 <img 
-                  src="/lovable-uploads/f8b9b002-af8f-4f3f-b2b3-0a95d21fe7d4.png" 
-                  alt="Apple Health logo" 
+                  src="/lovable-uploads/3a4510f7-9a3b-4980-8479-b78f493f9c52.png" 
+                  alt="Works with Apple Health" 
                   className="max-w-full max-h-full object-contain"
                 />
               </div>
