@@ -50,7 +50,7 @@ const ConnectDevice: React.FC = () => {
             >
               <div className="flex-shrink-0 mr-4 w-20 h-16 flex items-center justify-center">
                 <img 
-                  src="https://jgwiazdxqscmhzulqatb.supabase.co/storage/v1/object/public/project-files/08adc5b9-9ece-47c2-a4c2-5dbe97ddc00f.png" 
+                  src="/lovable-uploads/574e6f96-78c7-459e-ac3c-55d09c085dba.png" 
                   alt="Works with Apple Health" 
                   className="max-w-full max-h-full object-contain"
                   onError={handleImageError}
