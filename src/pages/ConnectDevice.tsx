@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Watch } from 'lucide-react';
@@ -57,7 +58,7 @@ const ConnectDevice: React.FC = () => {
         {/* Apple Health Badge - positioned below the card */}
         <div className="flex justify-center mt-4">
           <img 
-            src="/lovable-uploads/badge-standard_2x.png" 
+            src="/lovable-uploads/badge-standard_2x.svg" 
             alt="Works with Apple Health" 
             className="h-16 object-contain"
           />
