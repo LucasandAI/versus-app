@@ -14,7 +14,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   rightElement
 }) => {
   return (
-    <div className="bg-green-500 py-4 px-6 text-white flex items-center relative">
+    <div className="fixed top-0 left-0 right-0 z-50 bg-green-500 py-4 px-6 text-white flex items-center relative">
       <div className="flex-1 flex items-center">
         {onBack && (
           <button 

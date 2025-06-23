@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppHeader from '@/components/shared/AppHeader';
@@ -16,7 +15,7 @@ const TermsAndConditions: React.FC = () => {
         title="Terms & Conditions" 
         onBack={handleBack}
       />
-      <div className="container-mobile py-8 pb-16">
+      <div className="container-mobile pt-20 pb-16">
         <div className="bg-white rounded-lg p-6 shadow-sm">
           <div className="prose max-w-none">
             <h2 className="text-xl font-semibold mb-4">Terms of Service</h2>
