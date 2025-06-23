@@ -1,5 +1,4 @@
 
-
 declare module 'lucide-react' {
   import { FC, SVGProps } from 'react';
   
@@ -85,9 +84,6 @@ declare module 'lucide-react' {
   export const InfoIcon: FC<IconProps>; // Added
   export const Watch: FC<IconProps>; // Added
   
-  // Activity and sports icons - using activity icon since run doesn't exist
-  export const activity: FC<IconProps>; // Added
-  
   // Social media
   export const Instagram: FC<IconProps>;
   export const Twitter: FC<IconProps>;
@@ -95,4 +91,3 @@ declare module 'lucide-react' {
   export const Linkedin: FC<IconProps>;
   export const Globe: FC<IconProps>;
 }
-
