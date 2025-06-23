@@ -72,6 +72,13 @@ const ConnectDevice: React.FC = () => {
           </ul>
         </div>
         
+        <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <h4 className="font-medium text-gray-700 mb-2">Coming Soon</h4>
+          <p className="text-sm text-gray-600">
+            Support for other wearables and fitness devices will be available soon, including Garmin, Fitbit, Strava, and more.
+          </p>
+        </div>
+        
         <p className="mt-6 text-xs text-gray-500 text-center">
           Apple Health integration will automatically sync your runs with Versus
         </p>
