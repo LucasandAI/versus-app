@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { MessageCircle, Watch, User, HelpCircle, LogOut, ShieldCheck } from 'lucide-react';
+import { MessageCircle, activity, User, HelpCircle, LogOut, ShieldCheck } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import UserAvatar from '../shared/UserAvatar';
 import Button from '../shared/Button';
@@ -11,6 +11,8 @@ import { useNavigate } from 'react-router-dom';
 import { clearAllAuthData } from '@/integrations/supabase/safeClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from '@/hooks/use-toast';
+import { Icon } from 'lucide-react';
+
 interface HomeHeaderProps {
   notifications: any[];
   onMarkAsRead: (id: string) => void;
@@ -109,7 +111,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                   <span>Visit Profile</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleConnectAppleHealth}>
-                  <Watch className="mr-2 h-4 w-4" />
+                  <Icon iconNode={activity} className="mr-2 h-4 w-4" />
                   <span>Track Distance</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
