@@ -13,7 +13,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ className, text = "Loadin
     <div className={cn("flex flex-col items-center justify-center h-full", className)}>
       <div className="flex flex-col items-center space-y-4">
         <img 
-          src="/lovable-uploads/be90ac52-33ba-4c84-b86b-88b4925eea0c.png" 
+          src="/lovable-uploads/3a4510f7-9a3b-4980-8479-b78f493f9c52.png" 
           alt="Versus Logo" 
           className="w-12 h-12 object-contain"
         />
