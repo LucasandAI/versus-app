@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { Loader2 } from 'lucide-react'; // Fixed icon import
+import { Loader2 } from 'lucide-react';
 
 interface LoadingScreenProps {
   className?: string;
@@ -10,8 +11,15 @@ interface LoadingScreenProps {
 const LoadingScreen: React.FC<LoadingScreenProps> = ({ className, text = "Loading..." }) => {
   return (
     <div className={cn("flex flex-col items-center justify-center h-full", className)}>
-      <Loader2 className="animate-spin h-6 w-6 text-gray-500" />
-      {text && <p className="mt-2 text-sm text-gray-500">{text}</p>}
+      <div className="flex flex-col items-center space-y-4">
+        <img 
+          src="/lovable-uploads/209d452c-ff7f-4c9f-9711-d10c0ff977e8.png" 
+          alt="Versus Logo" 
+          className="w-12 h-12 object-contain"
+        />
+        <Loader2 className="animate-spin h-6 w-6 text-gray-500" />
+        {text && <p className="mt-2 text-sm text-gray-500">{text}</p>}
+      </div>
     </div>
   );
 };
