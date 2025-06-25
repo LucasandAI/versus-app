@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import LoginForm from './auth/LoginForm';
 import { clearAllAuthData } from '@/integrations/supabase/safeClient';
@@ -35,7 +36,7 @@ const ConnectScreen: React.FC = () => {
               className="w-32 h-32 object-contain"
             />
           </div>
-          <h1 className="text-4xl font-bold text-green-600">Versus</h1>
+          <h1 className="text-4xl font-bold text-logo-green font-logo tracking-tight">Versus</h1>
           <div className="flex justify-center">
             <div className="w-16 h-1 bg-primary rounded-full"></div>
           </div>

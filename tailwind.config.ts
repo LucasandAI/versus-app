@@ -62,6 +62,12 @@ export default {
 					light: '#2A3344' 
 				},
 				success: '#00E37F',
+				// Custom green to match the logo
+				'logo-green': {
+					DEFAULT: '#22C55E',
+					light: '#4ADE80',
+					dark: '#16A34A'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -72,6 +78,10 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				}
+			},
+			fontFamily: {
+				sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+				'logo': ['Montserrat', 'ui-sans-serif', 'system-ui', 'sans-serif'],
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
