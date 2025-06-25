@@ -27,20 +27,29 @@ export const useLeaderboardData = (selectedDivision: Division | 'All' = 'All') =
         }
         
         // Transform and validate data to match LeaderboardClub type
-        const typedData: LeaderboardClub[] = data.map(club => ({
+        const typedData: LeaderboardClub[] = data.map((club, index) => ({
           id: club.id,
           name: club.name,
           division: ensureDivision(club.division), // Ensure division is a valid Division type
           tier: club.tier,
           elitePoints: club.elite_points,
           logo: club.logo || '/placeholder.svg',
-          members: club.member_count
+          members: club.member_count,
+          // Calculate derived properties
+          rank: index + 1,
+          points: club.division === 'elite' ? club.elite_points : 0,
+          change: 'same' as const // Default to 'same' since we don't have historical data
         }));
         
         // Filter by division if specified
         let filteredData = typedData;
         if (selectedDivision !== 'All') {
           filteredData = typedData.filter(club => club.division === selectedDivision);
+          // Recalculate ranks for filtered data
+          filteredData = filteredData.map((club, index) => ({
+            ...club,
+            rank: index + 1
+          }));
         }
         
         setLeaderboardData(filteredData);

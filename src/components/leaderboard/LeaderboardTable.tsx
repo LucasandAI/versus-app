@@ -14,7 +14,7 @@ interface LeaderboardTableProps {
 const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ clubs, onSelectClub }) => {
   const { navigateToClubDetail } = useNavigation();
   
-  const getChangeIcon = (change: 'up' | 'down' | 'same') => {
+  const getChangeIcon = (change?: 'up' | 'down' | 'same') => {
     switch (change) {
       case 'up':
         return <ArrowUp className="h-4 w-4 text-green-500" />;
@@ -32,8 +32,8 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ clubs, onSelectClub
       name: club.name,
       division: club.division,
       tier: club.tier,
-      elitePoints: club.division === 'elite' ? club.points : 0,
-      logo: '/placeholder.svg', 
+      elitePoints: club.division === 'elite' ? (club.elitePoints || 0) : 0,
+      logo: club.logo || '/placeholder.svg', 
       members: [],
       matchHistory: []
     });
@@ -79,7 +79,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ clubs, onSelectClub
               onClick={() => handleClubClick(club)}
             >
               <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                {club.rank}
+                {club.rank || '-'}
               </td>
               <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-800 hover:text-primary">
                 {club.name}
@@ -90,7 +90,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ clubs, onSelectClub
                 </span>
               </td>
               <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-800">
-                {club.division === 'elite' ? club.points : '-'}
+                {club.division === 'elite' ? (club.points || 0) : '-'}
               </td>
               <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                 {getChangeIcon(club.change)}
