@@ -27,10 +27,10 @@ const ConnectScreen: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen px-4 py-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-gray-100">
-      <div className="flex-1 flex flex-col justify-between max-w-md mx-auto w-full min-h-0">
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-100 pb-20">
+      <div className="container-mobile pt-8">
         {/* Top section with logo and tagline */}
-        <div className="flex-shrink-0 space-y-2 text-center pt-2">
+        <div className="text-center space-y-2 mb-8">
           <div className="flex justify-center">
             {!logoLoaded && (
               <div className="w-24 sm:w-28 h-24 sm:h-28 bg-gray-200 animate-pulse rounded-lg flex items-center justify-center">
@@ -54,8 +54,8 @@ const ConnectScreen: React.FC = () => {
           </h2>
         </div>
 
-        {/* Middle section with content */}
-        <div className="flex-1 flex flex-col justify-center space-y-3 w-full min-h-0 py-4">
+        {/* Content section with fixed spacing */}
+        <div className="space-y-6 max-w-md mx-auto">
           {/* Only show app info box if not in profile completion mode */}
           {!needsProfileCompletion && (
             <div className="bg-white shadow-md rounded-lg p-3">
@@ -95,7 +95,7 @@ const ConnectScreen: React.FC = () => {
         </div>
         
         {/* Bottom section with clear session button */}
-        <div className="flex-shrink-0 pb-2">
+        <div className="text-center mt-8">
           <Button 
             variant="ghost" 
             size="sm" 
