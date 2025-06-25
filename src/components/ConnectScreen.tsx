@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import LoginForm from './auth/LoginForm';
 import { clearAllAuthData } from '@/integrations/supabase/safeClient';
@@ -33,10 +32,10 @@ const ConnectScreen: React.FC = () => {
             <img 
               src="/lovable-uploads/5908226b-a7fe-42da-94a0-e790688abba8.png" 
               alt="Versus Logo" 
-              className="w-20 h-20 object-contain"
+              className="w-32 h-32 object-contain"
             />
           </div>
-          <h1 className="text-4xl font-bold text-gray-900">Versus</h1>
+          <h1 className="text-4xl font-bold text-green-600">Versus</h1>
           <div className="flex justify-center">
             <div className="w-16 h-1 bg-primary rounded-full"></div>
           </div>
