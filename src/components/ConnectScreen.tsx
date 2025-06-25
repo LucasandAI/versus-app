@@ -26,28 +26,28 @@ const ConnectScreen: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gradient-to-b from-white to-gray-100">
-      <div className="max-w-md w-full space-y-8 text-center">
-        <div className="space-y-4">
+    <div className="flex flex-col items-center justify-center min-h-screen px-4 py-8 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-gray-100">
+      <div className="max-w-md w-full space-y-6 sm:space-y-8 text-center">
+        <div className="space-y-3 sm:space-y-4">
           <div className="flex justify-center">
             <img 
               src="/lovable-uploads/97b51fd2-4445-4dab-9274-d2fd2e0b8bec.png" 
               alt="Versus Logo" 
-              className="w-48 h-auto object-contain"
+              className="w-40 sm:w-48 h-auto object-contain"
             />
           </div>
           <div className="flex justify-center">
             <div className="w-16 h-1 bg-primary rounded-full"></div>
           </div>
-          <h2 className="font-medium text-gray-700 mx-auto whitespace-nowrap text-lg">
+          <h2 className="font-medium text-gray-700 mx-auto whitespace-nowrap text-base sm:text-lg">
             The Competitive League for Runners
           </h2>
         </div>
 
         {/* Only show app info box if not in profile completion mode */}
         {!needsProfileCompletion && (
-          <div className="bg-white shadow-md rounded-lg p-6 mb-6">
-            <div className="space-y-4">
+          <div className="bg-white shadow-md rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+            <div className="space-y-3 sm:space-y-4">
               {[
                 { 
                   number: 1, 
@@ -65,13 +65,13 @@ const ConnectScreen: React.FC = () => {
                   description: "Win matches to ascend through leagues" 
                 }
               ].map((feature) => (
-                <div key={feature.number} className="flex items-center space-x-4">
-                  <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">
+                <div key={feature.number} className="flex items-center space-x-3 sm:space-x-4">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-sm sm:text-base">
                     {feature.number}
                   </div>
                   <div className="text-left">
-                    <h3 className="font-semibold text-gray-800">{feature.title}</h3>
-                    <p className="text-sm text-gray-600">{feature.description}</p>
+                    <h3 className="font-semibold text-gray-800 text-sm sm:text-base">{feature.title}</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">{feature.description}</p>
                   </div>
                 </div>
               ))}
@@ -81,7 +81,7 @@ const ConnectScreen: React.FC = () => {
 
         <LoginForm />
         
-        <div className="pt-4 text-sm text-gray-500">
+        <div className="pt-3 sm:pt-4 text-sm text-gray-500">
           <Button 
             variant="ghost" 
             size="sm" 
