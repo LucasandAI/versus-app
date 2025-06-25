@@ -26,62 +26,67 @@ const ConnectScreen: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-4 py-8 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-gray-100">
-      <div className="max-w-md w-full space-y-6 sm:space-y-8 text-center">
-        <div className="space-y-3 sm:space-y-4">
+    <div className="flex flex-col h-screen px-4 py-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-gray-100">
+      <div className="flex-1 flex flex-col items-center justify-between max-w-md mx-auto w-full">
+        {/* Top section with logo and tagline */}
+        <div className="flex-shrink-0 space-y-2 text-center pt-4">
           <div className="flex justify-center">
             <img 
               src="/lovable-uploads/97b51fd2-4445-4dab-9274-d2fd2e0b8bec.png" 
               alt="Versus Logo" 
-              className="w-40 sm:w-48 h-auto object-contain"
+              className="w-32 sm:w-40 h-auto object-contain"
             />
           </div>
           <div className="flex justify-center">
-            <div className="w-16 h-1 bg-primary rounded-full"></div>
+            <div className="w-12 h-0.5 bg-primary rounded-full"></div>
           </div>
-          <h2 className="font-medium text-gray-700 mx-auto whitespace-nowrap text-base sm:text-lg">
+          <h2 className="font-medium text-gray-700 mx-auto whitespace-nowrap text-sm sm:text-base">
             The Competitive League for Runners
           </h2>
         </div>
 
-        {/* Only show app info box if not in profile completion mode */}
-        {!needsProfileCompletion && (
-          <div className="bg-white shadow-md rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
-            <div className="space-y-3 sm:space-y-4">
-              {[
-                { 
-                  number: 1, 
-                  title: "Create Your Club", 
-                  description: "Build a team of runners who share your competitive spirit" 
-                },
-                { 
-                  number: 2, 
-                  title: "Compete", 
-                  description: "Challenge other clubs in 7-day matches" 
-                },
-                { 
-                  number: 3, 
-                  title: "Climb the Ranks", 
-                  description: "Win matches to ascend through leagues" 
-                }
-              ].map((feature) => (
-                <div key={feature.number} className="flex items-center space-x-3 sm:space-x-4">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-sm sm:text-base">
-                    {feature.number}
+        {/* Middle section with content */}
+        <div className="flex-1 flex flex-col justify-center space-y-4 w-full">
+          {/* Only show app info box if not in profile completion mode */}
+          {!needsProfileCompletion && (
+            <div className="bg-white shadow-md rounded-lg p-3 sm:p-4">
+              <div className="space-y-2 sm:space-y-3">
+                {[
+                  { 
+                    number: 1, 
+                    title: "Create Your Club", 
+                    description: "Build a team of competitive runners" 
+                  },
+                  { 
+                    number: 2, 
+                    title: "Compete", 
+                    description: "Challenge other clubs in 7-day matches" 
+                  },
+                  { 
+                    number: 3, 
+                    title: "Climb the Ranks", 
+                    description: "Win matches to ascend through leagues" 
+                  }
+                ].map((feature) => (
+                  <div key={feature.number} className="flex items-center space-x-3">
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-xs sm:text-sm">
+                      {feature.number}
+                    </div>
+                    <div className="text-left">
+                      <h3 className="font-semibold text-gray-800 text-xs sm:text-sm">{feature.title}</h3>
+                      <p className="text-xs text-gray-600">{feature.description}</p>
+                    </div>
                   </div>
-                  <div className="text-left">
-                    <h3 className="font-semibold text-gray-800 text-sm sm:text-base">{feature.title}</h3>
-                    <p className="text-xs sm:text-sm text-gray-600">{feature.description}</p>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <LoginForm />
+          <LoginForm />
+        </div>
         
-        <div className="pt-3 sm:pt-4 text-sm text-gray-500">
+        {/* Bottom section with clear session button */}
+        <div className="flex-shrink-0 pb-4">
           <Button 
             variant="ghost" 
             size="sm" 
