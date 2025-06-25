@@ -14,12 +14,7 @@ export const useLeaderboardData = (selectedDivision: Division | 'All' = 'All') =
     const fetchLeaderboardData = async () => {
       setLoading(true);
       try {
-        // Fetch clubs with their basic info for leaderboard
-        const { data, error } = await safeSupabase
-          .from('clubs')
-          .select('id, name, division, tier, elite_points, logo, member_count')
-          .order('elite_points', { ascending: false })
-          .order('tier', { ascending: true });
+        const { data, error } = await safeSupabase.clubs.getLeaderboardClubs();
         
         if (error) {
           setError(error.message);
@@ -27,29 +22,15 @@ export const useLeaderboardData = (selectedDivision: Division | 'All' = 'All') =
         }
         
         // Transform and validate data to match LeaderboardClub type
-        const typedData: LeaderboardClub[] = data.map((club, index) => ({
-          id: club.id,
-          name: club.name,
-          division: ensureDivision(club.division), // Ensure division is a valid Division type
-          tier: club.tier,
-          elitePoints: club.elite_points,
-          logo: club.logo || '/placeholder.svg',
-          members: club.member_count,
-          // Calculate derived properties
-          rank: index + 1,
-          points: club.division === 'elite' ? club.elite_points : 0,
-          change: 'same' as const // Default to 'same' since we don't have historical data
+        const typedData: LeaderboardClub[] = data.map(club => ({
+          ...club,
+          division: ensureDivision(club.division) // Ensure division is a valid Division type
         }));
         
         // Filter by division if specified
         let filteredData = typedData;
         if (selectedDivision !== 'All') {
           filteredData = typedData.filter(club => club.division === selectedDivision);
-          // Recalculate ranks for filtered data
-          filteredData = filteredData.map((club, index) => ({
-            ...club,
-            rank: index + 1
-          }));
         }
         
         setLeaderboardData(filteredData);

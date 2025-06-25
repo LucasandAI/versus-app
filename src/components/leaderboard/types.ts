@@ -6,11 +6,7 @@ export interface LeaderboardClub {
   name: string;
   division: Division;
   tier?: number;
-  elitePoints?: number;
-  logo: string;
-  members: number;
-  // These are calculated/derived properties for display
-  rank?: number;
-  points?: number;
-  change?: 'up' | 'down' | 'same';
+  rank: number;
+  points: number;
+  change: 'up' | 'down' | 'same';
 }

@@ -3,7 +3,6 @@ import { useEffect } from 'react';
 import { safeSupabase } from '@/integrations/supabase/safeClient';
 import { AppView, User } from '@/types';
 import { useLoadCurrentUser } from './useLoadCurrentUser';
-import { getGlobalLogoutState } from './useLogoutState';
 import { toast } from '@/hooks/use-toast';
 
 // Reduced timeout for faster resolution
@@ -35,21 +34,14 @@ export const useAuthSessionCore = ({
     const { data } = safeSupabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return;
       
-      // Skip processing if we're in logout state
-      if (getGlobalLogoutState() && event !== 'SIGNED_OUT') {
-        console.log('[useAuthSessionCore] Skipping auth event during logout:', event);
-        return;
-      }
-      
       console.log('[useAuthSessionCore] Auth state changed:', { 
         event, 
         userId: session?.user?.id,
-        userEmail: session?.user?.email,
-        isLoggingOut: getGlobalLogoutState()
+        userEmail: session?.user?.email
       });
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        if (session?.user?.id && !getGlobalLogoutState()) {
+        if (session?.user?.id) {
           try {
             // Only set loading if user explicitly tried to sign in (event === 'SIGNED_IN')
             if (event === 'SIGNED_IN') {
@@ -71,8 +63,9 @@ export const useAuthSessionCore = ({
             setCurrentUser(basicUser);
             
             // Fetch full user profile in the background
+            // No setTimeout needed, call directly
             loadCurrentUser(session.user.id).then((userProfile) => {
-              if (isMounted && userProfile && !getGlobalLogoutState()) {
+              if (isMounted && userProfile) {
                 console.log('[useAuthSessionCore] User profile loaded:', userProfile.id);
                 setCurrentUser(userProfile);
                 
@@ -86,7 +79,7 @@ export const useAuthSessionCore = ({
             }).catch((profileError) => {
               console.warn('[useAuthSessionCore] Error loading full profile, using basic user:', profileError);
             }).finally(() => {
-              if (isMounted && !getGlobalLogoutState()) {
+              if (isMounted) {
                 setUserLoading(false);
               }
             });
@@ -96,15 +89,15 @@ export const useAuthSessionCore = ({
             setAuthChecked(true);
           } catch (error) {
             console.error('[useAuthSessionCore] Error in auth flow:', error);
-            if (isMounted && !getGlobalLogoutState()) {
+            if (isMounted) {
               setAuthError(error instanceof Error ? error.message : 'Authentication error');
               setUserLoading(false);
               setAuthChecked(true);
             }
           }
         } else {
-          console.warn('[useAuthSessionCore] Session exists but no user ID or logout in progress');
-          if (isMounted && !getGlobalLogoutState()) {
+          console.warn('[useAuthSessionCore] Session exists but no user ID');
+          if (isMounted) {
             setAuthChecked(true);
             setUserLoading(false);
             setCurrentView('connect');
@@ -113,16 +106,14 @@ export const useAuthSessionCore = ({
       } else if (event === 'SIGNED_OUT') {
         console.log('[useAuthSessionCore] User signed out');
         if (isMounted) {
-          // Clear user state immediately for smooth transition
           setCurrentUser(null);
           setCurrentView('connect');
           setAuthChecked(true);
           setUserLoading(false);
-          setAuthError(null);
         }
       } else {
         console.log('[useAuthSessionCore] Other auth event:', event);
-        if (isMounted && !getGlobalLogoutState()) {
+        if (isMounted) {
           setAuthChecked(true);
           setUserLoading(false);
         }

@@ -4,11 +4,9 @@ import LoginForm from './auth/LoginForm';
 import { clearAllAuthData } from '@/integrations/supabase/safeClient';
 import { Button } from './ui/button';
 import { useApp } from '@/context/AppContext';
-import { useLogoutState } from '@/context/app/useLogoutState';
 
 const ConnectScreen: React.FC = () => {
   const { needsProfileCompletion } = useApp();
-  const { isLoggingOut } = useLogoutState();
   const [logoLoaded, setLogoLoaded] = useState(false);
   
   // Force logout when this component mounts to ensure clean testing state
@@ -25,20 +23,8 @@ const ConnectScreen: React.FC = () => {
 
   const handleForceLogout = async () => {
     await clearAllAuthData();
-    // Don't reload the page, let the auth state handle the transition
+    window.location.reload();
   };
-
-  // Show a consistent loading state during logout to prevent flash
-  if (isLoggingOut) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-white to-gray-100 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-          <p className="text-sm text-gray-600">Signing out...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-100 pb-20">
