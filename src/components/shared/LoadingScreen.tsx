@@ -13,9 +13,9 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ className, text = "Loadin
     <div className={cn("flex flex-col items-center justify-center h-full", className)}>
       <div className="flex flex-col items-center space-y-4">
         <img 
-          src="/lovable-uploads/5908226b-a7fe-42da-94a0-e790688abba8.png" 
+          src="/lovable-uploads/ccc83dac-7dab-46de-8567-05e20d21145e.png" 
           alt="Versus Logo" 
-          className="w-12 h-12 object-contain"
+          className="w-20 h-auto object-contain"
         />
         <Loader2 className="animate-spin h-6 w-6 text-gray-500" />
         {text && <p className="mt-2 text-sm text-gray-500">{text}</p>}
