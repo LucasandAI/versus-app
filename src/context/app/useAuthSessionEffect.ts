@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useAuthSessionCore } from './useAuthSessionCore';
 import { User, AppView } from '@/types';
 import { safeSupabase } from '@/integrations/supabase/safeClient';
+import { getGlobalLogoutState } from './useLogoutState';
 
 interface Props {
   setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>;
@@ -26,11 +27,23 @@ export const useAuthSessionEffect = ({
 }: Props) => {
   // Initial setup effect
   useEffect(() => {
+    // Skip initialization if we're in the middle of a logout
+    if (getGlobalLogoutState()) {
+      console.log('[useAuthSessionEffect] Skipping initialization - logout in progress');
+      return;
+    }
+    
     // Start with showing the connect view until we verify auth status
     setCurrentView('connect');
     
     // Check for an active session first - do this immediately without setTimeout
     safeSupabase.auth.getSession().then(({ data: { session }, error }) => {
+      // Skip if logout started during this async operation
+      if (getGlobalLogoutState()) {
+        console.log('[useAuthSessionEffect] Skipping session check - logout in progress');
+        return;
+      }
+      
       console.log('[useAuthSessionEffect] Initial session check:', { 
         hasSession: !!session,
         userId: session?.user?.id,
