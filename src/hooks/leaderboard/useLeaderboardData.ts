@@ -14,7 +14,12 @@ export const useLeaderboardData = (selectedDivision: Division | 'All' = 'All') =
     const fetchLeaderboardData = async () => {
       setLoading(true);
       try {
-        const { data, error } = await safeSupabase.clubs.getLeaderboardClubs();
+        // Fetch clubs with their basic info for leaderboard
+        const { data, error } = await safeSupabase
+          .from('clubs')
+          .select('id, name, division, tier, elite_points, logo, member_count')
+          .order('elite_points', { ascending: false })
+          .order('tier', { ascending: true });
         
         if (error) {
           setError(error.message);
@@ -23,8 +28,13 @@ export const useLeaderboardData = (selectedDivision: Division | 'All' = 'All') =
         
         // Transform and validate data to match LeaderboardClub type
         const typedData: LeaderboardClub[] = data.map(club => ({
-          ...club,
-          division: ensureDivision(club.division) // Ensure division is a valid Division type
+          id: club.id,
+          name: club.name,
+          division: ensureDivision(club.division), // Ensure division is a valid Division type
+          tier: club.tier,
+          elitePoints: club.elite_points,
+          logo: club.logo || '/placeholder.svg',
+          members: club.member_count
         }));
         
         // Filter by division if specified

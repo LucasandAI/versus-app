@@ -24,7 +24,25 @@ export const useAvailableClubs = () => {
   const fetchClubs = async () => {
     setLoading(true);
     try {
-      const { data, error } = await safeSupabase.clubs.getAvailableClubs(currentUser?.id);
+      // Get clubs that the current user is NOT a member of
+      let query = safeSupabase
+        .from('clubs')
+        .select('id, name, division, tier, member_count, logo');
+
+      if (currentUser?.id) {
+        // Exclude clubs where the user is already a member
+        const { data: userClubIds } = await safeSupabase
+          .from('club_members')
+          .select('club_id')
+          .eq('user_id', currentUser.id);
+
+        if (userClubIds && userClubIds.length > 0) {
+          const clubIds = userClubIds.map(membership => membership.club_id);
+          query = query.not('id', 'in', `(${clubIds.join(',')})`);
+        }
+      }
+
+      const { data, error } = await query;
       
       if (error) {
         setError(error.message);
@@ -33,8 +51,12 @@ export const useAvailableClubs = () => {
       
       // Transform and validate division field to match Division type
       const typedData: AvailableClub[] = data.map(club => ({
-        ...club,
-        division: ensureDivision(club.division)
+        id: club.id,
+        name: club.name,
+        division: ensureDivision(club.division),
+        tier: club.tier,
+        members: club.member_count,
+        logo: club.logo || '/placeholder.svg'
       }));
       
       setClubs(typedData);
