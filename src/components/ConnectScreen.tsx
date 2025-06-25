@@ -31,7 +31,7 @@ const ConnectScreen: React.FC = () => {
         <div className="space-y-4">
           <div className="flex justify-center">
             <img 
-              src="/lovable-uploads/dd4e1e86-6cd4-456e-afb6-c93273612a1a.png" 
+              src="/lovable-uploads/5908226b-a7fe-42da-94a0-e790688abba8.png" 
               alt="Versus Logo" 
               className="w-20 h-20 object-contain"
             />
