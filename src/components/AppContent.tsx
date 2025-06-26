@@ -11,6 +11,7 @@ import Navigation from '@/components/Navigation';
 import ToastErrorHandler from '@/components/ToastErrorHandler';
 import { useClubMembershipSync } from '@/hooks/useClubMembershipSync';
 import { useNotificationListener } from '@/hooks/useNotificationListener';
+import { useScrollRestoration } from '@/hooks/navigation/useScrollRestoration';
 
 interface AppContentProps {
   children?: React.ReactNode;
@@ -18,6 +19,9 @@ interface AppContentProps {
 
 const AppContent: React.FC<AppContentProps> = ({ children }) => {
   const { currentView, currentUser } = useApp();
+  
+  // Set up scroll restoration for all view changes
+  useScrollRestoration({ currentView });
   
   // Set up real-time club membership sync
   useClubMembershipSync();
