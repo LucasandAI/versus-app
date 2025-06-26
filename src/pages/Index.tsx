@@ -1,4 +1,3 @@
-
 import * as React from 'react';
 import { useApp } from '@/context/AppContext';
 import ConnectScreen from '@/components/ConnectScreen';
@@ -61,10 +60,7 @@ const Index: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Use currentView as key to force remount and reset scroll position */}
-      <div key={currentView} className="scroll-reset">
-        {renderView()}
-      </div>
+      {renderView()}
       {currentUser && !needsProfileCompletion && currentView !== 'connect' && <Navigation />}
       {currentUser && !needsProfileCompletion && (
         <ChatDrawer 
