@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import LoginForm from './auth/LoginForm';
 import { clearAllAuthData } from '@/integrations/supabase/safeClient';
-import { Button } from './ui/button';
 import { useApp } from '@/context/AppContext';
 
 const ConnectScreen: React.FC = () => {
@@ -20,11 +19,6 @@ const ConnectScreen: React.FC = () => {
       });
     }
   }, []);
-
-  const handleForceLogout = async () => {
-    await clearAllAuthData();
-    window.location.reload();
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-100 pb-20">
@@ -92,18 +86,6 @@ const ConnectScreen: React.FC = () => {
           )}
 
           <LoginForm />
-        </div>
-        
-        {/* Bottom section with clear session button */}
-        <div className="text-center mt-8">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleForceLogout}
-            className="text-xs text-gray-400 hover:text-gray-600"
-          >
-            Clear Session
-          </Button>
         </div>
       </div>
     </div>
