@@ -12,7 +12,30 @@ export const useClubActions = (club: Club) => {
     if (!currentUser || !currentUser.clubs.some(c => c.id === club.id)) return;
     
     try {
-      // Remove the user from the club in Supabase
+      // If a new admin is specified, transfer admin rights BEFORE removing the current user
+      if (newAdminId && currentUser.id !== newAdminId) {
+        // Validate that the new admin is actually a member of the club
+        const isValidMember = club.members.some(member => member.id === newAdminId);
+        if (!isValidMember) {
+          throw new Error('Selected user is not a member of this club');
+        }
+
+        console.log(`Transferring admin rights to user ${newAdminId} before leaving club`);
+        const { error: adminError } = await supabase
+          .from('club_members')
+          .update({ is_admin: true })
+          .eq('club_id', club.id)
+          .eq('user_id', newAdminId);
+        
+        if (adminError) {
+          throw new Error(`Failed to transfer admin rights: ${adminError.message}`);
+        }
+        
+        console.log('Admin rights transferred successfully');
+      }
+
+      // Now remove the current user from the club
+      console.log(`Removing current user ${currentUser.id} from club ${club.id}`);
       const { error } = await supabase
         .from('club_members')
         .delete()
@@ -23,28 +46,20 @@ export const useClubActions = (club: Club) => {
         throw new Error(`Failed to leave club: ${error.message}`);
       }
       
-      // Handle admin transfer if specified
-      if (newAdminId && currentUser.id !== newAdminId) {
-        const { error: adminError } = await supabase
-          .from('club_members')
-          .update({ is_admin: true })
-          .eq('club_id', club.id)
-          .eq('user_id', newAdminId);
-        
-        if (adminError) {
-          console.error('Error transferring admin rights:', adminError);
-        }
-      }
+      console.log('Successfully removed user from club');
 
-      // Update local state after successful database update
+      // Update local state after successful database updates
       const updatedClub = { ...club };
+      
+      // Update admin status if a new admin was assigned
       if (newAdminId) {
         updatedClub.members = club.members.map(member => ({
           ...member,
-          isAdmin: member.id === newAdminId
+          isAdmin: member.id === newAdminId ? true : member.isAdmin
         }));
       }
       
+      // Remove the current user from the members list
       updatedClub.members = updatedClub.members.filter(member => member.id !== currentUser.id);
       
       const updatedClubs = currentUser.clubs.filter(c => c.id !== club.id);
@@ -59,7 +74,7 @@ export const useClubActions = (club: Club) => {
       
       toast({
         title: "Left Club",
-        description: `You have successfully left ${club.name}.`
+        description: `You have successfully left ${club.name}.${newAdminId ? ' Admin rights have been transferred.' : ''}`
       });
       
       setCurrentView('home');
