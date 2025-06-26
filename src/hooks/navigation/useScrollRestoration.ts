@@ -12,11 +12,21 @@ export const useScrollRestoration = ({ currentView }: UseScrollRestorationProps)
 
   // Scroll to top when currentView changes (internal navigation)
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // Use requestAnimationFrame to wait for DOM updates, then setTimeout for additional safety
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+      }, 10);
+    });
   }, [currentView]);
 
   // Scroll to top when React Router location changes (external navigation)
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // Use requestAnimationFrame to wait for DOM updates, then setTimeout for additional safety
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+      }, 10);
+    });
   }, [location.pathname]);
 };
