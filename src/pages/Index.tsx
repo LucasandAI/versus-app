@@ -1,4 +1,3 @@
-
 import * as React from 'react';
 import { useApp } from '@/context/AppContext';
 import ConnectScreen from '@/components/ConnectScreen';
@@ -11,15 +10,11 @@ import { Toaster } from '@/components/ui/toaster';
 import ChatDrawer from '@/components/chat/ChatDrawer';
 import { useChatDrawerGlobal } from '@/context/ChatDrawerContext';
 import { useUnreadMessages } from '@/context/UnreadMessagesContext';
-import { useScrollRestoration } from '@/hooks/navigation/useScrollRestoration';
 
 const Index: React.FC = () => {
   const { currentView, currentUser, needsProfileCompletion } = useApp();
   const { totalUnreadCount } = useUnreadMessages();
   const { isOpen: chatDrawerOpen, open: openChatDrawer, close: closeChatDrawer } = useChatDrawerGlobal();
-
-  // Set up scroll restoration for all view changes
-  useScrollRestoration({ currentView });
 
   console.log('[Index] Current view:', currentView, 'Current user:', currentUser ? currentUser.id : 'null');
   console.log('[Index] Needs profile completion:', needsProfileCompletion);
