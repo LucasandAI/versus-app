@@ -40,7 +40,7 @@ export const useClubManagement = (
       const { data: existingClubs, error: checkError } = await safeSupabase
         .from('clubs')
         .select('id, name, slug')
-        .or(`name.ilike.${name},slug.eq.${slug}`)
+        .or(`name.eq.${name},slug.eq.${slug}`)
         .limit(1);
       
       if (checkError) {
