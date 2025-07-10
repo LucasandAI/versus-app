@@ -36,6 +36,21 @@ export const useClubManagement = (
       // Create slug from club name
       const slug = name.toLowerCase().replace(/\s+/g, '-');
       
+      // Pre-check for duplicate club names/slugs
+      const { data: existingClubs, error: checkError } = await safeSupabase
+        .from('clubs')
+        .select('id, name, slug')
+        .or(`name.ilike.${name},slug.eq.${slug}`)
+        .limit(1);
+      
+      if (checkError) {
+        throw new Error(`Error checking for existing clubs: ${checkError.message}`);
+      }
+      
+      if (existingClubs && existingClubs.length > 0) {
+        throw new Error('A club with this name already exists. Please choose a different name.');
+      }
+      
       // Insert the new club
       const { data: clubData, error: clubError } = await safeSupabase
         .from('clubs')
@@ -53,6 +68,16 @@ export const useClubManagement = (
         .single();
 
       if (clubError || !clubData) {
+        // Handle specific PostgreSQL unique constraint violations
+        if (clubError?.code === '23505') {
+          if (clubError.message.includes('clubs_name_key')) {
+            throw new Error('A club with this name already exists. Please choose a different name.');
+          } else if (clubError.message.includes('clubs_slug_key')) {
+            throw new Error('A club with this name already exists. Please choose a different name.');
+          } else {
+            throw new Error('This club name is already taken. Please choose a different name.');
+          }
+        }
         throw new Error(clubError?.message || 'Error creating club');
       }
 

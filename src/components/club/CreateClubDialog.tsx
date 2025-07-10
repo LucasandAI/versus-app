@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Camera } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -27,6 +28,34 @@ const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
   const [image, setImage] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
+
+  const validateClubName = async (clubName: string) => {
+    if (!clubName.trim()) {
+      setNameError("Club name is required");
+      return false;
+    }
+    
+    if (clubName.trim().length < 3) {
+      setNameError("Club name must be at least 3 characters long");
+      return false;
+    }
+    
+    if (clubName.trim().length > 50) {
+      setNameError("Club name must be less than 50 characters");
+      return false;
+    }
+    
+    setNameError(null);
+    return true;
+  };
+
+  const handleNameChange = (value: string) => {
+    setName(value);
+    if (nameError && value.trim()) {
+      validateClubName(value);
+    }
+  };
 
   const handleLogoUpload = async (file: File): Promise<string | null> => {
     if (!currentUser) return null;
@@ -56,12 +85,8 @@ const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
   };
 
   const handleCreateClub = async () => {
-    if (!name.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a club name",
-        variant: "destructive",
-      });
+    const isValidName = await validateClubName(name);
+    if (!isValidName) {
       return;
     }
 
@@ -94,6 +119,7 @@ const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
         setBio("");
         setImage(null);
         setImageFile(null);
+        setNameError(null);
         onOpenChange(false);
       } else {
         throw new Error('Failed to create club');
@@ -165,9 +191,13 @@ const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
             <Input
               id="name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => handleNameChange(e.target.value)}
               placeholder="Enter club name"
+              className={nameError ? "border-red-500" : ""}
             />
+            {nameError && (
+              <p className="text-sm text-red-500">{nameError}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -185,7 +215,7 @@ const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isCreating}>
             Cancel
           </Button>
-          <Button onClick={handleCreateClub} disabled={isCreating}>
+          <Button onClick={handleCreateClub} disabled={isCreating || !!nameError}>
             {isCreating ? 'Creating...' : 'Create Club'}
           </Button>
         </DialogFooter>
