@@ -8,7 +8,7 @@ import UserProfileDialogs from './profile/UserProfileDialogs';
 import { useUserProfileStateLogic } from './profile/hooks/useUserProfileStateLogic';
 import { clearAllAuthData } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const UserProfile: React.FC = () => {
   const { 
@@ -64,8 +64,8 @@ const UserProfile: React.FC = () => {
       setLogoutDialogOpen(false);
       
       toast({
-        title: t('profile.logoutSuccess') as string,
-        description: t('profile.logoutSuccess') as string
+        title: t('profile.logoutSuccess'),
+        description: t('profile.logoutSuccess')
       });
     } catch (error) {
       console.error('Error during logout:', error);

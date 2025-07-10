@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import SocialLinksDropdown from '../social/SocialLinksDropdown';
 import { User } from '@/types';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '@/hooks/useTranslation';
 import SettingsDialog from '@/components/settings/SettingsDialog';
 
 interface ProfileActionsProps {
@@ -42,7 +42,7 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                {t('common.settings') as string}
+                {t('common.settings')}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -62,7 +62,7 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                {t('profile.logout') as string}
+                {t('profile.logout')}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

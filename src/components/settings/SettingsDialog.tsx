@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '@/hooks/useTranslation';
 import {
   Dialog,
   DialogContent,
@@ -28,30 +28,28 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
 
   const handleLanguageChange = (value: string) => {
     i18n.changeLanguage(value);
-    localStorage.setItem('language', value);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{t('settings.title') as string}</DialogTitle>
+          <DialogTitle>{t('settings.title')}</DialogTitle>
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="language">{t('settings.language') as string}</Label>
+            <Label htmlFor="language">{t('settings.language')}</Label>
             <Select value={i18n.language} onValueChange={handleLanguageChange}>
               <SelectTrigger>
-                <SelectValue placeholder={t('settings.selectLanguage') as string} />
+                <SelectValue placeholder={t('settings.selectLanguage')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="en">
-                  🇺🇸 {t('languages.en') as string}
-                </SelectItem>
-                <SelectItem value="fr">
-                  🇫🇷 {t('languages.fr') as string}
-                </SelectItem>
+                {i18n.getAvailableLanguages().map((lang) => (
+                  <SelectItem key={lang.code} value={lang.code}>
+                    {lang.flag} {lang.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

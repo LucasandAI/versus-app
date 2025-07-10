@@ -4,7 +4,7 @@ import { Home, Trophy, User } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
 import { useLocation } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface NavigationProps {
   // We could add props here in the future if needed, but now we don't need any
@@ -41,19 +41,19 @@ const Navigation: React.FC<NavigationProps> = () => {
   const navItems = [
     { 
       view: 'home' as const, 
-      label: t('navigation.home') as string, 
+      label: t('navigation.home'), 
       icon: Home,
       onClick: () => setCurrentView('home')
     },
     { 
       view: 'leaderboard' as const, 
-      label: t('navigation.leagues') as string, 
+      label: t('navigation.leagues'), 
       icon: Trophy,
       onClick: () => setCurrentView('leaderboard')
     },
     { 
       view: 'profile' as const, 
-      label: t('navigation.profile') as string, 
+      label: t('navigation.profile'), 
       icon: User,
       onClick: handleProfileClick,
       active: isViewingOwnProfile // This will determine if it should be highlighted
