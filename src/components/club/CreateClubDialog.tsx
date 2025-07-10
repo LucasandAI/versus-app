@@ -121,9 +121,8 @@ const CreateClubDialog = ({ open, onOpenChange }: CreateClubDialogProps) => {
         setImageFile(null);
         setNameError(null);
         onOpenChange(false);
-      } else {
-        throw new Error('Failed to create club');
       }
+      // Don't throw error if result is null - createClub already shows the specific error message
     } catch (error) {
       console.error('[CreateClubDialog] Error creating club:', error);
       toast({
