@@ -8,6 +8,7 @@ import UserProfileDialogs from './profile/UserProfileDialogs';
 import { useUserProfileStateLogic } from './profile/hooks/useUserProfileStateLogic';
 import { clearAllAuthData } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 
 const UserProfile: React.FC = () => {
   const { 
@@ -19,6 +20,7 @@ const UserProfile: React.FC = () => {
     setSelectedUser
   } = useApp();
   const isMobile = useIsMobile();
+  const { t } = useTranslation();
 
   const {
     loading: profileStateLoading,
@@ -62,8 +64,8 @@ const UserProfile: React.FC = () => {
       setLogoutDialogOpen(false);
       
       toast({
-        title: "Logged out successfully",
-        description: "You have been logged out of your account"
+        title: t('profile.logoutSuccess') as string,
+        description: t('profile.logoutSuccess') as string
       });
     } catch (error) {
       console.error('Error during logout:', error);

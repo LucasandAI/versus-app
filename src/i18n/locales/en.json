@@ -1,0 +1,54 @@
+{
+  "navigation": {
+    "home": "Home",
+    "leagues": "Leagues",
+    "profile": "Profile"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "create": "Create",
+    "close": "Close",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "settings": "Settings"
+  },
+  "profile": {
+    "editProfile": "Edit Profile",
+    "basicInfo": "Basic Information",
+    "socialLinks": "Social Links",
+    "name": "Name",
+    "bio": "Bio",
+    "achievements": "Achievements",
+    "clubs": "Clubs",
+    "stats": "Stats",
+    "logout": "Logout",
+    "logoutSuccess": "Logged out successfully"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "selectLanguage": "Select Language"
+  },
+  "languages": {
+    "en": "English",
+    "fr": "Français"
+  },
+  "club": {
+    "createClub": "Create Club",
+    "clubName": "Club Name",
+    "clubBio": "Club Bio",
+    "division": "Division",
+    "members": "Members",
+    "joinClub": "Join Club",
+    "leaveClub": "Leave Club"
+  },
+  "auth": {
+    "login": "Login",
+    "email": "Email",
+    "password": "Password"
+  }
+}

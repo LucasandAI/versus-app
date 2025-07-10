@@ -1,0 +1,54 @@
+{
+  "navigation": {
+    "home": "Accueil",
+    "leagues": "Ligues",
+    "profile": "Profil"
+  },
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "create": "Créer",
+    "close": "Fermer",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "settings": "Paramètres"
+  },
+  "profile": {
+    "editProfile": "Modifier le profil",
+    "basicInfo": "Informations de base",
+    "socialLinks": "Liens sociaux",
+    "name": "Nom",
+    "bio": "Biographie",
+    "achievements": "Réalisations",
+    "clubs": "Clubs",
+    "stats": "Statistiques",
+    "logout": "Se déconnecter",
+    "logoutSuccess": "Déconnexion réussie"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "language": "Langue",
+    "selectLanguage": "Sélectionner la langue"
+  },
+  "languages": {
+    "en": "English",
+    "fr": "Français"
+  },
+  "club": {
+    "createClub": "Créer un club",
+    "clubName": "Nom du club",
+    "clubBio": "Description du club",
+    "division": "Division",
+    "members": "Membres",
+    "joinClub": "Rejoindre le club",
+    "leaveClub": "Quitter le club"
+  },
+  "auth": {
+    "login": "Connexion",
+    "email": "E-mail",
+    "password": "Mot de passe"
+  }
+}

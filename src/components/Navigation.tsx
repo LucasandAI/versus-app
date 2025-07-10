@@ -4,6 +4,7 @@ import { Home, Trophy, User } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
 import { useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface NavigationProps {
   // We could add props here in the future if needed, but now we don't need any
@@ -12,6 +13,7 @@ interface NavigationProps {
 const Navigation: React.FC<NavigationProps> = () => {
   const { currentView, setCurrentView, setSelectedUser, currentUser, selectedUser, needsProfileCompletion } = useApp();
   const location = useLocation();
+  const { t } = useTranslation();
   
   // Don't show navigation on the connect-device page
   if (location.pathname === '/connect-device') {
@@ -39,19 +41,19 @@ const Navigation: React.FC<NavigationProps> = () => {
   const navItems = [
     { 
       view: 'home' as const, 
-      label: 'Home', 
+      label: t('navigation.home') as string, 
       icon: Home,
       onClick: () => setCurrentView('home')
     },
     { 
       view: 'leaderboard' as const, 
-      label: 'Leagues', 
+      label: t('navigation.leagues') as string, 
       icon: Trophy,
       onClick: () => setCurrentView('leaderboard')
     },
     { 
       view: 'profile' as const, 
-      label: 'Profile', 
+      label: t('navigation.profile') as string, 
       icon: User,
       onClick: handleProfileClick,
       active: isViewingOwnProfile // This will determine if it should be highlighted

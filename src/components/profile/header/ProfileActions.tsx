@@ -1,10 +1,12 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Settings, LogOut } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import SocialLinksDropdown from '../social/SocialLinksDropdown';
 import { User } from '@/types';
+import { useTranslation } from 'react-i18next';
+import SettingsDialog from '@/components/settings/SettingsDialog';
 
 interface ProfileActionsProps {
   user: User;
@@ -21,6 +23,8 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
   onLogoutClick,
   onShareProfile
 }) => {
+  const { t } = useTranslation();
+  const [settingsOpen, setSettingsOpen] = useState(false);
   return (
     <div className="flex justify-center space-x-4">
       {isCurrentUserProfile ? (
@@ -32,13 +36,13 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
                   variant="ghost" 
                   size="sm" 
                   className="rounded-full"
-                  onClick={onEditProfile}
+                  onClick={() => setSettingsOpen(true)}
                 >
                   <Settings className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                Settings
+                {t('common.settings') as string}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -58,7 +62,7 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                Log Out
+                {t('profile.logout') as string}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -66,6 +70,11 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
       ) : (
         <SocialLinksDropdown user={user} onShareProfile={onShareProfile} />
       )}
+      
+      <SettingsDialog 
+        open={settingsOpen} 
+        onOpenChange={setSettingsOpen} 
+      />
     </div>
   );
 };
