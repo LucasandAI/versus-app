@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import AvailableClubs from '../club/AvailableClubs';
 import Button from '../shared/Button';
@@ -20,17 +20,46 @@ const FindClubsSection: React.FC<FindClubsSectionProps> = ({
   onSearchClick,
   onCreateClick,
 }) => {
+  const [displayedClubs, setDisplayedClubs] = useState<any[]>([]);
+
+  const getRandomClubs = (allClubs: any[], count: number = 3) => {
+    if (allClubs.length <= count) return allClubs;
+    
+    const shuffled = [...allClubs].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
+  };
+
+  const refreshRandomClubs = () => {
+    setDisplayedClubs(getRandomClubs(clubs));
+  };
+
+  useEffect(() => {
+    if (clubs.length > 0) {
+      setDisplayedClubs(getRandomClubs(clubs));
+    }
+  }, [clubs]);
+
   return (
     <div className="mt-10">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold">Find Clubs</h2>
-        <button 
-          className="text-primary flex items-center gap-1"
-          onClick={onSearchClick}
-        >
-          <Search className="h-4 w-4" />
-          <span className="text-sm">Search</span>
-        </button>
+        <div className="flex items-center gap-4">
+          <button 
+            className="text-primary flex items-center gap-1"
+            onClick={refreshRandomClubs}
+            disabled={isLoading || clubs.length === 0}
+          >
+            <Search className="h-4 w-4" />
+            <span className="text-sm">Refresh</span>
+          </button>
+          <button 
+            className="text-primary flex items-center gap-1"
+            onClick={onSearchClick}
+          >
+            <Search className="h-4 w-4" />
+            <span className="text-sm">Search</span>
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -44,7 +73,7 @@ const FindClubsSection: React.FC<FindClubsSectionProps> = ({
         </div>
       ) : (
         <AvailableClubs 
-          clubs={clubs}
+          clubs={displayedClubs}
           onRequestJoin={onRequestJoin}
         />
       )}
