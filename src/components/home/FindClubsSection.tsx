@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, ArrowRight } from 'lucide-react';
+import { Search, RotateCcw } from 'lucide-react';
 import AvailableClubs from '../club/AvailableClubs';
 import Button from '../shared/Button';
 import { Skeleton } from '../ui/skeleton';
@@ -49,7 +49,7 @@ const FindClubsSection: React.FC<FindClubsSectionProps> = ({
             onClick={refreshRandomClubs}
             disabled={isLoading || clubs.length === 0}
           >
-            <ArrowRight className="h-4 w-4" />
+            <RotateCcw className="h-4 w-4" />
             <span className="text-sm">Refresh</span>
           </button>
           <button 
