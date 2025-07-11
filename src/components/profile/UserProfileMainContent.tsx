@@ -5,14 +5,14 @@ import UserHeader from './UserHeader';
 import UserStats from './UserStats';
 import UserInviteSection from './UserInviteSection';
 import UserClubs from './UserClubs';
-import UserAchievements from './UserAchievements';
+// import UserAchievements from './UserAchievements';
 import NoUserState from './states/NoUserState';
 import { getBestLeague } from './helpers/LeagueHelper';
-import { 
-  completedAchievements, 
-  inProgressAchievements, 
-  moreInProgressAchievements 
-} from './data/achievements';
+// import { 
+//   completedAchievements, 
+//   inProgressAchievements, 
+//   moreInProgressAchievements 
+// } from './data/achievements';
 import { User, Club } from '@/types';
 import { useNavigation } from '@/hooks/useNavigation';
 import { useApp } from '@/context/AppContext';
@@ -110,7 +110,7 @@ const UserProfileMainContent: React.FC<UserProfileMainContentProps> = ({
           loading={loading}
           onClubClick={handleClubClick}
         />
-        <UserAchievements
+        {/* <UserAchievements
           loading={loading}
           isCurrentUserProfile={isCurrentUserProfile}
           completedAchievements={completedAchievements}
@@ -118,7 +118,7 @@ const UserProfileMainContent: React.FC<UserProfileMainContentProps> = ({
           moreInProgressAchievements={moreInProgressAchievements}
           showMoreAchievements={showMoreAchievements}
           onToggleMoreAchievements={() => setShowMoreAchievements(!showMoreAchievements)}
-        />
+        /> */}
       </div>
     </div>
   );
