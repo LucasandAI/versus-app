@@ -49,7 +49,7 @@ const FindClubsSection: React.FC<FindClubsSectionProps> = ({
             onClick={refreshRandomClubs}
             disabled={isLoading || clubs.length === 0}
           >
-            <ArrowRight className="h-4 w-4" style={{ transform: 'rotate(135deg)' }} />
+            <ArrowRight className="h-4 w-4 transform rotate-90" />
             <span className="text-sm">Refresh</span>
           </button>
           <button 
