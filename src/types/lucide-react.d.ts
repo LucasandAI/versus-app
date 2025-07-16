@@ -20,6 +20,10 @@ declare module 'lucide-react' {
   export const ArrowRight: FC<IconProps>;
   export const ArrowUp: FC<IconProps>;
   export const ArrowDown: FC<IconProps>;
+  export const RefreshCw: FC<IconProps>;
+  export const RefreshCcw: FC<IconProps>;
+  export const RotateCw: FC<IconProps>;
+  export const RotateCcw: FC<IconProps>;
   export const ChevronDown: FC<IconProps>;
   export const ChevronUp: FC<IconProps>;
   export const ChevronLeft: FC<IconProps>;
